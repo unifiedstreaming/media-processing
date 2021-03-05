@@ -1,0 +1,47 @@
+#
+# Copyright (C) 2021 CodeShop B.V.
+#
+# This file is part of the x264_encoding_service.
+#
+# The x264_encoding_service is free software: you can redistribute it
+# and/or modify it under the terms of version 2 of the GNU General
+# Public License as published by the Free Software Foundation.
+#
+# The x264_encoding_service is distributed in the hope that it will
+# be useful, but WITHOUT ANY WARRANTY; without even the implied
+# warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+# See version 2 of the GNU General Public License for more details.
+#
+# You should have received a copy of version 2 of the GNU General
+# Public License along with the x264_encoding_service.  If not, see
+# <http://www.gnu.org/licenses/>.
+#
+
+import os ;
+
+if [ os.name ] = NT
+{
+  lib advapi32 ; 
+}
+else
+{
+  alias advapi32 : ;
+}
+
+exe x264_encoding_service
+: main.cpp
+  logger.cpp
+  streambuf_logger.cpp
+  system_error.cpp
+  system_logger.cpp
+  advapi32
+;
+
+install stage
+: x264_encoding_service
+: <variant>debug:<location>bin64/debug
+  <variant>release:<location>bin64/release
+  <install-dependencies>on
+  <install-type>EXE
+  <install-type>SHARED_LIB
+;
