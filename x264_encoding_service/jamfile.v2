@@ -28,6 +28,11 @@ else
   alias advapi32 : ;
 }
 
+project xes
+: requirements
+  <address-model>64
+;
+
 exe x264_encoding_service
 : main.cpp
   logger.cpp
