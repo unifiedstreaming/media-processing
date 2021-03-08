@@ -47,7 +47,7 @@ exe x264_encoding_service
   advapi32
 ;
 
-package.install install x264_encoding_service
+package.install install xes
 : # properties
 : # binaries
   x264_encoding_service
