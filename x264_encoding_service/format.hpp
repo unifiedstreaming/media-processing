@@ -17,40 +17,24 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#ifndef STREAMBUF_LOGGER_HPP_
-#define STREAMBUF_LOGGER_HPP_
+#ifndef FORMAT_HPP_
+#define FORMAT_HPP_
 
 #include "logger.hpp"
 
-#include <mutex>
-#include <iosfwd>
+#include <chrono>
 #include <streambuf>
 
 namespace xes
 {
 
-/*
- * This logger provides concurrent logging to an existing ostream or
- * streambuf.
- * Please note that while this class uses a mutex to project the
- * target streambuf, it cannot project the target streambuf from
- * concurrent writes that bypassing this mutex.  Depending on how the
- * streambuf is used, such writes may lead to a data race (==UB) or
- * garbled output otherwise.  See the C++14 standard, clauses 27.2.3
- * and and 27.4.1.
- */
-struct streambuf_logger_t : logger_t
-{
-  explicit streambuf_logger_t(std::streambuf* sb);
-  explicit streambuf_logger_t(std::ostream& os);
-
-private :
-  virtual void do_report(loglevel_t level, char const* message) override;
-
-private :
-  std::mutex mutex_;
-  std::streambuf* const sb_;
-};
+void format_unsigned(std::streambuf& target, unsigned int number,
+                     int width = 0);
+void format_string(std::streambuf& target, const char* str,
+                   int width = 0);
+void format_loglevel(std::streambuf& target, loglevel_t level);
+void format_timepoint(std::streambuf& target,
+                      std::chrono::system_clock::time_point tp);
 
 } // namespace xes
 

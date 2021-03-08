@@ -39,7 +39,8 @@ project xes
 ;
 
 lib xes_utils
-: logger.cpp
+: format.cpp
+  logger.cpp
   streambuf_logger.cpp
   system_error.cpp
   system_logger.cpp

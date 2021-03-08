@@ -19,7 +19,10 @@
 
 #include "system_logger.hpp"
 
+#include "format.hpp"
 #include "system_error.hpp"
+
+#include <sstream>
 
 #ifdef _WIN32
 
@@ -45,11 +48,8 @@ struct system_logger_t::impl_t
 
   void report(loglevel_t level, char const* message)
   {
-    std::string output = std::string("[") +  loglevel_string(level) + "] " +
-      message;
-
     char const* strings[1];
-    strings[0] = output.c_str();
+    strings[0] = message;
     
     ReportEvent(handle_, loglevel_type(level), 0, 0,
                 nullptr, 1, 0, strings, nullptr);
@@ -99,7 +99,7 @@ struct system_logger_t::impl_t
 
   void report(loglevel_t level, char const* message)
   {
-    syslog(priority(level), "[%s] %s", loglevel_string(level), message);
+    syslog(priority(level), "%s", message);
   }
     
   ~impl_t()
@@ -137,7 +137,12 @@ system_logger_t::system_logger_t(char const* source_name)
 
 void system_logger_t::do_report(loglevel_t level, char const* message)
 {
-  impl_->report(level, message);
+  std::stringbuf buf(std::ios_base::out);
+  format_loglevel(buf, level);
+  buf.sputc(' ');
+  format_string(buf, message);
+  
+  impl_->report(level, buf.str().c_str());
 }
 
 system_logger_t::~system_logger_t()
