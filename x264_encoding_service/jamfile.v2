@@ -38,13 +38,18 @@ project xes
   <debug-symbols>on
 ;
 
-exe x264_encoding_service
-: main.cpp
-  logger.cpp
+lib xes_utils
+: logger.cpp
   streambuf_logger.cpp
   system_error.cpp
   system_logger.cpp
   advapi32
+: <link>static
+; 
+
+exe x264_encoding_service
+: main.cpp
+  xes_utils
 ;
 
 package.install install xes
