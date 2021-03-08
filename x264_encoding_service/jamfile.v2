@@ -18,6 +18,7 @@
 #
 
 import os ;
+import package ;
 
 if [ os.name ] = NT
 {
@@ -30,7 +31,11 @@ else
 
 project xes
 : requirements
+  <cxxstd>14
+: default-build
+  <variant>release
   <address-model>64
+  <debug-symbols>on
 ;
 
 exe x264_encoding_service
@@ -42,11 +47,10 @@ exe x264_encoding_service
   advapi32
 ;
 
-install stage
-: x264_encoding_service
-: <variant>debug:<location>bin64/debug
-  <variant>release:<location>bin64/release
-  <install-dependencies>on
-  <install-type>EXE
-  <install-type>SHARED_LIB
+package.install install
+: # properties
+: # binaries
+  x264_encoding_service
+: # libraries
+: # headers
 ;
