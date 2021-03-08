@@ -34,7 +34,7 @@ namespace xes
  * streambuf.
  * Please note that while this class uses a mutex to project the
  * target streambuf, it cannot project the target streambuf from
- * concurrent writes that bypassing this mutex.  Depending on how the
+ * concurrent writes that bypass this mutex.  Depending on how the
  * streambuf is used, such writes may lead to a data race (==UB) or
  * garbled output otherwise.  See the C++14 standard, clauses 27.2.3
  * and and 27.4.1.
