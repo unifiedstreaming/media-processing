@@ -17,49 +17,9 @@
 # <http://www.gnu.org/licenses/>.
 #
 
-import os ;
-import package ;
+import testing ;
 
-if [ os.name ] = NT
-{
-  lib advapi32 ; 
-}
-else
-{
-  alias advapi32 : ;
-}
-
-project xes
-: requirements
-  <cxxstd>14
-  <threading>multi
-: default-build
-  <variant>release
-  <address-model>64
-  <debug-symbols>on
-;
-
-lib xes_utils
-: format.cpp
-  logger.cpp
-  streambuf_logger.cpp
-  system_error.cpp
-  system_logger.cpp
-  advapi32
-: <link>static
-:
-: <include>.
-; 
-
-exe x264_encoding_service
-: main.cpp
-  xes_utils
-;
-
-package.install install xes
-: # properties
-: # binaries
-  x264_encoding_service
-: # libraries
-: # headers
+unit-test streambuf_logger_test
+: streambuf_logger_test.cpp
+  ..//xes_utils
 ;
