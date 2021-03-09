@@ -18,17 +18,16 @@
  */
 
 #include "streambuf_logger.hpp"
+#include "scoped_thread.hpp"
 
 #include <cstring>
 
 #include <condition_variable>
-#include <functional>
 #include <iostream>
 #include <memory>
 #include <mutex>
 #include <sstream>
 #include <string>
-#include <thread>
 #include <utility>
 #include <vector>
 
@@ -38,24 +37,6 @@
 
 namespace // anonymous
 {
-
-struct joined_thread_t
-{
-  explicit joined_thread_t(std::function<void()> f)
-  : thread_(std::move(f))
-  { }
-
-  joined_thread_t(joined_thread_t const&) = delete;
-  joined_thread_t& operator=(joined_thread_t const&) = delete;
-  
-  ~joined_thread_t()
-  {
-    thread_.join();
-  }
-
-private :
-  std::thread thread_;
-};
 
 struct thundering_herd_fence_t
 {
@@ -181,7 +162,7 @@ void test_multi_threaded()
 
   thundering_herd_fence_t fence(n_threads);
   {
-    std::vector<std::unique_ptr<joined_thread_t>> threads;
+    std::vector<std::unique_ptr<xes::scoped_thread_t>> threads;
     for(unsigned int tid = 0; tid != n_threads; ++tid)
     {
       auto code = [&, tid]
@@ -190,7 +171,7 @@ void test_multi_threaded()
         log_away(logger, n_events, tid);
       };
 
-      threads.push_back(std::make_unique<joined_thread_t>(code));
+      threads.push_back(std::make_unique<xes::scoped_thread_t>(code));
     }
   }
   
