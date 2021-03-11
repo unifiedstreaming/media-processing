@@ -40,7 +40,9 @@ project xes
 ;
 
 lib xes_utils
-: format.cpp
+: file_logger.cpp
+  format.cpp
+  logbuf.cpp
   logger.cpp
   scoped_thread.cpp
   streambuf_logger.cpp
@@ -48,6 +50,7 @@ lib xes_utils
   system_logger.cpp
   advapi32
 : <link>static
+  <target-os>windows:<define>NOMINMAX
 :
 : <include>.
 ; 

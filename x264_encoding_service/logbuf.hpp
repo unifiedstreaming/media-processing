@@ -17,26 +17,45 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#include "system_error.hpp"
-#include "file_logger.hpp"
+#ifndef LOGBUF_HPP_
+#define LOGBUF_HPP_
 
-#include <iostream>
-#include <thread>
-#include <string>
+#include <streambuf>
 
-int main()
+namespace xes
 {
-  std::cout << "Started" << std::endl;
-  {
-    xes::file_logger_t logger("subdir/logfile", 64 * 1024);
-    for(int i = 0; i != 10000; ++i)
-    {
-      logger.report(xes::loglevel_t::info,
-        "Logging message #" + std::to_string(i));
-      // std::this_thread::sleep_for(std::chrono::seconds(1));
-    }
-  }
-  std::cout << "Done" << std::endl;
+
+struct logbuf_t : std::streambuf
+{
+  logbuf_t();
+
+  logbuf_t(logbuf_t const&) = delete;
+  logbuf_t& operator=(logbuf_t const&) = delete;
   
-  return 0;
-}
+  char const* begin() const
+  {
+    return this->pbase();
+  }
+
+  char const* end() const
+  {
+    return this->pptr();
+  }
+
+  char const* c_str() const
+  {
+    return this->pbase();
+  }
+
+  ~logbuf_t() override;
+
+protected :
+  int overflow(int c) override;
+
+private :
+  char inline_buf_[256];
+};
+    
+} // namespace xes
+
+#endif
