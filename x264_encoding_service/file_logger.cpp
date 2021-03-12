@@ -159,9 +159,104 @@ void delete_if_exists(std::string const& name)
 
 #else // POSIX
 
-#error TODO: POSIX
+#include <errno.h>
+#include <fcntl.h>
+#include <stdio.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
 
+#ifndef O_CLOEXEC
+#define O_CLOEXEC 0
 #endif
+
+namespace xes
+{
+
+struct file_logger_t::log_handle_t
+{
+  log_handle_t(char const* filename)
+  : fd_(::open(filename, O_CREAT | O_WRONLY | O_APPEND | O_CLOEXEC, 0666))
+  {
+    if(fd_ == -1)
+    {
+      int cause = last_system_error();
+      throw system_exception_t(
+        std::string("Failed to open log file ") + filename, cause);
+    }
+  }
+
+  log_handle_t(log_handle_t const&) = delete;
+  log_handle_t& operator=(log_handle_t const&) = delete;
+
+  std::size_t filesize() const noexcept
+  {
+    struct stat statbuf;
+    if(::fstat(fd_, &statbuf) == -1 || (statbuf.st_mode & S_IFMT) != S_IFREG)
+    {
+      return 0;
+    }
+    return statbuf.st_size;
+  }
+    
+  void write(char const* first, char const* last)
+  {
+    while(first != last)
+    {
+      auto result = ::write(fd_, first, last - first);
+      if(result == -1)
+      {
+        int cause = last_system_error();
+        throw system_exception_t("write() failure", cause);
+      }
+      first += result;
+    }
+  }
+        
+  ~log_handle_t()
+  {
+    ::close(fd_);
+  }
+
+private :
+  int fd_;
+};
+
+namespace // anonymous
+{
+
+void rename_if_exists(std::string const& old_name, std::string const& new_name)
+{
+  int r = ::rename(old_name.c_str(), new_name.c_str());
+  if(r == -1)
+  {
+    int cause = last_system_error();
+    if(cause != ENOENT)
+    {
+      throw system_exception_t(
+        "Can't rename " + old_name + " to " + new_name, cause);
+    }
+  }
+}
+
+void delete_if_exists(std::string& name)
+{
+  int r = ::remove(name.c_str());
+  if(r == -1)
+  {
+    int cause = last_system_error();
+    if(cause != ENOENT)
+    {
+      throw system_exception_t("Can't remove " + name, cause);
+    }
+  }
+}
+  
+} // anonymous
+
+} // xes
+
+#endif // POSIX
 
 namespace xes
 {
@@ -266,7 +361,7 @@ void file_logger_t::do_report(loglevel_t level, char const* message)
     // ...then report the current event
     write_log_entry(*handle, level, message);
 
-    // if we're still here, leave failure mode
+    // if we're still here, exit failure mode
     n_failures_ = 0;
   }
   catch(system_exception_t const& ex)
@@ -292,8 +387,7 @@ file_logger_t::open_log_handle()
   {
     /*
      * Try to add an entry to the old log to say we're rotating, but
-     * avoid repeating that entry over and over again when rotation
-     * fails.
+     * avoid repeating that entry while rotation keeps failing.
      */
     if(!rotating_)
     {
