@@ -26,6 +26,7 @@ namespace xes
 
 logbuf_t::logbuf_t()
 : std::streambuf()
+, buf_(inline_buf_)
 {
   char *end_inline_buf = inline_buf_ + sizeof inline_buf_;
 
@@ -33,42 +34,40 @@ logbuf_t::logbuf_t()
   // to cater for c_str().
   std::fill(inline_buf_, end_inline_buf, '\0');
 
-  this->setp(inline_buf_, inline_buf_, end_inline_buf - 1);
+  this->setp(inline_buf_, end_inline_buf - 1);
 }
 
 logbuf_t::~logbuf_t()
 {
-  char* buf = this->pbase();
-  if(buf != inline_buf_)
+  if(buf_ != inline_buf_)
   {
-    delete[] buf;
+    delete[] buf_;
   }
 }
 
 int logbuf_t::overflow(int c)
 {
-  char* buf = this->pbase();
   char* pptr = this->pptr();
   char* epptr = this->epptr();
 
   if(pptr == epptr)
   {
-    std::size_t length = pptr - buf;
+    std::size_t length = pptr - buf_;
     std::size_t old_size = length + 1;
     std::size_t new_size = old_size + old_size / 2 + sizeof inline_buf_;
     char* new_buf = new char[new_size];
-    std::copy(buf, pptr, new_buf);
+    std::copy(buf_, pptr, new_buf);
 
     // Fill remainder with zeros, making sure the final cell is not
     // overwritten, to cater for c_str().
     std::fill(new_buf + length, new_buf + new_size, '\0');
 
-    if(buf != inline_buf_)
+    if(buf_ != inline_buf_)
     {
-      delete[] buf;
+      delete[] buf_;
     }
 
-    buf = new_buf;
+    buf_ = new_buf;
     pptr = new_buf + length;
     epptr = new_buf + new_size - 1;
   }
@@ -79,7 +78,7 @@ int logbuf_t::overflow(int c)
     ++pptr;
   }
 
-  this->setp(buf, pptr, epptr);
+  this->setp(pptr, epptr);
 
   return traits_type::not_eof(c);
 }

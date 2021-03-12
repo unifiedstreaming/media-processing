@@ -34,7 +34,7 @@ struct logbuf_t : std::streambuf
   
   char const* begin() const
   {
-    return this->pbase();
+    return buf_;
   }
 
   char const* end() const
@@ -44,7 +44,7 @@ struct logbuf_t : std::streambuf
 
   char const* c_str() const
   {
-    return this->pbase();
+    return buf_;
   }
 
   ~logbuf_t() override;
@@ -54,6 +54,7 @@ protected :
 
 private :
   char inline_buf_[256];
+  char* buf_;
 };
     
 } // namespace xes
