@@ -72,7 +72,8 @@ std::string system_error_string(int error)
 
   char buf[bufsize];
 
-#if (_POSIX_C_SOURCE >= 200112L || _XOPEN_SOURCE >= 600) && !_GNU_SOURCE
+#if !__GLIBC__ || \
+  ((_POSIX_C_SOURCE >= 200112L || _XOPEN_SOURCE >= 600) && !_GNU_SOURCE)
 
   // Posix version
   int r = strerror_r(error, buf, bufsize - 1);
