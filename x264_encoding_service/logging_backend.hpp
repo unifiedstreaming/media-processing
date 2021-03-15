@@ -17,28 +17,34 @@
  * <http://www.gnu.org/licenses/>.
  */
 
+#ifndef LOGGING_BACKEND_HPP_
+#define LOGGING_BACKEND_HPP_
+
 #include "logger.hpp"
-#include "file_backend.hpp"
 
-#include <iostream>
-#include <thread>
-#include <string>
-
-int main()
+namespace xes
 {
-  std::cout << "Started" << std::endl;
-  {
-    xes::logger_t logger;
-    logger.set_backend(
-      std::make_unique<xes::file_backend_t>("subdir/logfile", 64 * 1024));
-    for(int i = 0; i != 10000; ++i)
-    {
-      logger.report(xes::loglevel_t::info,
-        "Logging message #" + std::to_string(i));
-      // std::this_thread::sleep_for(std::chrono::seconds(1));
-    }
-  }
-  std::cout << "Done" << std::endl;
+
+/*
+ * Abstract base class for the various logging backends.  A logging
+ * backend may assume it is not called concurrently, and is expected
+ * to throw a system_exception_t on failure.
+ */
+struct logging_backend_t
+{
+  logging_backend_t()
+  { }
+
+  logging_backend_t(logging_backend_t const&) = delete;
+  logging_backend_t& operator=(logging_backend_t const&) = delete;
+
+  virtual void report(loglevel_t level,
+                      char const* begin_msg, char const* end_msg) = 0;
+
+  virtual ~logging_backend_t()
+  { }
+};
   
-  return 0;
-}
+} // xes
+
+#endif

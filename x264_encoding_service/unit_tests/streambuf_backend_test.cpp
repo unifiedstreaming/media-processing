@@ -17,7 +17,7 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#include "streambuf_logger.hpp"
+#include "streambuf_backend.hpp"
 #include "scoped_thread.hpp"
 
 #include <cstring>
@@ -80,8 +80,7 @@ private :
   unsigned int countdown_;
 };
 
-void log_away(xes::streambuf_logger_t& logger,
-              unsigned int n, unsigned int tid)
+void log_away(xes::logger_t& logger, unsigned int n, unsigned int tid)
 {
   for(unsigned int i = 0; i != n; ++i)
   {
@@ -135,8 +134,9 @@ void test_single_threaded()
 {
   const unsigned int n_events = 100;
 
+  xes::logger_t logger;
   std::stringstream strm;
-  xes::streambuf_logger_t logger(strm);
+  logger.set_backend(std::make_unique<xes::streambuf_backend_t>(strm));
   log_away(logger, n_events, 0);
   std::string s = strm.str();
 
@@ -157,8 +157,9 @@ void test_multi_threaded()
   const unsigned int n_threads = 10;
   const unsigned int n_events = 100;
 
+  xes::logger_t logger;
   std::stringstream strm;
-  xes::streambuf_logger_t logger(strm);
+  logger.set_backend(std::make_unique<xes::streambuf_backend_t>(strm));
 
   thundering_herd_fence_t fence(n_threads);
   {

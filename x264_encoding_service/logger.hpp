@@ -20,6 +20,10 @@
 #ifndef LOGGER_HPP_
 #define LOGGER_HPP_
 
+#include <chrono>
+#include <cstring>
+#include <memory>
+#include <mutex>
 #include <string>
 
 namespace xes
@@ -29,29 +33,39 @@ enum class loglevel_t { error, warning, info, debug };
 
 char const *loglevel_string(loglevel_t level);
 
+struct logging_backend_t;
+
 struct logger_t
 {
-  logger_t()
-  { }
+  // By default, we log to std::cerr
+  logger_t();
 
   logger_t(logger_t const&) = delete;
   logger_t& operator=(logger_t const&) = delete;
 
-  void report(loglevel_t level, char const* message)
+  void set_backend(std::unique_ptr<logging_backend_t> backend);
+
+  void report(loglevel_t level, 
+              char const* begin_msg, char const* end_msg);
+
+  void report(loglevel_t level, char const* msg)
   {
-    this->do_report(level, message);
+    this->report(level, msg, msg + std::strlen(msg));
   }
 
-  void report(loglevel_t level, std::string const& message)
+  void report(loglevel_t level, std::string const& msg)
   {
-    this->do_report(level, message.c_str());
+    this->report(level, msg.data(), msg.data() + msg.length());
   }
 
-  virtual ~logger_t()
-  { }
+  ~logger_t();
 
 private :
-  virtual void do_report(loglevel_t level, char const* message) = 0;
+  std::mutex mutex_;
+  std::unique_ptr<logging_backend_t> backend_;
+  unsigned int n_failures_;
+  std::chrono::system_clock::time_point first_failure_time_;
+  std::string first_failure_reason_;
 };
 
 } // namespace xes

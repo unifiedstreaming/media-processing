@@ -17,9 +17,9 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#include "file_logger.hpp"
+#include "file_backend.hpp"
+#include "streambuf_backend.hpp"
 
-#include "format.hpp"
 #include "logbuf.hpp"
 #include "system_error.hpp"
 
@@ -33,9 +33,9 @@
 namespace xes
 {
 
-struct file_logger_t::log_handle_t
+struct file_backend_t::log_handle_t
 {
-  log_handle_t(char const* filename)
+  explicit log_handle_t(char const* filename)
   : handle_(CreateFile(filename,
                        FILE_APPEND_DATA,
                        FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
@@ -173,9 +173,9 @@ void delete_if_exists(std::string const& name)
 namespace xes
 {
 
-struct file_logger_t::log_handle_t
+struct file_backend_t::log_handle_t
 {
-  log_handle_t(char const* filename)
+  explicit log_handle_t(char const* filename)
   : fd_(::open(filename, O_CREAT | O_WRONLY | O_APPEND | O_CLOEXEC, 0666))
   {
     if(fd_ == -1)
@@ -239,7 +239,7 @@ void rename_if_exists(std::string const& old_name, std::string const& new_name)
   }
 }
 
-void delete_if_exists(std::string& name)
+void delete_if_exists(std::string const& name)
 {
   int r = ::remove(name.c_str());
   if(r == -1)
@@ -264,20 +264,13 @@ namespace xes
 namespace // anonymous
 {
 
-void write_log_entry(file_logger_t::log_handle_t& handle,
+void write_log_entry(file_backend_t::log_handle_t& handle,
                      loglevel_t level,
-                     const char* message)
+                     char const* begin_msg, char const* end_msg)
 {
   logbuf_t buffer;
-
-  auto now = std::chrono::system_clock::now();
-  format_timepoint(buffer, now);
-  buffer.sputc(' ');
-  format_loglevel(buffer, level);
-  buffer.sputc(' ');
-  format_string(buffer, message);
-  buffer.sputc('\n');
-
+  streambuf_backend_t delegate(&buffer);
+  delegate.report(level, begin_msg, end_msg);
   handle.write(buffer.begin(), buffer.end());
 }
   
@@ -309,96 +302,43 @@ void rotate(std::string const& name, unsigned int depth)
 
 } // anonymous
 
-file_logger_t::file_logger_t(std::string filename,
-                             unsigned int size_limit,
-                             unsigned int rotation_depth)
+file_backend_t::file_backend_t(std::string filename,
+                               unsigned int size_limit,
+                               unsigned int rotation_depth)
 : filename_(std::move(filename))
 , size_limit_(size_limit)
 , rotation_depth_(rotation_depth)
-, mutex_()
-, rotating_(false)
-, n_failures_(0)
-, first_failure_time_()
-, first_failure_reason_()
+, rotate_reported_(false)
 { }
 
-file_logger_t::~file_logger_t()
-{ }
-
-void file_logger_t::do_report(loglevel_t level, char const* message)
+void file_backend_t::report(loglevel_t level,
+                            char const* begin_msg, char const* end_msg)
 {
-  static auto const max_failures = std::numeric_limits<unsigned int>::max();
-
-  std::lock_guard<std::mutex> lock(mutex_);
-
-  try
-  {
-    auto handle = open_log_handle();
-
-    // report previous failures first...
-    if(n_failures_ != 0)
-    {
-      logbuf_t buffer;
-      format_string(buffer, "Logging failed at ");
-      format_timepoint(buffer, first_failure_time_);
-      format_string(buffer, ": ");
-      format_string(buffer, first_failure_reason_.c_str());
-
-      format_string(buffer, " - ");
-      if(n_failures_ != max_failures)
-      {
-        format_unsigned(buffer, n_failures_);
-      }
-      else
-      {
-        format_string(buffer, "many");
-      }
-      format_string(buffer, " message(s) lost");
-      
-      write_log_entry(*handle, loglevel_t::error, buffer.c_str());
-    }
-
-    // ...then report the current event
-    write_log_entry(*handle, level, message);
-
-    // if we're still here, exit failure mode
-    n_failures_ = 0;
-  }
-  catch(system_exception_t const& ex)
-  {
-    if(n_failures_ == 0)
-    {
-      // enter failure mode
-      first_failure_time_ = std::chrono::system_clock::now();
-      first_failure_reason_ = ex.what();
-    }
-    if(n_failures_ != max_failures)
-    {
-      ++n_failures_;
-    }
-  }
+  auto handle = open_log_handle();
+  write_log_entry(*handle, level, begin_msg, end_msg);
 }
     
-std::unique_ptr<file_logger_t::log_handle_t>
-file_logger_t::open_log_handle()
+std::unique_ptr<file_backend_t::log_handle_t>
+file_backend_t::open_log_handle()
 {
   std::unique_ptr<log_handle_t> result(new log_handle_t(filename_.c_str()));
   if(size_limit_ != 0 && result->filesize() >= size_limit_)
   {
     /*
      * Try to add an entry to the old log to say we're rotating, but
-     * avoid repeating that entry while rotation keeps failing.
+     * avoid repeating that entry while rotation keeps throwing.
      */
-    if(!rotating_)
+    if(!rotate_reported_)
     {
-      rotating_ = true;
+      static char const message[] = "Size limit reached. Rotating..."; 
       write_log_entry(*result, loglevel_t::info,
-                      "Size limit reached. Rotating...");
+                      message, message + sizeof message - 1);
+      rotate_reported_ = true;
     }
 
     result.reset();
     rotate(filename_, rotation_depth_);
-    rotating_ = false;
+    rotate_reported_ = false;
 
     result.reset(new log_handle_t(filename_.c_str()));
   }

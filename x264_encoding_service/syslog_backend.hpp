@@ -17,42 +17,30 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#include "streambuf_logger.hpp"
-#include "format.hpp"
+#ifndef SYSLOG_BACKEND_HPP_
+#define SYSLOG_BACKEND_HPP_
 
-#include <ostream>
+#include "logging_backend.hpp"
+
+#include <memory>
 
 namespace xes
 {
 
-streambuf_logger_t::streambuf_logger_t(std::streambuf* sb)
-: mutex_()
-, sb_(sb)
-{ }
-
-streambuf_logger_t::streambuf_logger_t(std::ostream& os)
-: streambuf_logger_t(os.rdbuf())
-{ }
-
-void streambuf_logger_t::do_report(loglevel_t level, char const* message)
+struct syslog_backend_t : logging_backend_t
 {
-  if(sb_ == nullptr)
-  {
-    return;
-  }
+  explicit syslog_backend_t(char const* source_name);
 
-  std::lock_guard<std::mutex> guard(mutex_);
+  void report(loglevel_t level,
+              char const* begin_msg, char const* end_msg) override;
 
-  auto now = std::chrono::system_clock::now();
+  ~syslog_backend_t();
 
-  format_timepoint(*sb_, now);
-  sb_->sputc(' ');
-  format_loglevel(*sb_, level);
-  sb_->sputc(' ');
-  format_string(*sb_, message);
-  sb_->sputc('\n');
-
-  sb_->pubsync();
-}
+private :
+  struct impl_t;
+  std::unique_ptr<impl_t> impl_;
+};
 
 } // namespace xes
+
+#endif

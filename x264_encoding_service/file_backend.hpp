@@ -17,14 +17,12 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#ifndef FILE_LOGGER_HPP_
-#define FILE_LOGGER_HPP_
+#ifndef FILE_BACKEND_HPP_
+#define FILE_BACKEND_HPP_
 
-#include "logger.hpp"
+#include "logging_backend.hpp"
 
-#include <chrono>
 #include <memory>
-#include <mutex>
 #include <string>
 
 namespace xes
@@ -34,20 +32,20 @@ namespace xes
  * Logs to a named file.  Supports optional rotation-based purging
  * based on a file size limit and a count (rotation_depth) of old log
  * files that are kept around.  Old log files are named <filename>.1,
- * <filename>.2, etc.
+ * <filename>.2, etc.  Multiple file_backends addressing the same
+ * filename will lead to spectacular behaviour when rotation is
+ * enabled.
  */
-struct file_logger_t : logger_t
+struct file_backend_t : logging_backend_t
 {
   struct log_handle_t;
 
-  explicit file_logger_t(std::string filename,
-                         unsigned int size_limit = 0,
-                         unsigned int rotation_depth = 9);
+  explicit file_backend_t(std::string filename,
+                          unsigned int size_limit = 0,
+                          unsigned int rotation_depth = 9);
 
-  ~file_logger_t();
-
-private :
-  void do_report(loglevel_t level, char const* message) override;
+  void report(loglevel_t level,
+              char const* begin_msg, char const* end_msg) override;
 
 private :
   std::unique_ptr<log_handle_t> open_log_handle();
@@ -56,12 +54,7 @@ private :
   std::string const filename_;
   unsigned int const size_limit_;
   unsigned int const rotation_depth_;
-
-  std::mutex mutex_;
-  bool rotating_;
-  unsigned int n_failures_;
-  std::chrono::system_clock::time_point first_failure_time_;
-  std::string first_failure_reason_;
+  bool rotate_reported_;
 };
 
 } // namespace xes

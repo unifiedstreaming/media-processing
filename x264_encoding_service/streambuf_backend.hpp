@@ -17,12 +17,11 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#ifndef STREAMBUF_LOGGER_HPP_
-#define STREAMBUF_LOGGER_HPP_
+#ifndef STREAMBUF_BACKEND_HPP_
+#define STREAMBUF_BACKEND_HPP_
 
-#include "logger.hpp"
+#include "logging_backend.hpp"
 
-#include <mutex>
 #include <iosfwd>
 #include <streambuf>
 
@@ -30,25 +29,24 @@ namespace xes
 {
 
 /*
- * This logger provides concurrent logging to an existing ostream or
- * streambuf.
- * Please note that while this class uses a mutex to project the
- * target streambuf, it cannot project the target streambuf from
- * concurrent writes that bypass this mutex.  Depending on how the
- * streambuf is used, such writes may lead to a data race (==UB) or
- * garbled output otherwise.  See the C++14 standard, clauses 27.2.3
+ * This backend provides logging to an existing ostream or streambuf.
+ * Please note that, unless its owning ostream is synchronized,
+ * concurrent writes to the target streambuf that bypass the logger
+ * framework lead to a data race (==UB).
+ * std::cout, std::cerr and std::clog are synchronized when
+ * std::ios_base::sync_with_stdio(false) is not called; no other
+ * ostreams are synchronized.  See the C++14 standard, clauses 27.2.3
  * and and 27.4.1.
  */
-struct streambuf_logger_t : logger_t
+struct streambuf_backend_t : logging_backend_t
 {
-  explicit streambuf_logger_t(std::streambuf* sb);
-  explicit streambuf_logger_t(std::ostream& os);
+  explicit streambuf_backend_t(std::streambuf* sb);
+  explicit streambuf_backend_t(std::ostream& os);
+
+  void report(loglevel_t level,
+              char const* begin_msg, char const* end_msg) override;
 
 private :
-  virtual void do_report(loglevel_t level, char const* message) override;
-
-private :
-  std::mutex mutex_;
   std::streambuf* const sb_;
 };
 

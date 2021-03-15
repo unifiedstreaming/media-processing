@@ -17,9 +17,10 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#include "system_logger.hpp"
+#include "syslog_backend.hpp"
 
 #include "format.hpp"
+#include "logbuf.hpp"
 #include "system_error.hpp"
 
 #include <sstream>
@@ -31,7 +32,7 @@
 namespace xes
 {
 
-struct system_logger_t::impl_t
+struct syslog_backend_t::impl_t
 {
   explicit impl_t(char const* source_name)
   : handle_(RegisterEventSource(nullptr, source_name))
@@ -51,8 +52,13 @@ struct system_logger_t::impl_t
     char const* strings[1];
     strings[0] = message;
     
-    ReportEvent(handle_, loglevel_type(level), 0, 0,
-                nullptr, 1, 0, strings, nullptr);
+    BOOL result = ReportEvent(handle_, loglevel_type(level), 0, 0,
+                              nullptr, 1, 0, strings, nullptr);
+    if(!result)
+    {
+      int cause = last_system_error();
+      throw system_exception_t("ReportEvent() failure", cause);
+    }
   }
     
   ~impl_t()
@@ -86,7 +92,7 @@ private :
 namespace xes
 {
 
-struct system_logger_t::impl_t
+struct syslog_backend_t::impl_t
 {
   explicit impl_t(char const* source_name)
   : source_name_(source_name)
@@ -131,21 +137,22 @@ private :
 namespace xes
 {
 
-system_logger_t::system_logger_t(char const* source_name)
-: impl_(new impl_t(std::move(source_name)))
+syslog_backend_t::syslog_backend_t(char const* source_name)
+: impl_(new impl_t(source_name))
 { }
 
-void system_logger_t::do_report(loglevel_t level, char const* message)
+void syslog_backend_t::report(loglevel_t level,
+                              char const* begin_msg, char const* end_msg)
 {
-  std::stringbuf buf(std::ios_base::out);
+  logbuf_t buf;
   format_loglevel(buf, level);
   buf.sputc(' ');
-  format_string(buf, message);
-  
-  impl_->report(level, buf.str().c_str());
+  buf.sputn(begin_msg, end_msg - begin_msg);
+  buf.sputc('\0');
+  impl_->report(level, buf.begin());
 }
 
-system_logger_t::~system_logger_t()
+syslog_backend_t::~syslog_backend_t()
 { }
 
 } // namespace xes

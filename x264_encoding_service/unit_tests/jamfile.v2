@@ -19,7 +19,7 @@
 
 import testing ;
 
-unit-test streambuf_logger_test
-: streambuf_logger_test.cpp
+unit-test streambuf_backend_test
+: streambuf_backend_test.cpp
   ..//xes_utils
 ;

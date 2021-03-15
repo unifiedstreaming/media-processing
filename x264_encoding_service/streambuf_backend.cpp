@@ -17,29 +17,40 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#ifndef SYSTEM_LOGGER_HPP_
-#define SYSTEM_LOGGER_HPP_
+#include "streambuf_backend.hpp"
+#include "format.hpp"
 
-#include "logger.hpp"
-
-#include <memory>
+#include <ostream>
 
 namespace xes
 {
 
-struct system_logger_t : logger_t
+streambuf_backend_t::streambuf_backend_t(std::streambuf* sb)
+: sb_(sb)
+{ }
+
+streambuf_backend_t::streambuf_backend_t(std::ostream& os)
+: streambuf_backend_t(os.rdbuf())
+{ }
+
+void streambuf_backend_t::report(loglevel_t level,
+                                 char const* begin_msg, char const* end_msg)
 {
-  explicit system_logger_t(char const* source_name);
-  ~system_logger_t();
+  if(sb_ == nullptr)
+  {
+    return;
+  }
 
-private :
-  void do_report(loglevel_t level, char const* message) override;
+  auto now = std::chrono::system_clock::now();
 
-private :
-  struct impl_t;
-  std::unique_ptr<impl_t> impl_;
-};
+  format_timepoint(*sb_, now);
+  sb_->sputc(' ');
+  format_loglevel(*sb_, level);
+  sb_->sputc(' ');
+  sb_->sputn(begin_msg, end_msg - begin_msg);
+  sb_->sputc('\n');
+
+  sb_->pubsync();
+}
 
 } // namespace xes
-
-#endif

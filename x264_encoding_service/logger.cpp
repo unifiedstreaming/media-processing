@@ -19,6 +19,16 @@
 
 #include "logger.hpp"
 
+#include "format.hpp"
+#include "logbuf.hpp"
+#include "logging_backend.hpp"
+#include "streambuf_backend.hpp"
+#include "system_error.hpp"
+
+#include <iostream>
+#include <limits>
+#include <utility>
+
 namespace xes
 {
 
@@ -35,4 +45,77 @@ char const* loglevel_string(loglevel_t level)
   return "<invalid log level>";
 }
 
-} // namespace xes
+logger_t::logger_t()
+: mutex_()
+, backend_(new streambuf_backend_t(std::cerr))
+, n_failures_(0)
+, first_failure_time_()
+, first_failure_reason_()
+{ }
+
+void logger_t::set_backend(std::unique_ptr<logging_backend_t> backend)
+{
+  std::lock_guard<std::mutex> lock(mutex_);
+
+  backend_ = std::move(backend);
+}
+
+void logger_t::report(loglevel_t level,
+                      char const* begin_msg, char const* end_msg)
+{
+  std::lock_guard<std::mutex> lock(mutex_);
+
+  static auto const max_failures = std::numeric_limits<unsigned int>::max();
+  try
+  {
+    if(n_failures_ != 0 && backend_ != nullptr)
+    {
+      // report previous failures
+      logbuf_t buf;
+
+      format_string(buf, "Logging failed at ");
+      format_timepoint(buf, first_failure_time_);
+      format_string(buf, ": ");
+      format_string(buf, first_failure_reason_.c_str());
+      format_string(buf, " - ");
+      if(n_failures_ != max_failures)
+      {
+        format_unsigned(buf, n_failures_);
+      }
+      else
+      {
+        format_string(buf, "many");
+      }
+      format_string(buf, " message(s) lost");
+
+      backend_->report(loglevel_t::error, buf.begin(), buf.end());
+    }
+
+    // if we're still here, clear failure mode
+    n_failures_ = 0;
+
+    if(backend_ != nullptr)
+    {
+      backend_->report(level, begin_msg, end_msg);
+    }
+  }
+  catch(system_exception_t const& ex)
+  {
+    if(n_failures_ == 0)
+    {
+      // enter failure mode
+      first_failure_time_ = std::chrono::system_clock::now();
+      first_failure_reason_ = ex.what();
+    }
+    if(n_failures_ != max_failures)
+    {
+      // record failure
+      ++n_failures_;
+    }
+  }
+}
+
+logger_t::~logger_t()
+{ }
+
+} // xes
