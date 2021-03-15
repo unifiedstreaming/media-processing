@@ -42,15 +42,10 @@ struct logbuf_t : std::streambuf
     return this->pptr();
   }
 
-  char const* c_str() const
-  {
-    return buf_;
-  }
-
   ~logbuf_t() override;
 
 protected :
-  int overflow(int c) override;
+  int_type overflow(int_type c) override;
 
 private :
   char inline_buf_[256];
