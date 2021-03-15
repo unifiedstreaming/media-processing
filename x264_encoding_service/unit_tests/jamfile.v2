@@ -19,6 +19,11 @@
 
 import testing ;
 
+unit-test logbuf_test
+: logbuf_test.cpp
+  ..//xes_utils
+;
+
 unit-test streambuf_backend_test
 : streambuf_backend_test.cpp
   ..//xes_utils
