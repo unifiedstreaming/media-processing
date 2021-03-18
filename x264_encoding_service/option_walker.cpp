@@ -95,7 +95,7 @@ bool option_walker_t::match_flag(const char *name)
       if(*short_option_ptr_ == '\0')
       {
         ++idx_;
-	on_next_element();
+        on_next_element();
       }
     }
   }
@@ -127,8 +127,8 @@ char const* option_walker_t::match_value(char const* name)
       if(*suffix == '=')
       {
         result = suffix + 1;
-	++idx_;
-	on_next_element();
+        ++idx_;
+        on_next_element();
       }
       else if(*suffix == '\0' && idx_ + 1 != argc_)
       {
