@@ -62,7 +62,7 @@ struct option_walker_t
    * 
    * Precondition: done().
    */
-  int arg_index() const
+  int next_index() const
   {
     assert(done_);
     return idx_;

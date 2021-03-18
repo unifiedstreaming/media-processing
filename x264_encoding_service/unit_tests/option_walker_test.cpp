@@ -34,7 +34,7 @@ void no_options_no_args()
   xes::option_walker_t walker(argc, argv);
 
   assert(walker.done());
-  assert(walker.arg_index() == 1);
+  assert(walker.next_index() == 1);
 }
 
 void matching_flag()
@@ -59,7 +59,7 @@ void matching_flag()
 
   assert(walker.done());
   assert(flag);
-  assert(walker.arg_index() == 2);
+  assert(walker.next_index() == 2);
 }
   
 void non_matching_flag()
@@ -108,7 +108,7 @@ void underscore_matches_hyphen()
 
   assert(walker.done());
   assert(flag);
-  assert(walker.arg_index() == 2);
+  assert(walker.next_index() == 2);
 }
 
 void hyphen_matches_underscore()
@@ -133,7 +133,7 @@ void hyphen_matches_underscore()
 
   assert(walker.done());
   assert(flag);
-  assert(walker.arg_index() == 2);
+  assert(walker.next_index() == 2);
 }
 
 void multiple_flags()
@@ -164,7 +164,7 @@ void multiple_flags()
   assert(walker.done());
   assert(flag1);
   assert(flag2);
-  assert(walker.arg_index() == 3);
+  assert(walker.next_index() == 3);
 }
 
 void value_assign()
@@ -192,7 +192,7 @@ void value_assign()
   assert(walker.done());
   assert(option != nullptr);
   assert(std::strcmp(option, "value") == 0);
-  assert(walker.arg_index() == 2);
+  assert(walker.next_index() == 2);
 }
 
 void value_separate()
@@ -220,7 +220,7 @@ void value_separate()
   assert(walker.done());
   assert(option != nullptr);
   assert(std::strcmp(option, "value") == 0);
-  assert(walker.arg_index() == 3);
+  assert(walker.next_index() == 3);
 }
 
 void missing_value()
@@ -283,7 +283,7 @@ void two_values()
   assert(std::strcmp(option1, "value1") == 0);
   assert(option2 != nullptr);
   assert(std::strcmp(option2, "value2") == 0);
-  assert(walker.arg_index() == 5);
+  assert(walker.next_index() == 5);
 }
 
 void single_arg()
@@ -293,7 +293,7 @@ void single_arg()
   xes::option_walker_t walker(argc, argv);
 
   assert(walker.done());
-  assert(walker.arg_index() == 1);
+  assert(walker.next_index() == 1);
 }
 
 void multiple_args()
@@ -303,7 +303,7 @@ void multiple_args()
   xes::option_walker_t walker(argc, argv);
 
   assert(walker.done());
-  assert(walker.arg_index() == 1);
+  assert(walker.next_index() == 1);
 }
 
 void hyphens_at_start()
@@ -313,7 +313,7 @@ void hyphens_at_start()
   xes::option_walker_t walker(argc, argv);
 
   assert(walker.done());
-  assert(walker.arg_index() == 2);
+  assert(walker.next_index() == 2);
 }
   
 void hyphens_in_middle()
@@ -338,7 +338,7 @@ void hyphens_in_middle()
 
   assert(walker.done());
   assert(flag);
-  assert(walker.arg_index() == 3);
+  assert(walker.next_index() == 3);
 }
   
 void hyphens_at_end()
@@ -369,7 +369,7 @@ void hyphens_at_end()
   assert(walker.done());
   assert(flag1);
   assert(flag2);
-  assert(walker.arg_index() == 4);
+  assert(walker.next_index() == 4);
 }
 
 void single_short_flag()
@@ -394,7 +394,7 @@ void single_short_flag()
 
   assert(walker.done());
   assert(flag);
-  assert(walker.arg_index() == 2);
+  assert(walker.next_index() == 2);
 }
 
 void multiple_short_flags()
@@ -425,7 +425,7 @@ void multiple_short_flags()
   assert(walker.done());
   assert(fflag);
   assert(gflag);
-  assert(walker.arg_index() == 3);
+  assert(walker.next_index() == 3);
 }
 
 void abbreviated_flags()
@@ -456,7 +456,7 @@ void abbreviated_flags()
   assert(walker.done());
   assert(fflag);
   assert(gflag);
-  assert(walker.arg_index() == 2);
+  assert(walker.next_index() == 2);
 }
 
 void short_value()
@@ -484,7 +484,7 @@ void short_value()
   assert(walker.done());
   assert(option != nullptr);
   assert(std::strcmp(option, "value") == 0);
-  assert(walker.arg_index() == 3);
+  assert(walker.next_index() == 3);
 }
 
 void value_in_abbreviation()
@@ -544,7 +544,7 @@ void short_value_assign()
   assert(walker.done());
   assert(option != nullptr);
   assert(std::strcmp(option, "value") == 0);
-  assert(walker.arg_index() == 2);
+  assert(walker.next_index() == 2);
 }
 
 void missing_short_value()
