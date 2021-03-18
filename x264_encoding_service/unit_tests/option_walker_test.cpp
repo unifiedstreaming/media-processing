@@ -43,7 +43,6 @@ void matching_flag()
   int argc = sizeof argv / sizeof argv[0];
   xes::option_walker_t walker(argc, argv);
 
-  bool error = false;
   bool flag = false;
 
   while(!walker.done())
@@ -516,6 +515,7 @@ void value_in_abbreviation()
   }
 
   assert(!walker.done());
+  assert(flag);
   assert(option == nullptr);
 }
 
