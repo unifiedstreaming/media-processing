@@ -541,8 +541,10 @@ void short_value_assign()
     }
   }
 
-  assert(!walker.done());
-  assert(option == nullptr);
+  assert(walker.done());
+  assert(option != nullptr);
+  assert(std::strcmp(option, "value") == 0);
+  assert(walker.arg_index() == 2);
 }
 
 void missing_short_value()

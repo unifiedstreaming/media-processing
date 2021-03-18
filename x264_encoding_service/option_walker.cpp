@@ -20,7 +20,6 @@
 #include "option_walker.hpp"
 
 #include <cassert>
-#include <cstring>
 
 namespace xes
 {
@@ -120,17 +119,7 @@ char const* option_walker_t::match_value(char const* name)
 
   char const* result = nullptr;
 
-  if(is_short_option(name))
-  {
-    if(std::strcmp(argv_[idx_], name) == 0 && idx_ + 1 != argc_)
-    {
-      ++idx_;
-      result = argv_[idx_];
-      ++idx_;
-      on_next_element();
-    }
-  }
-  else if(is_long_option(name))
+  if(is_short_option(name) || is_long_option(name))
   {
     char const* suffix = match_prefix(argv_[idx_], name);
     if(suffix != nullptr)
