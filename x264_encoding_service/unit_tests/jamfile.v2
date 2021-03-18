@@ -24,6 +24,11 @@ unit-test logbuf_test
   ..//xes_utils
 ;
 
+unit-test option_walker_test
+: option_walker_test.cpp
+  ..//xes_utils
+;
+
 unit-test streambuf_backend_test
 : streambuf_backend_test.cpp
   ..//xes_utils

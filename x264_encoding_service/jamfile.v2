@@ -44,6 +44,7 @@ lib xes_utils
   format.cpp
   logbuf.cpp
   logger.cpp
+  option_walker.cpp
   scoped_thread.cpp
   streambuf_backend.cpp
   syslog_backend.cpp
