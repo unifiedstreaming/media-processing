@@ -18,9 +18,10 @@
  */
 
 #include "file_backend.hpp"
-#include "streambuf_backend.hpp"
 
+#include "fs_utils.hpp"
 #include "logbuf.hpp"
+#include "streambuf_backend.hpp"
 #include "system_error.hpp"
 
 #include <limits>
@@ -123,45 +124,11 @@ private :
   HANDLE handle_;
 };
 
-namespace // anonymous
-{
-
-void rename_if_exists(std::string const& old_name, std::string const& new_name)
-{
-  BOOL result = MoveFile(old_name.c_str(), new_name.c_str());
-  if(!result)
-  {
-    int cause = last_system_error();
-    if(cause != ERROR_FILE_NOT_FOUND)
-    {
-      throw system_exception_t(
-        "Can't rename file " + old_name + " to " + new_name, cause);
-    }
-  }
-}
-
-void delete_if_exists(std::string const& name)
-{
-  BOOL result = DeleteFile(name.c_str());
-  if(!result)
-  {
-    int cause = last_system_error();
-    if(cause != ERROR_FILE_NOT_FOUND)
-    {
-      throw system_exception_t("Can't delete file " + name, cause);
-    }
-  }
-}
-
-} // anonymous
-
 } // xes
 
 #else // POSIX
 
-#include <errno.h>
 #include <fcntl.h>
-#include <stdio.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
@@ -222,38 +189,6 @@ private :
   int fd_;
 };
 
-namespace // anonymous
-{
-
-void rename_if_exists(std::string const& old_name, std::string const& new_name)
-{
-  int r = ::rename(old_name.c_str(), new_name.c_str());
-  if(r == -1)
-  {
-    int cause = last_system_error();
-    if(cause != ENOENT)
-    {
-      throw system_exception_t(
-        "Can't rename " + old_name + " to " + new_name, cause);
-    }
-  }
-}
-
-void delete_if_exists(std::string const& name)
-{
-  int r = ::remove(name.c_str());
-  if(r == -1)
-  {
-    int cause = last_system_error();
-    if(cause != ENOENT)
-    {
-      throw system_exception_t("Can't remove " + name, cause);
-    }
-  }
-}
-  
-} // anonymous
-
 } // xes
 
 #endif // POSIX
@@ -287,11 +222,11 @@ void do_rotate(std::string const& name, unsigned int level, unsigned int depth)
   {
     do_rotate(name, level + 1, depth);
     std::string new_name = name + '.' + std::to_string(level + 1);
-    rename_if_exists(old_name, new_name);
+    rename_if_exists(old_name.c_str(), new_name.c_str());
   }
   else
   {
-    delete_if_exists(old_name);
+    delete_if_exists(old_name.c_str());
   }
 }
 
