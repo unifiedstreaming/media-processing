@@ -20,9 +20,11 @@
 #include "file_backend.hpp"
 #include "logger.hpp"
 #include "option_walker.hpp"
+#include "syslog_backend.hpp"
 
 #include <iostream>
 #include <limits>
+#include <memory>
 #include <stdexcept>
 #include <string>
 
@@ -31,18 +33,6 @@ namespace xes
 
 namespace // anonymous
 {
-
-struct options_t
-{
-  explicit options_t(char const* argv0);
-  
-  std::string logfile_;
-  unsigned int logfile_size_limit_;
-  unsigned int rotation_depth_;
-
-  std::string service_name_;
-  bool syslog_;
-};
 
 std::string default_service_name(char const* argv0)
 {
@@ -78,14 +68,6 @@ std::string default_service_name(char const* argv0)
   return std::string(last_segment, last_dot);
 }
 
-options_t::options_t(char const* argv0)
-: logfile_("")
-, logfile_size_limit_(xes::file_backend_t::no_size_limit_)
-, rotation_depth_(file_backend_t::default_rotation_depth_)
-, service_name_(default_service_name(argv0))
-, syslog_(false)
-{ }
-  
 unsigned int unsigned_option_value(char const* value, char const* option)
 {
   static const auto max = std::numeric_limits<unsigned int>::max();
@@ -115,15 +97,51 @@ unsigned int unsigned_option_value(char const* value, char const* option)
   return result;
 }
 
-int read_options(options_t& options, int argc, char const* const argv[])
+char const* gplv2_notice()
 {
-  option_walker_t walker(argc, argv);
+  return
+R"(This program is free software. It comes with ABSOLUTELY NO WARRANTY
+and is licensed to you under the terms of version 2 of the GNU General
+Public License as published by the Free Software Foundation. Under
+certain conditions, you may modify and/or redistribute this program;
+see <http://www.gnu.org/licenses/> for details.)";
+}
 
+struct options_t
+{
+  static const int default_n_messages_ = 100;
+
+  explicit options_t(char const* argv0)
+  : delay_(0)
+  , logfile_("")
+  , logfile_size_limit_(xes::file_backend_t::no_size_limit_)
+  , n_messages_(default_n_messages_)
+  , rotation_depth_(file_backend_t::default_rotation_depth_)
+  , service_name_(default_service_name(argv0))
+  , syslog_(false)
+  { }
+  
+  unsigned int delay_;
+  std::string logfile_;
+  unsigned int logfile_size_limit_;
+  unsigned int n_messages_;
+  unsigned int rotation_depth_;
+  std::string service_name_;
+  bool syslog_;
+};
+
+void read_options(options_t& options, option_walker_t& walker)
+{
   while(!walker.done())
   {
     char const* value;
 
-    if((value = walker.match_value("--logfile")) != nullptr)
+    if((value = walker.match_value("--delay")) != nullptr)
+    {
+      options.delay_ =
+        unsigned_option_value(value, "--delay");
+    }
+    else if((value = walker.match_value("--logfile")) != nullptr)
     {
       options.logfile_ = value;
     }
@@ -131,6 +149,11 @@ int read_options(options_t& options, int argc, char const* const argv[])
     {
       options.logfile_size_limit_ =
         unsigned_option_value(value, "--logfile-size-limit");
+    }
+    else if((value = walker.match_value("--n-messages")) != nullptr)
+    {
+      options.n_messages_ =
+        unsigned_option_value(value, "--n-messages");
     }
     else if((value = walker.match_value("--rotation-depth")) != nullptr)
     {
@@ -147,45 +170,103 @@ int read_options(options_t& options, int argc, char const* const argv[])
     }
     else
     {
-      return -1;
+      break;
     }
   }
-
-  return walker.next_index();
 }
 
 void print_usage(std::ostream& os, char const* argv0)
 {
-  os <<
-    "\n"
-    "x264_encoding_service (C) 2021 CodeShop B.V.\n" <<
-    "\n"
-    "The x264_encoding service comes with ABSOLUTELY NO WARRANTY and is free\n"
-    "software licensed to you under version 2 of the GNU General Public\n"
-    "License. See <http://www.gnu.org/licenses/> for details.\n"
-    "\n"
-    "usage: " << argv0 << " [<option> ...]\n"
-    "\n"
-    "options are:\n"
-    "  --logfile <name>             sets logfile name\n"
-    "  --logfile-size-limit <size>  sets logfile size limit\n"
-    "                                 (default: none)\n"
-    "  --rotation-depth <depth>     sets logfile rotation depth\n"
-    "                                 (default: " <<
-      file_backend_t::default_rotation_depth_ << ")\n"
-    "  --service-name <name>        sets service name\n"
-    "  --syslog                     log to system log\n"
-    "\n"
-    << std::flush;
+  os
+    << '\n'
+    << "x264_encoding_service (C) 2021 CodeShop B.V.\n"
+    << '\n'
+    << gplv2_notice() << '\n'
+    << '\n'
+    << "usage: " << argv0 << " [<option> ...]\n"
+    << "\n"
+    << "options are:\n"
+
+    << "  --delay <milliseconds>       sets delay after each message\n"
+    << "                                 (default: none)\n"
+
+    << "  --logfile <name>             log to file\n"
+
+    << "  --logfile-size-limit <size>  sets logfile size limit\n"
+    << "                                 (default: none)\n"
+
+    << "  --n-messages <count>         sets message count\n"
+    << "                                 (default: "
+    << options_t::default_n_messages_ << ")\n"
+
+    << "  --rotation-depth <depth>     sets logfile rotation depth\n"
+    << "                                 (default: "
+    << file_backend_t::default_rotation_depth_ << ")\n"
+
+    << "  --service-name <name>        sets service name\n"
+    << "                                 (default: "
+    << default_service_name(argv0) << ")\n"
+
+    << "  --syslog                     log to system log\n"
+
+    << std::endl;
 }
 
 int throwing_main(int argc, char const* const argv[])
 {
   options_t options(argv[0]);
+  option_walker_t walker(argc, argv);
+  read_options(options, walker);
 
-  if(read_options(options, argc, argv) != argc)
+  if(!walker.done() || walker.next_index() != argc)
   {
     print_usage(std::cerr, argv[0]);
+    return 1;
+  }
+
+  logger_t logger;
+  try
+  {
+    if(!options.logfile_.empty())
+    {
+      logger.set_backend(std::make_unique<file_backend_t>(
+        options.logfile_, options.logfile_size_limit_,
+	options.rotation_depth_));
+    }
+    else if(options.syslog_)
+    {
+      logger.set_backend(std::make_unique<syslog_backend_t>(
+        options.service_name_.c_str()));
+    }
+
+    loglevel_t loglevel = loglevel_t::error;
+    for(unsigned int i = 0; i != options.n_messages_; ++i)
+    {
+      logger.report(loglevel, "logging message #" + std::to_string(i));
+
+      switch(loglevel)
+      {
+      case loglevel_t::error :
+        loglevel = loglevel_t::warning; break;
+      case loglevel_t::warning :
+        loglevel = loglevel_t::info; break;
+      case loglevel_t::info : loglevel =
+        loglevel_t::debug; break;
+      default :
+        loglevel = loglevel_t::error; break;
+      }
+
+      if(options.delay_ != 0)
+      {
+        std::this_thread::sleep_for(std::chrono::milliseconds(options.delay_));
+      }
+    }
+
+    logger.report(loglevel_t::info, "exiting...");
+  }
+  catch(std::exception const& ex)
+  {
+    logger.report(loglevel_t::error, std::string("exception: ") + ex.what());
     return 1;
   }
 
@@ -207,7 +288,6 @@ int main(int argc, char* argv[])
   catch(std::exception const& ex)
   {
     std::cerr << argv[0] << ": exception: " << ex.what() << std::endl;
-    result = 1;
   }
 
   return result;
