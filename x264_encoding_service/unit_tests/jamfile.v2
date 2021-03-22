@@ -19,6 +19,11 @@
 
 import testing ;
 
+unit-test fs_utils_test
+: fs_utils_test.cpp
+  ..//xes_utils
+;
+
 unit-test logbuf_test
 : logbuf_test.cpp
   ..//xes_utils

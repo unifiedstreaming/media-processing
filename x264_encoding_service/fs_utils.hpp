@@ -20,11 +20,16 @@
 #ifndef FS_UTILS_HPP_
 #define FS_UTILS_HPP_
 
+#include <string>
+
 namespace xes
 {
 
 void rename_if_exists(char const* old_name, char const* new_name);
 void delete_if_exists(char const* name);
+
+std::string current_directory();
+std::string absolute_path(char const* path);
 
 } // xes
 

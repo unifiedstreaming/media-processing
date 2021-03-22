@@ -31,7 +31,8 @@ std::string system_error_string(int error);
 
 struct system_exception_t : std::runtime_error
 {
-  system_exception_t(std::string const& complaint, int cause);
+  explicit system_exception_t(std::string complaint);
+  explicit system_exception_t(std::string const& complaint, int cause);
 };
 
 } // namespace xes

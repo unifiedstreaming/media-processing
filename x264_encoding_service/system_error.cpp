@@ -19,6 +19,8 @@
 
 #include "system_error.hpp"
 
+#include <utility>
+
 #ifdef _WIN32
 
 #include <windows.h>
@@ -98,6 +100,10 @@ std::string system_error_string(int error)
 
 namespace xes
 {
+
+system_exception_t::system_exception_t(std::string complaint)
+: std::runtime_error(std::move(complaint))
+{ }
 
 system_exception_t::system_exception_t(std::string const& complaint, int cause)
 : std::runtime_error(complaint + ": " + system_error_string(cause))

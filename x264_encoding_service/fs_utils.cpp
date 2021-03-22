@@ -20,7 +20,9 @@
 #include "fs_utils.hpp"
 #include "system_error.hpp"
 
+#include <cassert>
 #include <string>
+#include <vector>
 
 #ifdef _WIN32
 
@@ -59,12 +61,61 @@ void delete_if_exists(char const* name)
   }
 }
 
+std::string current_directory()
+{
+  std::vector<char> buffer(256);
+
+  DWORD length = GetCurrentDirectory(
+    static_cast<DWORD>(buffer.size()), buffer.data());
+  if(length >= buffer.size())
+  {
+    buffer.resize(length);
+    length = GetCurrentDirectory(
+      static_cast<DWORD>(buffer.size()), buffer.data());
+  }
+
+  if(length == 0)
+  {
+    int cause = last_system_error();
+    throw system_exception_t("Can't determine current directory", cause);
+  }
+
+  assert(length < buffer.size());
+  return std::string(buffer.data(), buffer.data() + length);
+}  
+
+std::string absolute_path(char const* path)
+{
+  std::vector<char> buffer(256);
+
+  DWORD length = GetFullPathName(
+    path, static_cast<DWORD>(buffer.size()), buffer.data(), nullptr);
+  if(length >= buffer.size())
+  {
+    buffer.resize(length);
+    length = GetFullPathName(
+      path, static_cast<DWORD>(buffer.size()), buffer.data(), nullptr);
+  }
+
+  if(length == 0)
+  {
+    int cause = last_system_error();
+    throw system_exception_t(
+      std::string("Can't determine absolute path for file ") + path,
+      cause);
+  }
+
+  assert(length < buffer.size());
+  return std::string(buffer.data(), buffer.data() + length);
+}
+
 } // xes
 
 #else // POSIX
 
 #include <errno.h>
 #include <stdio.h>
+#include <unistd.h>
 
 namespace xes
 {
@@ -93,10 +144,112 @@ void delete_if_exists(char const* name)
     if(cause != ENOENT)
     {
       throw system_exception_t(
-        std::string("Can't delete file ") + name,
-        cause);
+        std::string("Can't delete file ") + name, cause);
     }
   }
+}
+
+std::string current_directory()
+{
+  std::vector<char> buffer(256);
+
+  char* result;
+  while((result = ::getcwd(buffer.data(), buffer.size())) == NULL)
+  {
+    int cause = last_system_error();
+    if(cause != ERANGE)
+    {
+      throw system_exception_t("Can't determine current directory", cause);
+    }
+    buffer.resize(buffer.size() * 2);
+  }
+    
+  return result;
+}
+
+std::string absolute_path(char const* path)
+{
+  if(*path == '\0')
+  {
+    throw system_exception_t("Can't convert empty path to absolute path");
+  }
+
+  std::string result;
+
+  if(*path == '/')
+  {
+    result = "/";
+    ++path;
+  }
+  else
+  {
+    result = current_directory();
+
+    assert(!result.empty());
+    assert(result.front() == '/');
+    if(result.size() > 1)
+    {
+      assert(result.back() != '/');
+    }
+  }
+
+  while(*path != '\0')
+  {
+    // skip leading slashes from path
+    while(*path == '/')
+    {
+      ++path;
+      if(*path == '\0')
+      {
+        // preserve trailing slash
+	if(result.back() != '/')
+	{
+ 	  result.push_back('/');
+	}
+      }
+    }
+
+    // find end of segment
+    char const* end = path;
+    while(*end != '\0' && *end != '/')
+    {
+      ++end;
+    }
+
+    if(end - path == 1 && path[0] == '.')
+    {
+      // "." -> skip segment in path
+    }
+    else if(end - path == 2 && path[0] == '.' && path[1] == '.')
+    {
+      // ".." -> pop last segment from result
+      while(result.size() > 1 && result.back() != '/')
+      {
+        result.pop_back();
+      }
+      if(result.size() > 1)
+      {
+        result.pop_back();
+      }
+    }
+    else if(end != path)
+    {
+      // append other non-empty segment from path to result
+      if(result.back() != '/')
+      {
+        result.push_back('/');
+      }
+      while(path != end)
+      {
+        result.push_back(*path);
+	++path;
+      }
+    }
+
+    path = end;
+  }
+    
+  return result;    
 }
   
 } // xes
