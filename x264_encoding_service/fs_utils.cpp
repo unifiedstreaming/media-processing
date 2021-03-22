@@ -154,7 +154,7 @@ std::string current_directory()
   std::vector<char> buffer(256);
 
   char* result;
-  while((result = ::getcwd(buffer.data(), buffer.size())) == NULL)
+  while((result = ::getcwd(buffer.data(), buffer.size())) == nullptr)
   {
     int cause = last_system_error();
     if(cause != ERANGE)
