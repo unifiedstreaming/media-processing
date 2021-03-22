@@ -25,7 +25,6 @@
 #include "system_error.hpp"
 
 #include <limits>
-#include <utility>
 
 #ifdef _WIN32
 
@@ -237,10 +236,10 @@ void rotate(std::string const& name, unsigned int depth)
 
 } // anonymous
 
-file_backend_t::file_backend_t(std::string filename,
+file_backend_t::file_backend_t(std::string const& filename,
                                unsigned int size_limit,
                                unsigned int rotation_depth)
-: filename_(std::move(filename))
+: filename_(absolute_path(filename.c_str()))
 , size_limit_(size_limit)
 , rotation_depth_(rotation_depth)
 , rotate_reported_(false)

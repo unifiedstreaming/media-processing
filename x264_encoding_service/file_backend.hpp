@@ -44,9 +44,14 @@ struct file_backend_t : logging_backend_t
   static const unsigned int default_rotation_depth_ = 9;
 
   explicit file_backend_t(
-    std::string filename,
+    std::string const& filename,
     unsigned int size_limit = no_size_limit_,
     unsigned int rotation_depth = default_rotation_depth_);
+
+  std::string const& effective_filename() const
+  {
+    return filename_;
+  }
 
   void report(loglevel_t level,
               char const* begin_msg, char const* end_msg) override;
