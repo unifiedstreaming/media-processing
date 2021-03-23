@@ -169,58 +169,45 @@ std::string current_directory()
 
 std::string absolute_path(char const* path)
 {
-  if(*path == '\0')
-  {
-    throw system_exception_t("Can't convert empty path to absolute path");
-  }
-
   std::string result;
 
-  if(*path == '/')
+  switch(*path)
   {
+  case '\0' :
+    throw system_exception_t("Can't convert empty path to absolute path");
+    break;
+  case '/' :
     result = "/";
-    ++path;
-  }
-  else
-  {
+    break;
+  default :
     result = current_directory();
-
-    assert(!result.empty());
-    assert(result.front() == '/');
-    if(result.size() > 1)
-    {
-      assert(result.back() != '/');
-    }
+    break;
   }
 
   while(*path != '\0')
   {
-    // skip leading slashes from path
+    assert(!result.empty());
+    assert(result.front() == '/');
+    assert(result.size() == 1 || result.back() != '/');
+
+    // skip past leading slashes
     while(*path == '/')
     {
       ++path;
-      if(*path == '\0')
-      {
-        // preserve trailing slash
-	if(result.back() != '/')
-	{
- 	  result.push_back('/');
-	}
-      }
     }
 
-    // find end of segment
-    char const* end = path;
-    while(*end != '\0' && *end != '/')
+    // remember start of segment, move path to end of segment
+    char const* seg = path;
+    while(*path != '\0' && *path != '/')
     {
-      ++end;
+      ++path;
     }
 
-    if(end - path == 1 && path[0] == '.')
+    if(path - seg == 1 && seg[0] == '.')
     {
       // "." -> skip segment in path
     }
-    else if(end - path == 2 && path[0] == '.' && path[1] == '.')
+    else if(path - seg == 2 && seg[0] == '.' && seg[1] == '.')
     {
       // ".." -> pop last segment from result
       while(result.size() > 1 && result.back() != '/')
@@ -232,21 +219,19 @@ std::string absolute_path(char const* path)
         result.pop_back();
       }
     }
-    else if(end != path)
+    else
     {
-      // append other non-empty segment from path to result
+      // append segment (which is only empty on a trailing slash) to result
       if(result.back() != '/')
       {
         result.push_back('/');
       }
-      while(path != end)
+      while(seg != path)
       {
-        result.push_back(*path);
-	++path;
+        result.push_back(*seg);
+        ++seg;
       }
     }
-
-    path = end;
   }
     
   return result;    
