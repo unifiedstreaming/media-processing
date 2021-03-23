@@ -20,6 +20,7 @@
 #include "file_backend.hpp"
 #include "logger.hpp"
 #include "option_walker.hpp"
+#include "streambuf_backend.hpp"
 #include "syslog_backend.hpp"
 
 #include <iostream>
@@ -213,7 +214,7 @@ void print_usage(std::ostream& os, char const* argv0)
     << std::endl;
 }
 
-int throwing_main(int argc, char const* const argv[])
+int throwing_main(logger_t& logger, int argc, char const* const argv[])
 {
   options_t options(argv[0]);
   option_walker_t walker(argc, argv);
@@ -225,51 +226,46 @@ int throwing_main(int argc, char const* const argv[])
     return 1;
   }
 
-  logger_t logger;
-  try
+  if(!options.logfile_.empty())
   {
-    if(!options.logfile_.empty())
-    {
-      logger.set_backend(std::make_unique<file_backend_t>(
-        options.logfile_, options.logfile_size_limit_,
-	options.rotation_depth_));
-    }
-    else if(options.syslog_)
-    {
-      logger.set_backend(std::make_unique<syslog_backend_t>(
-        options.service_name_.c_str()));
-    }
-
-    loglevel_t loglevel = loglevel_t::error;
-    for(unsigned int i = 0; i != options.n_messages_; ++i)
-    {
-      logger.report(loglevel, "logging message #" + std::to_string(i));
-
-      switch(loglevel)
-      {
-      case loglevel_t::error :
-        loglevel = loglevel_t::warning; break;
-      case loglevel_t::warning :
-        loglevel = loglevel_t::info; break;
-      case loglevel_t::info : loglevel =
-        loglevel_t::debug; break;
-      default :
-        loglevel = loglevel_t::error; break;
-      }
-
-      if(options.delay_ != 0)
-      {
-        std::this_thread::sleep_for(std::chrono::milliseconds(options.delay_));
-      }
-    }
-
-    logger.report(loglevel_t::info, "exiting...");
+    logger.set_backend(std::make_unique<file_backend_t>(
+      options.logfile_, options.logfile_size_limit_,
+      options.rotation_depth_));
   }
-  catch(std::exception const& ex)
+  else if(options.syslog_)
   {
-    logger.report(loglevel_t::error, std::string("exception: ") + ex.what());
-    return 1;
+    logger.set_backend(std::make_unique<syslog_backend_t>(
+      options.service_name_.c_str()));
   }
+  else
+  {
+    logger.set_backend(std::make_unique<streambuf_backend_t>(std::cerr));
+  }
+
+  loglevel_t loglevel = loglevel_t::error;
+  for(unsigned int i = 0; i != options.n_messages_; ++i)
+  {
+    logger.report(loglevel, "logging message #" + std::to_string(i));
+
+    switch(loglevel)
+    {
+    case loglevel_t::error :
+      loglevel = loglevel_t::warning; break;
+    case loglevel_t::warning :
+      loglevel = loglevel_t::info; break;
+    case loglevel_t::info : loglevel =
+      loglevel_t::debug; break;
+    default :
+      loglevel = loglevel_t::error; break;
+    }
+
+    if(options.delay_ != 0)
+    {
+      std::this_thread::sleep_for(std::chrono::milliseconds(options.delay_));
+    }
+  }
+
+  logger.report(loglevel_t::info, "exiting...");
 
   return 0;
 }
@@ -280,15 +276,18 @@ int throwing_main(int argc, char const* const argv[])
 
 int main(int argc, char* argv[])
 {
+  xes::logger_t logger(argv[0]);
+
   int result = 1;
 
   try
   {
-    result = xes::throwing_main(argc, argv);
+    result = xes::throwing_main(logger, argc, argv);
   }
   catch(std::exception const& ex)
   {
-    std::cerr << argv[0] << ": exception: " << ex.what() << std::endl;
+    logger.report(xes::loglevel_t::error,
+                  std::string("exception: ") + ex.what());
   }
 
   return result;

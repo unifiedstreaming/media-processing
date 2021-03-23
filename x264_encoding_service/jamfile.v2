@@ -40,7 +40,8 @@ project xes
 ;
 
 lib xes_utils
-: file_backend.cpp
+: default_backend.cpp
+  file_backend.cpp
   fs_utils.cpp
   format.cpp
   logbuf.cpp

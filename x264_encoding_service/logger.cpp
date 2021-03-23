@@ -21,11 +21,10 @@
 
 #include "format.hpp"
 #include "logbuf.hpp"
+#include "default_backend.hpp"
 #include "logging_backend.hpp"
-#include "streambuf_backend.hpp"
 #include "system_error.hpp"
 
-#include <iostream>
 #include <limits>
 #include <utility>
 
@@ -45,9 +44,9 @@ char const* loglevel_string(loglevel_t level)
   return "<invalid log level>";
 }
 
-logger_t::logger_t()
+logger_t::logger_t(char const* argv0)
 : mutex_()
-, backend_(new streambuf_backend_t(std::cerr))
+, backend_(new default_backend_t(argv0))
 , n_failures_(0)
 , first_failure_time_()
 , first_failure_reason_()

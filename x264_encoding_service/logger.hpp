@@ -37,8 +37,7 @@ struct logging_backend_t;
 
 struct logger_t
 {
-  // By default, we log to std::cerr
-  logger_t();
+  explicit logger_t(char const* argv0);
 
   logger_t(logger_t const&) = delete;
   logger_t& operator=(logger_t const&) = delete;
