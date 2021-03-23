@@ -130,11 +130,11 @@ unsigned int count_tid(std::string const& in, unsigned int tid)
   return count(in, search.c_str());
 }
 
-void test_single_threaded()
+void test_single_threaded(char const* argv0)
 {
   const unsigned int n_events = 100;
 
-  xes::logger_t logger;
+  xes::logger_t logger(argv0);
   std::stringstream strm;
   logger.set_backend(std::make_unique<xes::streambuf_backend_t>(strm));
   log_away(logger, n_events, 0);
@@ -152,12 +152,12 @@ void test_single_threaded()
   assert(count_newlines(s) == 4 * n_events);
 }
   
-void test_multi_threaded()
+void test_multi_threaded(char const* argv0)
 {
   const unsigned int n_threads = 10;
   const unsigned int n_events = 100;
 
-  xes::logger_t logger;
+  xes::logger_t logger(argv0);
   std::stringstream strm;
   logger.set_backend(std::make_unique<xes::streambuf_backend_t>(strm));
 
@@ -197,10 +197,10 @@ void test_multi_threaded()
   
 } // anonymous
 
-int main()
+int main(int, char *argv[])
 {
-  test_single_threaded();
-  test_multi_threaded();
+  test_single_threaded(argv[0]);
+  test_multi_threaded(argv[0]);
 
   return 0;
 }
