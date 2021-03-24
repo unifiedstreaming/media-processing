@@ -102,6 +102,7 @@ endpoint_list_iterator_t& endpoint_list_iterator_t::operator++()
 
 endpoint_t const& endpoint_list_iterator_t::operator*() const
 {
+  assert(node_ != nullptr);
   return *node_->ai_addr;
 }
 
