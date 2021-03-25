@@ -21,6 +21,7 @@
 
 #include "system_error.hpp"
 
+#include <cassert>
 #include <cstring>
 
 #ifdef _WIN32
@@ -87,7 +88,7 @@ private :
 endpoint_storage_t::endpoint_storage_t(int family)
 : impl_()
 {
-  switch(family)
+  switch(check_family(family))
   {
   case AF_INET :
     impl_ = std::make_unique<instance_t<AF_INET>>();
@@ -96,8 +97,7 @@ endpoint_storage_t::endpoint_storage_t(int family)
     impl_ = std::make_unique<instance_t<AF_INET6>>();
     break;
   default :
-    throw system_exception_t("Address family " +
-      std::to_string(family) + " not supported");
+    assert(!"expected address family");
     break;
   }
 }

@@ -32,6 +32,12 @@ namespace xes
 
 using endpoint_t = sockaddr;
 
+/*
+ * Check for a supported address family, throwing on failure.  Returns
+ * its argument on success.
+ */
+int check_family(int family);
+
 int endpoint_family(endpoint_t const& endpoint);
 std::size_t endpoint_size(endpoint_t const& endpoint);
 std::string ip_address(endpoint_t const& endpoint);

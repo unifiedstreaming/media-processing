@@ -21,6 +21,8 @@
 
 #include "system_error.hpp"
 
+#include <cassert>
+
 #ifdef _WIN32
 #include <winsock2.h>
 #include <ws2tcpip.h>
@@ -40,7 +42,7 @@ void visit_endpoint(endpoint_t const& endpoint,
                     IPv4Handler ipv4_handler,
                     IPv6Handler ipv6_handler)
 {
-  switch(endpoint.sa_family)
+  switch(check_family(endpoint.sa_family))
   {
   case AF_INET :
     ipv4_handler(*reinterpret_cast<sockaddr_in const*>(&endpoint));
@@ -49,13 +51,28 @@ void visit_endpoint(endpoint_t const& endpoint,
     ipv6_handler(*reinterpret_cast<sockaddr_in6 const*>(&endpoint));
     break;
   default :
-    throw system_exception_t("Address family " +
-      std::to_string(endpoint.sa_family) + " not supported");
+    assert(!"expected address family");
     break;
   }
 }
 
 } // anonymous
+
+int check_family(int family)
+{
+  switch(family)
+  {
+  case AF_INET :
+  case AF_INET6 :
+    break;
+  default :
+    throw system_exception_t(
+      "Unsupported address family " + std::to_string(family));
+    break;
+  }
+
+  return family;
+}
 
 int endpoint_family(endpoint_t const& endpoint)
 {
