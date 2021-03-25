@@ -91,7 +91,7 @@ make_head(int flags, char const* host, unsigned int port)
 } // anonymous
 
 local_interfaces_t const local_interfaces = { };
-any_interface_t const any_interface = { };
+all_interfaces_t const all_interfaces = { };
 
 endpoint_list_iterator_t& endpoint_list_iterator_t::operator++()
 {
@@ -110,7 +110,7 @@ endpoint_list_t::endpoint_list_t(local_interfaces_t const&, unsigned int port)
 : head_(make_head(0, nullptr, port))
 { }
 
-endpoint_list_t::endpoint_list_t(any_interface_t const&, unsigned int port)
+endpoint_list_t::endpoint_list_t(all_interfaces_t const&, unsigned int port)
 : head_(make_head(AI_PASSIVE, nullptr, port))
 { }
 

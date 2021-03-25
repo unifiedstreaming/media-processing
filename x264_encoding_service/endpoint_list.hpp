@@ -74,8 +74,10 @@ private :
 struct local_interfaces_t { };
 extern local_interfaces_t const local_interfaces;
 
-struct any_interface_t { };
-extern any_interface_t const any_interface;
+struct all_interfaces_t { };
+extern all_interfaces_t const all_interfaces;
+
+const unsigned int any_port = 0;
 
 /*
  * DNS resolver interface for TCP
@@ -94,10 +96,10 @@ struct endpoint_list_t
   : head_()
   { }
 
-  explicit endpoint_list_t(local_interfaces_t const&, unsigned int port = 0);
-  explicit endpoint_list_t(any_interface_t const&, unsigned int port = 0);
-  explicit endpoint_list_t(char const* host, unsigned int port = 0);
-  explicit endpoint_list_t(std::string const& host, unsigned int port = 0);
+  endpoint_list_t(local_interfaces_t const&, unsigned int port);
+  endpoint_list_t(all_interfaces_t const&, unsigned int port);
+  endpoint_list_t(char const* host, unsigned int port);
+  endpoint_list_t(std::string const& host, unsigned int port);
 
   bool empty() const
   { return head_ == nullptr; }
