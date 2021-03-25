@@ -189,6 +189,8 @@ void unknown_host()
   {
 #if PRINT
     std::cout << ex.what() << std::endl;
+#else
+    static_cast<void>(ex); // suppress compiler warning
 #endif
     caught = true;
   }
@@ -206,6 +208,8 @@ void unknown_host_with_port()
   {
 #if PRINT
     std::cout << ex.what() << std::endl;
+#else
+    static_cast<void>(ex); // suppress compiler warning
 #endif
     caught = true;
   }
