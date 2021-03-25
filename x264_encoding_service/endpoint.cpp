@@ -127,9 +127,9 @@ unsigned int port_number(endpoint_t const& endpoint)
   unsigned int result = 0;
 
   auto on_ipv4 = [&](sockaddr_in const& addr)
-    { result = htons(addr.sin_port); };
+    { result = ntohs(addr.sin_port); };
   auto on_ipv6 = [&](sockaddr_in6 const& addr)
-    { result = htons(addr.sin6_port); };
+    { result = ntohs(addr.sin6_port); };
   visit_endpoint(endpoint, on_ipv4, on_ipv6);
 
   return result;
