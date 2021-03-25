@@ -39,7 +39,7 @@ void ipv4_storage()
   xes::endpoint_storage_t storage(AF_INET);
 
   assert(xes::endpoint_family(*storage) == AF_INET);
-  assert(xes::endpoint_size(*storage) == sizeof sockaddr_in);
+  assert(xes::endpoint_size(*storage) == sizeof(sockaddr_in));
   assert(xes::ip_address(*storage) == "0.0.0.0");
   assert(xes::port_number(*storage) == 0);
 }
@@ -49,7 +49,7 @@ void ipv6_storage()
   xes::endpoint_storage_t storage(AF_INET6);
 
   assert(xes::endpoint_family(*storage) == AF_INET6);
-  assert(xes::endpoint_size(*storage) == sizeof sockaddr_in6);
+  assert(xes::endpoint_size(*storage) == sizeof(sockaddr_in6));
   assert(xes::ip_address(*storage) == "::");
   assert(xes::port_number(*storage) == 0);
 }
