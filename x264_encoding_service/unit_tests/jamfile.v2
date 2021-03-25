@@ -24,6 +24,11 @@ unit-test endpoint_list_test
   ..//xes_utils
 ;
 
+unit-test endpoint_storage_test
+: endpoint_storage_test.cpp
+  ..//xes_utils
+;
+
 unit-test fs_utils_test
 : fs_utils_test.cpp
   ..//xes_utils
