@@ -30,8 +30,9 @@ struct sockaddr;
 namespace xes
 {
 
-using endpoint_t = ::sockaddr;
+using endpoint_t = sockaddr;
 
+int endpoint_family(endpoint_t const& endpoint);
 std::size_t endpoint_size(endpoint_t const& endpoint);
 std::string ip_address(endpoint_t const& endpoint);
 unsigned int port_number(endpoint_t const& endpoint);

@@ -32,31 +32,58 @@
 namespace xes
 {
 
-std::size_t endpoint_size(endpoint_t const& endpoint)
+namespace // anonymous
 {
-  std::size_t result = 0;
 
+template<typename IPv4Handler, typename IPv6Handler>
+void visit_endpoint(endpoint_t const& endpoint,
+                    IPv4Handler ipv4_handler,
+                    IPv6Handler ipv6_handler)
+{
   switch(endpoint.sa_family)
   {
   case AF_INET :
-    result = sizeof(sockaddr_in);
+    ipv4_handler(*reinterpret_cast<sockaddr_in const*>(&endpoint));
     break;
   case AF_INET6 :
-    result = sizeof(sockaddr_in6);
+    ipv6_handler(*reinterpret_cast<sockaddr_in6 const*>(&endpoint));
     break;
   default :
     throw system_exception_t("Address family " +
       std::to_string(endpoint.sa_family) + " not supported");
     break;
   }
+}
 
+} // anonymous
+
+int endpoint_family(endpoint_t const& endpoint)
+{
+  int result = AF_UNSPEC;
+
+  auto on_ipv4 = [&](sockaddr_in const&) { result = AF_INET; };
+  auto on_ipv6 = [&](sockaddr_in6 const&) { result = AF_INET6; };
+  visit_endpoint(endpoint, on_ipv4, on_ipv6);
+  
+  return result;
+}
+
+std::size_t endpoint_size(endpoint_t const& endpoint)
+{
+  std::size_t result = 0;
+
+  auto on_ipv4 = [&](sockaddr_in const& addr) { result = sizeof addr; };
+  auto on_ipv6 = [&](sockaddr_in6 const& addr) { result = sizeof addr; };
+  visit_endpoint(endpoint, on_ipv4, on_ipv6);
+  
   return result;
 }
 
 std::string ip_address(endpoint_t const& endpoint)
 {
-  // 0000:0000:0000:0000:0000:0000:255.255.255.255 (+ terminating '\0')
-  char result[46]; 
+  static char const longest_expected[] =
+    "ffff:ffff:ffff:ffff:ffff:ffff:255.255.255.255";
+  char result[sizeof longest_expected]; 
 
   int r = getnameinfo(
     &endpoint, static_cast<socklen_t>(endpoint_size(endpoint)),
@@ -82,21 +109,11 @@ unsigned int port_number(endpoint_t const& endpoint)
 {
   unsigned int result = 0;
 
-  switch(endpoint.sa_family)
-  {
-  case AF_INET :
-    result =
-      htons(reinterpret_cast<const sockaddr_in *>(&endpoint)->sin_port);
-    break;
-  case AF_INET6 :
-    result =
-      htons(reinterpret_cast<const sockaddr_in6 *>(&endpoint)->sin6_port);
-    break;
-  default :
-    throw system_exception_t("Address family " +
-      std::to_string(endpoint.sa_family) + " not supported");
-    break;
-  }
+  auto on_ipv4 = [&](sockaddr_in const& addr)
+    { result = htons(addr.sin_port); };
+  auto on_ipv6 = [&](sockaddr_in6 const& addr)
+    { result = htons(addr.sin6_port); };
+  visit_endpoint(endpoint, on_ipv4, on_ipv6);
 
   return result;
 }

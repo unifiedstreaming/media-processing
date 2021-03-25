@@ -37,6 +37,7 @@ void check_endpoint(xes::endpoint_t const& ep)
   auto it = list.begin();
 
   assert(it != list.end());
+  assert(xes::endpoint_family(*it) == xes::endpoint_family(ep));
   assert(xes::ip_address(*it) == xes::ip_address(ep));
   assert(xes::port_number(*it) == xes::port_number(ep));
 
@@ -74,11 +75,12 @@ void local_interfaces_with_port()
 
   for(auto const& ep : list)
   {
-    assert(xes::port_number(ep) == 11264);
 #if PRINT
     std::cout << "local interfaces port 11264: " <<
       xes::ip_address(ep) << ' ' << xes::port_number(ep) << std::endl;
 #endif
+    assert(xes::port_number(ep) == 11264);
+    check_endpoint(ep);
   }
 }
 
