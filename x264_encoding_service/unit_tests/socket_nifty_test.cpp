@@ -25,7 +25,7 @@
 int main()
 {
   /*
-   * That' right, no code.  Just testing the side effects of including
+   * That's right, no code.  Just testing the side effects of including
    * the nifty counter header.
    */
   return 0;
