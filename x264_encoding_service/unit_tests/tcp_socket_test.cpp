@@ -46,6 +46,12 @@ void socket_state_for_family(int family)
   assert(sock1.empty());
   assert(!sock2.empty());
 
+  sock1 = std::move(sock1);
+  assert(sock1.empty());
+
+  sock2 = std::move(sock2);
+  assert(!sock2.empty());
+
   sock2 = std::move(sock1);
   assert(sock1.empty());
   assert(sock2.empty());
