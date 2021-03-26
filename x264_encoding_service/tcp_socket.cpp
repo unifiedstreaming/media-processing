@@ -24,6 +24,7 @@
 
 #include <cassert>
 #include <limits>
+#include <utility>
 
 #ifdef _WIN32
 #include <winsock2.h>
@@ -188,7 +189,7 @@ namespace // anonymous
  * close-on-exec flag is set. All we can do here is call set_cloexec()
  * ASAP.
  */
-void set_cloexec(int fd)
+int set_cloexec(int&& fd)
 {
   int r = fcntl(fd, F_GETFD);
   if(r != -1)
@@ -202,6 +203,8 @@ void set_cloexec(int fd)
     close(fd);
     throw system_exception_t("Error setting FD_CLOEXEC", cause);
   }
+
+  return fd;
 }
 
 #endif // SOCK_CLOEXEC
@@ -246,7 +249,7 @@ tcp_socket_t tcp_socket_t::accept()
   }
 
 #ifndef SOCK_CLOEXEC
-  set_cloexec(new_fd);
+  new_fd = set_cloexec(std::move(new_fd));
 #endif
 
   return tcp_socket_t(consume_fd, new_fd);
@@ -267,7 +270,7 @@ int tcp_socket_t::open_fd(int family)
   }
 
 #ifndef SOCK_CLOEXEC
-  set_cloexec(fd);
+  fd = set_cloexec(std::move(fd));
 #endif
 
   return fd;
