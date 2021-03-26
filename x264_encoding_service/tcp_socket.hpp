@@ -83,6 +83,13 @@ struct tcp_socket_t
     other.fd_ = tmp;
   }
 
+  // socket options
+  void set_v6only(bool enable);
+  void set_reuseaddr(bool enable);
+  void set_nodelay(bool enable);
+  void set_keepalive(bool enable);
+  void set_nonblocking(bool enable);
+
   ~tcp_socket_t()
   {
     if(fd_ != -1)
