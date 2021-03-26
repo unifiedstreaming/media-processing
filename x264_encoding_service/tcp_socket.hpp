@@ -108,7 +108,7 @@ struct tcp_socket_t
   void listen();
 
   // Note: may return an empty socket, even in blocking mode
-  tcp_socket_t accept();
+  tcp_socket_t try_accept();
 
 private :
   static int open_fd(int family);

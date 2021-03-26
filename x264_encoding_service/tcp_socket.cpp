@@ -149,7 +149,7 @@ void tcp_socket_t::set_nonblocking(bool enable)
   }
 }
 
-tcp_socket_t tcp_socket_t::accept()
+tcp_socket_t tcp_socket_t::try_accept()
 {
   SOCKET new_sock = ::accept(fd_, nullptr, nullptr);
   if(new_sock == INVALID_SOCKET)
@@ -234,7 +234,7 @@ void tcp_socket_t::set_nonblocking(bool enable)
   }
 }
 
-tcp_socket_t tcp_socket_t::accept()
+tcp_socket_t tcp_socket_t::try_accept()
 {
 #ifdef SOCK_CLOEXEC
   int new_fd = ::accept4(fd_, nullptr, nullptr, SOCK_CLOEXEC);
