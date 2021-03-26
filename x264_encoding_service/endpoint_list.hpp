@@ -17,7 +17,7 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#ifndef ENDPOINT_LIST_HHP_
+#ifndef ENDPOINT_LIST_HPP_
 #define ENDPOINT_LIST_HPP_
 
 #include "endpoint.hpp"
