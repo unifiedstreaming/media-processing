@@ -20,6 +20,7 @@
 #ifndef TCP_SOCKET_HPP_
 #define TCP_SOCKET_HPP_
 
+#include "endpoint.hpp"
 #include "socket_nifty.hpp"
 
 #include <cassert>
@@ -83,13 +84,6 @@ struct tcp_socket_t
     other.fd_ = tmp;
   }
 
-  // socket options
-  void set_v6only(bool enable);
-  void set_reuseaddr(bool enable);
-  void set_nodelay(bool enable);
-  void set_keepalive(bool enable);
-  void set_nonblocking(bool enable);
-
   ~tcp_socket_t()
   {
     if(fd_ != -1)
@@ -97,6 +91,24 @@ struct tcp_socket_t
       close_fd(fd_);
     }
   }
+
+  /*
+   * Socket options
+   */
+  void set_v6only(bool enable);
+  void set_reuseaddr(bool enable);
+  void set_nodelay(bool enable);
+  void set_keepalive(bool enable);
+  void set_nonblocking(bool enable);
+
+  /*
+   * Acceptor operations
+   */
+  void bind(endpoint_t const& endpoint);
+  void listen();
+
+  // Note: may return an empty socket, even in blocking mode
+  tcp_socket_t accept();
 
 private :
   static int open_fd(int family);

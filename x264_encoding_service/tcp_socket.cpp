@@ -98,7 +98,31 @@ void tcp_socket_t::set_keepalive(bool enable)
     throw system_exception_t("Error setting SO_KEEPALIVE", cause);
   }
 }
-    
+
+void tcp_socket_t::bind(endpoint_t const& endpoint)
+{
+  auto length = static_cast<socklen_t>(endpoint_size(endpoint));
+  int r = ::bind(fd_, &endpoint, length);
+  if(r == -1)
+  {
+    int cause = last_system_error();
+    throw system_exception_t(
+      "Can't bind to " + ip_address(endpoint) +
+        " port " + std::to_string(port_number(endpoint)),
+      cause);
+  }
+}
+
+void tcp_socket_t::listen()
+{
+  int r = ::listen(fd_, SOMAXCONN);
+  if(r == -1)
+  {
+    int cause = last_system_error();
+    throw system_exception_t("Can't listen", cause);
+  }
+}
+
 #ifdef _WIN32
 
 namespace // anonymous
@@ -123,7 +147,18 @@ void tcp_socket_t::set_nonblocking(bool enable)
     throw system_exception_t("Error setting FIONBIO", cause);
   }
 }
-	
+
+tcp_socket_t tcp_socket_t::accept()
+{
+  SOCKET new_sock = ::accept(fd_, nullptr, nullptr);
+  if(new_sock == INVALID_SOCKET)
+  {
+    // Don't panic; just return an empty socket
+    return tcp_socket_t();
+  }
+  return tcp_socket_t(consume_fd, to_fd(new_sock));
+}
+
 int tcp_socket_t::open_fd(int family)
 {
   SOCKET result = socket(check_family(family), SOCK_STREAM, 0);
@@ -141,6 +176,37 @@ void tcp_socket_t::close_fd(int fd) noexcept
 }
 
 #else // POSIX
+
+namespace // anonymous
+{
+
+#ifndef SOCK_CLOEXEC
+
+/*
+ * In the absence of SOCK_CLOEXEC, a socket leak will occur when a
+ * concurrent thread calls fork() before a fresh socket's
+ * close-on-exec flag is set. All we can do here is call set_cloexec()
+ * ASAP.
+ */
+void set_cloexec(int fd)
+{
+  int r = fcntl(fd, F_GETFD);
+  if(r != -1)
+  {
+    r |= FD_CLOEXEC;
+    r = fcntl(fd, F_SETFD, r);
+  }
+  if(r == -1)
+  {
+    int cause = last_system_error();
+    close(fd);
+    throw system_exception_t("Error setting FD_CLOEXEC", cause);
+  }
+}
+
+#endif // SOCK_CLOEXEC
+
+} // anonymous
 
 void tcp_socket_t::set_nonblocking(bool enable)
 {
@@ -165,46 +231,44 @@ void tcp_socket_t::set_nonblocking(bool enable)
   }
 }
 
+tcp_socket_t tcp_socket_t::accept()
+{
+#ifdef SOCK_CLOEXEC
+  int new_fd = ::accept4(fd_, nullptr, nullptr, SOCK_CLOEXEC);
+#else
+  int new_fd = ::accept(fd_, nullptr, nullptr);
+#endif
+
+  if(new_fd == -1)
+  {
+    // Don't panic; just return an empty socket
+    return tcp_socket_t();
+  }
+
+#ifndef SOCK_CLOEXEC
+  set_cloexec(new_fd);
+#endif
+
+  return tcp_socket_t(consume_fd, new_fd);
+}
+
 int tcp_socket_t::open_fd(int family)
 {
 #ifdef SOCK_CLOEXEC
-  
-  /*
-   * Close-on-exec set from the start; no socket leak.
-   */
   int fd = socket(check_family(family), SOCK_STREAM | SOCK_CLOEXEC, 0);
-
 #else
-
-  /*
-   * Potential socket leak when another thread concurrently does a
-   * fork()/exec(). No proper fix exists; just close the window of
-   * opportunity now.
-   */
   int fd = socket(check_family(family), SOCK_STREAM, 0);
-  if(fd != -1)
-  {
-    int r = fcntl(fd, F_GETFD);
-    if(r != -1)
-    {
-      r |= FD_CLOEXEC;
-      r = fcntl(fd, F_SETFD, r);
-    }
-    if(r == -1)
-    {
-      int cause = last_system_error();
-      close_fd(fd);
-      throw system_exception_t("Error setting FD_CLOEXEC", cause);
-    }
-  }
-
 #endif
-    
+
   if(fd == -1)
   {
     int cause = last_system_error();
     throw system_exception_t("Can't create socket", cause);
   }
+
+#ifndef SOCK_CLOEXEC
+  set_cloexec(fd);
+#endif
 
   return fd;
 }
