@@ -22,6 +22,7 @@
 
 #include "socket_nifty.hpp"
 
+#include <cassert>
 #include <utility>
 
 namespace xes
@@ -51,7 +52,7 @@ struct tcp_socket_t
   { }
 
   tcp_socket_t(consume_fd_t const&, int fd) noexcept
-  : fd_(fd)
+  : fd_((assert(fd != -1), fd))
   { }
 
   tcp_socket_t(tcp_socket_t const&) = delete;
