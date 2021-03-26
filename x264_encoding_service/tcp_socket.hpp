@@ -52,7 +52,7 @@ struct tcp_socket_t
   : fd_(open_fd(family))
   { }
 
-  tcp_socket_t(consume_fd_t const&, int fd) noexcept
+  tcp_socket_t(consume_fd_t const&, int&& fd) noexcept
   : fd_((assert(fd != -1), fd))
   { }
 

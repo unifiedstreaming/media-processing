@@ -252,7 +252,7 @@ tcp_socket_t tcp_socket_t::accept()
   new_fd = set_cloexec(std::move(new_fd));
 #endif
 
-  return tcp_socket_t(consume_fd, new_fd);
+  return tcp_socket_t(consume_fd, std::move(new_fd));
 }
 
 int tcp_socket_t::open_fd(int family)
