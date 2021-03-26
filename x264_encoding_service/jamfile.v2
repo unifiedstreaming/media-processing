@@ -36,7 +36,7 @@ project xes
   <cxxstd>14
   <threading>multi
 : default-build
-  <variant>release
+# <variant>release
   <address-model>64
   <debug-symbols>on
 ;
