@@ -88,7 +88,7 @@ struct tcp_socket_t
   {
     if(fd_ != -1)
     {
-      close_fd(fd_);
+      close_fd(std::move(fd_));
     }
   }
 
@@ -112,7 +112,7 @@ struct tcp_socket_t
 
 private :
   static int open_fd(int family);
-  static void close_fd(int fd) noexcept;
+  static void close_fd(int&& fd) noexcept;
 
 private :
   int fd_;

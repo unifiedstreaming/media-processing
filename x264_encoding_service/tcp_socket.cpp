@@ -276,7 +276,7 @@ int tcp_socket_t::open_fd(int family)
   return fd;
 }
 
-void tcp_socket_t::close_fd(int fd) noexcept
+void tcp_socket_t::close_fd(int&& fd) noexcept
 {
   close(fd);
 }
