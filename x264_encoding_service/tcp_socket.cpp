@@ -129,7 +129,7 @@ void tcp_socket_t::listen()
 namespace // anonymous
 {
 
-int to_fd(SOCKET sock)
+int to_fd(SOCKET&& sock)
 {
   assert(sock >= 0);
   assert(sock <= std::numeric_limits<int>::max());
@@ -157,7 +157,7 @@ tcp_socket_t tcp_socket_t::accept()
     // Don't panic; just return an empty socket
     return tcp_socket_t();
   }
-  return tcp_socket_t(consume_fd, to_fd(new_sock));
+  return tcp_socket_t(consume_fd, to_fd(std::move(new_sock)));
 }
 
 int tcp_socket_t::open_fd(int family)
@@ -168,7 +168,7 @@ int tcp_socket_t::open_fd(int family)
     int cause = last_system_error();
     throw system_exception_t("Can't create socket", cause);
   }
-  return to_fd(result);
+  return to_fd(std::move(result));
 }
 
 void tcp_socket_t::close_fd(int&& fd) noexcept
