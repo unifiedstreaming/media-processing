@@ -46,8 +46,8 @@ namespace // anonymous
 
 int to_fd(SOCKET sock)
 {
-  assert(socket >= 0);
-  assert(socket <= std::numeric_limits<int>::max());
+  assert(sock >= 0);
+  assert(sock <= std::numeric_limits<int>::max());
   return static_cast<int>(sock);
 }
 
