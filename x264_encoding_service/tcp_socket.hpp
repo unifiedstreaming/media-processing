@@ -77,16 +77,45 @@ struct tcp_socket_t
     }
   }
 
-  void set_nonblocking(bool enable);
+  /*
+   * Socket setup
+   */
   void bind(endpoint_t const& endpoint);
   void listen();
+  void connect(endpoint_t const& endpoint);
+  void set_nonblocking(bool enable);
 
-  // Note: may return an empty socket, even in blocking mode
+  /*
+   * Blocking I/O
+   */
+  // Returns a non-empty socket
+  tcp_socket_t accept();
+
+  // Returns a pointer to the next byte to send
+  char const* send_some(char const* first, char const* last);
+  
+  // Returns a pointer to the next byte to receive; first on EOF
+  char* receive_some(char* first, char* last);
+
+  /*
+   * Non-blocking I/O
+   */
+  // Like accept(); returns an empty socket if the call would block
   tcp_socket_t try_accept();
+  
+  // Like send_some(); returns nullptr if the call would block
+  char const* try_send_some(char const* first, char const* last);
+  
+  // Like receive_some(); returns nullptr if the call would block
+  char* try_receive_some(char* first, char* last);
 
 private :
   static void close_fd(int fd) noexcept;
 
+private :
+  friend struct socket_initializer_t;
+  static bool stops_sigpipe();
+  
 private :
   int fd_;
 };

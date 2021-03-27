@@ -27,6 +27,7 @@ namespace xes
 {
 
 int last_system_error();
+bool is_wouldblock(int error);
 std::string system_error_string(int error);
 
 struct system_exception_t : std::runtime_error

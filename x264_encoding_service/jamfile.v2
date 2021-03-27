@@ -62,6 +62,7 @@ lib xes_utils
   ws2_32
 : <link>static
   <target-os>windows:<define>NOMINMAX
+  <target-os>windows:<define>WIN32_LEAN_AND_MEAN
 :
 : <include>.
 ; 

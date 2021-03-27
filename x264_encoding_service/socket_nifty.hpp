@@ -23,6 +23,8 @@
 namespace xes
 {
 
+struct socket_initializer_t;
+
 /*
  * Nifty counter for initializing the native socket layer. Including
  * this file ensures the socket layer is initialized.

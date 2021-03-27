@@ -24,6 +24,8 @@
 #ifdef _WIN32
 
 #include <windows.h>
+#include <winsock2.h>
+#include <ws2tcpip.h>
 
 namespace xes
 {
@@ -31,6 +33,11 @@ namespace xes
 int last_system_error()
 {
   return GetLastError();
+}
+
+bool is_wouldblock(int error)
+{
+  return error == WSAEWOULDBLOCK;
 }
 
 std::string system_error_string(int error)
@@ -66,6 +73,11 @@ namespace xes
 int last_system_error()
 {
   return errno;
+}
+
+bool is_wouldblock(int error)
+{
+  return error == EAGAIN || error == EWOULDBLOCK;
 }
 
 std::string system_error_string(int error)

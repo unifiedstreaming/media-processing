@@ -19,6 +19,10 @@
 
 #include "socket_nifty.hpp"
 
+#include "tcp_socket.hpp"
+
+#include <cstring>
+
 // Unconditionally enable asserts here
 #undef NDEBUG
 #include <cassert>
@@ -28,9 +32,6 @@
 #include <winsock2.h>
 
 namespace xes
-{
-
-namespace // anonymous
 {
 
 struct socket_initializer_t
@@ -54,31 +55,47 @@ struct socket_initializer_t
   }
 };
 
-} // anonymous
-
 } // xes
 
 #else // POSIX
 
-namespace xes
-{
+#include <signal.h>
 
-namespace // anonymous
+namespace xes
 {
 
 struct socket_initializer_t
 {
   socket_initializer_t()
-  { }
+  : ignore_sigpipe_(!tcp_socket_t::stops_sigpipe())
+  {
+    if(ignore_sigpipe_)
+    {
+      // tcp_socket_t can't stop SIGPIPE; ignore it process-wide
+      struct sigaction new_action;
+      std::memset(&new_action, '\0', sizeof new_action);
+      new_action.sa_handler = SIG_IGN;
 
+      int r = ::sigaction(SIGPIPE, &new_action, &saved_action_);
+      assert(r != -1);
+    }
+  }
+      
   socket_initializer_t(socket_initializer_t const&) = delete;
   socket_initializer_t& operator=(socket_initializer_t const&) = delete;
   
   ~socket_initializer_t()
-  { }
-};
+  {
+    if(ignore_sigpipe_)
+    {
+      ::sigaction(SIGPIPE, &saved_action_, nullptr);
+    }
+  }
 
-} // anonymous
+private :
+  bool const ignore_sigpipe_;
+  struct sigaction saved_action_;
+};
 
 } // xes
 
