@@ -23,20 +23,11 @@
 #include "endpoint.hpp"
 #include "socket_nifty.hpp"
 
-#include <cassert>
-#include <utility>
-
 namespace xes
 {
 
-struct create_socket_t { };
-extern create_socket_t const create_socket;
-
-struct consume_fd_t { };
-extern consume_fd_t const consume_fd;
-
 /*
- * Low-level swiss army knife interface for TCP sockets.
+ * Low-level interface for TCP sockets.
  *
  * tcp_socket_t is a move-only type; its instances may be empty(),
  * that is, not holding an open file descriptor. Only re-assignment
@@ -48,13 +39,7 @@ struct tcp_socket_t
   : fd_(-1)
   { }
 
-  tcp_socket_t(create_socket_t const&, int family)
-  : fd_(open_fd(family))
-  { }
-
-  tcp_socket_t(consume_fd_t const&, int&& fd) noexcept
-  : fd_((assert(fd != -1), fd))
-  { }
+  explicit tcp_socket_t(int family);
 
   tcp_socket_t(tcp_socket_t const&) = delete;
   tcp_socket_t& operator=(tcp_socket_t const&) = delete;
@@ -88,22 +73,11 @@ struct tcp_socket_t
   {
     if(fd_ != -1)
     {
-      close_fd(std::move(fd_));
+      close_fd(fd_);
     }
   }
 
-  /*
-   * Socket options
-   */
-  void set_v6only(bool enable);
-  void set_reuseaddr(bool enable);
-  void set_nodelay(bool enable);
-  void set_keepalive(bool enable);
   void set_nonblocking(bool enable);
-
-  /*
-   * Acceptor operations
-   */
   void bind(endpoint_t const& endpoint);
   void listen();
 
@@ -111,14 +85,14 @@ struct tcp_socket_t
   tcp_socket_t try_accept();
 
 private :
-  static int open_fd(int family);
-  static void close_fd(int&& fd) noexcept;
+  static void close_fd(int fd) noexcept;
 
 private :
   int fd_;
 };
 
-inline void swap(tcp_socket_t& s1, tcp_socket_t& s2) noexcept
+inline
+void swap(tcp_socket_t& s1, tcp_socket_t& s2) noexcept
 {
   s1.swap(s2);
 }

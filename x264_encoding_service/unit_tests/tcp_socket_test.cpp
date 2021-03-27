@@ -34,7 +34,7 @@ void socket_state_for_family(int family)
   xes::tcp_socket_t sock0;
   assert(sock0.empty());
 
-  xes::tcp_socket_t sock1(xes::create_socket, family);
+  xes::tcp_socket_t sock1(family);
   assert(!sock1.empty());
 
   xes::tcp_socket_t sock2 = std::move(sock1);

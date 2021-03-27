@@ -85,9 +85,9 @@ int endpoint_family(endpoint_t const& endpoint)
   return result;
 }
 
-std::size_t endpoint_size(endpoint_t const& endpoint)
+unsigned int endpoint_size(endpoint_t const& endpoint)
 {
-  std::size_t result = 0;
+  unsigned int result = 0;
 
   auto on_ipv4 = [&](sockaddr_in const& addr) { result = sizeof addr; };
   auto on_ipv6 = [&](sockaddr_in6 const& addr) { result = sizeof addr; };
