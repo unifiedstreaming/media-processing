@@ -22,7 +22,7 @@
 
 #include "socket_nifty.hpp"
 
-#include <cstddef>
+#include <memory>
 #include <string>
 
 struct sockaddr;
@@ -42,6 +42,10 @@ int endpoint_family(endpoint_t const& endpoint);
 unsigned int endpoint_size(endpoint_t const& endpoint);
 std::string ip_address(endpoint_t const& endpoint);
 unsigned int port_number(endpoint_t const& endpoint);
+std::string to_string(endpoint_t const& endpoint);
+
+std::shared_ptr<endpoint_t const> local_endpoint(int fd);
+std::shared_ptr<endpoint_t const> remote_endpoint(int fd);
 
 } // namespace xes
 

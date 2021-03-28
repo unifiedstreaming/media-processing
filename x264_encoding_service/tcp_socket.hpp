@@ -23,6 +23,8 @@
 #include "endpoint.hpp"
 #include "socket_nifty.hpp"
 
+#include <memory>
+
 namespace xes
 {
 
@@ -108,6 +110,12 @@ struct tcp_socket_t
   
   // Like read_some(); returns nullptr if the call would block
   char* try_read_some(char* first, char* last);
+
+  /*
+   * Endpoint queries
+   */
+  std::shared_ptr<endpoint_t const> local_endpoint() const;
+  std::shared_ptr<endpoint_t const> remote_endpoint() const;
 
 private :
   static void close_fd(int fd) noexcept;

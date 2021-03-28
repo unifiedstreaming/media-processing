@@ -22,12 +22,14 @@
 #include "system_error.hpp"
 
 #include <cassert>
+#include <utility>
 
 #ifdef _WIN32
 #include <winsock2.h>
 #include <ws2tcpip.h>
 #else
 #include <sys/socket.h>
+#include <netinet/in.h>
 #include <netdb.h>
 #endif
 
@@ -36,6 +38,13 @@ namespace xes
 
 namespace // anonymous
 {
+
+union endpoint_storage_t
+{
+  sockaddr addr_;
+  sockaddr_in addr_in_;
+  sockaddr_in6 addr_in6_;
+};
 
 template<typename IPv4Handler, typename IPv6Handler>
 void visit_endpoint(endpoint_t const& endpoint,
@@ -135,4 +144,46 @@ unsigned int port_number(endpoint_t const& endpoint)
   return result;
 }
 
+std::string to_string(endpoint_t const& endpoint)
+{
+  return "[" + ip_address(endpoint) +
+    " " + std::to_string(port_number(endpoint)) + "]";
+}
+
+std::shared_ptr<endpoint_t const> local_endpoint(int fd)
+{
+  auto storage = std::make_shared<endpoint_storage_t>();
+  socklen_t size = static_cast<socklen_t>(sizeof *storage);
+
+  int r = getsockname(fd, &storage->addr_, &size);
+  if(r == -1)
+  {
+    int cause = last_system_error();
+    throw system_exception_t("getsockname() failure", cause);
+  }
+  
+  check_family(storage->addr_.sa_family);
+
+  return std::shared_ptr<endpoint_t const>(
+    std::move(storage), &storage->addr_);
+}
+  
+std::shared_ptr<endpoint_t const> remote_endpoint(int fd)
+{
+  auto storage = std::make_shared<endpoint_storage_t>();
+  socklen_t size = static_cast<socklen_t>(sizeof *storage);
+
+  int r = getpeername(fd, &storage->addr_, &size);
+  if(r == -1)
+  {
+    int cause = last_system_error();
+    throw system_exception_t("getpeername() failure", cause);
+  }
+  
+  check_family(storage->addr_.sa_family);
+
+  return std::shared_ptr<endpoint_t const>(
+    std::move(storage), &storage->addr_);
+}
+  
 } // namespace xes

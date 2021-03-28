@@ -249,9 +249,7 @@ void tcp_socket_t::bind(endpoint_t const& endpoint)
   {
     int cause = last_system_error();
     throw system_exception_t(
-      "Can't bind to " + ip_address(endpoint) +
-        " port " + std::to_string(port_number(endpoint)),
-      cause);
+      "Can't bind to endpoint " + to_string(endpoint), cause);
   }
 }
 
@@ -276,9 +274,7 @@ void tcp_socket_t::connect(endpoint_t const& endpoint)
   {
     int cause = last_system_error();
     throw system_exception_t(
-      "Can't connect to address " + ip_address(endpoint) +
-        " port " + std::to_string(port_number(endpoint)),
-      cause);
+      "Can't connect to endpoint " + to_string(endpoint), cause);
   }
 
   set_default_connection_flags(fd_);
@@ -415,6 +411,20 @@ char* tcp_socket_t::try_read_some(char* first, char* last)
   }
 
   return first + r;
+}
+
+std::shared_ptr<endpoint_t const> tcp_socket_t::local_endpoint() const
+{
+  assert(!empty());
+
+  return xes::local_endpoint(fd_);
+}
+
+std::shared_ptr<endpoint_t const> tcp_socket_t::remote_endpoint() const
+{
+  assert(!empty());
+
+  return xes::remote_endpoint(fd_);
 }
 
 void tcp_socket_t::close_fd(int fd) noexcept

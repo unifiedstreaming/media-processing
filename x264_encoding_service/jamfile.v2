@@ -45,7 +45,6 @@ lib xes_utils
 : default_backend.cpp
   endpoint.cpp
   endpoint_list.cpp
-  endpoint_storage.cpp
   file_backend.cpp
   fs_utils.cpp
   format.cpp
