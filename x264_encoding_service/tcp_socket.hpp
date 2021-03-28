@@ -91,11 +91,11 @@ struct tcp_socket_t
   // Returns a non-empty socket
   tcp_socket_t accept();
 
-  // Returns a pointer to the next byte to send
-  char const* send_some(char const* first, char const* last);
+  // Returns a pointer to the next byte to write
+  char const* write_some(char const* first, char const* last);
   
-  // Returns a pointer to the next byte to receive; first on EOF
-  char* receive_some(char* first, char* last);
+  // Returns a pointer to the next byte to read; first on EOF
+  char* read_some(char* first, char* last);
 
   /*
    * Non-blocking I/O
@@ -103,11 +103,11 @@ struct tcp_socket_t
   // Like accept(); returns an empty socket if the call would block
   tcp_socket_t try_accept();
   
-  // Like send_some(); returns nullptr if the call would block
-  char const* try_send_some(char const* first, char const* last);
+  // Like write_some(); returns nullptr if the call would block
+  char const* try_write_some(char const* first, char const* last);
   
-  // Like receive_some(); returns nullptr if the call would block
-  char* try_receive_some(char* first, char* last);
+  // Like read_some(); returns nullptr if the call would block
+  char* try_read_some(char* first, char* last);
 
 private :
   static void close_fd(int fd) noexcept;

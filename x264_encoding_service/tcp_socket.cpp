@@ -304,11 +304,11 @@ tcp_socket_t tcp_socket_t::accept()
   return result;
 }
 
-char const* tcp_socket_t::send_some(char const* first, char const* last)
+char const* tcp_socket_t::write_some(char const* first, char const* last)
 {
   assert(!empty());
 
-  char const* result = try_send_some(first, last);
+  char const* result = try_write_some(first, last);
   if(result == nullptr)
   {
     int cause = last_system_error();
@@ -317,11 +317,11 @@ char const* tcp_socket_t::send_some(char const* first, char const* last)
   return result;
 }
 
-char* tcp_socket_t::receive_some(char* first, char* last)
+char* tcp_socket_t::read_some(char* first, char* last)
 {
   assert(!empty());
 
-  char* result = try_receive_some(first, last);
+  char* result = try_read_some(first, last);
   if(result == nullptr)
   {
     int cause = last_system_error();
@@ -361,7 +361,7 @@ tcp_socket_t tcp_socket_t::try_accept()
   return result;
 }
 
-char const* tcp_socket_t::try_send_some(char const* first, char const* last)
+char const* tcp_socket_t::try_write_some(char const* first, char const* last)
 {
   assert(!empty());
   assert(first <= last);
@@ -391,7 +391,7 @@ char const* tcp_socket_t::try_send_some(char const* first, char const* last)
   return first + r;
 }
 
-char* tcp_socket_t::try_receive_some(char* first, char* last)
+char* tcp_socket_t::try_read_some(char* first, char* last)
 {
   assert(!empty());
   assert(first <= last);
