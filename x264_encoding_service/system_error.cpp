@@ -117,8 +117,8 @@ system_exception_t::system_exception_t(std::string complaint)
 : std::runtime_error(std::move(complaint))
 { }
 
-system_exception_t::system_exception_t(std::string const& complaint, int cause)
-: std::runtime_error(complaint + ": " + system_error_string(cause))
+system_exception_t::system_exception_t(std::string complaint, int cause)
+: std::runtime_error(std::move(complaint) + ": " + system_error_string(cause))
 { }
 
 } // namespace xes

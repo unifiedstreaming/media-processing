@@ -20,8 +20,11 @@
 #ifndef SYSTEM_ERROR_HPP_
 #define SYSTEM_ERROR_HPP_
 
+#include <ostream>
 #include <stdexcept>
 #include <string>
+
+#include "logbuf.hpp"
 
 namespace xes
 {
@@ -33,7 +36,28 @@ std::string system_error_string(int error);
 struct system_exception_t : std::runtime_error
 {
   explicit system_exception_t(std::string complaint);
-  explicit system_exception_t(std::string const& complaint, int cause);
+  system_exception_t(std::string complaint, int cause);
+};
+
+struct system_exception_builder_t : std::ostream
+{
+  system_exception_builder_t()
+  : std::ostream(nullptr)
+  , buf_()
+  { this->rdbuf(&buf_); }
+
+  system_exception_builder_t(system_exception_builder_t const&) = delete;
+  system_exception_builder_t& operator=(system_exception_builder_t const&)
+    = delete;
+
+  void explode() const
+  { throw system_exception_t(std::string(buf_.begin(), buf_.end())); }
+
+  void explode(int cause) const
+  { throw system_exception_t(std::string(buf_.begin(), buf_.end()), cause); }
+
+private :
+  logbuf_t buf_;
 };
 
 } // namespace xes

@@ -23,8 +23,6 @@
 #include "logbuf.hpp"
 #include "system_error.hpp"
 
-#include <sstream>
-
 #ifdef _WIN32
 
 #include <windows.h>

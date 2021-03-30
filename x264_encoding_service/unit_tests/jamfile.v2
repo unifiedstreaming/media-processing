@@ -49,7 +49,12 @@ unit-test streambuf_backend_test
   ..//xes_utils
 ;
 
+unit-test tcp_acceptor_test
+: tcp_acceptor_test.cpp
+  ..//xes_utils
+;
 unit-test tcp_socket_test
 : tcp_socket_test.cpp
   ..//xes_utils
 ;
+

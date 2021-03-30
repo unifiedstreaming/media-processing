@@ -56,6 +56,8 @@ lib xes_utils
   streambuf_backend.cpp
   syslog_backend.cpp
   system_error.cpp
+  tcp_acceptor.cpp
+  tcp_connection.cpp
   tcp_socket.cpp
   advapi32
   ws2_32

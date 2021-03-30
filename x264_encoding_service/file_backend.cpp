@@ -47,8 +47,9 @@ struct file_backend_t::log_handle_t
     if(handle_ == INVALID_HANDLE_VALUE)
     {
       int cause = last_system_error();
-      throw system_exception_t(
-        std::string("Failed to open log file ") + filename, cause);
+      system_exception_builder_t builder;
+      builder <<  "Failed to open log file " << filename;
+      builder.explode(cause);
     }
   }
     
@@ -147,8 +148,9 @@ struct file_backend_t::log_handle_t
     if(fd_ == -1)
     {
       int cause = last_system_error();
-      throw system_exception_t(
-        std::string("Failed to open log file ") + filename, cause);
+      system_exception_builder_t builder;
+      builder << "Failed to open log file " << filename;
+      builder.explode(cause);
     }
   }
 

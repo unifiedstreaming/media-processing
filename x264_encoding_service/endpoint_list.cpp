@@ -51,8 +51,9 @@ make_head(int flags, char const* host, unsigned int port)
     std::numeric_limits<std::uint16_t>::max();
   if(port > max_port)
   {
-    throw system_exception_t(
-      "Port number " + std::to_string(port) + " out of range");
+    system_exception_builder_t builder;
+    builder << "Port number " << port << " out of range";
+    builder.explode();
   }
 
   addrinfo hints;
@@ -68,20 +69,18 @@ make_head(int flags, char const* host, unsigned int port)
 #ifdef _WIN32
     int cause = last_system_error();
 #endif
-
-    std::string complaint = "Can't resolve";
+    system_exception_builder_t builder;
+    builder << "Can't resolve";
     if(host != nullptr)
     {
-      complaint += " host ";
-      complaint += host;
+      builder << " host " << host;
     }
-    complaint += " port ";
-    complaint += std::to_string(port);
-
+    builder << " port " << port;
 #ifdef _WIN32
-    throw system_exception_t(complaint, cause);
+    builder.explode(cause);
 #else
-    throw system_exception_t(complaint + ": " + gai_strerror(r));
+    builder << ": " << gai_strerror(r);
+    builder.explode();
 #endif
   }
 

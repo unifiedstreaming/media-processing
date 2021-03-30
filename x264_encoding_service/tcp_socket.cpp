@@ -198,7 +198,7 @@ void set_nosigpipe(int fd, bool enable)
 
 #endif // SO_NOSIGPIPE
 
-void set_default_connection_flags(int fd)
+void set_initial_connection_flags(int fd)
 {
   set_nonblocking(fd, false);
   set_nodelay(fd, true);
@@ -248,8 +248,9 @@ void tcp_socket_t::bind(endpoint_t const& endpoint)
   if(r == -1)
   {
     int cause = last_system_error();
-    throw system_exception_t(
-      "Can't bind to endpoint " + to_string(endpoint), cause);
+    system_exception_builder_t builder;
+    builder << "Can't bind to endpoint " << endpoint;
+    builder.explode(cause);
   }
 }
 
@@ -265,68 +266,51 @@ void tcp_socket_t::listen()
   }
 }
 
-void tcp_socket_t::connect(endpoint_t const& endpoint)
+void tcp_socket_t::connect(endpoint_t const& peer)
 {
   assert(!empty());
 
-  int r = ::connect(fd_, &endpoint, endpoint_size(endpoint));
+  int r = ::connect(fd_, &peer, endpoint_size(peer));
   if(r == -1)
   {
     int cause = last_system_error();
-    throw system_exception_t(
-      "Can't connect to endpoint " + to_string(endpoint), cause);
+    system_exception_builder_t builder;
+    builder << "Can't connect to endpoint " << peer;
+    builder.explode(cause);
   }
 
-  set_default_connection_flags(fd_);
+  set_initial_connection_flags(fd_);
 }
 
-void tcp_socket_t::set_nonblocking(bool enable)
+std::shared_ptr<endpoint_t const> tcp_socket_t::local_endpoint() const
 {
   assert(!empty());
 
-  xes::set_nonblocking(fd_, enable);
+  return xes::local_endpoint(fd_);
+}
+
+std::shared_ptr<endpoint_t const> tcp_socket_t::remote_endpoint() const
+{
+  assert(!empty());
+
+  return xes::remote_endpoint(fd_);
+}
+
+void tcp_socket_t::set_blocking()
+{
+  assert(!empty());
+
+  xes::set_nonblocking(fd_, false);
+}
+
+void tcp_socket_t::set_nonblocking()
+{
+  assert(!empty());
+
+  xes::set_nonblocking(fd_, true);
 }
 
 tcp_socket_t tcp_socket_t::accept()
-{
-  assert(!empty());
-
-  tcp_socket_t result = try_accept();
-  if(result.empty())
-  {
-    int cause = last_system_error();
-    throw system_exception_t("accept() failure", cause);
-  }
-  return result;
-}
-
-char const* tcp_socket_t::write_some(char const* first, char const* last)
-{
-  assert(!empty());
-
-  char const* result = try_write_some(first, last);
-  if(result == nullptr)
-  {
-    int cause = last_system_error();
-    throw system_exception_t("send() failure", cause);
-  }
-  return result;
-}
-
-char* tcp_socket_t::read_some(char* first, char* last)
-{
-  assert(!empty());
-
-  char* result = try_read_some(first, last);
-  if(result == nullptr)
-  {
-    int cause = last_system_error();
-    throw system_exception_t("recv() failure", cause);
-  }
-  return result;
-}
-
-tcp_socket_t tcp_socket_t::try_accept()
 {
   assert(!empty());
 
@@ -341,23 +325,23 @@ tcp_socket_t tcp_socket_t::try_accept()
   if(result.fd_ == -1)
   {
     int cause = last_system_error();
-    if(!is_wouldblock(cause))
+    if(is_wouldblock(cause))
     {
-      throw system_exception_t("accept() failure", cause);
+      return result;
     }
-    return result;
+    throw system_exception_t("accept() failure", cause);
   }
 
 #if !defined(_WIN32) && !defined(SOCK_CLOEXEC)
   set_cloexec(result.fd_, true);
 #endif
 
-  set_default_connection_flags(result.fd_);
+  set_initial_connection_flags(result.fd_);
 
   return result;
 }
 
-char const* tcp_socket_t::try_write_some(char const* first, char const* last)
+char const* tcp_socket_t::write_some(char const* first, char const* last)
 {
   assert(!empty());
   assert(first <= last);
@@ -377,17 +361,17 @@ char const* tcp_socket_t::try_write_some(char const* first, char const* last)
   if(r == -1)
   {
     int cause = last_system_error();
-    if(!is_wouldblock(cause))
+    if(is_wouldblock(cause))
     {
-      throw system_exception_t("send() failure", cause);
+      return nullptr;
     }
-    return nullptr;
+    throw system_exception_t("send() failure", cause);
   }
 
   return first + r;
 }
 
-char* tcp_socket_t::try_read_some(char* first, char* last)
+char* tcp_socket_t::read_some(char* first, char* last)
 {
   assert(!empty());
   assert(first <= last);
@@ -403,28 +387,14 @@ char* tcp_socket_t::try_read_some(char* first, char* last)
   if(r == -1)
   {
     int cause = last_system_error();
-    if(!is_wouldblock(cause))
+    if(is_wouldblock(cause))
     {
-      throw system_exception_t("recv() failure()", cause);
+      return nullptr;
     }
-    return nullptr;
+    throw system_exception_t("recv() failure()", cause);
   }
 
   return first + r;
-}
-
-std::shared_ptr<endpoint_t const> tcp_socket_t::local_endpoint() const
-{
-  assert(!empty());
-
-  return xes::local_endpoint(fd_);
-}
-
-std::shared_ptr<endpoint_t const> tcp_socket_t::remote_endpoint() const
-{
-  assert(!empty());
-
-  return xes::remote_endpoint(fd_);
 }
 
 void tcp_socket_t::close_fd(int fd) noexcept

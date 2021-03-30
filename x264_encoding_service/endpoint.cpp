@@ -22,6 +22,7 @@
 #include "system_error.hpp"
 
 #include <cassert>
+#include <ostream>
 #include <utility>
 
 #ifdef _WIN32
@@ -75,8 +76,11 @@ int check_family(int family)
   case AF_INET6 :
     break;
   default :
-    throw system_exception_t(
-      "Unsupported address family " + std::to_string(family));
+    {
+      system_exception_builder_t builder;
+      builder << "Unsupported address family " << family;
+      builder.explode();
+    }
     break;
   }
 
@@ -121,10 +125,14 @@ std::string ip_address(endpoint_t const& endpoint)
   {
 #ifdef _WIN32
     int cause = last_system_error();
-    throw system_exception_t("Can't determine IP address", cause);
+#endif
+    system_exception_builder_t builder;
+    builder << "Can't determine IP address";
+#ifdef _WIN32
+    builder.explode(cause);
 #else
-    throw system_exception_t(
-      std::string("Can't determine IP address: ") + gai_strerror(r));
+    builder << ": " << gai_strerror(r);
+    builder.explode();
 #endif
   }
 
@@ -142,12 +150,6 @@ unsigned int port_number(endpoint_t const& endpoint)
   visit_endpoint(endpoint, on_ipv4, on_ipv6);
 
   return result;
-}
-
-std::string to_string(endpoint_t const& endpoint)
-{
-  return "[" + ip_address(endpoint) +
-    " " + std::to_string(port_number(endpoint)) + "]";
 }
 
 std::shared_ptr<endpoint_t const> local_endpoint(int fd)
@@ -185,5 +187,11 @@ std::shared_ptr<endpoint_t const> remote_endpoint(int fd)
   return std::shared_ptr<endpoint_t const>(
     std::move(storage), &storage->addr_);
 }
-  
+
+std::ostream& operator<<(std::ostream& os, endpoint_t const& endpoint)
+{
+  os << '[' << port_number(endpoint) << '@' << ip_address(endpoint) << ']';
+  return os;
+}
+
 } // namespace xes

@@ -23,6 +23,7 @@
 #include "socket_nifty.hpp"
 
 #include <memory>
+#include <iosfwd>
 #include <string>
 
 struct sockaddr;
@@ -42,10 +43,17 @@ int endpoint_family(endpoint_t const& endpoint);
 unsigned int endpoint_size(endpoint_t const& endpoint);
 std::string ip_address(endpoint_t const& endpoint);
 unsigned int port_number(endpoint_t const& endpoint);
-std::string to_string(endpoint_t const& endpoint);
-
 std::shared_ptr<endpoint_t const> local_endpoint(int fd);
 std::shared_ptr<endpoint_t const> remote_endpoint(int fd);
+
+/*
+ * Because neither std::ostream nor endpoint_t (::sockaddr) are in
+ * namespace xes, this streaming operator won't be found by ADL from
+ * other namespaces. Because of possible ODR violations, we can't
+ * place it in the global namespace either. Please drag it in
+ * explictly with a using-declaration in some limited scope.
+ */
+std::ostream& operator<<(std::ostream& os, endpoint_t const& endpoint);
 
 } // namespace xes
 

@@ -84,38 +84,33 @@ struct tcp_socket_t
    */
   void bind(endpoint_t const& endpoint);
   void listen();
-  void connect(endpoint_t const& endpoint);
-  void set_nonblocking(bool enable);
+  void connect(endpoint_t const& peer);
 
-  /*
-   * Blocking I/O
-   */
-  // Returns a non-empty socket
-  tcp_socket_t accept();
-
-  // Returns a pointer to the next byte to write
-  char const* write_some(char const* first, char const* last);
-  
-  // Returns a pointer to the next byte to read; first on EOF
-  char* read_some(char* first, char* last);
-
-  /*
-   * Non-blocking I/O
-   */
-  // Like accept(); returns an empty socket if the call would block
-  tcp_socket_t try_accept();
-  
-  // Like write_some(); returns nullptr if the call would block
-  char const* try_write_some(char const* first, char const* last);
-  
-  // Like read_some(); returns nullptr if the call would block
-  char* try_read_some(char* first, char* last);
-
-  /*
-   * Endpoint queries
-   */
   std::shared_ptr<endpoint_t const> local_endpoint() const;
   std::shared_ptr<endpoint_t const> remote_endpoint() const;
+
+  /*
+   * I/O functions
+   */
+  // In blocking mode, which is the default, I/O functions wait
+  // until they can be completed.
+  void set_blocking();
+
+  // In non-blocking mode, I/O functions return some special
+  // value if they cannot be completed immediately.
+  void set_nonblocking();
+
+  // Returns an accepted socket.
+  // In non-blocking mode, an empty socket may be returned.
+  tcp_socket_t accept();
+
+  // Returns a pointer to the next byte to write.
+  // In non-blocking mode, nullptr may be returned.
+  char const* write_some(char const* first, char const* last);
+  
+  // Returns a pointer to the next byte to read; first on EOF.
+  // In non-blocking mode, nullptr may be returned.
+  char* read_some(char* first, char* last);
 
 private :
   static void close_fd(int fd) noexcept;

@@ -39,9 +39,9 @@ void rename_if_exists(char const* old_name, char const* new_name)
     int cause = last_system_error();
     if(cause != ERROR_FILE_NOT_FOUND)
     {
-      throw system_exception_t(
-        std::string("Can't rename file ") + old_name + " to " + new_name,
-        cause);
+      system_exception_builder_t builder;
+      builder << "Can't rename file " << old_name << " to " << new_name;
+      builder.explode(cause);
     }
   }
 }
@@ -54,9 +54,9 @@ void delete_if_exists(char const* name)
     int cause = last_system_error();
     if(cause != ERROR_FILE_NOT_FOUND)
     {
-      throw system_exception_t(
-        std::string("Can't delete file ") + name,
-        cause);
+      system_exception_builder_t builder;
+      builder << "Can't delete file " << name;
+      builder.explode(cause);
     }
   }
 }
@@ -100,9 +100,9 @@ std::string absolute_path(char const* path)
   if(length == 0)
   {
     int cause = last_system_error();
-    throw system_exception_t(
-      std::string("Can't determine absolute path for file ") + path,
-      cause);
+    system_exception_builder_t builder;
+    builder << "Can't determine absolute path for file " << path;
+    builder.explode(cause);
   }
 
   assert(length < buffer.size());
@@ -128,9 +128,9 @@ void rename_if_exists(char const* old_name, char const* new_name)
     int cause = last_system_error();
     if(cause != ENOENT)
     {
-      throw system_exception_t(
-        std::string("Can't rename file ") + old_name + " to " + new_name,
-        cause);
+      system_exception_builder_t builder;
+      builder << "Can't rename file " << old_name << " to " << new_name;
+      builder.explode(cause);
     }
   }
 }
@@ -143,8 +143,9 @@ void delete_if_exists(char const* name)
     int cause = last_system_error();
     if(cause != ENOENT)
     {
-      throw system_exception_t(
-        std::string("Can't delete file ") + name, cause);
+      system_exception_builder_t builder;
+      builder << "Can't delete file " << name;
+      builder.explode(cause);
     }
   }
 }
