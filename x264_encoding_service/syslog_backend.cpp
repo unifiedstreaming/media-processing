@@ -20,7 +20,7 @@
 #include "syslog_backend.hpp"
 
 #include "format.hpp"
-#include "logbuf.hpp"
+#include "membuf.hpp"
 #include "system_error.hpp"
 
 #ifdef _WIN32
@@ -142,7 +142,7 @@ syslog_backend_t::syslog_backend_t(char const* source_name)
 void syslog_backend_t::report(loglevel_t level,
                               char const* begin_msg, char const* end_msg)
 {
-  logbuf_t buf;
+  membuf_t buf;
   format_loglevel(buf, level);
   buf.sputc(' ');
   buf.sputn(begin_msg, end_msg - begin_msg);

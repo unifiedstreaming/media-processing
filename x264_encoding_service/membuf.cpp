@@ -17,21 +17,21 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#include "logbuf.hpp"
+#include "membuf.hpp"
 
 #include <algorithm>
 
 namespace xes
 {
 
-logbuf_t::logbuf_t()
+membuf_t::membuf_t()
 : std::streambuf()
 , buf_(inline_buf_)
 {
   this->setp(inline_buf_, inline_buf_ + sizeof inline_buf_);
 }
 
-logbuf_t::~logbuf_t()
+membuf_t::~membuf_t()
 {
   if(buf_ != inline_buf_)
   {
@@ -39,7 +39,7 @@ logbuf_t::~logbuf_t()
   }
 }
 
-logbuf_t::int_type logbuf_t::overflow(int_type c)
+membuf_t::int_type membuf_t::overflow(int_type c)
 {
   char* pptr = this->pptr();
   char* epptr = this->epptr();

@@ -21,7 +21,7 @@
 #include "tcp_connection.hpp"
 #include "endpoint.hpp"
 #include "endpoint_list.hpp"
-#include "logbuf.hpp"
+#include "membuf.hpp"
 #include "logger.hpp"
 #include "streambuf_backend.hpp"
 #include "system_error.hpp"
@@ -63,7 +63,7 @@ struct reporter_t : std::ostream
 private :
   logger_t& logger_;
   loglevel_t level_;
-  logbuf_t buf_;
+  membuf_t buf_;
 };
 
 struct logging_context_t

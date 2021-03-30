@@ -29,8 +29,8 @@ unit-test fs_utils_test
   ..//xes_utils
 ;
 
-unit-test logbuf_test
-: logbuf_test.cpp
+unit-test membuf_test
+: membuf_test.cpp
   ..//xes_utils
 ;
 

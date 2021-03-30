@@ -24,7 +24,7 @@
 #include <stdexcept>
 #include <string>
 
-#include "logbuf.hpp"
+#include "membuf.hpp"
 
 namespace xes
 {
@@ -57,7 +57,7 @@ struct system_exception_builder_t : std::ostream
   { throw system_exception_t(std::string(buf_.begin(), buf_.end()), cause); }
 
 private :
-  logbuf_t buf_;
+  membuf_t buf_;
 };
 
 } // namespace xes

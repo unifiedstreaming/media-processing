@@ -17,20 +17,20 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#ifndef LOGBUF_HPP_
-#define LOGBUF_HPP_
+#ifndef MEMBUF_HPP_
+#define MEMBUF_HPP_
 
 #include <streambuf>
 
 namespace xes
 {
 
-struct logbuf_t : std::streambuf
+struct membuf_t : std::streambuf
 {
-  logbuf_t();
+  membuf_t();
 
-  logbuf_t(logbuf_t const&) = delete;
-  logbuf_t& operator=(logbuf_t const&) = delete;
+  membuf_t(membuf_t const&) = delete;
+  membuf_t& operator=(membuf_t const&) = delete;
   
   char const* begin() const
   {
@@ -42,7 +42,7 @@ struct logbuf_t : std::streambuf
     return this->pptr();
   }
 
-  ~logbuf_t() override;
+  ~membuf_t() override;
 
 protected :
   int_type overflow(int_type c) override;

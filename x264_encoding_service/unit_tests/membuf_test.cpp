@@ -17,7 +17,7 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#include "logbuf.hpp"
+#include "membuf.hpp"
 
 #include <algorithm>
 #include <string>
@@ -31,7 +31,7 @@ namespace // anonymous
 
 void test_short()
 {
-  xes::logbuf_t buf;
+  xes::membuf_t buf;
   std::string str;
 
   for(unsigned int i = 0; i != 128; ++i)
@@ -46,7 +46,7 @@ void test_short()
 
 void test_zeros()
 {
-  xes::logbuf_t buf;
+  xes::membuf_t buf;
   std::string str;
 
   for(unsigned int i = 0; i != 128; ++i)
@@ -61,7 +61,7 @@ void test_zeros()
 
 void test_long()
 {
-  xes::logbuf_t buf;
+  xes::membuf_t buf;
   std::string str;
 
   for(unsigned int i = 0; i != 65536; ++i)

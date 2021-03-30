@@ -20,7 +20,7 @@
 #include "logger.hpp"
 
 #include "format.hpp"
-#include "logbuf.hpp"
+#include "membuf.hpp"
 #include "default_backend.hpp"
 #include "logging_backend.hpp"
 #include "system_error.hpp"
@@ -70,7 +70,7 @@ void logger_t::report(loglevel_t level,
     if(n_failures_ != 0 && backend_ != nullptr)
     {
       // report previous failures
-      logbuf_t buf;
+      membuf_t buf;
 
       format_string(buf, "Logging failed at ");
       format_timepoint(buf, first_failure_time_);

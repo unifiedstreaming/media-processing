@@ -20,7 +20,7 @@
 #include "file_backend.hpp"
 
 #include "fs_utils.hpp"
-#include "logbuf.hpp"
+#include "membuf.hpp"
 #include "streambuf_backend.hpp"
 #include "system_error.hpp"
 
@@ -204,7 +204,7 @@ void write_log_entry(file_backend_t::log_handle_t& handle,
                      loglevel_t level,
                      char const* begin_msg, char const* end_msg)
 {
-  logbuf_t buffer;
+  membuf_t buffer;
   streambuf_backend_t delegate(&buffer);
   delegate.report(level, begin_msg, end_msg);
   handle.write(buffer.begin(), buffer.end());
