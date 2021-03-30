@@ -21,14 +21,13 @@
 #include "tcp_connection.hpp"
 #include "endpoint.hpp"
 #include "endpoint_list.hpp"
-#include "membuf.hpp"
+#include "logging_context.hpp"
 #include "logger.hpp"
 #include "streambuf_backend.hpp"
 #include "system_error.hpp"
 
 #include <algorithm>
 #include <chrono>
-#include <memory>
 #include <iostream>
 #include <thread>
 
@@ -41,73 +40,26 @@ namespace // anonymous
 
 using namespace xes;
 
-struct reporter_t : std::ostream
-{
-  reporter_t(logger_t& logger, loglevel_t level)
-  : std::ostream(nullptr)
-  , logger_(logger)
-  , level_(level)
-  , buf_()
-  {
-    this->rdbuf(&buf_);
-  }
-
-  reporter_t(reporter_t const&) = delete;
-  reporter_t& operator=(reporter_t const&) = delete;
-
-  ~reporter_t() override
-  {
-    logger_.report(level_, buf_.begin(),  buf_.end());
-  }
-  
-private :
-  logger_t& logger_;
-  loglevel_t level_;
-  membuf_t buf_;
-};
-
-struct logging_context_t
-{
-  logging_context_t(logger_t& logger, loglevel_t level)
-  : logger_(logger)
-  , level_(level)
-  { }
-
-  std::unique_ptr<reporter_t> logging_at(loglevel_t level) const
-  {
-    std::unique_ptr<reporter_t> result = nullptr;
-    if(level_ >= level)
-    {
-      result.reset(new reporter_t(logger_, level));
-    }
-    return result;
-  }
-      
-private :
-  logger_t& logger_;
-  loglevel_t level_;
-};
-
 void blocking_accept(logging_context_t const& context,
                      endpoint_t const& endpoint)
 {
   tcp_acceptor_t acceptor(endpoint);
-  if(auto os = context.logging_at(loglevel_t::info))
+  if(auto msg = context.message_at(loglevel_t::info))
   {
-    *os << "blocking_accept: " << endpoint << " bound to " << acceptor;
+    *msg << "blocking_accept: " << endpoint << " bound to " << acceptor;
   }
 
   tcp_connection_t client(acceptor.local_endpoint());
-  if(auto os = context.logging_at(loglevel_t::info))
+  if(auto msg = context.message_at(loglevel_t::info))
   {
-    *os << "client side: " << client;
+    *msg << "client side: " << client;
   }
 
   auto server = acceptor.accept();
   assert(server != nullptr);
-  if(auto os = context.logging_at(loglevel_t::info))
+  if(auto msg = context.message_at(loglevel_t::info))
   {
-    *os << "server side: " << *server;
+    *msg << "server side: " << *server;
   }
 }
 
@@ -126,23 +78,23 @@ void nonblocking_accept(logging_context_t const& context,
                         endpoint_t const& endpoint)
 {
   tcp_acceptor_t acceptor(endpoint);
-  if(auto os = context.logging_at(loglevel_t::info))
+  if(auto msg = context.message_at(loglevel_t::info))
   {
-    *os << "nonblocking_accept: " << endpoint << " bound to " << acceptor;
+    *msg << "nonblocking_accept: " << endpoint << " bound to " << acceptor;
   }
   acceptor.set_nonblocking();
 
   auto server = acceptor.accept();
   assert(server == nullptr);
-  if(auto os = context.logging_at(loglevel_t::info))
+  if(auto msg = context.message_at(loglevel_t::info))
   {
-    *os << acceptor << " returned expected nullptr";
+    *msg << acceptor << " returned expected nullptr";
   }
 
   tcp_connection_t client(acceptor.local_endpoint());
-  if(auto os = context.logging_at(loglevel_t::info))
+  if(auto msg = context.message_at(loglevel_t::info))
   {
-    *os << "client side: " << client;
+    *msg << "client side: " << client;
   }
 
   unsigned int pause = 0;
@@ -155,24 +107,24 @@ void nonblocking_accept(logging_context_t const& context,
     }
     pause = pause * 2 + 1;
 
-    if(auto os = context.logging_at(loglevel_t::info))
+    if(auto msg = context.message_at(loglevel_t::info))
     {
-      *os << acceptor << ": accept(): attempt# " << attempt + 1;
+      *msg << acceptor << ": accept(): attempt# " << attempt + 1;
     }
 
     server = acceptor.accept();
   }
 
-  if(auto os = context.logging_at(loglevel_t::info))
+  if(auto msg = context.message_at(loglevel_t::info))
   {
-    *os << acceptor << ": " << attempt << " attempts(s)";
+    *msg << acceptor << ": " << attempt << " attempts(s)";
   }
 
   assert(server != nullptr);
 
-  if(auto os = context.logging_at(loglevel_t::info))
+  if(auto msg = context.message_at(loglevel_t::info))
   {
-    *os << "server side: " << *server;
+    *msg << "server side: " << *server;
   }
 }
 
@@ -191,25 +143,25 @@ void duplicate_bind(logging_context_t const& context,
                     endpoint_t const& endpoint)
 {
   tcp_acceptor_t acceptor1(endpoint);
-  if(auto os = context.logging_at(loglevel_t::info))
+  if(auto msg = context.message_at(loglevel_t::info))
   {
-    *os << "duplicate_bind: " << endpoint << " bound to " << acceptor1;
+    *msg << "duplicate_bind: " << endpoint << " bound to " << acceptor1;
   }
 
   bool caught = false;
   try
   {
-    if(auto os = context.logging_at(loglevel_t::info))
+    if(auto msg = context.message_at(loglevel_t::info))
     {
-      *os << "binding to " << acceptor1;
+      *msg << "binding to " << acceptor1;
     }
     tcp_acceptor_t acceptor2(acceptor1.local_endpoint());
   }
   catch(system_exception_t const& ex)
   {
-    if(auto os = context.logging_at(loglevel_t::info))
+    if(auto msg = context.message_at(loglevel_t::info))
     {
-      *os << "caught expected exception: " << ex.what();
+      *msg << "caught expected exception: " << ex.what();
     }
     caught = true;
   }
@@ -238,9 +190,9 @@ bool prove_dual_stack(logging_context_t const& context)
   int first_family = endpoint_family(*it);
 
   tcp_acceptor_t acceptor1(*it);
-  if(auto os = context.logging_at(loglevel_t::info))
+  if(auto msg = context.message_at(loglevel_t::info))
   {
-    *os << "dual_stack: " << *it << " bound to " << acceptor1;
+    *msg << "dual_stack: " << *it << " bound to " << acceptor1;
   }
 
   ++it;
@@ -263,17 +215,17 @@ bool prove_dual_stack(logging_context_t const& context)
   try
   {
     tcp_acceptor_t acceptor2(target.front());
-    if(auto os = context.logging_at(loglevel_t::info))
+    if(auto msg = context.message_at(loglevel_t::info))
     {
-      *os << "success binding to " << acceptor2;
+      *msg << "success binding to " << acceptor2;
     }
     result = true;
   }
   catch(system_exception_t const& ex)
   {
-    if(auto os = context.logging_at(loglevel_t::info))
+    if(auto msg = context.message_at(loglevel_t::info))
     {
-      *os << "failed to bind to " << target.front() << ": " << ex.what();
+      *msg << "failed to bind to " << target.front() << ": " << ex.what();
     }
   }
 
@@ -287,9 +239,9 @@ void dual_stack(logging_context_t const& context)
   switch(std::distance(endpoints.begin(), endpoints.end()))
   {
   case 1 :
-    if(auto os = context.logging_at(loglevel_t::info))
+    if(auto msg = context.message_at(loglevel_t::info))
     {
-      *os << "dual_stack: single local interface - can't test";
+      *msg << "dual_stack: single local interface - can't test";
     }
     return;
   case 2 :
@@ -308,9 +260,9 @@ void dual_stack(logging_context_t const& context)
     proven = prove_dual_stack(context);
   }
 
-  if(auto os = context.logging_at(loglevel_t::info))
+  if(auto msg = context.message_at(loglevel_t::info))
   {
-    *os << "dual_stack: " << attempt << " attempt(s)";
+    *msg << "dual_stack: " << attempt << " attempt(s)";
   }
 
   assert(proven);

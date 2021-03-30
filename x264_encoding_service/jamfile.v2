@@ -49,6 +49,7 @@ lib xes_utils
   fs_utils.cpp
   format.cpp
   logger.cpp
+  logging_context.cpp
   membuf.cpp
   option_walker.cpp
   scoped_thread.cpp
