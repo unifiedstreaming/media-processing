@@ -87,7 +87,7 @@ int check_family(int family)
   return family;
 }
 
-int endpoint_family(endpoint_t const& endpoint)
+int address_family(endpoint_t const& endpoint)
 {
   int result = AF_UNSPEC;
 

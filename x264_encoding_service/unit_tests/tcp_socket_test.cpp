@@ -62,10 +62,10 @@ void socket_state_for_family(int family)
   
 void socket_state()
 {
-  xes::endpoint_list_t endpoints(xes::local_interfaces, xes::any_port);
-  for(auto const& endpoint : endpoints)
+  xes::endpoint_list_t interfaces(xes::local_interfaces, xes::any_port);
+  for(auto const& interface : interfaces)
   {
-    socket_state_for_family(xes::endpoint_family(endpoint));
+    socket_state_for_family(xes::address_family(interface));
   }
 }
 

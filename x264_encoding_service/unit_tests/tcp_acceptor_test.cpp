@@ -41,12 +41,13 @@ namespace // anonymous
 using namespace xes;
 
 void blocking_accept(logging_context_t const& context,
-                     endpoint_t const& endpoint)
+                     endpoint_t const& interface)
 {
-  tcp_acceptor_t acceptor(endpoint);
+  tcp_acceptor_t acceptor(interface);
   if(auto msg = context.message_at(loglevel_t::info))
   {
-    *msg << "blocking_accept: " << endpoint << " bound to " << acceptor;
+    *msg << "blocking_accept: acceptor " << acceptor <<
+      " at interface " << interface;
   }
 
   tcp_connection_t client(acceptor.local_endpoint());
@@ -65,22 +66,23 @@ void blocking_accept(logging_context_t const& context,
 
 void blocking_accept(logging_context_t const& context)
 {
-  endpoint_list_t endpoints(local_interfaces, any_port);
-  assert(!endpoints.empty());
+  endpoint_list_t interfaces(local_interfaces, any_port);
+  assert(!interfaces.empty());
   
-  for(auto const& endpoint : endpoints)
+  for(auto const& interface : interfaces)
   {
-    blocking_accept(context, endpoint);
+    blocking_accept(context, interface);
   }
 }
 
 void nonblocking_accept(logging_context_t const& context,
-                        endpoint_t const& endpoint)
+                        endpoint_t const& interface)
 {
-  tcp_acceptor_t acceptor(endpoint);
+  tcp_acceptor_t acceptor(interface);
   if(auto msg = context.message_at(loglevel_t::info))
   {
-    *msg << "nonblocking_accept: " << endpoint << " bound to " << acceptor;
+    *msg << "nonblocking_accept: acceptor " << acceptor <<
+      " at interface " << interface;
   }
   acceptor.set_nonblocking();
 
@@ -130,22 +132,23 @@ void nonblocking_accept(logging_context_t const& context,
 
 void nonblocking_accept(logging_context_t const& context)
 {
-  endpoint_list_t endpoints(local_interfaces, any_port);
-  assert(!endpoints.empty());
+  endpoint_list_t interfaces(local_interfaces, any_port);
+  assert(!interfaces.empty());
   
-  for(auto const& endpoint : endpoints)
+  for(auto const& interface : interfaces)
   {
-    nonblocking_accept(context, endpoint);
+    nonblocking_accept(context, interface);
   }
 }
 
 void duplicate_bind(logging_context_t const& context,
-                    endpoint_t const& endpoint)
+                    endpoint_t const& interface)
 {
-  tcp_acceptor_t acceptor1(endpoint);
+  tcp_acceptor_t acceptor1(interface);
   if(auto msg = context.message_at(loglevel_t::info))
   {
-    *msg << "duplicate_bind: " << endpoint << " bound to " << acceptor1;
+    *msg << "duplicate_bind: acceptor " << acceptor1 <<
+      " at interface " << interface;
   }
 
   bool caught = false;
@@ -170,54 +173,57 @@ void duplicate_bind(logging_context_t const& context,
 
 void duplicate_bind(logging_context_t const& context)
 {
-  endpoint_list_t endpoints(local_interfaces, any_port);
-  assert(!endpoints.empty());
+  endpoint_list_t interfaces(local_interfaces, any_port);
+  assert(!interfaces.empty());
   
-  for(auto const& endpoint : endpoints)
+  for(auto const& interface : interfaces)
   {
-    duplicate_bind(context, endpoint);
+    duplicate_bind(context, interface);
   }
 }
 
-bool prove_dual_stack(logging_context_t const& context)
+bool prove_dual_stack(logging_context_t const& context,
+                      endpoint_list_t const& interfaces)
 {
-  // Get IP addresses; we expect one for IPv4, and one for IPv6.
-  endpoint_list_t endpoints(local_interfaces, any_port);
-  assert(std::distance(endpoints.begin(), endpoints.end()) == 2);
-
-  // Bind to the first endpoint in the list
-  auto it = endpoints.begin();
-  int first_family = endpoint_family(*it);
-
-  tcp_acceptor_t acceptor1(*it);
-  if(auto msg = context.message_at(loglevel_t::info))
-  {
-    *msg << "dual_stack: " << *it << " bound to " << acceptor1;
-  }
-
-  ++it;
-  int second_family = endpoint_family(*it);
-  assert(first_family != second_family);
+  assert(std::distance(interfaces.begin(), interfaces.end()) >= 2);
 
   /*
-   * Try to bind to the IP address for the second family, using the
-   * port number we just obtained for the first family. There is a
-   * small chance that this address is in use, so failing to bind is
-   * not necessarily an error. However, if we succeed, we have proven
-   * that our dual stack works.
+   * Bind to the first interface in the list
    */
-  endpoint_list_t target(ip_address(*it),
-                         port_number(acceptor1.local_endpoint()));
-  assert(std::distance(target.begin(), target.end()) == 1);
+  auto it = interfaces.begin();
+  endpoint_t const& interface1 = *it;
+  tcp_acceptor_t acceptor1(interface1);
+  if(auto msg = context.message_at(loglevel_t::info))
+  {
+    *msg << "dual_stack: acceptor1 " << acceptor1 <<
+      " at interface " << interface1;
+  }
+
+  /*
+   * Try to bind to the IP address for the second interface, using the
+   * port number of the acceptor bound to the first interface. There
+   * is a small chance that this address is in use, so failing to bind
+   * is not necessarily an error. However, if we succeed, we have
+   * proven that our dual stack works.
+   */
+  ++it;
+  endpoint_t const& interface2 = *it;
+  assert(address_family(interface1) != address_family(interface2));
+
+  endpoint_list_t targets(ip_address(interface2),
+                          port_number(acceptor1.local_endpoint()));
+  assert(std::distance(targets.begin(), targets.end()) == 1);
+  endpoint_t const& target = targets.front();
 
   bool result = false;
 
   try
   {
-    tcp_acceptor_t acceptor2(target.front());
+    tcp_acceptor_t acceptor2(target);
     if(auto msg = context.message_at(loglevel_t::info))
     {
-      *msg << "success binding to " << acceptor2;
+      *msg << "dual_stack: acceptor2 " << acceptor2 <<
+        " at interface " << interface2;
     }
     result = true;
   }
@@ -225,7 +231,7 @@ bool prove_dual_stack(logging_context_t const& context)
   {
     if(auto msg = context.message_at(loglevel_t::info))
     {
-      *msg << "failed to bind to " << target.front() << ": " << ex.what();
+      *msg << "failed to bind to " << target << ": " << ex.what();
     }
   }
 
@@ -235,21 +241,16 @@ bool prove_dual_stack(logging_context_t const& context)
 void dual_stack(logging_context_t const& context)
 {
   // Check that we have multiple local interfaces (one for each family)
-  endpoint_list_t endpoints(local_interfaces, any_port);
-  switch(std::distance(endpoints.begin(), endpoints.end()))
+  endpoint_list_t interfaces(local_interfaces, any_port);
+  assert(!interfaces.empty());
+  
+  if(std::distance(interfaces.begin(), interfaces.end()) == 1)
   {
-  case 1 :
     if(auto msg = context.message_at(loglevel_t::info))
     {
       *msg << "dual_stack: single local interface - can't test";
     }
     return;
-  case 2 :
-    // this is what we expect
-    break;
-  default :
-    assert(!"expected number of interfaces");
-    break;
   }
 
   // Because of the (small) chance of a false negative, we try multiple times
@@ -257,7 +258,7 @@ void dual_stack(logging_context_t const& context)
   unsigned int attempt;
   for(attempt = 0; !proven && attempt != 10; ++attempt)
   {
-    proven = prove_dual_stack(context);
+    proven = prove_dual_stack(context, interfaces);
   }
 
   if(auto msg = context.message_at(loglevel_t::info))

@@ -39,7 +39,7 @@ using endpoint_t = sockaddr;
  */
 int check_family(int family);
 
-int endpoint_family(endpoint_t const& endpoint);
+int address_family(endpoint_t const& endpoint);
 unsigned int endpoint_size(endpoint_t const& endpoint);
 std::string ip_address(endpoint_t const& endpoint);
 unsigned int port_number(endpoint_t const& endpoint);

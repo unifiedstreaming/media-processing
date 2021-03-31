@@ -235,7 +235,7 @@ void tcp_socket_t::bind(endpoint_t const& endpoint)
 {
   assert(!empty());
 
-  if(endpoint_family(endpoint) == AF_INET6)
+  if(address_family(endpoint) == AF_INET6)
   {
     set_v6only(fd_, true);
   }

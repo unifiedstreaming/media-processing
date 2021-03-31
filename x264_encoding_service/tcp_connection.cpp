@@ -30,7 +30,7 @@ namespace xes
 {
 
 tcp_connection_t::tcp_connection_t(endpoint_t const& peer)
-: socket_(endpoint_family(peer))
+: socket_(address_family(peer))
 , local_endpoint_()
 , remote_endpoint_()
 {
