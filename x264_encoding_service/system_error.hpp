@@ -17,8 +17,8 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#ifndef SYSTEM_ERROR_HPP_
-#define SYSTEM_ERROR_HPP_
+#ifndef XES_SYSTEM_ERROR_HPP_
+#define XES_SYSTEM_ERROR_HPP_
 
 #include <ostream>
 #include <stdexcept>

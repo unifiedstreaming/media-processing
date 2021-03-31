@@ -17,8 +17,8 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#ifndef LOGGING_BACKEND_HPP_
-#define LOGGING_BACKEND_HPP_
+#ifndef XES_LOGGING_BACKEND_HPP_
+#define XES_LOGGING_BACKEND_HPP_
 
 #include "logger.hpp"
 

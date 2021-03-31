@@ -17,8 +17,8 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#ifndef TCP_SOCKET_HPP_
-#define TCP_SOCKET_HPP_
+#ifndef XES_TCP_SOCKET_HPP_
+#define XES_TCP_SOCKET_HPP_
 
 #include "endpoint.hpp"
 #include "socket_nifty.hpp"

@@ -17,8 +17,8 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#ifndef STREAMBUF_BACKEND_HPP_
-#define STREAMBUF_BACKEND_HPP_
+#ifndef XES_STREAMBUF_BACKEND_HPP_
+#define XES_STREAMBUF_BACKEND_HPP_
 
 #include "logging_backend.hpp"
 

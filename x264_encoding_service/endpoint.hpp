@@ -17,8 +17,8 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#ifndef ENDPOINT_HPP_
-#define ENDPOINT_HPP_
+#ifndef XES_ENDPOINT_HPP_
+#define XES_ENDPOINT_HPP_
 
 #include "socket_nifty.hpp"
 

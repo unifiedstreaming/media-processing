@@ -17,8 +17,8 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#ifndef LOGGING_CONTEXT_HPP_
-#define LOGGING_CONTEXT_HPP_
+#ifndef XES_LOGGING_CONTEXT_HPP_
+#define XES_LOGGING_CONTEXT_HPP_
 
 #include "logger.hpp"
 #include "membuf.hpp"

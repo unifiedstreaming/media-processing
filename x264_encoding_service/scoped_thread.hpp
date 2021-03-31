@@ -17,8 +17,8 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#ifndef SCOPED_THREAD_HPP_
-#define SCOPED_THREAD_HPP_
+#ifndef XES_SCOPED_THREAD_HPP_
+#define XES_SCOPED_THREAD_HPP_
 
 #include <functional>
 #include <thread>

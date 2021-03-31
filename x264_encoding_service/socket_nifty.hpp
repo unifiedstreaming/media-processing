@@ -17,8 +17,8 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#ifndef SOCKET_NIFTY_HPP_
-#define SOCKET_NIFTY_HPP_
+#ifndef XES_SOCKET_NIFTY_HPP_
+#define XES_SOCKET_NIFTY_HPP_
 
 namespace xes
 {

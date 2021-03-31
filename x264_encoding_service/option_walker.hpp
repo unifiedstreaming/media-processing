@@ -17,8 +17,8 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#ifndef OPTION_WALKER_HPP_
-#define OPTION_WALKER_HPP_
+#ifndef XES_OPTION_WALKER_HPP_
+#define XES_OPTION_WALKER_HPP_
 
 #include <cassert>
 

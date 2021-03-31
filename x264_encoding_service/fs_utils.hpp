@@ -17,8 +17,8 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#ifndef FS_UTILS_HPP_
-#define FS_UTILS_HPP_
+#ifndef XES_FS_UTILS_HPP_
+#define XES_FS_UTILS_HPP_
 
 #include <string>
 

@@ -17,8 +17,8 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#ifndef LOGGER_HPP_
-#define LOGGER_HPP_
+#ifndef XES_LOGGER_HPP_
+#define XES_LOGGER_HPP_
 
 #include <chrono>
 #include <cstring>

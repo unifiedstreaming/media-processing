@@ -17,8 +17,8 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#ifndef FORMAT_HPP_
-#define FORMAT_HPP_
+#ifndef XES_FORMAT_HPP_
+#define XES_FORMAT_HPP_
 
 #include "logger.hpp"
 

@@ -17,8 +17,8 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#ifndef MEMBUF_HPP_
-#define MEMBUF_HPP_
+#ifndef XES_MEMBUF_HPP_
+#define XES_MEMBUF_HPP_
 
 #include <streambuf>
 
