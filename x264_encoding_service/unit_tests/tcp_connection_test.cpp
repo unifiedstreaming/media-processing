@@ -40,8 +40,151 @@ namespace // anonymous
 
 using namespace xes;
 
-char const lorem[] = 
+struct sender_t
+{
+  sender_t(logging_context_t const& context,
+           tcp_connection_t& conn,
+           char const* first, char const* last,
+           int bufsize)
+  : context_(context)
+  , conn_(conn)
+  , first_(first)
+  , last_((assert(last >= first), last))
+  , bufsize_((assert(bufsize > 0), bufsize))
+  { }
 
+  sender_t(sender_t const&) = delete;
+  sender_t& operator=(sender_t const&) = delete;
+
+  bool done() const
+  {
+    return first_ == last_;
+  }
+
+  bool progress()
+  {
+    if(first_ == last_)
+    {
+      return false;
+    }
+
+    char const* limit = last_;
+    if(limit - first_ > bufsize_)
+    {
+      limit = first_ + bufsize_;
+    }
+    if(auto msg = context_.message_at(loglevel_t::info))
+    {
+      *msg << "sender " << conn_ << ": trying to send " <<
+        limit - first_ << " bytes";
+    }
+
+    char const* next = conn_.write_some(first_, limit);
+    if(next == nullptr)
+    {
+      if(auto msg = context_.message_at(loglevel_t::info))
+      {
+        *msg << "sender " << conn_ << ": can't send yet";
+      }
+      return false;
+    }
+
+    assert(next > first_);
+    if(auto msg = context_.message_at(loglevel_t::info))
+    {
+      *msg << "sender " << conn_ << ": sent " << next - first_ << " bytes";
+    }
+
+    first_ = next;
+      
+    return true;
+  }
+
+private :
+  logging_context_t const& context_;
+  tcp_connection_t& conn_;
+  char const* first_;
+  char const* last_;
+  int bufsize_;
+};
+  
+struct receiver_t
+{
+  receiver_t(logging_context_t const& context,
+             tcp_connection_t& conn,
+             char const* first, char const* last,
+             int bufsize)
+  : context_(context)
+  , conn_(conn)
+  , first_(first)
+  , last_((assert(last >= first), last))
+  , bufsize_((assert(bufsize > 0), bufsize))
+  , buf_(new char[bufsize_])
+  { }
+
+  receiver_t(receiver_t const&) = delete;
+  receiver_t& operator=(receiver_t const&) = delete;
+
+  bool done() const
+  {
+    return first_ == last_;
+  }
+
+  bool progress()
+  {
+    if(first_ == last_)
+    {
+      return false;
+    }
+
+    char* limit = buf_ + bufsize_;
+    if(last_ - first_ < bufsize_)
+    {
+      limit = buf_ + (last_ - first_);
+    }
+    if(auto msg = context_.message_at(loglevel_t::info))
+    {
+      *msg << "receiver " << conn_ << ": trying to receive " <<
+        limit - buf_ << " bytes";
+    }
+
+    char* next = conn_.read_some(buf_, limit);
+    if(next == nullptr)
+    {
+      if(auto msg = context_.message_at(loglevel_t::info))
+      {
+        *msg << "receiver " << conn_ << ": nothing to receive yet";
+      }
+      return false;
+    }
+
+    assert(next > buf_);
+    if(auto msg = context_.message_at(loglevel_t::info))
+    {
+      *msg << "receiver " << conn_ << ": received " << next - buf_ << " bytes";
+    }
+
+    assert(std::equal(buf_, next, first_));
+    first_ += next - buf_;
+      
+    return true;
+  }
+
+  ~receiver_t()
+  {
+    delete[] buf_;
+  }
+
+private :
+  logging_context_t const& context_;
+  tcp_connection_t& conn_;
+  char const* first_;
+  char const* last_;
+  int bufsize_;
+  char* buf_;
+};
+  
+char const lorem[] = 
 R"(Lorem ipsum dolor sit amet, consectetur adipiscing elit. Maecenas
 in velit enim. Nulla sollicitudin, metus in feugiat pretium, odio ante
 molestie urna, vitae dictum sem quam faucibus lacus. Curabitur gravida
@@ -303,151 +446,17 @@ purus. Nullam consequat rutrum venenatis. Nullam ut nisl mollis,
 tempus elit vel, eleifend sem.
 )"; // lorem
 
-struct sender_t
+std::string make_lorems(unsigned int n)
 {
-  sender_t(logging_context_t const& context,
-           tcp_connection_t& conn,
-           char const* first, char const* last,
-           int bufsize)
-  : context_(context)
-  , conn_(conn)
-  , first_(first)
-  , last_((assert(last >= first), last))
-  , bufsize_((assert(bufsize > 0), bufsize))
-  { }
-
-  sender_t(sender_t const&) = delete;
-  sender_t& operator=(sender_t const&) = delete;
-
-  bool done() const
+  std::string result;
+  while(n--)
   {
-    return first_ == last_;
+    result += lorem;
   }
+  return result;
+}
 
-  bool progress()
-  {
-    if(first_ == last_)
-    {
-      return false;
-    }
-
-    char const* limit = last_;
-    if(limit - first_ > bufsize_)
-    {
-      limit = first_ + bufsize_;
-    }
-    if(auto msg = context_.message_at(loglevel_t::info))
-    {
-      *msg << "sender " << conn_ << ": trying to send " <<
-        limit - first_ << " bytes";
-    }
-
-    char const* next = conn_.write_some(first_, limit);
-    if(next == nullptr)
-    {
-      if(auto msg = context_.message_at(loglevel_t::info))
-      {
-        *msg << "sender " << conn_ << ": can't send yet";
-      }
-      return false;
-    }
-
-    assert(next > first_);
-    if(auto msg = context_.message_at(loglevel_t::info))
-    {
-      *msg << "sender " << conn_ << ": sent " << next - first_ << " bytes";
-    }
-
-    first_ = next;
-      
-    return true;
-  }
-
-private :
-  logging_context_t const& context_;
-  tcp_connection_t& conn_;
-  char const* first_;
-  char const* last_;
-  int bufsize_;
-};
-  
-struct receiver_t
-{
-  receiver_t(logging_context_t const& context,
-             tcp_connection_t& conn,
-             char const* first, char const* last,
-             int bufsize)
-  : context_(context)
-  , conn_(conn)
-  , first_(first)
-  , last_((assert(last >= first), last))
-  , bufsize_((assert(bufsize > 0), bufsize))
-  , buf_(new char[bufsize_])
-  { }
-
-  receiver_t(receiver_t const&) = delete;
-  receiver_t& operator=(receiver_t const&) = delete;
-
-  bool done() const
-  {
-    return first_ == last_;
-  }
-
-  bool progress()
-  {
-    if(first_ == last_)
-    {
-      return false;
-    }
-
-    char* limit = buf_ + bufsize_;
-    if(last_ - first_ < bufsize_)
-    {
-      limit = buf_ + (last_ - first_);
-    }
-    if(auto msg = context_.message_at(loglevel_t::info))
-    {
-      *msg << "receiver " << conn_ << ": trying to receive " <<
-        limit - buf_ << " bytes";
-    }
-
-    char* next = conn_.read_some(buf_, limit);
-    if(next == nullptr)
-    {
-      if(auto msg = context_.message_at(loglevel_t::info))
-      {
-        *msg << "receiver " << conn_ << ": nothing to receive yet";
-      }
-      return false;
-    }
-
-    assert(next > buf_);
-    if(auto msg = context_.message_at(loglevel_t::info))
-    {
-      *msg << "receiver " << conn_ << ": received " << next - buf_ << " bytes";
-    }
-
-    assert(std::equal(buf_, next, first_));
-    first_ += next - buf_;
-      
-    return true;
-  }
-
-  ~receiver_t()
-  {
-    delete[] buf_;
-  }
-
-private :
-  logging_context_t const& context_;
-  tcp_connection_t& conn_;
-  char const* first_;
-  char const* last_;
-  int bufsize_;
-  char* buf_;
-};
-  
-static const int bufsize = 1024;
+const int bufsize = 128 * 1024;
 
 void blocking_transfer(logging_context_t const& context,
                        endpoint_t const& interface)
@@ -456,15 +465,18 @@ void blocking_transfer(logging_context_t const& context,
   std::unique_ptr<tcp_connection_t> server_side;
   std::tie(client_side, server_side) = make_connected_pair(interface);
   
+  std::string lorems = make_lorems(64);
+  char const* first = lorems.data();
+  char const* last = lorems.data() + lorems.size();
+
   if(auto msg = context.message_at(loglevel_t::info))
   {
     *msg << "blocking_transfer():" <<
       " client side: " << *client_side <<
-      " server side: " << *server_side; 
+      " server side: " << *server_side <<
+      " buffer size: " << bufsize <<
+      " bytes to transfer: " << lorems.size();
   }
-
-  char const* first = lorem;
-  char const* last = lorem + std::strlen(lorem);
 
   receiver_t receiver(context, *client_side, first, last, bufsize);
   auto client_code = [&]
