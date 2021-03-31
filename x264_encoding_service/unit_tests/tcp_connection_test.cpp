@@ -571,6 +571,7 @@ void nonblocking_transfer(logging_context_t const& context,
   }
   server_side.reset();
 
+  client_side->set_blocking();
   char buf[1];
   assert(client_side->read_some(buf, buf + 1) == buf);
 
