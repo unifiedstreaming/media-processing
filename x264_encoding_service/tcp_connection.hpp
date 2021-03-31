@@ -26,6 +26,7 @@
 
 #include <iosfwd>
 #include <memory>
+#include <utility>
 
 namespace xes
 {
@@ -75,6 +76,14 @@ private :
 };
 
 std::ostream& operator<<(std::ostream& os, tcp_connection_t const& connection);
+
+std::pair<std::unique_ptr<tcp_connection_t>,
+          std::unique_ptr<tcp_connection_t>>
+make_connected_pair(endpoint_t const& interface);
+
+std::pair<std::unique_ptr<tcp_connection_t>,
+          std::unique_ptr<tcp_connection_t>>
+make_connected_pair();
 
 } // xes
 

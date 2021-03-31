@@ -22,14 +22,14 @@
 #include "logging_context.hpp"
 #include "scoped_thread.hpp"
 #include "streambuf_backend.hpp"
-#include "tcp_acceptor.hpp"
 #include "tcp_connection.hpp"
 
 #include <algorithm>
 #include <cstddef>
 #include <cstring>
-#include <iostream>
 #include <exception>
+#include <iostream>
+#include <tuple>
 
 // Enable assert()
 #undef NDEBUG
@@ -374,24 +374,22 @@ void read_lorem(logging_context_t const& context, tcp_connection_t& conn)
   }
 }
 
-void basic_transfer(logging_context_t const& context)
+void basic_transfer(logging_context_t const& context,
+                    endpoint_t const& interface)
 {
-  endpoint_list_t endpoints(local_interfaces, any_port);
-  assert(!endpoints.empty());
-
-  tcp_acceptor_t acceptor(endpoints.front());
-  tcp_connection_t client_side(acceptor.local_endpoint());
-  auto server_side = acceptor.accept();
-
+  std::unique_ptr<tcp_connection_t> client_side;
+  std::unique_ptr<tcp_connection_t> server_side;
+  std::tie(client_side, server_side) = make_connected_pair(interface);
+  
   if(auto msg = context.message_at(loglevel_t::info))
   {
-    *msg << "basic_transfer(): acceptor: " << acceptor <<
-      " client side: " << client_side <<
+    *msg << "basic_transfer():" <<
+      " client side: " << *client_side <<
       " server side: " << *server_side; 
   }
   
   {
-    scoped_thread_t reader([&] { read_lorem(context, client_side); });
+    scoped_thread_t reader([&] { read_lorem(context, *client_side); });
     write_lorem(context, *server_side);
   }
 
@@ -402,11 +400,20 @@ void basic_transfer(logging_context_t const& context)
   server_side.reset();
 
   char buf[1];
-  assert(client_side.read_some(buf, buf + 1) == buf);
+  assert(client_side->read_some(buf, buf + 1) == buf);
 
   if(auto msg = context.message_at(loglevel_t::info))
   {
-    *msg << "basic_transfer(): eof at " << client_side;
+    *msg << "basic_transfer(): eof at " << *client_side;
+  }
+}
+
+void basic_transfer(logging_context_t const& context)
+{
+  endpoint_list_t interfaces(local_interfaces, any_port);
+  for(auto const& interface : interfaces)
+  {
+    basic_transfer(context, interface);
   }
 }
       

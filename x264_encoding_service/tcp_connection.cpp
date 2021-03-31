@@ -19,6 +19,9 @@
 
 #include "tcp_connection.hpp"
 
+#include "endpoint_list.hpp"
+#include "tcp_acceptor.hpp"
+
 #include <cassert>
 #include <iostream>
 #include <utility>
@@ -66,6 +69,29 @@ std::ostream& operator<<(std::ostream& os, tcp_connection_t const& connection)
 {
   os << connection.local_endpoint() << "<->" << connection.remote_endpoint();
   return os;
+}
+
+std::pair<std::unique_ptr<tcp_connection_t>,
+          std::unique_ptr<tcp_connection_t>>
+make_connected_pair(endpoint_t const& interface)
+{
+  std::pair<std::unique_ptr<tcp_connection_t>,
+            std::unique_ptr<tcp_connection_t>> result;
+
+  tcp_acceptor_t acceptor(interface);
+  result.first.reset(new tcp_connection_t(acceptor.local_endpoint()));
+  result.second = acceptor.accept();
+
+  return result;
+}
+
+std::pair<std::unique_ptr<tcp_connection_t>,
+          std::unique_ptr<tcp_connection_t>>
+make_connected_pair()
+{
+  endpoint_list_t endpoints(local_interfaces, any_port);
+  assert(!endpoints.empty());
+  return make_connected_pair(endpoints.front());
 }
 
 } // xes
