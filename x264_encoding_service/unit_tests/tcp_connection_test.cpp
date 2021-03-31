@@ -456,7 +456,8 @@ std::string make_lorems(unsigned int n)
   return result;
 }
 
-const int bufsize = 128 * 1024;
+const int bufsize = 256 * 1024;
+unsigned int n_lorems = 256;
 
 void blocking_transfer(logging_context_t const& context,
                        endpoint_t const& interface)
@@ -465,7 +466,7 @@ void blocking_transfer(logging_context_t const& context,
   std::unique_ptr<tcp_connection_t> server_side;
   std::tie(client_side, server_side) = make_connected_pair(interface);
   
-  std::string lorems = make_lorems(64);
+  std::string lorems = make_lorems(n_lorems);
   char const* first = lorems.data();
   char const* last = lorems.data() + lorems.size();
 
@@ -527,14 +528,76 @@ void blocking_transfer(logging_context_t const& context)
   }
 }
       
+void nonblocking_transfer(logging_context_t const& context,
+                          endpoint_t const& interface,
+                          bool eager)
+{
+  std::unique_ptr<tcp_connection_t> client_side;
+  std::unique_ptr<tcp_connection_t> server_side;
+  std::tie(client_side, server_side) = make_connected_pair(interface);
+
+  client_side->set_nonblocking();
+  server_side->set_nonblocking();
+  
+  std::string lorems = make_lorems(n_lorems);
+  char const* first = lorems.data();
+  char const* last = lorems.data() + lorems.size();
+
+  if(auto msg = context.message_at(loglevel_t::info))
+  {
+    *msg << "nonblocking_transfer():" <<
+      " client side: " << *client_side <<
+      " server side: " << *server_side <<
+      " buffer size: " << bufsize <<
+      " bytes to transfer: " << lorems.size() <<
+      " eager: " << (eager ? "yes" : "no") ;
+  }
+
+  receiver_t receiver(context, *client_side, first, last, bufsize);
+  sender_t sender(context, *server_side, first, last, bufsize);
+
+  while(!receiver.done() || !sender.done())
+  {
+    while(receiver.progress() && eager)
+      ;
+    while(sender.progress() && eager)
+      ;
+  }
+
+  if(auto msg = context.message_at(loglevel_t::info))
+  {
+    *msg << "blocking_transfer(): disconnecting " << *server_side;
+  }
+  server_side.reset();
+
+  char buf[1];
+  assert(client_side->read_some(buf, buf + 1) == buf);
+
+  if(auto msg = context.message_at(loglevel_t::info))
+  {
+    *msg << "nonblocking_transfer(): eof at " << *client_side;
+  }
+}
+
+void nonblocking_transfer(logging_context_t const& context, bool eager)
+{
+  endpoint_list_t interfaces(local_interfaces, any_port);
+  for(auto const& interface : interfaces)
+  {
+    nonblocking_transfer(context, interface, eager);
+  }
+}
+      
 int throwing_main(int argc, char const* const argv[])
 {
   logger_t logger(argv[0]);
   logger.set_backend(std::make_unique<xes::streambuf_backend_t>(std::cerr));
-  logging_context_t context(logger,
-                            argc == 1 ? loglevel_t::error : loglevel_t::info);
+  logging_context_t context(
+    logger, argc == 1 ? loglevel_t::error : loglevel_t::info);
 
   blocking_transfer(context);
+  nonblocking_transfer(context, false);
+  nonblocking_transfer(context, true);
 
   return 0;
 }
