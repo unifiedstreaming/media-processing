@@ -31,15 +31,18 @@
 namespace // anonymous
 {
 
-void check_endpoint(xes::endpoint_t const& ep)
+using namespace xes;
+
+void check_endpoint(endpoint_t const& ep)
 {
-  xes::endpoint_list_t list(xes::ip_address(ep), xes::port_number(ep));
+  endpoint_list_t list(ip_address(ep), port_number(ep));
   auto it = list.begin();
 
   assert(it != list.end());
-  assert(xes::address_family(*it) == xes::address_family(ep));
-  assert(xes::ip_address(*it) == xes::ip_address(ep));
-  assert(xes::port_number(*it) == xes::port_number(ep));
+  assert(address_family(*it) == address_family(ep));
+  assert(endpoint_size(*it) == endpoint_size(ep));
+  assert(ip_address(*it) == ip_address(ep));
+  assert(port_number(*it) == port_number(ep));
 
   ++it;
   assert(it == list.end());
@@ -47,135 +50,127 @@ void check_endpoint(xes::endpoint_t const& ep)
   
 void empty_list()
 {
-  xes::endpoint_list_t list;
+  endpoint_list_t list;
   assert(list.empty());
   assert(list.begin() == list.end());
 }
 
-void local_interfaces()
+void local_endpoints()
 {
-  xes::endpoint_list_t list(xes::local_interfaces, xes::any_port);
+  endpoint_list_t list(local_interfaces, any_port);
   assert(!list.empty());
 
   for(auto const& ep : list)
   {
 #if PRINT
-    std::cout << "local interfaces: " <<
-      xes::ip_address(ep) << ' ' << xes::port_number(ep) << std::endl;
+    std::cout << "local interfaces: " << ep << std::endl;
 #endif
-    assert(xes::port_number(ep) == xes::any_port);
+    assert(port_number(ep) == any_port);
     check_endpoint(ep);
   }
 }
 
-void local_interfaces_with_port()
+void local_endpoints_with_port()
 {
-  xes::endpoint_list_t list(xes::local_interfaces, 11264);
+  endpoint_list_t list(local_interfaces, 11264);
   assert(!list.empty());
 
   for(auto const& ep : list)
   {
 #if PRINT
-    std::cout << "local interfaces port 11264: " <<
-      xes::ip_address(ep) << ' ' << xes::port_number(ep) << std::endl;
+    std::cout << "local interfaces port 11264: " << ep << std::endl;
 #endif
-    assert(xes::port_number(ep) == 11264);
+    assert(port_number(ep) == 11264);
     check_endpoint(ep);
   }
 }
 
-void all_interfaces()
+void all_endpoints()
 {
-  xes::endpoint_list_t list(xes::all_interfaces, xes::any_port);
+  endpoint_list_t list(all_interfaces, any_port);
   assert(!list.empty());
 
   for(auto const& ep : list)
   {
 #if PRINT
-    std::cout << "all interfaces: " <<
-      xes::ip_address(ep) << ' ' << xes::port_number(ep) << std::endl;
+    std::cout << "all interfaces: " << ep << std::endl;
 #endif
-    assert(xes::port_number(ep) == xes::any_port);
+    assert(port_number(ep) == any_port);
     check_endpoint(ep);
   }
 }
 
-void all_interfaces_with_port()
+void all_endpoints_with_port()
 {
-  xes::endpoint_list_t list(xes::all_interfaces, 11264);
+  endpoint_list_t list(all_interfaces, 11264);
   assert(!list.empty());
 
   for(auto const& ep : list)
   {
 #if PRINT
-    std::cout << "all interfaces port 11264: " <<
-      xes::ip_address(ep) << ' ' << xes::port_number(ep) << std::endl;
+    std::cout << "all interfaces port 11264: " << ep << std::endl;
 #endif
-    assert(xes::port_number(ep) == 11264);
+    assert(port_number(ep) == 11264);
     check_endpoint(ep);
   }
 }
 
 void localhost()
 {
-  xes::endpoint_list_t list("localhost", xes::any_port);
+  endpoint_list_t list("localhost", any_port);
   assert(!list.empty());
 
   for(auto const& ep : list)
   {
 #if PRINT
-    std::cout << "localhost: " <<
-      xes::ip_address(ep) << ' ' << xes::port_number(ep) << std::endl;
+    std::cout << "localhost: " << ep << std::endl;
 #endif
-    assert(xes::port_number(ep) == xes::any_port);
+    assert(port_number(ep) == any_port);
     check_endpoint(ep);
   }
 }
 
 void localhost_with_port()
 {
-  xes::endpoint_list_t list("localhost", 11264);
+  endpoint_list_t list("localhost", 11264);
   assert(!list.empty());
 
   for(auto const& ep : list)
   {
 #if PRINT
-    std::cout << "localhost port 11264: " <<
-      xes::ip_address(ep) << ' ' << xes::port_number(ep) << std::endl;
+    std::cout << "localhost port 11264: " << ep << std::endl;
 #endif
-    assert(xes::port_number(ep) == 11264);
+    assert(port_number(ep) == 11264);
     check_endpoint(ep);
   }
 }
 
 void remote_host()
 {
-  xes::endpoint_list_t list("a.root-servers.net", xes::any_port);
+  endpoint_list_t list("a.root-servers.net", any_port);
   assert(!list.empty());
 
   for(auto const& ep : list)
   {
 #if PRINT
-    std::cout << "a.root-servers.net: " <<
-      xes::ip_address(ep) << ' ' << xes::port_number(ep) << std::endl;
+    std::cout << "a.root-servers.net: " << ep << std::endl;
 #endif
-    assert(xes::port_number(ep) == xes::any_port);
+    assert(port_number(ep) == any_port);
     check_endpoint(ep);
   }
 }
 
 void remote_host_with_port()
 {
-  xes::endpoint_list_t list("a.root-servers.net", 53);
+  endpoint_list_t list("a.root-servers.net", 53);
   assert(!list.empty());
 
   for(auto const& ep : list)
   {
 #if PRINT
-    std::cout << "a.root-servers.net port 53: " <<
-      xes::ip_address(ep) << ' ' << xes::port_number(ep) << std::endl;
+    std::cout << "a.root-servers.net port 53: " << ep << std::endl;
 #endif
-    assert(xes::port_number(ep) == 53);
+    assert(port_number(ep) == 53);
     check_endpoint(ep);
   }
 }
@@ -185,7 +180,7 @@ void unknown_host()
   bool caught = false;
   try
   {
-    xes::endpoint_list_t list("mail.dev.null", xes::any_port);
+    endpoint_list_t list("mail.dev.null", any_port);
   }
   catch(std::exception const& ex)
   {
@@ -204,7 +199,7 @@ void unknown_host_with_port()
   bool caught = false;
   try
   {
-    xes::endpoint_list_t list("mail.dev.null", 25);
+    endpoint_list_t list("mail.dev.null", 25);
   }
   catch(std::exception const& ex)
   {
@@ -223,10 +218,10 @@ void unknown_host_with_port()
 int main()
 {
   empty_list();
-  local_interfaces();
-  local_interfaces_with_port();
-  all_interfaces();
-  all_interfaces_with_port();
+  local_endpoints();
+  local_endpoints_with_port();
+  all_endpoints();
+  all_endpoints_with_port();
   localhost();
   localhost_with_port();
   remote_host();
