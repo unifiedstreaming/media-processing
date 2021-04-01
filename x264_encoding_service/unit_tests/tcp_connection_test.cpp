@@ -303,21 +303,21 @@ purus. Nullam consequat rutrum venenatis. Nullam ut nisl mollis,
 tempus elit vel, eleifend sem.
 )"; // lorem
 
-struct sender_t
+struct producer_t
 {
-  sender_t(logging_context_t const& context,
-           tcp_connection_t& conn,
-           char const* first, char const* last,
-           int bufsize)
+  producer_t(logging_context_t const& context,
+             tcp_connection_t& conn_out,
+             char const* first, char const* last,
+             int bufsize)
   : context_(context)
-  , conn_(conn)
+  , conn_out_(conn_out)
   , first_(first)
   , last_((assert(last >= first), last))
   , bufsize_((assert(bufsize > 0), bufsize))
   { }
 
-  sender_t(sender_t const&) = delete;
-  sender_t& operator=(sender_t const&) = delete;
+  producer_t(producer_t const&) = delete;
+  producer_t& operator=(producer_t const&) = delete;
 
   bool done() const
   {
@@ -338,16 +338,16 @@ struct sender_t
     }
     if(auto msg = context_.message_at(loglevel_t::info))
     {
-      *msg << "sender " << conn_ << ": trying to send " <<
-        limit - first_ << " bytes";
+      *msg << "producer " << conn_out_ <<
+        ": trying to send " << limit - first_ << " bytes";
     }
 
-    char const* next = conn_.write_some(first_, limit);
+    char const* next = conn_out_.write_some(first_, limit);
     if(next == nullptr)
     {
       if(auto msg = context_.message_at(loglevel_t::info))
       {
-        *msg << "sender " << conn_ << ": can't send yet";
+        *msg << "producer " << conn_out_ << ": can't send yet";
       }
       return false;
     }
@@ -355,7 +355,8 @@ struct sender_t
     assert(next > first_);
     if(auto msg = context_.message_at(loglevel_t::info))
     {
-      *msg << "sender " << conn_ << ": sent " << next - first_ << " bytes";
+      *msg << "producer " << conn_out_ <<
+        ": sent " << next - first_ << " bytes";
     }
 
     first_ = next;
@@ -365,28 +366,28 @@ struct sender_t
 
 private :
   logging_context_t const& context_;
-  tcp_connection_t& conn_;
+  tcp_connection_t& conn_out_;
   char const* first_;
   char const* last_;
   int bufsize_;
 };
   
-struct receiver_t
+struct consumer_t
 {
-  receiver_t(logging_context_t const& context,
-             tcp_connection_t& conn,
+  consumer_t(logging_context_t const& context,
+             tcp_connection_t& conn_in,
              char const* first, char const* last,
              int bufsize)
   : context_(context)
-  , conn_(conn)
+  , conn_in_(conn_in)
   , first_(first)
   , last_((assert(last >= first), last))
   , bufsize_((assert(bufsize > 0), bufsize))
   , buf_(new char[bufsize_])
   { }
 
-  receiver_t(receiver_t const&) = delete;
-  receiver_t& operator=(receiver_t const&) = delete;
+  consumer_t(consumer_t const&) = delete;
+  consumer_t& operator=(consumer_t const&) = delete;
 
   bool done() const
   {
@@ -407,16 +408,16 @@ struct receiver_t
     }
     if(auto msg = context_.message_at(loglevel_t::info))
     {
-      *msg << "receiver " << conn_ << ": trying to receive " <<
-        limit - buf_ << " bytes";
+      *msg << "consumer " << conn_in_ <<
+        ": trying to receive " << limit - buf_ << " bytes";
     }
 
-    char* next = conn_.read_some(buf_, limit);
+    char* next = conn_in_.read_some(buf_, limit);
     if(next == nullptr)
     {
       if(auto msg = context_.message_at(loglevel_t::info))
       {
-        *msg << "receiver " << conn_ << ": nothing to receive yet";
+        *msg << "consumer " << conn_in_ << ": nothing to receive yet";
       }
       return false;
     }
@@ -424,7 +425,8 @@ struct receiver_t
     assert(next > buf_);
     if(auto msg = context_.message_at(loglevel_t::info))
     {
-      *msg << "receiver " << conn_ << ": received " << next - buf_ << " bytes";
+      *msg << "consumer " << conn_in_ <<
+        ": received " << next - buf_ << " bytes";
     }
 
     assert(std::equal(buf_, next, first_));
@@ -433,14 +435,14 @@ struct receiver_t
     return true;
   }
 
-  ~receiver_t()
+  ~consumer_t()
   {
     delete[] buf_;
   }
 
 private :
   logging_context_t const& context_;
-  tcp_connection_t& conn_;
+  tcp_connection_t& conn_in_;
   char const* first_;
   char const* last_;
   int bufsize_;
@@ -463,9 +465,9 @@ unsigned int const n_lorems = 256;
 void blocking_transfer(logging_context_t const& context,
                        endpoint_t const& interface)
 {
-  std::unique_ptr<tcp_connection_t> client_side;
-  std::unique_ptr<tcp_connection_t> server_side;
-  std::tie(client_side, server_side) = make_connected_pair(interface);
+  std::unique_ptr<tcp_connection_t> producer_out;
+  std::unique_ptr<tcp_connection_t> consumer_in;
+  std::tie(producer_out, consumer_in) = make_connected_pair(interface);
   
   std::string const lorems = make_lorems(n_lorems);
   char const* first = lorems.data();
@@ -474,49 +476,48 @@ void blocking_transfer(logging_context_t const& context,
   if(auto msg = context.message_at(loglevel_t::info))
   {
     *msg << "blocking_transfer():" <<
-      " client side: " << *client_side <<
-      " server side: " << *server_side <<
+      " producer out: " << *producer_out <<
+      " consumer in: " << *consumer_in <<
       " buffer size: " << bufsize <<
       " bytes to transfer: " << lorems.size();
   }
 
-  receiver_t receiver(context, *client_side, first, last, bufsize);
-  auto client_code = [&]
+  producer_t producer(context, *producer_out, first, last, bufsize);
+  auto produce = [&]
   {
-    while(!receiver.done())
+    while(!producer.done())
     {
-      bool progressed = receiver.progress();
-      assert(progressed);
-    }
-  };
-
-  sender_t sender(context, *server_side, first, last, bufsize);
-  auto server_code = [&]
-  {
-    while(!sender.done())
-    {
-      bool progressed = sender.progress();
+      bool progressed = producer.progress();
       assert(progressed);
     }
   };
   
+  consumer_t consumer(context, *consumer_in, first, last, bufsize);
+  auto consume = [&]
   {
-    scoped_thread_t client_thread(client_code);
-    server_code();
+    while(!consumer.done())
+    {
+      bool progressed = consumer.progress();
+      assert(progressed);
+    }
+  };
+
+  {
+    scoped_thread_t producer_thread(produce);
+    consume();
   }
 
   if(auto msg = context.message_at(loglevel_t::info))
   {
-    *msg << "blocking_transfer(): disconnecting " << *server_side;
+    *msg << "blocking_transfer(): disconnecting " << *producer_out;
   }
-  server_side.reset();
+  producer_out.reset();
 
   char buf[1];
-  assert(client_side->read_some(buf, buf + 1) == buf);
-
+  assert(consumer_in->read_some(buf, buf + 1) == buf);
   if(auto msg = context.message_at(loglevel_t::info))
   {
-    *msg << "blocking_transfer(): eof at " << *client_side;
+    *msg << "blocking_transfer(): eof at " << *consumer_in;
   }
 }
 
@@ -533,12 +534,12 @@ void nonblocking_transfer(logging_context_t const& context,
                           endpoint_t const& interface,
                           bool eager)
 {
-  std::unique_ptr<tcp_connection_t> client_side;
-  std::unique_ptr<tcp_connection_t> server_side;
-  std::tie(client_side, server_side) = make_connected_pair(interface);
+  std::unique_ptr<tcp_connection_t> producer_out;
+  std::unique_ptr<tcp_connection_t> consumer_in;
+  std::tie(producer_out, consumer_in) = make_connected_pair(interface);
 
-  client_side->set_nonblocking();
-  server_side->set_nonblocking();
+  producer_out->set_nonblocking();
+  consumer_in->set_nonblocking();
   
   std::string const lorems = make_lorems(n_lorems);
   char const* first = lorems.data();
@@ -547,37 +548,37 @@ void nonblocking_transfer(logging_context_t const& context,
   if(auto msg = context.message_at(loglevel_t::info))
   {
     *msg << "nonblocking_transfer():" <<
-      " client side: " << *client_side <<
-      " server side: " << *server_side <<
+      " producer out: " << *producer_out <<
+      " consumer in: " << *consumer_in <<
       " buffer size: " << bufsize <<
       " bytes to transfer: " << lorems.size() <<
       " eager: " << (eager ? "yes" : "no") ;
   }
 
-  receiver_t receiver(context, *client_side, first, last, bufsize);
-  sender_t sender(context, *server_side, first, last, bufsize);
+  producer_t producer(context, *producer_out, first, last, bufsize);
+  consumer_t consumer(context, *consumer_in, first, last, bufsize);
 
-  while(!receiver.done() || !sender.done())
+  while(!consumer.done())
   {
-    while(receiver.progress() && eager)
+    while(producer.progress() && eager)
       ;
-    while(sender.progress() && eager)
+    while(consumer.progress() && eager)
       ;
   }
 
   if(auto msg = context.message_at(loglevel_t::info))
   {
-    *msg << "nonblocking_transfer(): disconnecting " << *server_side;
+    *msg << "nonblocking_transfer(): disconnecting " << *producer_out;
   }
-  server_side.reset();
+  producer_out.reset();
 
-  client_side->set_blocking();
+  consumer_in->set_blocking();
   char buf[1];
-  assert(client_side->read_some(buf, buf + 1) == buf);
+  assert(consumer_in->read_some(buf, buf + 1) == buf);
 
   if(auto msg = context.message_at(loglevel_t::info))
   {
-    *msg << "nonblocking_transfer(): eof at " << *client_side;
+    *msg << "nonblocking_transfer(): eof at " << *consumer_in;
   }
 }
 
@@ -593,9 +594,9 @@ void nonblocking_transfer(logging_context_t const& context, bool eager)
 void broken_pipe(logging_context_t const& context,
                  endpoint_t const& interface)
 {
-  std::unique_ptr<tcp_connection_t> client_side;
-  std::unique_ptr<tcp_connection_t> server_side;
-  std::tie(client_side, server_side) = make_connected_pair(interface);
+  std::unique_ptr<tcp_connection_t> producer_out;
+  std::unique_ptr<tcp_connection_t> consumer_in;
+  std::tie(producer_out, consumer_in) = make_connected_pair(interface);
   
   std::string const lorems = make_lorems(n_lorems);
   char const* first = lorems.data();
@@ -604,21 +605,21 @@ void broken_pipe(logging_context_t const& context,
   if(auto msg = context.message_at(loglevel_t::info))
   {
     *msg << "broken pipe():" <<
-      " client side (closing): " << *client_side <<
-      " server side: " << *server_side <<
+      " producer out: " << *producer_out <<
+      " consumer_in (closing): " << *consumer_in <<
       " buffer size: " << bufsize <<
       " bytes to transfer: " << lorems.size();
   }
 
-  client_side.reset();
-  sender_t sender(context, *server_side, first, last, bufsize);
+  consumer_in.reset();
+  producer_t producer(context, *producer_out, first, last, bufsize);
 
   bool caught = false;
   try
   {
-    while(!sender.done())
+    while(!producer.done())
     {
-      bool progressed = sender.progress();
+      bool progressed = producer.progress();
       assert(progressed);
     }
   }
@@ -641,7 +642,7 @@ void broken_pipe(logging_context_t const& context)
     broken_pipe(context, interface);
   }
 }
-      
+
 int throwing_main(int argc, char const* const argv[])
 {
   logger_t logger(argv[0]);
