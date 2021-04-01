@@ -734,7 +734,7 @@ void blocking_transfer(logging_context_t const& context,
       assert(progressed);
     }
   };
-    
+
   consumer_t consumer(context, *consumer_in, first, last, bufsize);
   auto consume = [&]
   {
