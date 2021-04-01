@@ -61,6 +61,11 @@ struct tcp_connection_t
   // In non-blocking mode, nullptr may be returned.
   char const* write_some(char const* first, char const* last);
 
+  // Closes the writing side of the connection, while leaving the
+  // reading side open. This will eventually result in an EOF at the
+  // peer.
+  void close_write_end();
+  
   // Returns a pointer to the next byte to read; first on EOF.
   // In non-blocking mode, nullptr may be returned.
   char* read_some(char* first, char* last);

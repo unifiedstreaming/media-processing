@@ -60,6 +60,11 @@ char const* tcp_connection_t::write_some(char const* first, char const* last)
   return socket_.write_some(first, last);
 }
 
+void tcp_connection_t::close_write_end()
+{
+  socket_.close_write_end();
+}
+  
 char* tcp_connection_t::read_some(char* first, char* last)
 {
   return socket_.read_some(first, last);

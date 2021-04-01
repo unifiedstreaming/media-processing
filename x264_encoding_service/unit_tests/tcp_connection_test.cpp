@@ -314,6 +314,7 @@ struct producer_t
   , first_(first)
   , last_((assert(last >= first), last))
   , bufsize_((assert(bufsize > 0), bufsize))
+  , done_(false)
   { }
 
   producer_t(producer_t const&) = delete;
@@ -321,14 +322,25 @@ struct producer_t
 
   bool done() const
   {
-    return first_ == last_;
+    return done_;
   }
 
   bool progress()
   {
-    if(first_ == last_)
+    if(done_)
     {
       return false;
+    }
+
+    if(first_ == last_)
+    {
+      if(auto msg = context_.message_at(loglevel_t::info))
+      {
+        *msg << "producer " << conn_out_ << ": closing write end";
+      }
+      conn_out_.close_write_end();
+      done_ = true;
+      return true;
     }
 
     char const* limit = last_;
@@ -370,8 +382,9 @@ private :
   char const* first_;
   char const* last_;
   int bufsize_;
+  bool done_;
 };
-  
+
 struct consumer_t
 {
   consumer_t(logging_context_t const& context,
@@ -384,6 +397,7 @@ struct consumer_t
   , last_((assert(last >= first), last))
   , bufsize_((assert(bufsize > 0), bufsize))
   , buf_(new char[bufsize_])
+  , done_(false)
   { }
 
   consumer_t(consumer_t const&) = delete;
@@ -391,14 +405,42 @@ struct consumer_t
 
   bool done() const
   {
-    return first_ == last_;
+    return done_;
   }
 
   bool progress()
   {
-    if(first_ == last_)
+    if(done_)
     {
       return false;
+    }
+
+    if(first_ == last_)
+    {
+      if(auto msg = context_.message_at(loglevel_t::info))
+      {
+        *msg << "consumer " << conn_in_ << ": trying to receive EOF";
+      }
+
+      char dummy[1];
+      char* next = conn_in_.read_some(dummy, dummy + 1);
+      if(next == nullptr)
+      {
+        if(auto msg = context_.message_at(loglevel_t::info))
+        {
+          *msg << "consumer " << conn_in_ << ": nothing to receive yet";
+        }
+        return false;
+      }
+
+      assert(next == dummy);
+      if(auto msg = context_.message_at(loglevel_t::info))
+      {
+        *msg << "consumer " << conn_in_ << ": received EOF";
+      }
+
+      done_ = true;
+      return true;
     }
 
     char* limit = buf_ + bufsize_;
@@ -447,6 +489,7 @@ private :
   char const* last_;
   int bufsize_;
   char* buf_;
+  bool done_;
 };
   
 std::string make_lorems(unsigned int n)
@@ -506,19 +549,6 @@ void blocking_transfer(logging_context_t const& context,
     scoped_thread_t producer_thread(produce);
     consume();
   }
-
-  if(auto msg = context.message_at(loglevel_t::info))
-  {
-    *msg << "blocking_transfer(): disconnecting " << *producer_out;
-  }
-  producer_out.reset();
-
-  char buf[1];
-  assert(consumer_in->read_some(buf, buf + 1) == buf);
-  if(auto msg = context.message_at(loglevel_t::info))
-  {
-    *msg << "blocking_transfer(): eof at " << *consumer_in;
-  }
 }
 
 void blocking_transfer(logging_context_t const& context)
@@ -564,21 +594,6 @@ void nonblocking_transfer(logging_context_t const& context,
       ;
     while(consumer.progress() && eager)
       ;
-  }
-
-  if(auto msg = context.message_at(loglevel_t::info))
-  {
-    *msg << "nonblocking_transfer(): disconnecting " << *producer_out;
-  }
-  producer_out.reset();
-
-  consumer_in->set_blocking();
-  char buf[1];
-  assert(consumer_in->read_some(buf, buf + 1) == buf);
-
-  if(auto msg = context.message_at(loglevel_t::info))
-  {
-    *msg << "nonblocking_transfer(): eof at " << *consumer_in;
   }
 }
 

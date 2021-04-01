@@ -371,6 +371,20 @@ char const* tcp_socket_t::write_some(char const* first, char const* last)
   return first + r;
 }
 
+void tcp_socket_t::close_write_end()
+{
+#ifdef _WIN32
+  int r = ::shutdown(fd_, SD_SEND);
+#else
+  int r = ::shutdown(fd_, SHUT_WR);
+#endif
+  if(r == -1)
+  {
+    int cause = last_system_error();
+    throw system_exception_t("shutdown() failure", cause);
+  }
+}  
+
 char* tcp_socket_t::read_some(char* first, char* last)
 {
   assert(!empty());
