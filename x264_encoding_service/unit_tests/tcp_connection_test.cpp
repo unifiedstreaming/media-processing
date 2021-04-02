@@ -412,12 +412,12 @@ struct producer_t
 
   producer_t(logging_context_t const& context,
              tcp_connection_t& out,
-	     char const* first, char const* last,
-	     unsigned int bufsize)
+             char const* first, char const* last,
+             unsigned int bufsize)
   : out_(context, loglevel_t::info, "producer", out)
   , bufsize_((assert(bufsize > 0),
               assert(bufsize <= max_bufsize),
-	      static_cast<int>(bufsize)))
+              static_cast<int>(bufsize)))
   , first_(first)
   , last_(last)
   , eof_sent_(false)
@@ -478,8 +478,8 @@ struct filter_t
 {
   filter_t(logging_context_t const& context,
            tcp_connection_t& in,
-	   tcp_connection_t& out,
-	   unsigned int bufsize)
+           tcp_connection_t& out,
+           unsigned int bufsize)
   : in_(context, loglevel_t::info, "filter", in)
   , out_(context, loglevel_t::info, "filter", out)
   , buf_((assert(bufsize > 0), bufsize))
@@ -564,7 +564,7 @@ struct consumer_t
   consumer_t(logging_context_t const& context,
              tcp_connection_t& in,
              char const* first, char const* last,
-	     unsigned int bufsize)
+             unsigned int bufsize)
   : in_(context, loglevel_t::info, "consumer", in)
   , buf_((assert(bufsize > 0), bufsize))
   , first_(first)
@@ -616,43 +616,29 @@ private :
   bool eof_seen_;
 };
 
+template<typename T>
+void run_to_completion(T& function)
+{
+  while(!function.done())
+  {
+    bool progressed = function.progress();
+    assert(progressed);
+  }
+}
+
 void run_pipe_in_parallel(producer_t& producer,
                           filter_t& filter,
-		          consumer_t& consumer)
+                          consumer_t& consumer)
 {
-  auto run_producer = [&]
-  {
-    while(!producer.done())
-    {
-      assert(producer.progress());
-    }
-  };
-
-  auto run_filter = [&]
-  {
-    while(!filter.done())
-    {
-      assert(filter.progress());
-    }
-  };
-
-  auto run_consumer = [&]
-  {
-    while(!consumer.done())
-    {
-      assert(consumer.progress());
-    }
-  };
-
-  scoped_thread_t producer_thread(run_producer);
-  scoped_thread_t filter_thread(run_filter);
-  run_consumer();
+  scoped_thread_t producer_thread([&] { run_to_completion(producer); });
+  scoped_thread_t filter_thread([&] { run_to_completion(filter); });
+  run_to_completion(consumer);
 }
 
 void run_pipe_serially(producer_t& producer,
                        filter_t& filter,
-		       consumer_t& consumer,
-		       bool agile)
+                       consumer_t& consumer,
+                       bool agile)
 {
   while(!consumer.done())
   {
@@ -844,7 +830,7 @@ void broken_pipe(logging_context_t const& context,
   
   if(auto msg = context.message_at(loglevel_t::info))
   {
-    *msg << "broken pipe():" <<
+    *msg << "broken_pipe():" <<
       " producer out: " << *producer_out <<
       " consumer_in (closing): " << *consumer_in <<
       " buffer size: " << bufsize <<
@@ -857,11 +843,7 @@ void broken_pipe(logging_context_t const& context,
   bool caught = false;
   try
   {
-    while(!producer.done())
-    {
-      bool progressed = producer.progress();
-      assert(progressed);
-    }
+    run_to_completion(producer);
   }
   catch(system_exception_t const& ex)
   {
