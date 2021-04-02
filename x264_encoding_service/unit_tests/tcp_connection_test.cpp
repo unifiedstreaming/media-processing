@@ -666,12 +666,11 @@ void run_pipe_serially(producer_t& producer,
 }
     
 unsigned int const bufsize = 256 * 1024;
-unsigned int const n_lorems = 256;
+std::string const payload = make_lorems(256);
 
 void blocking_transfer(logging_context_t const& context,
                        endpoint_t const& interface)
 {
-  std::string const payload = make_lorems(n_lorems);
   char const* first = payload.data();
   char const* last = payload.data() + payload.size();
 
@@ -714,7 +713,6 @@ void nonblocking_transfer(logging_context_t const& context,
                           endpoint_t const& interface,
                           bool agile)
 {
-  std::string const payload = make_lorems(n_lorems);
   char const* first = payload.data();
   char const* last = payload.data() + payload.size();
 
@@ -763,7 +761,6 @@ void nonblocking_transfer(logging_context_t const& context, bool agile)
 void blocking_client_server(logging_context_t const& context,
                             endpoint_t const& interface)
 {
-  std::string const payload = make_lorems(n_lorems);
   char const* first = payload.data();
   char const* last = payload.data() + payload.size();
 
@@ -800,7 +797,6 @@ void nonblocking_client_server(logging_context_t const& context,
                                endpoint_t const& interface,
                                bool agile)
 {
-  std::string const payload = make_lorems(n_lorems);
   char const* first = payload.data();
   char const* last = payload.data() + payload.size();
 
@@ -839,14 +835,13 @@ void nonblocking_client_server(logging_context_t const& context, bool agile)
 void broken_pipe(logging_context_t const& context,
                  endpoint_t const& interface)
 {
+  char const* first = payload.data();
+  char const* last = payload.data() + payload.size();
+
   std::unique_ptr<tcp_connection_t> producer_out;
   std::unique_ptr<tcp_connection_t> consumer_in;
   std::tie(producer_out, consumer_in) = make_connected_pair(interface);
   
-  std::string const payload = make_lorems(n_lorems);
-  char const* first = payload.data();
-  char const* last = payload.data() + payload.size();
-
   if(auto msg = context.message_at(loglevel_t::info))
   {
     *msg << "broken pipe():" <<
