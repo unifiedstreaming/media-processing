@@ -26,11 +26,14 @@
 #include "system_error.hpp"
 
 #include <algorithm>
-#include <cstddef>
-#include <cstring>
 #include <exception>
 #include <iostream>
+#include <limits>
+#include <memory>
+#include <string>
 #include <tuple>
+#include <utility>
+#include <vector>
 
 // Enable assert()
 #undef NDEBUG
@@ -313,18 +316,111 @@ std::string make_lorems(unsigned int n)
   return result;
 }
 
+struct logged_tcp_connection_t
+{
+  logged_tcp_connection_t(logging_context_t const& context,
+                          loglevel_t loglevel,
+                          std::string prefix,
+                          tcp_connection_t& conn)
+  : context_(context)
+  , loglevel_(loglevel)
+  , prefix_(std::move(prefix))
+  , conn_(conn)
+  { }
+
+  logged_tcp_connection_t(logged_tcp_connection_t const&) = delete;
+  logged_tcp_connection_t& operator=(logged_tcp_connection_t const&) = delete;
+
+  char const* write_some(char const* first, char const* last)
+  {
+    if(auto msg = context_.message_at(loglevel_))
+    {
+      *msg << prefix_ << conn_ <<
+        ": trying to send " << last - first << " byte(s)";
+    }
+
+    char const* result = conn_.write_some(first, last);
+
+    if(auto msg = context_.message_at(loglevel_))
+    {
+      if(result == nullptr)
+      {
+        *msg << prefix_ << conn_ << ": can't send yet";
+      }
+      else
+      {
+        *msg << prefix_ << conn_ <<
+          ": sent " << result - first << " byte(s)";
+      }
+    }
+
+    return result;
+  }
+    
+  void close_write_end()
+  {
+    if(auto msg = context_.message_at(loglevel_))
+    {
+      *msg << prefix_ << conn_ << ": sending EOF";
+    }
+    conn_.close_write_end();
+  }
+
+  char* read_some(char* first, char* last)
+  {
+    if(auto msg = context_.message_at(loglevel_))
+    {
+      *msg << prefix_ << conn_ <<
+        ": trying to receive " << last - first << " byte(s)";
+    }
+
+    char* result = conn_.read_some(first, last);
+
+    if(auto msg = context_.message_at(loglevel_))
+    {
+      if(result == nullptr)
+      {
+        *msg << prefix_ << conn_ << ": nothing to receive yet";
+      }
+      else if(result == first)
+      {
+        *msg << prefix_ << conn_ << ": received EOF";
+      }
+      else
+      {
+        *msg << prefix_ << conn_ <<
+          ": received " << result - first << " byte(s)";
+      }
+    }
+
+    return result;
+  }
+    
+private :
+  logging_context_t const& context_;
+  loglevel_t loglevel_;
+  std::string prefix_;
+  tcp_connection_t& conn_;
+};
+
+/*
+ * Our test producer sends [first,last>, and then a half-close, to out.
+ */
 struct producer_t
 {
+  static const unsigned int max_bufsize = std::numeric_limits<int>::max();
+
   producer_t(logging_context_t const& context,
              tcp_connection_t& out,
-             char const* first, char const* last,
-             int bufsize)
-  : context_(context)
-  , out_(out)
+	     char const* first, char const* last,
+	     unsigned int bufsize)
+  : out_(context, loglevel_t::info, "producer", out)
+  , bufsize_((assert(bufsize > 0),
+              assert(bufsize <= max_bufsize),
+	      static_cast<int>(bufsize)))
   , first_(first)
-  , last_((assert(last >= first), last))
-  , bufsize_((assert(bufsize > 0), bufsize))
-  , done_(false)
+  , last_(last)
+  , eof_sent_(false)
   { }
 
   producer_t(producer_t const&) = delete;
@@ -332,24 +428,20 @@ struct producer_t
 
   bool done() const
   {
-    return done_;
+    return eof_sent_;
   }
 
   bool progress()
   {
-    if(done_)
+    if(eof_sent_)
     {
       return false;
     }
 
     if(first_ == last_)
     {
-      if(auto msg = context_.message_at(loglevel_t::info))
-      {
-        *msg << "producer " << out_ << ": closing write end";
-      }
       out_.close_write_end();
-      done_ = true;
+      eof_sent_ = true;
       return true;
     }
 
@@ -358,335 +450,222 @@ struct producer_t
     {
       limit = first_ + bufsize_;
     }
-    if(auto msg = context_.message_at(loglevel_t::info))
-    {
-      *msg << "producer " << out_ <<
-        ": trying to send " << limit - first_ << " bytes";
-    }
 
     char const* next = out_.write_some(first_, limit);
     if(next == nullptr)
     {
-      if(auto msg = context_.message_at(loglevel_t::info))
-      {
-        *msg << "producer " << out_ << ": can't send yet";
-      }
       return false;
     }
 
     assert(next > first_);
-    if(auto msg = context_.message_at(loglevel_t::info))
-    {
-      *msg << "producer " << out_ <<
-        ": sent " << next - first_ << " bytes";
-    }
-
-    first_ = next;
-      
+    assert(next <= limit);
+    first_  = next;
     return true;
   }
-
+  
 private :
-  logging_context_t const& context_;
-  tcp_connection_t& out_;
+  logged_tcp_connection_t out_;
+  int const bufsize_;
   char const* first_;
-  char const* last_;
-  int bufsize_;
-  bool done_;
+  char const* const last_;
+  bool eof_sent_;
 };
 
-struct echoer_t
+/*
+ * Our test filter drains in, copying it to out, followed by a half-close.
+ */
+struct filter_t
 {
-  echoer_t(logging_context_t const& context,
-           tcp_connection_t& in, tcp_connection_t& out,
-           char const* first, char const* last,
-           int bufsize)
-  : context_(context)
-  , in_(in)
-  , out_(out)
+  filter_t(logging_context_t const& context,
+           tcp_connection_t& in,
+	   tcp_connection_t& out,
+	   unsigned int bufsize)
+  : in_(context, loglevel_t::info, "filter", in)
+  , out_(context, loglevel_t::info, "filter", out)
+  , buf_((assert(bufsize > 0), bufsize))
+  , first_(buf_.data())
+  , last_(buf_.data())
   , eof_seen_(false)
-  , done_(false)
-  , first_(first)
-  , expected_(first)
-  , last_((assert(last >= first), last))
-  , bufsize_((assert(bufsize > 0), bufsize))
-  , buf_(new char[bufsize_])
+  , eof_sent_(false)
   { }
 
-  echoer_t(echoer_t const&) = delete;
-  echoer_t& operator=(echoer_t const&) = delete;
+  filter_t(filter_t const&) = delete;
+  filter_t& operator=(filter_t const&) = delete;
 
   bool done() const
   {
-    return done_;
+    return eof_sent_;
   }
 
   bool progress()
   {
-    return try_close_write_end()
-      || try_read_eof()
-      || try_write_data()
-      || try_read_data();
-  }
-   
-  ~echoer_t()
-  {
-    delete[] buf_;
-  }
-
-private :
-  bool try_read_data()
-  {
-    if(expected_ == last_)
+    if(eof_sent_)
     {
       return false;
     }
 
-    char* limit = buf_ + bufsize_;
-    if(limit - buf_ > last_ - expected_)
+    if(first_ != last_)
     {
-      limit = buf_ + (last_ - expected_);
+      char const* next = out_.write_some(first_, last_);
+      if(next == nullptr)
+      {
+        return false;
+      }
+
+      assert(next > first_);
+      assert(next <= last_);
+      first_ = next;
+      return true;
     }
 
-    if(auto msg = context_.message_at(loglevel_t::info))
+    if(eof_seen_)
     {
-      *msg << "echoer " << in_ <<
-        ": trying to receive " << limit - buf_ << " bytes";
+      out_.close_write_end();
+      eof_sent_ = true;
+      return true;
     }
 
-    char* next = in_.read_some(buf_, limit);
+    char* next = in_.read_some(buf_.data(), buf_.data() + buf_.size());
     if(next == nullptr)
     {
-      if(auto msg = context_.message_at(loglevel_t::info))
-      {
-        *msg << "echoer " << in_ << ": nothing to receive yet";
-      }
       return false;
     }
 
-    assert(next > buf_);
-    assert(std::equal(buf_, next, expected_));
-    if(auto msg = context_.message_at(loglevel_t::info))
+    if(next == buf_.data())
     {
-      *msg << "echoer " << in_ <<
-        ": received " << next - buf_ << " bytes";
+       eof_seen_ = true;
+       return true;
     }
 
-    expected_ += next - buf_;
+    assert(next > buf_.data());
+    assert(next <= buf_.data() + buf_.size());
+
+    first_ = buf_.data();
+    last_ = next;
+
     return true;
   }
-
-  bool try_read_eof()
-  {
-    if(expected_ != last_ || eof_seen_)
-    {
-      return false;
-    }
     
-    if(auto msg = context_.message_at(loglevel_t::info))
-    {
-      *msg << "echoer " << in_ << ": trying to receive EOF";
-    }
-
-    char dummy[1];
-    char* next = in_.read_some(dummy, dummy + 1);
-    if(next == nullptr)
-    {
-      if(auto msg = context_.message_at(loglevel_t::info))
-      {
-        *msg << "echoer " << in_ << ": nothing to receive yet";
-      }
-      return false;
-    }
-
-    assert(next == dummy);
-    if(auto msg = context_.message_at(loglevel_t::info))
-    {
-      *msg << "echoer " << in_ << ": received EOF";
-    }
-
-    eof_seen_ = true;
-    return true;
-  }
-
-  bool try_write_data()
-  {
-    if(first_ == expected_)
-    {
-      return false;
-    }
-
-    char const* limit = expected_;
-    if(expected_ - first_ > bufsize_)
-    {
-      limit = first_ + bufsize_;
-    }
-
-    if(auto msg = context_.message_at(loglevel_t::info))
-    {
-      *msg << "echoer " << out_ <<
-        ": trying to send " << limit - first_ << " bytes";
-    }
-
-    char const* next = out_.write_some(first_, limit);
-    if(next == nullptr)
-    {
-      if(auto msg = context_.message_at(loglevel_t::info))
-      {
-        *msg << "echoer " << out_ << ": can't send yet";
-      }
-      return false;
-    }
-
-    assert(next > first_);
-    if(auto msg = context_.message_at(loglevel_t::info))
-    {
-      *msg << "echoer " << out_ <<
-        ": sent " << next - first_ << " bytes";
-    }
-
-    first_ = next;
-    return true;
-  }
-
-  bool try_close_write_end()
-  {
-    if(first_ != last_ || !eof_seen_ || done_)
-    {
-      return false;
-    }
-
-    if(auto msg = context_.message_at(loglevel_t::info))
-    {
-      *msg << "echoer " << out_ << ": closing write end";
-    }
-
-    out_.close_write_end();
-    done_ = true;
-    return true;
-  }
-
 private :
-  logging_context_t const& context_;
-  tcp_connection_t& in_;
-  tcp_connection_t& out_;
-  bool eof_seen_;
-  bool done_;
+  logged_tcp_connection_t in_;
+  logged_tcp_connection_t out_;
+  std::vector<char> buf_;
   char const* first_;
-  char const* expected_;
   char const* last_;
-  int bufsize_;
-  char* const buf_;
+  bool eof_seen_;
+  bool eof_sent_;
 };
-  
+
+/*
+ * Our test consumer drains in, checking that it matches [first,last>.
+ */
 struct consumer_t
 {
   consumer_t(logging_context_t const& context,
              tcp_connection_t& in,
              char const* first, char const* last,
-             int bufsize)
-  : context_(context)
-  , in_(in)
-  , done_(false)
+	     unsigned int bufsize)
+  : in_(context, loglevel_t::info, "consumer", in)
+  , buf_((assert(bufsize > 0), bufsize))
   , first_(first)
-  , last_((assert(last >= first), last))
-  , bufsize_((assert(bufsize > 0), bufsize))
-  , buf_(new char[bufsize_])
+  , last_(last)
+  , eof_seen_(false)
   { }
-
-  consumer_t(consumer_t const&) = delete;
-  consumer_t& operator=(consumer_t const&) = delete;
 
   bool done() const
   {
-    return done_;
+    return eof_seen_;
   }
 
   bool progress()
   {
-    if(done_)
+    if(eof_seen_)
     {
       return false;
     }
 
-    if(first_ == last_)
+    char* next = in_.read_some(buf_.data(), buf_.data() + buf_.size());
+    if(next == nullptr)
     {
-      if(auto msg = context_.message_at(loglevel_t::info))
-      {
-        *msg << "consumer " << in_ << ": trying to receive EOF";
-      }
+      return false;
+    }
 
-      char dummy[1];
-      char* next = in_.read_some(dummy, dummy + 1);
-      if(next == nullptr)
-      {
-        if(auto msg = context_.message_at(loglevel_t::info))
-        {
-          *msg << "consumer " << in_ << ": nothing to receive yet";
-        }
-        return false;
-      }
-
-      assert(next == dummy);
-      if(auto msg = context_.message_at(loglevel_t::info))
-      {
-        *msg << "consumer " << in_ << ": received EOF";
-      }
-
-      done_ = true;
+    if(next == buf_.data())
+    {
+      assert(first_ == last_);
+      eof_seen_ = true;
       return true;
     }
 
-    char* limit = buf_ + bufsize_;
-    if(last_ - first_ < bufsize_)
-    {
-      limit = buf_ + (last_ - first_);
-    }
-    if(auto msg = context_.message_at(loglevel_t::info))
-    {
-      *msg << "consumer " << in_ <<
-        ": trying to receive " << limit - buf_ << " bytes";
-    }
+    assert(next > buf_.data());
+    assert(next <= buf_.data() + buf_.size());
 
-    char* next = in_.read_some(buf_, limit);
-    if(next == nullptr)
-    {
-      if(auto msg = context_.message_at(loglevel_t::info))
-      {
-        *msg << "consumer " << in_ << ": nothing to receive yet";
-      }
-      return false;
-    }
+    assert(next - buf_.data() <= last_ - first_);
+    assert(std::equal(buf_.data(), next, first_));
 
-    assert(next > buf_);
-    if(auto msg = context_.message_at(loglevel_t::info))
-    {
-      *msg << "consumer " << in_ <<
-        ": received " << next - buf_ << " bytes";
-    }
+    first_ += next - buf_.data();
 
-    assert(std::equal(buf_, next, first_));
-    first_ += next - buf_;
-      
     return true;
   }
-
-  ~consumer_t()
-  {
-    delete[] buf_;
-  }
-
+    
 private :
-  logging_context_t const& context_;
-  tcp_connection_t& in_;
-  bool done_;
+  logged_tcp_connection_t in_;
+  std::vector<char> buf_;
   char const* first_;
-  char const* last_;
-  int bufsize_;
-  char* buf_;
+  char const* const last_;
+  bool eof_seen_;
 };
-  
-int const bufsize = 256 * 1024;
+
+void run_pipe_in_parallel(producer_t& producer,
+                          filter_t& filter,
+		          consumer_t& consumer)
+{
+  auto run_producer = [&]
+  {
+    while(!producer.done())
+    {
+      assert(producer.progress());
+    }
+  };
+
+  auto run_filter = [&]
+  {
+    while(!filter.done())
+    {
+      assert(filter.progress());
+    }
+  };
+
+  auto run_consumer = [&]
+  {
+    while(!consumer.done())
+    {
+      assert(consumer.progress());
+    }
+  };
+
+  scoped_thread_t producer_thread(run_producer);
+  scoped_thread_t filter_thread(run_filter);
+  run_consumer();
+}
+
+void run_pipe_serially(producer_t& producer,
+                       filter_t& filter,
+		       consumer_t& consumer,
+		       bool agile)
+{
+  while(!consumer.done())
+  {
+    while(producer.progress() && agile)
+      ;
+    while(filter.progress() && agile)
+      ;
+    while(consumer.progress() && agile)
+      ;
+  }
+}
+    
+unsigned int const bufsize = 256 * 1024;
 unsigned int const n_lorems = 256;
 
 void blocking_transfer(logging_context_t const& context,
@@ -697,59 +676,29 @@ void blocking_transfer(logging_context_t const& context,
   char const* last = payload.data() + payload.size();
 
   std::unique_ptr<tcp_connection_t> producer_out;
-  std::unique_ptr<tcp_connection_t> echoer_in;
-  std::tie(producer_out, echoer_in) = make_connected_pair(interface);
+  std::unique_ptr<tcp_connection_t> filter_in;
+  std::tie(producer_out, filter_in) = make_connected_pair(interface);
   
-  std::unique_ptr<tcp_connection_t> echoer_out;
+  std::unique_ptr<tcp_connection_t> filter_out;
   std::unique_ptr<tcp_connection_t> consumer_in;
-  std::tie(echoer_out, consumer_in) = make_connected_pair(interface);
+  std::tie(filter_out, consumer_in) = make_connected_pair(interface);
 
   if(auto msg = context.message_at(loglevel_t::info))
   {
     *msg << "blocking_transfer():" <<
       " producer out: " << *producer_out <<
-      " echoer in: " << *echoer_in <<
-      " echoer out: " << *echoer_out <<
+      " filter in: " << *filter_in <<
+      " filter out: " << *filter_out <<
       " consumer in: " << *consumer_in <<
       " buffer size: " << bufsize <<
       " bytes to transfer: " << payload.size();
   }
 
   producer_t producer(context, *producer_out, first, last, bufsize);
-  auto produce = [&]
-  {
-    while(!producer.done())
-    {
-      bool progressed = producer.progress();
-      assert(progressed);
-    }
-  };
-
-  echoer_t echoer(context, *echoer_in, *echoer_out, first, last, bufsize);
-  auto echo = [&]
-  {
-    while(!echoer.done())
-    {
-      bool progressed = echoer.progress();
-      assert(progressed);
-    }
-  };
-
+  filter_t filter(context, *filter_in, *filter_out, bufsize);
   consumer_t consumer(context, *consumer_in, first, last, bufsize);
-  auto consume = [&]
-  {
-    while(!consumer.done())
-    {
-      bool progressed = consumer.progress();
-      assert(progressed);
-    }
-  };
 
-  {
-    scoped_thread_t producer_thread(produce);
-    scoped_thread_t echoer_thread(echo);
-    consume();
-  }
+  run_pipe_in_parallel(producer, filter, consumer);
 }
 
 void blocking_transfer(logging_context_t const& context)
@@ -770,25 +719,25 @@ void nonblocking_transfer(logging_context_t const& context,
   char const* last = payload.data() + payload.size();
 
   std::unique_ptr<tcp_connection_t> producer_out;
-  std::unique_ptr<tcp_connection_t> echoer_in;
-  std::tie(producer_out, echoer_in) = make_connected_pair(interface);
+  std::unique_ptr<tcp_connection_t> filter_in;
+  std::tie(producer_out, filter_in) = make_connected_pair(interface);
 
   producer_out->set_nonblocking();
-  echoer_in->set_nonblocking();
+  filter_in->set_nonblocking();
   
-  std::unique_ptr<tcp_connection_t> echoer_out;
+  std::unique_ptr<tcp_connection_t> filter_out;
   std::unique_ptr<tcp_connection_t> consumer_in;
-  std::tie(echoer_out, consumer_in) = make_connected_pair(interface);
+  std::tie(filter_out, consumer_in) = make_connected_pair(interface);
 
-  echoer_out->set_nonblocking();
+  filter_out->set_nonblocking();
   consumer_in->set_nonblocking();
   
   if(auto msg = context.message_at(loglevel_t::info))
   {
     *msg << "nonblocking_transfer():" <<
       " producer out: " << *producer_out <<
-      " echoer in: " << *echoer_in <<
-      " echoer out: " << *echoer_out <<
+      " filter in: " << *filter_in <<
+      " filter out: " << *filter_out <<
       " consumer in: " << *consumer_in <<
       " buffer size: " << bufsize <<
       " bytes to transfer: " << payload.size() <<
@@ -796,18 +745,10 @@ void nonblocking_transfer(logging_context_t const& context,
   }
 
   producer_t producer(context, *producer_out, first, last, bufsize);
-  echoer_t echoer(context, *echoer_in, *echoer_out, first, last, bufsize);
+  filter_t filter(context, *filter_in, *filter_out, bufsize);
   consumer_t consumer(context, *consumer_in, first, last, bufsize);
 
-  while(!consumer.done())
-  {
-    while(producer.progress() && agile)
-      ;
-    while(echoer.progress() && agile)
-      ;
-    while(consumer.progress() && agile)
-      ;
-  }
+  run_pipe_serially(producer, filter, consumer, agile);
 }
 
 void nonblocking_transfer(logging_context_t const& context, bool agile)
@@ -840,40 +781,10 @@ void blocking_client_server(logging_context_t const& context,
   }
 
   producer_t producer(context, *client_side, first, last, bufsize);
-  auto produce = [&]
-  {
-    while(!producer.done())
-    {
-      bool progressed = producer.progress();
-      assert(progressed);
-    }
-  };
-
-  echoer_t echoer(context, *server_side, *server_side, first, last, bufsize);
-  auto echo = [&]
-  {
-    while(!echoer.done())
-    {
-      bool progressed = echoer.progress();
-      assert(progressed);
-    }
-  };
-    
+  filter_t filter(context, *server_side, *server_side, bufsize);
   consumer_t consumer(context, *client_side, first, last, bufsize);
-  auto consume = [&]
-  {
-    while(!consumer.done())
-    {
-      bool progressed = consumer.progress();
-      assert(progressed);
-    }
-  };
 
-  {
-    scoped_thread_t producer_thread(produce);
-    scoped_thread_t echoer_thread(echo);
-    consume();
-  }
+  run_pipe_in_parallel(producer, filter, consumer);
 }
 
 void blocking_client_server(logging_context_t const& context)
@@ -910,18 +821,10 @@ void nonblocking_client_server(logging_context_t const& context,
   }
 
   producer_t producer(context, *client_side, first, last, bufsize);
-  echoer_t echoer(context, *server_side, *server_side, first, last, bufsize);
+  filter_t filter(context, *server_side, *server_side, bufsize);
   consumer_t consumer(context, *client_side, first, last, bufsize);
 
-  while(!consumer.done())
-  {
-    while(producer.progress() && agile)
-      ;
-    while(echoer.progress() && agile)
-      ;
-    while(consumer.progress() && agile)
-      ;
-  }
+  run_pipe_serially(producer, filter, consumer, agile);
 }
 
 void nonblocking_client_server(logging_context_t const& context, bool agile)
