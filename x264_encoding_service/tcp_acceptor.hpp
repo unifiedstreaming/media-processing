@@ -39,7 +39,7 @@ struct tcp_acceptor_t
   tcp_acceptor_t& operator=(tcp_acceptor_t const&) = delete;
   
   endpoint_t const& local_endpoint() const
-  { return *local_endpoint_; }
+  { return local_endpoint_; }
   
   /*
    * I/O functions
@@ -58,7 +58,7 @@ struct tcp_acceptor_t
 
 private :
   tcp_socket_t socket_;
-  std::shared_ptr<endpoint_t const> local_endpoint_;
+  endpoint_t local_endpoint_;
 };
 
 std::ostream& operator<<(std::ostream& os, tcp_acceptor_t const& acceptor);

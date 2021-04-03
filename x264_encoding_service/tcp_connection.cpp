@@ -19,7 +19,6 @@
 
 #include "tcp_connection.hpp"
 
-#include "endpoint_list.hpp"
 #include "tcp_acceptor.hpp"
 
 #include <cassert>
@@ -30,7 +29,7 @@ namespace xes
 {
 
 tcp_connection_t::tcp_connection_t(endpoint_t const& peer)
-: socket_(address_family(peer))
+: socket_(peer.address_family())
 , local_endpoint_()
 , remote_endpoint_()
 {
@@ -94,9 +93,9 @@ std::pair<std::unique_ptr<tcp_connection_t>,
           std::unique_ptr<tcp_connection_t>>
 make_connected_pair()
 {
-  endpoint_list_t endpoints(local_interfaces, any_port);
-  assert(!endpoints.empty());
-  return make_connected_pair(endpoints.front());
+  auto interfaces = endpoint_t::local_interfaces(any_port);
+  assert(!interfaces.empty());
+  return make_connected_pair(interfaces.front());
 }
 
 } // xes

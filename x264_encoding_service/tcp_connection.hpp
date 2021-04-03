@@ -41,10 +41,10 @@ struct tcp_connection_t
   tcp_connection_t& operator=(tcp_connection_t const&) = delete;
 
   endpoint_t const& local_endpoint() const
-  { return *local_endpoint_; }
+  { return local_endpoint_; }
   
   endpoint_t const& remote_endpoint() const
-  { return *remote_endpoint_; }
+  { return remote_endpoint_; }
 
   /*
    * I/O functions
@@ -76,8 +76,8 @@ private :
   
 private :
   tcp_socket_t socket_;
-  std::shared_ptr<endpoint_t const> local_endpoint_;
-  std::shared_ptr<endpoint_t const> remote_endpoint_;
+  endpoint_t local_endpoint_;
+  endpoint_t remote_endpoint_;
 };
 
 std::ostream& operator<<(std::ostream& os, tcp_connection_t const& connection);

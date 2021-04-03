@@ -17,7 +17,8 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#include "endpoint_list.hpp"
+#include "endpoint.hpp"
+#include "system_error.hpp"
 
 #include <iostream>
 
@@ -35,142 +36,167 @@ using namespace xes;
 
 void check_endpoint(endpoint_t const& ep)
 {
-  endpoint_list_t list(ip_address(ep), port_number(ep));
-  auto it = list.begin();
+  endpoint_t refetched(ep.ip_address(), ep.port());
 
-  assert(it != list.end());
-  assert(address_family(*it) == address_family(ep));
-  assert(endpoint_size(*it) == endpoint_size(ep));
-  assert(ip_address(*it) == ip_address(ep));
-  assert(port_number(*it) == port_number(ep));
-
-  ++it;
-  assert(it == list.end());
+  assert(refetched.address_family() == ep.address_family());
+  assert(refetched.socket_address_size() == ep.socket_address_size());
+  assert(refetched.ip_address() == ep.ip_address());
+  assert(refetched.port() == ep.port());
 }
-  
-void empty_list()
+
+void ip_address()
 {
-  endpoint_list_t list;
-  assert(list.empty());
-  assert(list.begin() == list.end());
+  auto interfaces = endpoint_t::local_interfaces(any_port);
+  for(auto const& interface: interfaces)
+  {
+    auto ip_address = interface.ip_address();
+    endpoint_t ep(ip_address, any_port);
+#if PRINT
+      std::cout << "ip_addresses(): " <<
+        ip_address << " -> " << ep << std::endl;
+#endif
+    assert(ep.port() == any_port);
+  }
+}
+
+void not_an_ip_address()
+{
+  bool caught = false;
+
+  try
+  {
+    endpoint_t ep("localhost", any_port);
+  }
+  catch(system_exception_t const& ex)
+  {
+#if PRINT
+    std::cout << "not_an_ip_address(): caught expected exception: " <<
+      ex.what() << std::endl;
+#else
+    static_cast<void>(ex);
+#endif
+    caught = true;
+  }
+  
+  assert(caught);
 }
 
 void local_endpoints()
 {
-  endpoint_list_t list(local_interfaces, any_port);
-  assert(!list.empty());
+  auto endpoints = endpoint_t::local_interfaces(any_port);
+  assert(!endpoints.empty());
 
-  for(auto const& ep : list)
+  for(auto const& ep : endpoints)
   {
 #if PRINT
     std::cout << "local interfaces: " << ep << std::endl;
 #endif
-    assert(port_number(ep) == any_port);
+    assert(ep.port() == any_port);
     check_endpoint(ep);
   }
 }
 
 void local_endpoints_with_port()
 {
-  endpoint_list_t list(local_interfaces, 11264);
-  assert(!list.empty());
+  auto endpoints = endpoint_t::local_interfaces(11264);
+  assert(!endpoints.empty());
 
-  for(auto const& ep : list)
+  for(auto const& ep : endpoints)
   {
 #if PRINT
     std::cout << "local interfaces port 11264: " << ep << std::endl;
 #endif
-    assert(port_number(ep) == 11264);
+    assert(ep.port() == 11264);
     check_endpoint(ep);
   }
 }
 
 void all_endpoints()
 {
-  endpoint_list_t list(all_interfaces, any_port);
-  assert(!list.empty());
+  auto endpoints = endpoint_t::all_interfaces(any_port);
+  assert(!endpoints.empty());
 
-  for(auto const& ep : list)
+  for(auto const& ep : endpoints)
   {
 #if PRINT
     std::cout << "all interfaces: " << ep << std::endl;
 #endif
-    assert(port_number(ep) == any_port);
+    assert(ep.port() == any_port);
     check_endpoint(ep);
   }
 }
 
 void all_endpoints_with_port()
 {
-  endpoint_list_t list(all_interfaces, 11264);
-  assert(!list.empty());
+  auto endpoints = endpoint_t::all_interfaces(11264);
+  assert(!endpoints.empty());
 
-  for(auto const& ep : list)
+  for(auto const& ep : endpoints)
   {
 #if PRINT
     std::cout << "all interfaces port 11264: " << ep << std::endl;
 #endif
-    assert(port_number(ep) == 11264);
+    assert(ep.port() == 11264);
     check_endpoint(ep);
   }
 }
 
 void localhost()
 {
-  endpoint_list_t list("localhost", any_port);
-  assert(!list.empty());
+  auto endpoints = endpoint_t::resolve("localhost", any_port);
+  assert(!endpoints.empty());
 
-  for(auto const& ep : list)
+  for(auto const& ep : endpoints)
   {
 #if PRINT
     std::cout << "localhost: " << ep << std::endl;
 #endif
-    assert(port_number(ep) == any_port);
+    assert(ep.port() == any_port);
     check_endpoint(ep);
   }
 }
 
 void localhost_with_port()
 {
-  endpoint_list_t list("localhost", 11264);
-  assert(!list.empty());
+  auto endpoints = endpoint_t::resolve("localhost", 11264);
+  assert(!endpoints.empty());
 
-  for(auto const& ep : list)
+  for(auto const& ep : endpoints)
   {
 #if PRINT
     std::cout << "localhost port 11264: " << ep << std::endl;
 #endif
-    assert(port_number(ep) == 11264);
+    assert(ep.port() == 11264);
     check_endpoint(ep);
   }
 }
 
 void remote_host()
 {
-  endpoint_list_t list("a.root-servers.net", any_port);
-  assert(!list.empty());
+  auto endpoints = endpoint_t::resolve("a.root-servers.net", any_port);
+  assert(!endpoints.empty());
 
-  for(auto const& ep : list)
+  for(auto const& ep : endpoints)
   {
 #if PRINT
     std::cout << "a.root-servers.net: " << ep << std::endl;
 #endif
-    assert(port_number(ep) == any_port);
+    assert(ep.port() == any_port);
     check_endpoint(ep);
   }
 }
 
 void remote_host_with_port()
 {
-  endpoint_list_t list("a.root-servers.net", 53);
-  assert(!list.empty());
+  auto endpoints = endpoint_t::resolve("a.root-servers.net", 53);
+  assert(!endpoints.empty());
 
-  for(auto const& ep : list)
+  for(auto const& ep : endpoints)
   {
 #if PRINT
     std::cout << "a.root-servers.net port 53: " << ep << std::endl;
 #endif
-    assert(port_number(ep) == 53);
+    assert(ep.port() == 53);
     check_endpoint(ep);
   }
 }
@@ -180,12 +206,13 @@ void unknown_host()
   bool caught = false;
   try
   {
-    endpoint_list_t list("mail.dev.null", any_port);
+    auto endpoints = endpoint_t::resolve("mail.dev.null", any_port);
   }
   catch(std::exception const& ex)
   {
 #if PRINT
-    std::cout << ex.what() << std::endl;
+    std::cout << "unknown_host(): caught expected exception: " <<
+      ex.what() << std::endl;
 #else
     static_cast<void>(ex); // suppress compiler warning
 #endif
@@ -199,12 +226,13 @@ void unknown_host_with_port()
   bool caught = false;
   try
   {
-    endpoint_list_t list("mail.dev.null", 25);
+    auto endpoints = endpoint_t::resolve("mail.dev.null", 25);
   }
   catch(std::exception const& ex)
   {
 #if PRINT
-    std::cout << ex.what() << std::endl;
+    std::cout << "unknown_host_with_port(): caught expected exception: " <<
+      ex.what() << std::endl;
 #else
     static_cast<void>(ex); // suppress compiler warning
 #endif
@@ -217,7 +245,8 @@ void unknown_host_with_port()
 
 int main()
 {
-  empty_list();
+  ip_address();
+  not_an_ip_address();
   local_endpoints();
   local_endpoints_with_port();
   all_endpoints();

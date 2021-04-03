@@ -27,7 +27,7 @@ namespace xes
 {
 
 tcp_acceptor_t::tcp_acceptor_t(endpoint_t const& endpoint)
-: socket_(address_family(endpoint))
+: socket_(endpoint.address_family())
 , local_endpoint_()
 {
   socket_.bind(endpoint);

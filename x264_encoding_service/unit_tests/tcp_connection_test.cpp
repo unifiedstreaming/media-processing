@@ -17,7 +17,7 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#include "endpoint_list.hpp"
+#include "endpoint.hpp"
 #include "logger.hpp"
 #include "logging_context.hpp"
 #include "scoped_thread.hpp"
@@ -688,7 +688,7 @@ void blocking_transfer(logging_context_t const& context,
 
 void blocking_transfer(logging_context_t const& context)
 {
-  endpoint_list_t interfaces(local_interfaces, any_port);
+  auto interfaces = endpoint_t::local_interfaces(any_port);
   for(auto const& interface : interfaces)
   {
     blocking_transfer(context, interface);
@@ -737,7 +737,7 @@ void nonblocking_transfer(logging_context_t const& context,
 
 void nonblocking_transfer(logging_context_t const& context, bool agile)
 {
-  endpoint_list_t interfaces(local_interfaces, any_port);
+  auto interfaces = endpoint_t::local_interfaces(any_port);
   for(auto const& interface : interfaces)
   {
     nonblocking_transfer(context, interface, agile);
@@ -772,7 +772,7 @@ void blocking_client_server(logging_context_t const& context,
 
 void blocking_client_server(logging_context_t const& context)
 {
-  endpoint_list_t interfaces(local_interfaces, any_port);
+  auto interfaces = endpoint_t::local_interfaces(any_port);
   for(auto const& interface : interfaces)
   {
     blocking_client_server(context, interface);
@@ -811,7 +811,7 @@ void nonblocking_client_server(logging_context_t const& context,
 
 void nonblocking_client_server(logging_context_t const& context, bool agile)
 {
-  endpoint_list_t interfaces(local_interfaces, any_port);
+  auto interfaces = endpoint_t::local_interfaces(any_port);
   for(auto const& interface : interfaces)
   {
     nonblocking_client_server(context, interface, agile);
@@ -858,7 +858,7 @@ void broken_pipe(logging_context_t const& context,
 
 void broken_pipe(logging_context_t const& context)
 {
-  endpoint_list_t interfaces(local_interfaces, any_port);
+  auto interfaces = endpoint_t::local_interfaces(any_port);
   for(auto const& interface : interfaces)
   {
     broken_pipe(context, interface);

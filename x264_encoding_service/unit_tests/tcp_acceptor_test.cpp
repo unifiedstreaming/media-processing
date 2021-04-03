@@ -20,13 +20,11 @@
 #include "tcp_acceptor.hpp"
 #include "tcp_connection.hpp"
 #include "endpoint.hpp"
-#include "endpoint_list.hpp"
 #include "logging_context.hpp"
 #include "logger.hpp"
 #include "streambuf_backend.hpp"
 #include "system_error.hpp"
 
-#include <algorithm>
 #include <chrono>
 #include <iostream>
 #include <thread>
@@ -66,7 +64,7 @@ void blocking_accept(logging_context_t const& context,
 
 void blocking_accept(logging_context_t const& context)
 {
-  endpoint_list_t interfaces(local_interfaces, any_port);
+  auto interfaces = endpoint_t::local_interfaces(any_port);
   assert(!interfaces.empty());
   
   for(auto const& interface : interfaces)
@@ -132,7 +130,7 @@ void nonblocking_accept(logging_context_t const& context,
 
 void nonblocking_accept(logging_context_t const& context)
 {
-  endpoint_list_t interfaces(local_interfaces, any_port);
+  auto interfaces = endpoint_t::local_interfaces(any_port);
   assert(!interfaces.empty());
   
   for(auto const& interface : interfaces)
@@ -173,7 +171,7 @@ void duplicate_bind(logging_context_t const& context,
 
 void duplicate_bind(logging_context_t const& context)
 {
-  endpoint_list_t interfaces(local_interfaces, any_port);
+  auto interfaces = endpoint_t::local_interfaces(any_port);
   assert(!interfaces.empty());
   
   for(auto const& interface : interfaces)
@@ -183,15 +181,14 @@ void duplicate_bind(logging_context_t const& context)
 }
 
 bool prove_dual_stack(logging_context_t const& context,
-                      endpoint_list_t const& interfaces)
+                      std::vector<endpoint_t> const& interfaces)
 {
-  assert(std::distance(interfaces.begin(), interfaces.end()) >= 2);
+  assert(interfaces.size() >= 2);
 
   /*
    * Bind to the first interface in the list
    */
-  auto it = interfaces.begin();
-  endpoint_t const& interface1 = *it;
+  endpoint_t interface1 = interfaces.front();
   tcp_acceptor_t acceptor1(interface1);
   if(auto msg = context.message_at(loglevel_t::info))
   {
@@ -206,14 +203,10 @@ bool prove_dual_stack(logging_context_t const& context,
    * is not necessarily an error. However, if we succeed, we have
    * proven that our dual stack works.
    */
-  ++it;
-  endpoint_t const& interface2 = *it;
-  assert(address_family(interface1) != address_family(interface2));
-
-  endpoint_list_t targets(ip_address(interface2),
-                          port_number(acceptor1.local_endpoint()));
-  assert(std::distance(targets.begin(), targets.end()) == 1);
-  endpoint_t const& target = targets.front();
+  endpoint_t interface2 = *(interfaces.begin() + 1);
+  assert(interface1.address_family() != interface2.address_family());
+  endpoint_t target(interface2.ip_address(),
+                    acceptor1.local_endpoint().port());
 
   bool result = false;
 
@@ -241,10 +234,10 @@ bool prove_dual_stack(logging_context_t const& context,
 void dual_stack(logging_context_t const& context)
 {
   // Check that we have multiple local interfaces (one for each family)
-  endpoint_list_t interfaces(local_interfaces, any_port);
+  auto interfaces = endpoint_t::local_interfaces(any_port);
   assert(!interfaces.empty());
   
-  if(std::distance(interfaces.begin(), interfaces.end()) == 1)
+  if(interfaces.size() == 1)
   {
     if(auto msg = context.message_at(loglevel_t::info))
     {

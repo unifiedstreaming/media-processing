@@ -19,8 +19,8 @@
 
 import testing ;
 
-unit-test endpoint_list_test
-: endpoint_list_test.cpp
+unit-test endpoint_test
+: endpoint_test.cpp
   ..//xes_utils
 ;
 

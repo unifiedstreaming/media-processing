@@ -25,34 +25,76 @@
 #include <memory>
 #include <iosfwd>
 #include <string>
+#include <utility>
+#include <vector>
 
 struct sockaddr;
 
 namespace xes
 {
 
-using endpoint_t = sockaddr;
+struct tcp_socket_t;
 
-/*
- * Check for a supported address family, throwing on failure.  Returns
- * its argument on success.
- */
-int check_family(int family);
+unsigned int const any_port = 0;
 
-int address_family(endpoint_t const& endpoint);
-unsigned int endpoint_size(endpoint_t const& endpoint);
-std::string ip_address(endpoint_t const& endpoint);
-unsigned int port_number(endpoint_t const& endpoint);
-std::shared_ptr<endpoint_t const> local_endpoint(int fd);
-std::shared_ptr<endpoint_t const> remote_endpoint(int fd);
+struct endpoint_t
+{
+  // Constructs an empty endpoint; access verboten
+  endpoint_t()
+  : addr_(nullptr)
+  { }
 
-/*
- * Because neither std::ostream nor endpoint_t (::sockaddr) are in
- * namespace xes, this streaming operator won't be found by ADL from
- * other namespaces. Because of possible ODR violations, we can't
- * place it in the global namespace either. Please drag it in
- * explictly with a using-declaration in some limited scope.
- */
+  // Constructs an endpoint for an ip address and port number
+  endpoint_t(char const* ip_address, unsigned int port);
+  endpoint_t(std::string const& ip_address, unsigned int port);
+
+  // Finds endpoints for a host name and port number
+  static std::vector<endpoint_t>
+  resolve(char const* host, unsigned int port);
+
+  static std::vector<endpoint_t>
+  resolve(std::string const& host, unsigned int port);
+
+  // Returns endpoints for binding to local interfaces
+  static std::vector<endpoint_t>
+  local_interfaces(unsigned int port);
+
+  // Returns endpoints for binding to all interfaces
+  static std::vector<endpoint_t>
+  all_interfaces(unsigned int port);
+
+  // Accessors: no properties exist when this->empty()
+  bool empty() const
+  { return addr_ == nullptr; }
+
+  int address_family() const;
+  sockaddr const& socket_address() const;
+  unsigned int socket_address_size() const;
+  std::string ip_address() const;
+  unsigned int port() const;
+
+  // Checks if family is supported and then returns it; throws if not
+  static int check_address_family(int family);
+
+private :
+  friend struct tcp_socket_t;
+
+  static endpoint_t local_endpoint(int fd);
+  static endpoint_t remote_endpoint(int fd);
+  
+private :
+  explicit endpoint_t(std::shared_ptr<sockaddr const> addr);
+
+  static std::shared_ptr<sockaddr const>
+  resolve_ip(char const* ip, unsigned int port);
+
+  static std::vector<endpoint_t>
+  resolve_multiple(int flags, char const* host, unsigned int port);
+
+private :
+  std::shared_ptr<sockaddr const> addr_;
+};
+  
 std::ostream& operator<<(std::ostream& os, endpoint_t const& endpoint);
 
 } // namespace xes

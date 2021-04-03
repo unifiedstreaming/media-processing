@@ -214,12 +214,12 @@ void set_initial_connection_flags(int fd)
 tcp_socket_t::tcp_socket_t(int family)
 : tcp_socket_t() // -> exceptions will not leak fd_
 {
+  int type = SOCK_STREAM;
 #if defined(SOCK_CLOEXEC)
-  fd_ = to_fd(::socket(check_family(family), SOCK_STREAM | SOCK_CLOEXEC, 0));
-#else
-  fd_ = to_fd(::socket(check_family(family), SOCK_STREAM, 0));
+  type |= SOCK_CLOEXEC;
 #endif
 
+  fd_ = to_fd(::socket(endpoint_t::check_address_family(family), type, 0));
   if(fd_ == -1)
   {
     int cause = last_system_error();
@@ -235,7 +235,7 @@ void tcp_socket_t::bind(endpoint_t const& endpoint)
 {
   assert(!empty());
 
-  if(address_family(endpoint) == AF_INET6)
+  if(endpoint.address_family() == AF_INET6)
   {
     set_v6only(fd_, true);
   }
@@ -244,7 +244,9 @@ void tcp_socket_t::bind(endpoint_t const& endpoint)
   set_reuseaddr(fd_, true);
 #endif
 
-  int r = ::bind(fd_, &endpoint, endpoint_size(endpoint));
+  int r = ::bind(fd_,
+                 &endpoint.socket_address(),
+                 endpoint.socket_address_size());
   if(r == -1)
   {
     int cause = last_system_error();
@@ -270,7 +272,7 @@ void tcp_socket_t::connect(endpoint_t const& peer)
 {
   assert(!empty());
 
-  int r = ::connect(fd_, &peer, endpoint_size(peer));
+  int r = ::connect(fd_, &peer.socket_address(), peer.socket_address_size());
   if(r == -1)
   {
     int cause = last_system_error();
@@ -282,18 +284,16 @@ void tcp_socket_t::connect(endpoint_t const& peer)
   set_initial_connection_flags(fd_);
 }
 
-std::shared_ptr<endpoint_t const> tcp_socket_t::local_endpoint() const
+endpoint_t tcp_socket_t::local_endpoint() const
 {
   assert(!empty());
-
-  return xes::local_endpoint(fd_);
+  return endpoint_t::local_endpoint(fd_);
 }
 
-std::shared_ptr<endpoint_t const> tcp_socket_t::remote_endpoint() const
+endpoint_t tcp_socket_t::remote_endpoint() const
 {
   assert(!empty());
-
-  return xes::remote_endpoint(fd_);
+  return endpoint_t::remote_endpoint(fd_);
 }
 
 void tcp_socket_t::set_blocking()

@@ -18,7 +18,7 @@
  */
 
 #include "tcp_socket.hpp"
-#include "endpoint_list.hpp"
+#include "endpoint.hpp"
 
 #include <utility>
 
@@ -62,10 +62,10 @@ void socket_state_for_family(int family)
   
 void socket_state()
 {
-  xes::endpoint_list_t interfaces(xes::local_interfaces, xes::any_port);
+  auto interfaces = xes::endpoint_t::local_interfaces(xes::any_port);
   for(auto const& interface : interfaces)
   {
-    socket_state_for_family(xes::address_family(interface));
+    socket_state_for_family(interface.address_family());
   }
 }
 

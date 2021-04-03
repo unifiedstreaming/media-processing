@@ -86,8 +86,8 @@ struct tcp_socket_t
   void listen();
   void connect(endpoint_t const& peer);
 
-  std::shared_ptr<endpoint_t const> local_endpoint() const;
-  std::shared_ptr<endpoint_t const> remote_endpoint() const;
+  endpoint_t local_endpoint() const;
+  endpoint_t remote_endpoint() const;
 
   /*
    * I/O functions
