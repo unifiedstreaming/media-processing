@@ -214,12 +214,12 @@ void set_initial_connection_flags(int fd)
 tcp_socket_t::tcp_socket_t(int family)
 : tcp_socket_t() // -> exceptions will not leak fd_
 {
-  int type = SOCK_STREAM;
 #if defined(SOCK_CLOEXEC)
-  type |= SOCK_CLOEXEC;
+  fd_ = to_fd(::socket(family, SOCK_STREAM | SOCK_CLOEXEC, 0));
+#else
+  fd_ = to_fd(::socket(family, SOCK_STREAM, 0));
 #endif
 
-  fd_ = to_fd(::socket(endpoint_t::check_address_family(family), type, 0));
   if(fd_ == -1)
   {
     int cause = last_system_error();

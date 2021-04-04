@@ -21,6 +21,7 @@
 
 #include "system_error.hpp"
 
+#include <algorithm>
 #include <cassert>
 #include <cinttypes>
 #include <cstring>
@@ -54,12 +55,29 @@ union endpoint_storage_t
   sockaddr_in6 addr_in6_;
 };
 
+void check_family(int family)
+{
+  switch(family)
+  {
+  case AF_INET :
+  case AF_INET6 :
+    break;
+  default :
+    {
+      system_exception_builder_t builder;
+      builder << "Unsupported address family " << family;
+      builder.explode();
+    }
+    break;
+  }
+}
+
 template<typename IPv4Handler, typename IPv6Handler>
 void visit_sockaddr(sockaddr const& addr,
                     IPv4Handler ipv4_handler,
                     IPv6Handler ipv6_handler)
 {
-  switch(endpoint_t::check_address_family(addr.sa_family))
+  switch(addr.sa_family)
   {
   case AF_INET :
     ipv4_handler(*reinterpret_cast<sockaddr_in const*>(&addr));
@@ -74,7 +92,7 @@ void visit_sockaddr(sockaddr const& addr,
 }
 
 std::shared_ptr<addrinfo const>
-make_head(int flags, char const* host, unsigned int port)
+make_addrinfo(int flags, char const* host, unsigned int port)
 {
   static const unsigned int max_port =
     std::numeric_limits<std::uint16_t>::max();
@@ -116,19 +134,56 @@ make_head(int flags, char const* host, unsigned int port)
   return std::shared_ptr<addrinfo const>(head, freeaddrinfo);
 }
 
+std::shared_ptr<sockaddr const>
+resolve_ip(char const* ip, unsigned int port)
+{
+  assert(ip != nullptr);
+
+  std::shared_ptr<addrinfo const> info =
+    make_addrinfo(AI_NUMERICHOST, ip, port);
+  assert(info != nullptr);
+  assert(info->ai_next == nullptr);
+
+  return std::shared_ptr<sockaddr const>(std::move(info), info->ai_addr);
+}
+
+std::vector<endpoint_t>
+resolve_multiple(int flags, char const* host, unsigned int port)
+{
+  std::shared_ptr<addrinfo const> info = make_addrinfo(flags, host, port);
+  assert(info != nullptr);
+
+  std::vector<endpoint_t> result;
+  for(addrinfo const* node = info.get(); node != nullptr; node = node->ai_next)
+  {
+    std::shared_ptr<sockaddr const> addr(info, node->ai_addr);
+    result.emplace_back(std::move(addr));
+  }
+  return result;
+}
+
 } // anonymous
-
-endpoint_t::endpoint_t(char const* ip_address, unsigned int port)
-: addr_(resolve_ip(ip_address, port))
-{ }
-
-endpoint_t::endpoint_t(std::string const& ip_address, unsigned int port)
-: addr_(resolve_ip(ip_address.c_str(), port))
-{ }
 
 endpoint_t::endpoint_t(std::shared_ptr<sockaddr const> addr)
 : addr_(std::move(addr))
-{ }
+{
+  if(addr_ != nullptr)
+  {
+    check_family(addr_->sa_family);
+  }
+}
+
+endpoint_t::endpoint_t(char const* ip_address, unsigned int port)
+: addr_(resolve_ip(ip_address, port))
+{
+  check_family(addr_->sa_family);
+}
+
+endpoint_t::endpoint_t(std::string const& ip_address, unsigned int port)
+: addr_(resolve_ip(ip_address.c_str(), port))
+{
+  check_family(addr_->sa_family);
+}
 
 std::vector<endpoint_t>
 endpoint_t::resolve(char const* host, unsigned int port)
@@ -159,13 +214,7 @@ int endpoint_t::address_family() const
 {
   assert(!empty());
 
-  int result = AF_UNSPEC;
-
-  auto on_ipv4 = [&](sockaddr_in const&) { result = AF_INET; };
-  auto on_ipv6 = [&](sockaddr_in6 const&) { result = AF_INET6; };
-  visit_sockaddr(*addr_, on_ipv4, on_ipv6);
-  
-  return result;
+  return addr_->sa_family;
 }
 
 sockaddr const& endpoint_t::socket_address() const
@@ -194,11 +243,11 @@ std::string endpoint_t::ip_address() const
 
   static char const longest_expected[] =
     "ffff:ffff:ffff:ffff:ffff:ffff:255.255.255.255";
-  char result[sizeof longest_expected]; 
+  char buf[sizeof longest_expected]; 
 
   int r = getnameinfo(
     addr_.get(), this->socket_address_size(),
-    result, static_cast<socklen_t>(sizeof result),
+    buf, static_cast<socklen_t>(sizeof buf),
     nullptr, 0,
     NI_NUMERICHOST);
 
@@ -217,7 +266,10 @@ std::string endpoint_t::ip_address() const
 #endif
   }
 
-  return result;
+  char* end = std::find(buf, buf + sizeof buf, '\0');
+  assert(end != buf + sizeof buf);
+
+  return std::string(buf, end);
 }
 
 unsigned int endpoint_t::port() const
@@ -235,25 +287,6 @@ unsigned int endpoint_t::port() const
   return result;
 }
 
-int endpoint_t::check_address_family(int family)
-{
-  switch(family)
-  {
-  case AF_INET :
-  case AF_INET6 :
-    break;
-  default :
-    {
-      system_exception_builder_t builder;
-      builder << "Unsupported address family " << family;
-      builder.explode();
-    }
-    break;
-  }
-
-  return family;
-}
-
 endpoint_t endpoint_t::local_endpoint(int fd)
 {
   auto storage = std::make_shared<endpoint_storage_t>();
@@ -266,8 +299,6 @@ endpoint_t endpoint_t::local_endpoint(int fd)
     throw system_exception_t("getsockname() failure", cause);
   }
   
-  check_address_family(storage->addr_.sa_family);
-
   std::shared_ptr<sockaddr const> addr(std::move(storage), &storage->addr_);
   return endpoint_t(std::move(addr));
 }
@@ -284,37 +315,8 @@ endpoint_t endpoint_t::remote_endpoint(int fd)
     throw system_exception_t("getpeername() failure", cause);
   }
   
-  check_address_family(storage->addr_.sa_family);
-
   std::shared_ptr<sockaddr const> addr(std::move(storage), &storage->addr_);
   return endpoint_t(std::move(addr));
-}
-
-std::shared_ptr<sockaddr const>
-endpoint_t::resolve_ip(char const* ip, unsigned int port)
-{
-  assert(ip != nullptr);
-
-  std::shared_ptr<addrinfo const> head = make_head(AI_NUMERICHOST, ip, port);
-  assert(head != nullptr);
-  assert(head->ai_next == nullptr);
-
-  return std::shared_ptr<sockaddr const>(std::move(head), head->ai_addr);
-}
-
-std::vector<endpoint_t>
-endpoint_t::resolve_multiple(int flags, char const* host, unsigned int port)
-{
-  std::shared_ptr<addrinfo const> head = make_head(flags, host, port);
-  assert(head != nullptr);
-
-  std::vector<endpoint_t> result;
-  for(addrinfo const* node = head.get(); node != nullptr; node = node->ai_next)
-  {
-    std::shared_ptr<sockaddr const> addr(head, node->ai_addr);
-    result.push_back(endpoint_t(std::move(addr)));
-  }
-  return result;
 }
 
 std::ostream& operator<<(std::ostream& os, endpoint_t const& endpoint)

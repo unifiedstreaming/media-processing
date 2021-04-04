@@ -44,7 +44,10 @@ struct endpoint_t
   : addr_(nullptr)
   { }
 
-  // Constructs an endpoint for an ip address and port number
+  // Constructs an endpoint from a socket address
+  explicit endpoint_t(std::shared_ptr<sockaddr const> addr);
+
+  // Constructs an endpoint from an ip address and port number
   endpoint_t(char const* ip_address, unsigned int port);
   endpoint_t(std::string const& ip_address, unsigned int port);
 
@@ -73,24 +76,12 @@ struct endpoint_t
   std::string ip_address() const;
   unsigned int port() const;
 
-  // Checks if family is supported and then returns it; throws if not
-  static int check_address_family(int family);
-
 private :
   friend struct tcp_socket_t;
 
   static endpoint_t local_endpoint(int fd);
   static endpoint_t remote_endpoint(int fd);
   
-private :
-  explicit endpoint_t(std::shared_ptr<sockaddr const> addr);
-
-  static std::shared_ptr<sockaddr const>
-  resolve_ip(char const* ip, unsigned int port);
-
-  static std::vector<endpoint_t>
-  resolve_multiple(int flags, char const* host, unsigned int port);
-
 private :
   std::shared_ptr<sockaddr const> addr_;
 };
