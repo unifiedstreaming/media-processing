@@ -70,35 +70,6 @@ std::string default_service_name(char const* argv0)
   return std::string(last_segment, last_dot);
 }
 
-unsigned int unsigned_option_value(char const* value, char const* option)
-{
-  static const auto max = std::numeric_limits<unsigned int>::max();
-  
-  unsigned int result = 0;
-
-  do
-  {
-    if(*value < '0' || *value > '9')
-    {
-      throw std::runtime_error(
-        std::string("digit expected in option value for ") + option);
-    }
-    unsigned int digit = *value - '0';
-
-    if(result > max / 10 || result * 10 > max - digit)
-    {
-      throw std::runtime_error(
-        std::string("overflow in option value for ") + option);
-    }
-    result *= 10;
-    result += digit;
-
-    ++value;
-  } while(*value != '\0');
-
-  return result;
-}
-
 char const* gplv2_notice()
 {
   return
@@ -136,41 +107,13 @@ void read_options(options_t& options, option_walker_t& walker)
 {
   while(!walker.done())
   {
-    char const* value;
-
-    if((value = walker.match_value("--delay")) != nullptr)
-    {
-      options.delay_ =
-        unsigned_option_value(value, "--delay");
-    }
-    else if((value = walker.match_value("--logfile")) != nullptr)
-    {
-      options.logfile_ = value;
-    }
-    else if((value = walker.match_value("--logfile-size-limit")) != nullptr)
-    {
-      options.logfile_size_limit_ =
-        unsigned_option_value(value, "--logfile-size-limit");
-    }
-    else if((value = walker.match_value("--n-messages")) != nullptr)
-    {
-      options.n_messages_ =
-        unsigned_option_value(value, "--n-messages");
-    }
-    else if((value = walker.match_value("--rotation-depth")) != nullptr)
-    {
-      options.rotation_depth_ =
-        unsigned_option_value(value, "--rotation_depth");
-    }
-    else if((value = walker.match_value("--service-name")) != nullptr)
-    {
-      options.service_name_ = value;
-    }
-    else if(walker.match_flag("--syslog"))
-    {
-      options.syslog_ = true;
-    }
-    else
+    if(!walker.match("--delay", options.delay_) &&
+       !walker.match("--logfile", options.logfile_) &&
+       !walker.match("--logfile-size-limit", options.logfile_size_limit_) &&
+       !walker.match("--n-messages", options.n_messages_) &&
+       !walker.match("--rotation-depth", options.rotation_depth_) &&
+       !walker.match("--service-name", options.service_name_) &&
+       !walker.match("--syslog", options.syslog_))
     {
       break;
     }
@@ -214,7 +157,7 @@ void print_usage(std::ostream& os, char const* argv0)
     << std::endl;
 }
 
-int throwing_main(logger_t& logger, int argc, char const* const argv[])
+int throwing_main(int argc, char const* const argv[])
 {
   options_t options(argv[0]);
   option_walker_t walker(argc, argv);
@@ -226,6 +169,7 @@ int throwing_main(logger_t& logger, int argc, char const* const argv[])
     return 1;
   }
 
+  xes::logger_t logger(argv[0]);
   if(!options.logfile_.empty())
   {
     logger.set_backend(std::make_unique<file_backend_t>(
@@ -276,18 +220,15 @@ int throwing_main(logger_t& logger, int argc, char const* const argv[])
 
 int main(int argc, char* argv[])
 {
-  xes::logger_t logger(argv[0]);
-
   int result = 1;
 
   try
   {
-    result = xes::throwing_main(logger, argc, argv);
+    result = xes::throwing_main(argc, argv);
   }
   catch(std::exception const& ex)
   {
-    logger.report(xes::loglevel_t::error,
-                  std::string("exception: ") + ex.what());
+    std::cerr << argv[0] << ": exception: " << ex.what() << std::endl;
   }
 
   return result;

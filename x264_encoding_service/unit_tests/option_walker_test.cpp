@@ -18,7 +18,11 @@
  */
 
 #include "option_walker.hpp"
+#include "logger.hpp"
+
 #include <cstring>
+#include <iostream>
+#include <limits>
 
 // enable assert()
 #undef NDEBUG
@@ -47,11 +51,7 @@ void matching_flag()
 
   while(!walker.done())
   {
-    if(walker.match_flag("--flag"))
-    {
-      flag = true;
-    }
-    else
+    if(!walker.match("--flag", flag))
     {
       break;
     }
@@ -72,11 +72,7 @@ void non_matching_flag()
 
   while(!walker.done())
   {
-    if(walker.match_flag("--flag"))
-    {
-      flag = true;
-    }
-    else
+    if(!walker.match("--flag", flag))
     {
       break;
     }
@@ -96,11 +92,7 @@ void underscore_matches_hyphen()
 
   while(!walker.done())
   {
-    if(walker.match_flag("--flag-option"))
-    {
-      flag = true;
-    }
-    else
+    if(!walker.match("--flag-option", flag))
     {
       break;
     }
@@ -121,11 +113,7 @@ void hyphen_matches_underscore()
 
   while(!walker.done())
   {
-    if(walker.match_flag("--flag_option"))
-    {
-      flag = true;
-    }
-    else
+    if(!walker.match("--flag_option", flag))
     {
       break;
     }
@@ -147,15 +135,8 @@ void multiple_flags()
 
   while(!walker.done())
   {
-    if(walker.match_flag("--flag1"))
-    {
-      flag1 = true;
-    }
-    else if(walker.match_flag("--flag2"))
-    {
-      flag2 = true;
-    }
-    else
+    if(!walker.match("--flag1", flag1) &&
+       !walker.match("--flag2", flag2))
     {
       break;
     }
@@ -173,25 +154,18 @@ void value_assign()
   int argc = sizeof argv / sizeof argv[0];
   xes::option_walker_t walker(argc, argv);
 
-  char const* option = nullptr;
+  std::string option;
 
   while(!walker.done())
   {
-    char const* value;
-    
-    if((value = walker.match_value("--option")) != nullptr)
-    {
-      option = value;
-    }
-    else
+    if(!walker.match("--option", option))
     {
       break;
     }
   }
 
   assert(walker.done());
-  assert(option != nullptr);
-  assert(std::strcmp(option, "value") == 0);
+  assert(option == "value");
   assert(walker.next_index() == 2);
 }
 
@@ -201,25 +175,18 @@ void value_separate()
   int argc = sizeof argv / sizeof argv[0];
   xes::option_walker_t walker(argc, argv);
 
-  char const* option = nullptr;
+  std::string option;
 
   while(!walker.done())
   {
-    char const* value;
-    
-    if((value = walker.match_value("--option")) != nullptr)
-    {
-      option = value;
-    }
-    else
+    if(!walker.match("--option", option))
     {
       break;
     }
   }
 
   assert(walker.done());
-  assert(option != nullptr);
-  assert(std::strcmp(option, "value") == 0);
+  assert(option == "value");
   assert(walker.next_index() == 3);
 }
 
@@ -229,24 +196,18 @@ void missing_value()
   int argc = sizeof argv / sizeof argv[0];
   xes::option_walker_t walker(argc, argv);
 
-  char const* option = nullptr;
+  std::string option;
 
   while(!walker.done())
   {
-    char const* value;
-    
-    if((value = walker.match_value("--option")) != nullptr)
-    {
-      option = value;
-    }
-    else
+    if(!walker.match("--option", option))
     {
       break;
     }
   }
 
   assert(!walker.done());
-  assert(option == nullptr);
+  assert(option.empty());
 }
 
 void two_values()
@@ -257,32 +218,21 @@ void two_values()
   int argc = sizeof argv / sizeof argv[0];
   xes::option_walker_t walker(argc, argv);
 
-  char const* option1 = nullptr;
-  char const* option2 = nullptr;
+  std::string option1;
+  std::string option2;
 
   while(!walker.done())
   {
-    char const* value;
-    
-    if((value = walker.match_value("--option1")) != nullptr)
-    {
-      option1 = value;
-    }
-    else if((value = walker.match_value("--option2")) != nullptr)
-    {
-      option2 = value;
-    }
-    else
+    if(!walker.match("--option1", option1) &&
+       !walker.match("--option2", option2))
     {
       break;
     }
   }
 
   assert(walker.done());
-  assert(option1 != nullptr);
-  assert(std::strcmp(option1, "value1") == 0);
-  assert(option2 != nullptr);
-  assert(std::strcmp(option2, "value2") == 0);
+  assert(option1 == "value1");
+  assert(option2 == "value2");
   assert(walker.next_index() == 5);
 }
 
@@ -326,11 +276,7 @@ void hyphens_in_middle()
 
   while(!walker.done())
   {
-    if(walker.match_flag("--flag"))
-    {
-      flag = true;
-    }
-    else
+    if(!walker.match("--flag", flag))
     {
       break;
     }
@@ -352,15 +298,8 @@ void hyphens_at_end()
 
   while(!walker.done())
   {
-    if(walker.match_flag("--flag1"))
-    {
-      flag1 = true;
-    }
-    else if(walker.match_flag("--flag2"))
-    {
-      flag2 = true;
-    }
-    else
+    if(!walker.match("--flag1", flag1) &&
+       !walker.match("--flag2", flag2))
     {
       break;
     }
@@ -382,11 +321,7 @@ void single_short_flag()
 
   while(!walker.done())
   {
-    if(walker.match_flag("-f"))
-    {
-      flag = true;
-    }
-    else
+    if(!walker.match("-f", flag))
     {
       break;
     }
@@ -408,15 +343,8 @@ void multiple_short_flags()
 
   while(!walker.done())
   {
-    if(walker.match_flag("-f"))
-    {
-      fflag = true;
-    }
-    if(walker.match_flag("-g"))
-    {
-      gflag = true;
-    }
-    else
+    if(!walker.match("-f", fflag) &&
+       !walker.match("-g", gflag))
     {
       break;
     }
@@ -439,15 +367,8 @@ void abbreviated_flags()
 
   while(!walker.done())
   {
-    if(walker.match_flag("-f"))
-    {
-      fflag = true;
-    }
-    if(walker.match_flag("-g"))
-    {
-      gflag = true;
-    }
-    else
+    if(!walker.match("-f", fflag) &&
+       !walker.match("-g", gflag))
     {
       break;
     }
@@ -465,25 +386,18 @@ void short_value()
   int argc = sizeof argv / sizeof argv[0];
   xes::option_walker_t walker(argc, argv);
 
-  char const* option = nullptr;
+  std::string option;
 
   while(!walker.done())
   {
-    char const* value;
-
-    if((value = walker.match_value("-o")) != nullptr)
-    {
-      option = value;
-    }
-    else
+    if(!walker.match("-o", option))
     {
       break;
     }
   }
 
   assert(walker.done());
-  assert(option != nullptr);
-  assert(std::strcmp(option, "value") == 0);
+  assert(option == "value");
   assert(walker.next_index() == 3);
 }
 
@@ -494,21 +408,12 @@ void value_in_abbreviation()
   xes::option_walker_t walker(argc, argv);
 
   bool flag;
-  char const* option = nullptr;
+  std::string option;
 
   while(!walker.done())
   {
-    char const* value;
-
-    if(walker.match_flag("-f"))
-    {
-      flag = true;
-    }
-    else if((value = walker.match_value("-o")) != nullptr)
-    {
-      option = value;
-    }
-    else
+    if(!walker.match("-f", flag) &&
+       !walker.match("-o", option))
     {
       break;
     }
@@ -516,7 +421,7 @@ void value_in_abbreviation()
 
   assert(!walker.done());
   assert(flag);
-  assert(option == nullptr);
+  assert(option.empty());
 }
 
 void short_value_assign()
@@ -525,25 +430,17 @@ void short_value_assign()
   int argc = sizeof argv / sizeof argv[0];
   xes::option_walker_t walker(argc, argv);
 
-  char const* option = nullptr;
+  std::string option;
 
   while(!walker.done())
   {
-    char const* value;
-
-    if((value = walker.match_value("-o")) != nullptr)
-    {
-      option = value;
-    }
-    else
+    if(!walker.match("-o", option))
     {
       break;
     }
   }
 
-  assert(walker.done());
-  assert(option != nullptr);
-  assert(std::strcmp(option, "value") == 0);
+  assert(option == "value");
   assert(walker.next_index() == 2);
 }
 
@@ -553,24 +450,151 @@ void missing_short_value()
   int argc = sizeof argv / sizeof argv[0];
   xes::option_walker_t walker(argc, argv);
 
-  char const* option = nullptr;
+  std::string option;
 
   while(!walker.done())
   {
-    char const* value;
-
-    if((value = walker.match_value("-o")) != nullptr)
-    {
-      option = value;
-    }
-    else
+    if(!walker.match("-o", option))
     {
       break;
     }
   }
 
   assert(!walker.done());
-  assert(option == nullptr);
+  assert(option.empty());
+}
+
+void int_option()
+{
+  char const* argv[] = { "command", "--number", "42" };
+  int argc = sizeof argv / sizeof argv[0];
+  xes::option_walker_t walker(argc, argv);
+
+  int number = 0;
+
+  while(!walker.done())
+  {
+    if(!walker.match("--number", number))
+    {
+      break;
+    }
+  }
+
+  assert(walker.done());
+  assert(number == 42);
+  assert(walker.next_index() == 3);
+}
+
+void negative_int_option()
+{
+  char const* argv[] = { "command", "--number", "-42" };
+  int argc = sizeof argv / sizeof argv[0];
+  xes::option_walker_t walker(argc, argv);
+
+  int number = 0;
+
+  while(!walker.done())
+  {
+    if(!walker.match("--number", number))
+    {
+      break;
+    }
+  }
+
+  assert(walker.done());
+  assert(number == -42);
+  assert(walker.next_index() == 3);
+}
+
+void int_option_overflow()
+{
+  unsigned int limit = std::numeric_limits<int>::max();
+  std::string too_much = std::to_string(limit + 1);
+
+  char const* argv[] = { "command", "--number", too_much.c_str() };
+  int argc = sizeof argv / sizeof argv[0];
+  xes::option_walker_t walker(argc, argv);
+
+  bool caught = false;
+  try
+  {
+    int number = 0;
+    walker.match("--number", number);
+  }
+  catch(std::exception const& /* ex */)
+  {
+    // std::cout << ex.what() << std::endl;
+    caught = true;
+  }
+  assert(caught);
+}
+
+void int_option_underflow()
+{
+  unsigned int limit = std::numeric_limits<int>::max();
+  std::string too_little = "-" + std::to_string(limit + 2);
+
+  char const* argv[] = { "command", "--number", too_little.c_str() };
+  int argc = sizeof argv / sizeof argv[0];
+  xes::option_walker_t walker(argc, argv);
+
+  bool caught = false;
+  try
+  {
+    int number = 0;
+    walker.match("--number", number);
+  }
+  catch(std::exception const& /* ex */)
+  {
+    // std::cout << ex.what() << std::endl;
+    caught = true;
+  }
+  assert(caught);
+}
+
+void unsigned_int_option()
+{
+  unsigned int value = std::numeric_limits<unsigned int>::max();
+  std::string value_string = std::to_string(value);
+  
+  char const* argv[] = { "command", "--number", value_string.c_str() };
+  int argc = sizeof argv / sizeof argv[0];
+  xes::option_walker_t walker(argc, argv);
+
+  unsigned int number = 0;
+
+  while(!walker.done())
+  {
+    if(!walker.match("--number", number))
+    {
+      break;
+    }
+  }
+
+  assert(walker.done());
+  assert(number == value);
+  assert(walker.next_index() == 3);
+}
+
+void additional_type()
+{
+  char const* argv[] = { "command", "--loglevel", "info" };
+  int argc = sizeof argv / sizeof argv[0];
+  xes::option_walker_t walker(argc, argv);
+
+  xes::loglevel_t level = xes::loglevel_t::error;
+
+  while(!walker.done())
+  {
+    if(!walker.match("--loglevel", level))
+    {
+      break;
+    }
+  }
+
+  assert(walker.done());
+  assert(level == xes::loglevel_t::info);
+  assert(walker.next_index() == 3);
 }
 
 } // anonymous
@@ -600,6 +624,14 @@ int main()
   value_in_abbreviation();
   short_value_assign();
   missing_short_value();
+
+  int_option();
+  negative_int_option();
+  int_option_overflow();
+  int_option_underflow();
+  unsigned_int_option();
+
+  additional_type();
 
   return 0;
 }

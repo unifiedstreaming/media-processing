@@ -25,7 +25,9 @@
 #include "logging_backend.hpp"
 #include "system_error.hpp"
 
+#include <cstring>
 #include <limits>
+#include <stdexcept>
 #include <utility>
 
 namespace xes
@@ -44,6 +46,37 @@ char const* loglevel_string(loglevel_t level)
   return "<invalid log level>";
 }
 
+template<>
+loglevel_t parse_optval<loglevel_t>(char const* name, char const* value)
+{
+  loglevel_t result = loglevel_t::error;
+
+  if(std::strcmp(value, "error") == 0)
+  {
+    result = loglevel_t::error;
+  }
+  else if(std::strcmp(value, "warning") == 0)
+  {
+    result = loglevel_t::warning;
+  }
+  else if(std::strcmp(value, "info") == 0)
+  {
+    result = loglevel_t::info;
+  }
+  else if(std::strcmp(value, "debug") == 0)
+  {
+    result = loglevel_t::debug;
+  }
+  else
+  {
+    throw std::runtime_error(std::string("unexpected value '") +
+      value + "' for option " + name +
+      "; valid values are 'error', 'warning', 'info' and 'debug'");
+  }
+
+  return result;
+}
+    
 logger_t::logger_t(char const* argv0)
 : mutex_()
 , backend_(new default_backend_t(argv0))

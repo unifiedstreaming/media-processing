@@ -26,12 +26,18 @@
 #include <mutex>
 #include <string>
 
+#include "option_walker.hpp"
+
 namespace xes
 {
 
 enum class loglevel_t { error, warning, info, debug };
 
 char const *loglevel_string(loglevel_t level);
+
+// Tell option_walker_t about loglevel_t
+template<>
+loglevel_t parse_optval<loglevel_t>(char const* name, char const* value);
 
 struct logging_backend_t;
 

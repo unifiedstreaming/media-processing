@@ -21,10 +21,36 @@
 #define XES_OPTION_WALKER_HPP_
 
 #include <cassert>
+#include <string>
 
 namespace xes
 {
 
+/*
+ * Customization point for converting the string value for an option
+ * called name to a value of type T. Must throw an exception with a
+ * hopefully descriptive error message if the conversion fails; no
+ * generic implementation provided.
+ */
+template<typename T>
+T parse_optval(char const* name, char const* value);
+
+/*
+ * Predefined specializations; users may add additional
+ * specializations for other types.
+ */
+template<>
+int parse_optval<int>(char const* name, char const* value);
+
+template<>
+unsigned int parse_optval<unsigned int>(char const* name, char const* value);
+
+template<>
+std::string parse_optval<std::string>(char const* name, char const* value);
+
+/*
+ * Our option walker
+ */
 struct option_walker_t
 {
   option_walker_t(int argc, char const* const argv[]);
@@ -38,23 +64,34 @@ struct option_walker_t
   }
 
   /*
-   * Tries to match the flag option named name.  Skips the current
-   * option and returns true on success; stays at the current option
-   * and returns false on failure.
+   * Tries to match name against the current command line option. If
+   * name matches, the option value is stored in value, the walker
+   * moves on to the potential next option, and true is returned. If
+   * name does not match, value is left unchanged, the walker stays at
+   * the current option, and false is returned.
+   *      
+   * A boolean value option is a simple flag that, if matched, simply
+   * sets value to true. If another type of option is matched, value
+   * is set to what is explictly specified on the command line by
+   * calling one of the parse_optval() specializations.
    *
    * Precondition: !done().
    */
-  bool match_flag(char const* name);
+  bool match(char const* name, bool& value);
 
-  /*
-   * Tries to match the value option named name.  Skips the current
-   * option and returns its value on success; stays at the current
-   * option and returns nullptr on failure.
-   *
-   * Precondition: !done().
-   */
-  char const* match_value(char const* name);
-
+  template<typename T>
+  bool match(char const* name, T& value)
+  {
+    char const* input = nullptr;
+    bool result = this->do_match(name, input);
+    if(result)
+    {
+      assert(input != nullptr);
+      value = parse_optval<T>(name, input);
+    }
+    return result;
+  }
+    
   /*
    * Returns the index of the first non-option element in the argv
    * array passed to the constructor, or argc if there are no
@@ -69,6 +106,7 @@ struct option_walker_t
   }
 
 private :
+  bool do_match(char const* name, char const*& value);
   void on_next_element();
 
 private :
