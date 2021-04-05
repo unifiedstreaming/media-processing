@@ -29,9 +29,9 @@ namespace xes
 /*
  * Convert the string value <in> for an option called <name> to a
  * value of the type of <out>. parse_optval() throws an exception with
- * a descriptive error message if the conversion fails. parse_optval()
- * is a customization point: users may provide further overloads,
- * found by ADL, for other types.
+ * a descriptive error message if the conversion fails.
+ * parse_optval() is a customization point: users may provide further
+ * overloads, found by ADL, for other types of <out>.
  */
 void parse_optval(char const* name, char const* in, int& out);
 void parse_optval(char const* name, char const* in, unsigned int& out);
@@ -55,7 +55,7 @@ struct option_walker_t
   /*
    * Tries to match the option <name> against the current command line
    * option. On a match, the option value is stored in <value>, the
-   * walker moves on to the potential next option, and true is
+   * walker moves on to the potentially next option, and true is
    * returned. If <name> does not match, <value> is left unchanged,
    * the walker stays at the current option, and false is returned.
    *      

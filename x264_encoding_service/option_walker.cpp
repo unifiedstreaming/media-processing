@@ -19,6 +19,8 @@
 
 #include "option_walker.hpp"
 
+#include "exception_builder.hpp"
+
 #include <cassert>
 #include <limits>
 #include <stdexcept>
@@ -79,15 +81,17 @@ unsigned int parse_unsigned(char const* name, char const* value,
   {
     if(*value < '0' || *value > '9')
     {
-      throw std::runtime_error(
-        std::string("digit expected in option value for ") + name);
+      exception_builder_t<std::runtime_error> builder;
+      builder << "digit expected in option value for " << name;
+      builder.explode();
     }
 
     unsigned int digit = *value - '0';
     if(result > max / 10 || digit > max - 10 * result)
     {
-      throw std::runtime_error(
-        std::string("overflow in option value for ") + name);
+      exception_builder_t<std::runtime_error> builder;
+      builder << "overflow in option value for " << name;
+      builder.explode();
     }
 
     result *= 10;

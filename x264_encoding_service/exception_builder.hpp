@@ -17,30 +17,40 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#ifndef XES_SYSTEM_ERROR_HPP_
-#define XES_SYSTEM_ERROR_HPP_
+#ifndef XES_EXCEPTION_BUILDER_HPP_
+#define XES_EXCEPTION_BUILDER_HPP_
 
 #include <ostream>
-#include <stdexcept>
 #include <string>
+#include <utility>
 
-#include "exception_builder.hpp"
+#include "membuf.hpp"
 
 namespace xes
 {
 
-int last_system_error();
-bool is_wouldblock(int error);
-std::string system_error_string(int error);
-
-struct system_exception_t : std::runtime_error
+template<typename T>
+struct exception_builder_t : std::ostream
 {
-  explicit system_exception_t(std::string complaint);
-  system_exception_t(std::string complaint, int cause);
+  exception_builder_t()
+  : std::ostream(nullptr)
+  , buf_()
+  { this->rdbuf(&buf_); }
+
+  exception_builder_t(exception_builder_t const&) = delete;
+  exception_builder_t& operator=(exception_builder_t const&) = delete;
+
+  template<typename... Args>
+  void explode(Args&&... args) const
+  {
+    throw T(std::string(buf_.begin(), buf_.end()),
+            std::forward<Args>(args)...);
+  }
+
+private :
+  membuf_t buf_;
 };
 
-using system_exception_builder_t = exception_builder_t<system_exception_t>;
-
-} // namespace xes
+} // xes
 
 #endif

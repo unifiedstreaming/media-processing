@@ -19,6 +19,7 @@
 
 #include "logger.hpp"
 
+#include "exception_builder.hpp"
 #include "format.hpp"
 #include "membuf.hpp"
 #include "default_backend.hpp"
@@ -66,9 +67,10 @@ void parse_optval(char const* name, char const* in, loglevel_t& out)
   }
   else
   {
-    throw std::runtime_error(std::string("unexpected value '") +
-      in + "' for option " + name +
-      "; valid values are 'error', 'warning', 'info' and 'debug'");
+    exception_builder_t<std::runtime_error> builder;
+    builder << "unexpected value '" << in << "' for option " << name <<
+      "; valid values are 'error', 'warning', 'info' and 'debug'";
+    builder.explode();
   }
 }
     
