@@ -417,7 +417,7 @@ struct producer_t
              tcp_connection_t& out,
              char const* first, char const* last,
              unsigned int bufsize)
-  : out_(context, loglevel_t::info, "producer", out)
+  : out_(context, loglevel_t::debug, "producer", out)
   , bufsize_((assert(bufsize > 0),
               assert(bufsize <= max_bufsize),
               static_cast<int>(bufsize)))
@@ -483,8 +483,8 @@ struct filter_t
            tcp_connection_t& in,
            tcp_connection_t& out,
            unsigned int bufsize)
-  : in_(context, loglevel_t::info, "filter", in)
-  , out_(context, loglevel_t::info, "filter", out)
+  : in_(context, loglevel_t::debug, "filter", in)
+  , out_(context, loglevel_t::debug, "filter", out)
   , buf_((assert(bufsize > 0), bufsize))
   , first_(buf_.data())
   , last_(buf_.data())
@@ -568,7 +568,7 @@ struct consumer_t
              tcp_connection_t& in,
              char const* first, char const* last,
              unsigned int bufsize)
-  : in_(context, loglevel_t::info, "consumer", in)
+  : in_(context, loglevel_t::debug, "consumer", in)
   , buf_((assert(bufsize > 0), bufsize))
   , first_(first)
   , last_(last)
@@ -850,7 +850,7 @@ void broken_pipe(logging_context_t const& context,
   }
   catch(system_exception_t const& ex)
   {
-    if(auto msg = context.message_at(loglevel_t::info))
+    if(auto msg = context.message_at(loglevel_t::debug))
     {
       *msg << "broken_pipe(): caught expected exception: " << ex.what();
     }
@@ -936,6 +936,11 @@ int throwing_main(int argc, char const* const argv[])
   nonblocking_client_server(context, true);
 
   broken_pipe(context);
+
+  if(auto msg = context.message_at(loglevel_t::info))
+  {
+      *msg << "tests completed";
+  }
 
   return 0;
 }
