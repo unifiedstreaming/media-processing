@@ -134,26 +134,12 @@ make_addrinfo(int flags, char const* host, unsigned int port)
   return std::shared_ptr<addrinfo const>(head, freeaddrinfo);
 }
 
-std::shared_ptr<sockaddr const>
-resolve_ip(char const* ip, unsigned int port)
-{
-  assert(ip != nullptr);
-
-  std::shared_ptr<addrinfo const> info =
-    make_addrinfo(AI_NUMERICHOST, ip, port);
-  assert(info != nullptr);
-  assert(info->ai_next == nullptr);
-
-  return std::shared_ptr<sockaddr const>(std::move(info), info->ai_addr);
-}
-
-std::vector<endpoint_t>
-resolve_multiple(int flags, char const* host, unsigned int port)
+endpoints_t find_endpoints(int flags, char const* host, unsigned int port)
 {
   std::shared_ptr<addrinfo const> info = make_addrinfo(flags, host, port);
   assert(info != nullptr);
 
-  std::vector<endpoint_t> result;
+  endpoints_t result;
   for(addrinfo const* node = info.get(); node != nullptr; node = node->ai_next)
   {
     std::shared_ptr<sockaddr const> addr(info, node->ai_addr);
@@ -171,43 +157,6 @@ endpoint_t::endpoint_t(std::shared_ptr<sockaddr const> addr)
   {
     check_family(addr_->sa_family);
   }
-}
-
-endpoint_t::endpoint_t(char const* ip_address, unsigned int port)
-: addr_(resolve_ip(ip_address, port))
-{
-  check_family(addr_->sa_family);
-}
-
-endpoint_t::endpoint_t(std::string const& ip_address, unsigned int port)
-: addr_(resolve_ip(ip_address.c_str(), port))
-{
-  check_family(addr_->sa_family);
-}
-
-std::vector<endpoint_t>
-endpoint_t::resolve(char const* host, unsigned int port)
-{
-  assert(host != nullptr);
-  return resolve_multiple(0, host, port);
-}
-
-std::vector<endpoint_t>
-endpoint_t::resolve(std::string const& host, unsigned int port)
-{
-  return resolve_multiple(0, host.c_str(), port);
-}
-
-std::vector<endpoint_t>
-endpoint_t::local_interfaces(unsigned int port)
-{
-  return resolve_multiple(0, nullptr, port);
-}
-
-std::vector<endpoint_t>
-endpoint_t::all_interfaces(unsigned int port)
-{
-  return resolve_multiple(AI_PASSIVE, nullptr, port);
 }
 
 int endpoint_t::address_family() const
@@ -285,6 +234,45 @@ unsigned int endpoint_t::port() const
   visit_sockaddr(*addr_, on_ipv4, on_ipv6);
 
   return result;
+}
+
+endpoint_t resolve_ip(char const* ip, unsigned int port)
+{
+  assert(ip != nullptr);
+
+  std::shared_ptr<addrinfo const> info =
+    make_addrinfo(AI_NUMERICHOST, ip, port);
+  assert(info != nullptr);
+  assert(info->ai_next == nullptr);
+
+  std::shared_ptr<sockaddr const> addr(std::move(info), info->ai_addr);
+  return endpoint_t(std::move(addr));
+}
+
+endpoint_t resolve_ip(std::string const& ip, unsigned int port)
+{
+  return resolve_ip(ip.c_str(), port);
+}
+
+endpoints_t resolve_host(char const* host, unsigned int port)
+{
+  assert(host != nullptr);
+  return find_endpoints(0, host, port);
+}
+
+endpoints_t resolve_host(std::string const& host, unsigned int port)
+{
+  return resolve_host(host.c_str(), port);
+}
+
+endpoints_t local_interfaces(unsigned int port)
+{
+  return find_endpoints(0, nullptr, port);
+}
+
+endpoints_t all_interfaces(unsigned int port)
+{
+  return find_endpoints(AI_PASSIVE, nullptr, port);
 }
 
 endpoint_t endpoint_t::local_endpoint(int fd)

@@ -64,7 +64,7 @@ void blocking_accept(logging_context_t const& context,
 
 void blocking_accept(logging_context_t const& context)
 {
-  auto interfaces = endpoint_t::local_interfaces(any_port);
+  auto interfaces = local_interfaces(any_port);
   assert(!interfaces.empty());
   
   for(auto const& interface : interfaces)
@@ -130,7 +130,7 @@ void nonblocking_accept(logging_context_t const& context,
 
 void nonblocking_accept(logging_context_t const& context)
 {
-  auto interfaces = endpoint_t::local_interfaces(any_port);
+  auto interfaces = local_interfaces(any_port);
   assert(!interfaces.empty());
   
   for(auto const& interface : interfaces)
@@ -171,7 +171,7 @@ void duplicate_bind(logging_context_t const& context,
 
 void duplicate_bind(logging_context_t const& context)
 {
-  auto interfaces = endpoint_t::local_interfaces(any_port);
+  auto interfaces = local_interfaces(any_port);
   assert(!interfaces.empty());
   
   for(auto const& interface : interfaces)
@@ -181,7 +181,7 @@ void duplicate_bind(logging_context_t const& context)
 }
 
 bool prove_dual_stack(logging_context_t const& context,
-                      std::vector<endpoint_t> const& interfaces)
+                      endpoints_t const& interfaces)
 {
   assert(interfaces.size() >= 2);
 
@@ -203,10 +203,10 @@ bool prove_dual_stack(logging_context_t const& context,
    * is not necessarily an error. However, if we succeed, we have
    * proven that our dual stack works.
    */
-  endpoint_t interface2 = *(interfaces.begin() + 1);
+  endpoint_t interface2 = interfaces.back();
   assert(interface1.address_family() != interface2.address_family());
-  endpoint_t target(interface2.ip_address(),
-                    acceptor1.local_endpoint().port());
+  endpoint_t target = resolve_ip(interface2.ip_address(),
+                                 acceptor1.local_endpoint().port());
 
   bool result = false;
 
@@ -234,7 +234,7 @@ bool prove_dual_stack(logging_context_t const& context,
 void dual_stack(logging_context_t const& context)
 {
   // Check that we have multiple local interfaces (one for each family)
-  auto interfaces = endpoint_t::local_interfaces(any_port);
+  auto interfaces = local_interfaces(any_port);
   assert(!interfaces.empty());
   
   if(interfaces.size() == 1)

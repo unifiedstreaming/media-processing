@@ -93,7 +93,7 @@ std::pair<std::unique_ptr<tcp_connection_t>,
           std::unique_ptr<tcp_connection_t>>
 make_connected_pair()
 {
-  auto interfaces = endpoint_t::local_interfaces(any_port);
+  auto interfaces = local_interfaces(any_port);
   assert(!interfaces.empty());
   return make_connected_pair(interfaces.front());
 }

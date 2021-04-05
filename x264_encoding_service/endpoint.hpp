@@ -47,25 +47,6 @@ struct endpoint_t
   // Constructs an endpoint from a socket address
   explicit endpoint_t(std::shared_ptr<sockaddr const> addr);
 
-  // Constructs an endpoint from an ip address and port number
-  endpoint_t(char const* ip_address, unsigned int port);
-  endpoint_t(std::string const& ip_address, unsigned int port);
-
-  // Finds endpoints for a host name and port number
-  static std::vector<endpoint_t>
-  resolve(char const* host, unsigned int port);
-
-  static std::vector<endpoint_t>
-  resolve(std::string const& host, unsigned int port);
-
-  // Returns endpoints for binding to local interfaces
-  static std::vector<endpoint_t>
-  local_interfaces(unsigned int port);
-
-  // Returns endpoints for binding to all interfaces
-  static std::vector<endpoint_t>
-  all_interfaces(unsigned int port);
-
   // Accessors: no properties exist when this->empty()
   bool empty() const
   { return addr_ == nullptr; }
@@ -85,7 +66,23 @@ private :
 private :
   std::shared_ptr<sockaddr const> addr_;
 };
+
+using endpoints_t = std::vector<endpoint_t>;
   
+// Returns an endpoint for an IP address and port number
+endpoint_t resolve_ip(char const* ip, unsigned int port);
+endpoint_t resolve_ip(std::string const& ip, unsigned int port);
+
+// Returns endpoints for a host name and port number
+endpoints_t resolve_host(char const* host, unsigned int port);
+endpoints_t resolve_host(std::string const& host, unsigned int port);
+
+// Returns endpoints for binding to local interfaces
+endpoints_t local_interfaces(unsigned int port);
+
+// Returns endpoints for binding to all interfaces
+endpoints_t all_interfaces(unsigned int port);
+
 std::ostream& operator<<(std::ostream& os, endpoint_t const& endpoint);
 
 } // namespace xes

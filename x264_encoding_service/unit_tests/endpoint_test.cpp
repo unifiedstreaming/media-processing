@@ -36,7 +36,7 @@ using namespace xes;
 
 void check_endpoint(endpoint_t const& ep)
 {
-  endpoint_t refetched(ep.ip_address(), ep.port());
+  endpoint_t refetched = resolve_ip(ep.ip_address(), ep.port());
 
   assert(refetched.address_family() == ep.address_family());
   assert(refetched.socket_address_size() == ep.socket_address_size());
@@ -46,11 +46,11 @@ void check_endpoint(endpoint_t const& ep)
 
 void ip_address()
 {
-  auto interfaces = endpoint_t::local_interfaces(any_port);
+  auto interfaces = local_interfaces(any_port);
   for(auto const& interface: interfaces)
   {
     auto ip_address = interface.ip_address();
-    endpoint_t ep(ip_address, any_port);
+    endpoint_t ep = resolve_ip(ip_address, any_port);
 #if PRINT
       std::cout << "ip_addresses(): " <<
         ip_address << " -> " << ep << std::endl;
@@ -65,7 +65,7 @@ void not_an_ip_address()
 
   try
   {
-    endpoint_t ep("localhost", any_port);
+    endpoint_t ep = resolve_ip("localhost", any_port);
   }
   catch(system_exception_t const& ex)
   {
@@ -83,7 +83,7 @@ void not_an_ip_address()
 
 void local_endpoints()
 {
-  auto endpoints = endpoint_t::local_interfaces(any_port);
+  auto endpoints = local_interfaces(any_port);
   assert(!endpoints.empty());
 
   for(auto const& ep : endpoints)
@@ -98,7 +98,7 @@ void local_endpoints()
 
 void local_endpoints_with_port()
 {
-  auto endpoints = endpoint_t::local_interfaces(11264);
+  auto endpoints = local_interfaces(11264);
   assert(!endpoints.empty());
 
   for(auto const& ep : endpoints)
@@ -113,7 +113,7 @@ void local_endpoints_with_port()
 
 void all_endpoints()
 {
-  auto endpoints = endpoint_t::all_interfaces(any_port);
+  auto endpoints = all_interfaces(any_port);
   assert(!endpoints.empty());
 
   for(auto const& ep : endpoints)
@@ -128,7 +128,7 @@ void all_endpoints()
 
 void all_endpoints_with_port()
 {
-  auto endpoints = endpoint_t::all_interfaces(11264);
+  auto endpoints = all_interfaces(11264);
   assert(!endpoints.empty());
 
   for(auto const& ep : endpoints)
@@ -143,7 +143,7 @@ void all_endpoints_with_port()
 
 void localhost()
 {
-  auto endpoints = endpoint_t::resolve("localhost", any_port);
+  auto endpoints = resolve_host("localhost", any_port);
   assert(!endpoints.empty());
 
   for(auto const& ep : endpoints)
@@ -158,7 +158,7 @@ void localhost()
 
 void localhost_with_port()
 {
-  auto endpoints = endpoint_t::resolve("localhost", 11264);
+  auto endpoints = resolve_host("localhost", 11264);
   assert(!endpoints.empty());
 
   for(auto const& ep : endpoints)
@@ -173,7 +173,7 @@ void localhost_with_port()
 
 void remote_host()
 {
-  auto endpoints = endpoint_t::resolve("a.root-servers.net", any_port);
+  auto endpoints = resolve_host("a.root-servers.net", any_port);
   assert(!endpoints.empty());
 
   for(auto const& ep : endpoints)
@@ -188,7 +188,7 @@ void remote_host()
 
 void remote_host_with_port()
 {
-  auto endpoints = endpoint_t::resolve("a.root-servers.net", 53);
+  auto endpoints = resolve_host("a.root-servers.net", 53);
   assert(!endpoints.empty());
 
   for(auto const& ep : endpoints)
@@ -206,7 +206,7 @@ void unknown_host()
   bool caught = false;
   try
   {
-    auto endpoints = endpoint_t::resolve("mail.dev.null", any_port);
+    auto endpoints = resolve_host("mail.dev.null", any_port);
   }
   catch(std::exception const& ex)
   {
@@ -226,7 +226,7 @@ void unknown_host_with_port()
   bool caught = false;
   try
   {
-    auto endpoints = endpoint_t::resolve("mail.dev.null", 25);
+    auto endpoints = resolve_host("mail.dev.null", 25);
   }
   catch(std::exception const& ex)
   {
