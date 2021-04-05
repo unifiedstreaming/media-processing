@@ -33,8 +33,6 @@ struct sockaddr;
 namespace xes
 {
 
-struct tcp_socket_t;
-
 unsigned int const any_port = 0;
 
 struct endpoint_t
@@ -57,12 +55,6 @@ struct endpoint_t
   std::string ip_address() const;
   unsigned int port() const;
 
-private :
-  friend struct tcp_socket_t;
-
-  static endpoint_t local_endpoint(int fd);
-  static endpoint_t remote_endpoint(int fd);
-  
 private :
   std::shared_ptr<sockaddr const> addr_;
 };

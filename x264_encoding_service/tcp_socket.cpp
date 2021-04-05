@@ -45,6 +45,13 @@ namespace xes
 namespace // anonymous
 {
 
+union endpoint_storage_t
+{
+  sockaddr addr_;
+  sockaddr_in addr_in_;
+  sockaddr_in6 addr_in6_;
+};
+
 void set_v6only(int fd, bool enable)
 {
   const int optval = enable;
@@ -287,13 +294,37 @@ void tcp_socket_t::connect(endpoint_t const& peer)
 endpoint_t tcp_socket_t::local_endpoint() const
 {
   assert(!empty());
-  return endpoint_t::local_endpoint(fd_);
+
+  auto storage = std::make_shared<endpoint_storage_t>();
+  socklen_t size = static_cast<socklen_t>(sizeof *storage);
+
+  int r = getsockname(fd_, &storage->addr_, &size);
+  if(r == -1)
+  {
+    int cause = last_system_error();
+    throw system_exception_t("getsockname() failure", cause);
+  }
+  
+  std::shared_ptr<sockaddr const> addr(std::move(storage), &storage->addr_);
+  return endpoint_t(std::move(addr));
 }
 
 endpoint_t tcp_socket_t::remote_endpoint() const
 {
   assert(!empty());
-  return endpoint_t::remote_endpoint(fd_);
+
+  auto storage = std::make_shared<endpoint_storage_t>();
+  socklen_t size = static_cast<socklen_t>(sizeof *storage);
+
+  int r = getpeername(fd_, &storage->addr_, &size);
+  if(r == -1)
+  {
+    int cause = last_system_error();
+    throw system_exception_t("getpeername() failure", cause);
+  }
+  
+  std::shared_ptr<sockaddr const> addr(std::move(storage), &storage->addr_);
+  return endpoint_t(std::move(addr));
 }
 
 void tcp_socket_t::set_blocking()

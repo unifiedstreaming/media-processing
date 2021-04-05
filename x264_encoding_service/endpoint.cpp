@@ -48,13 +48,6 @@ namespace xes
 namespace // anonymous
 {
 
-union endpoint_storage_t
-{
-  sockaddr addr_;
-  sockaddr_in addr_in_;
-  sockaddr_in6 addr_in6_;
-};
-
 void check_family(int family)
 {
   switch(family)
@@ -273,38 +266,6 @@ endpoints_t local_interfaces(unsigned int port)
 endpoints_t all_interfaces(unsigned int port)
 {
   return find_endpoints(AI_PASSIVE, nullptr, port);
-}
-
-endpoint_t endpoint_t::local_endpoint(int fd)
-{
-  auto storage = std::make_shared<endpoint_storage_t>();
-  socklen_t size = static_cast<socklen_t>(sizeof *storage);
-
-  int r = getsockname(fd, &storage->addr_, &size);
-  if(r == -1)
-  {
-    int cause = last_system_error();
-    throw system_exception_t("getsockname() failure", cause);
-  }
-  
-  std::shared_ptr<sockaddr const> addr(std::move(storage), &storage->addr_);
-  return endpoint_t(std::move(addr));
-}
-
-endpoint_t endpoint_t::remote_endpoint(int fd)
-{
-  auto storage = std::make_shared<endpoint_storage_t>();
-  socklen_t size = static_cast<socklen_t>(sizeof *storage);
-
-  int r = getpeername(fd, &storage->addr_, &size);
-  if(r == -1)
-  {
-    int cause = last_system_error();
-    throw system_exception_t("getpeername() failure", cause);
-  }
-  
-  std::shared_ptr<sockaddr const> addr(std::move(storage), &storage->addr_);
-  return endpoint_t(std::move(addr));
 }
 
 std::ostream& operator<<(std::ostream& os, endpoint_t const& endpoint)
