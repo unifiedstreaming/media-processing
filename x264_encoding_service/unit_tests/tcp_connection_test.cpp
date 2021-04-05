@@ -18,8 +18,10 @@
  */
 
 #include "endpoint.hpp"
+#include "file_backend.hpp"
 #include "logger.hpp"
 #include "logging_context.hpp"
+#include "option_walker.hpp"
 #include "resolver.hpp"
 #include "scoped_thread.hpp"
 #include "streambuf_backend.hpp"
@@ -866,12 +868,64 @@ void broken_pipe(logging_context_t const& context)
   }
 }
 
+struct options_t
+{
+  static loglevel_t const default_loglevel = loglevel_t::error;
+
+  options_t()
+  : logfile_()
+  , loglevel_(default_loglevel)
+  { }
+
+  std::string logfile_;
+  loglevel_t loglevel_;
+};
+
+void print_usage(std::ostream& os, char const* argv0)
+{
+  os << "usage: " << argv0 << " [<option> ...]\n";
+  os << "options are:\n";
+  os << "  --logfile <name>    log to a file\n";
+  os << "  --loglevel <level>  set loglevel (default: " <<
+        loglevel_string(options_t::default_loglevel) << ")\n";
+  os << std::flush;
+}
+
+void read_options(options_t& options, option_walker_t& walker)
+{
+  while(!walker.done())
+  {
+    if(!walker.match("--logfile", options.logfile_) &&
+       !walker.match("--loglevel", options.loglevel_))
+    {
+      break;
+    }
+  }
+}
+
 int throwing_main(int argc, char const* const argv[])
 {
+  options_t options;
+  option_walker_t walker(argc, argv);
+
+  read_options(options, walker);
+  if(!walker.done() || walker.next_index() != argc)
+  {
+    print_usage(std::cerr, argv[0]);
+    return 1;
+  }
+    
   logger_t logger(argv[0]);
-  logger.set_backend(std::make_unique<xes::streambuf_backend_t>(std::cerr));
-  logging_context_t context(
-    logger, argc == 1 ? loglevel_t::error : loglevel_t::info);
+  if(!options.logfile_.empty())
+  {
+    logger.set_backend(std::make_unique<file_backend_t>(options.logfile_));
+  }
+  else
+  {
+    logger.set_backend(std::make_unique<streambuf_backend_t>(std::cerr));
+  }
+
+  logging_context_t context(logger, options.loglevel_);
 
   blocking_transfer(context);
   nonblocking_transfer(context, false);
