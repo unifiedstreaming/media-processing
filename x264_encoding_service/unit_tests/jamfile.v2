@@ -19,11 +19,6 @@
 
 import testing ;
 
-unit-test endpoint_test
-: endpoint_test.cpp
-  ..//xes_utils
-;
-
 unit-test fs_utils_test
 : fs_utils_test.cpp
   ..//xes_utils
@@ -36,6 +31,11 @@ unit-test membuf_test
 
 unit-test option_walker_test
 : option_walker_test.cpp
+  ..//xes_utils
+;
+
+unit-test resolver_test
+: resolver_test.cpp
   ..//xes_utils
 ;
 

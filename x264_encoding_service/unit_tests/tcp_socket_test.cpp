@@ -18,7 +18,7 @@
  */
 
 #include "tcp_socket.hpp"
-#include "endpoint.hpp"
+#include "resolver.hpp"
 
 #include <utility>
 

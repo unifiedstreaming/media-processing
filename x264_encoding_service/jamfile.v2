@@ -51,6 +51,7 @@ lib xes_utils
   logging_context.cpp
   membuf.cpp
   option_walker.cpp
+  resolver.cpp
   scoped_thread.cpp
   socket_nifty.cpp
   streambuf_backend.cpp

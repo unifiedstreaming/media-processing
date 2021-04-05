@@ -22,6 +22,7 @@
 #include "endpoint.hpp"
 #include "logging_context.hpp"
 #include "logger.hpp"
+#include "resolver.hpp"
 #include "streambuf_backend.hpp"
 #include "system_error.hpp"
 

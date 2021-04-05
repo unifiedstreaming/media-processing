@@ -20,6 +20,7 @@
 #include "endpoint.hpp"
 #include "logger.hpp"
 #include "logging_context.hpp"
+#include "resolver.hpp"
 #include "scoped_thread.hpp"
 #include "streambuf_backend.hpp"
 #include "tcp_connection.hpp"

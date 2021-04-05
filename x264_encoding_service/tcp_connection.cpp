@@ -20,6 +20,7 @@
 #include "tcp_connection.hpp"
 
 #include "tcp_acceptor.hpp"
+#include "resolver.hpp"
 
 #include <cassert>
 #include <iostream>

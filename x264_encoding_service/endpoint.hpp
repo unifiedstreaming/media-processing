@@ -25,25 +25,22 @@
 #include <memory>
 #include <iosfwd>
 #include <string>
-#include <utility>
-#include <vector>
 
 struct sockaddr;
 
 namespace xes
 {
 
-unsigned int const any_port = 0;
+struct resolver_t;
+struct tcp_socket_t;
 
 struct endpoint_t
 {
-  // Constructs an empty endpoint; access verboten
+  // Constructs an empty endpoint; access verboten. To obtain real,
+  // non-empty endpoints, use the factory functions in resolver.hpp.
   endpoint_t()
   : addr_(nullptr)
   { }
-
-  // Constructs an endpoint from a socket address
-  explicit endpoint_t(std::shared_ptr<sockaddr const> addr);
 
   // Accessors: no properties exist when this->empty()
   bool empty() const
@@ -56,24 +53,15 @@ struct endpoint_t
   unsigned int port() const;
 
 private :
+  friend struct resolver_t;
+  friend struct tcp_socket_t;
+
+  // Constructs an endpoint from a socket address
+  explicit endpoint_t(std::shared_ptr<sockaddr const> addr);
+
+private :
   std::shared_ptr<sockaddr const> addr_;
 };
-
-using endpoints_t = std::vector<endpoint_t>;
-  
-// Returns an endpoint for an IP address and port number
-endpoint_t resolve_ip(char const* ip, unsigned int port);
-endpoint_t resolve_ip(std::string const& ip, unsigned int port);
-
-// Returns endpoints for a host name and port number
-endpoints_t resolve_host(char const* host, unsigned int port);
-endpoints_t resolve_host(std::string const& host, unsigned int port);
-
-// Returns endpoints for binding to local interfaces
-endpoints_t local_interfaces(unsigned int port);
-
-// Returns endpoints for binding to all interfaces
-endpoints_t all_interfaces(unsigned int port);
 
 std::ostream& operator<<(std::ostream& os, endpoint_t const& endpoint);
 

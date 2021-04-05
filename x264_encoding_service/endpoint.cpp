@@ -23,9 +23,6 @@
 
 #include <algorithm>
 #include <cassert>
-#include <cinttypes>
-#include <cstring>
-#include <limits>
 #include <ostream>
 #include <utility>
 
@@ -36,10 +33,6 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <netdb.h>
-#endif
-
-#ifndef AI_IDN
-#define AI_IDN 0
 #endif
 
 namespace xes
@@ -84,73 +77,7 @@ void visit_sockaddr(sockaddr const& addr,
   }
 }
 
-std::shared_ptr<addrinfo const>
-make_addrinfo(int flags, char const* host, unsigned int port)
-{
-  static const unsigned int max_port =
-    std::numeric_limits<std::uint16_t>::max();
-  if(port > max_port)
-  {
-    system_exception_builder_t builder;
-    builder << "Port number " << port << " out of range";
-    builder.explode();
-  }
-
-  addrinfo hints;
-  std::memset(&hints, '\0', sizeof hints);
-  hints.ai_flags = flags | AI_ADDRCONFIG | AI_NUMERICSERV | AI_IDN;
-  hints.ai_family = AF_UNSPEC;
-  hints.ai_socktype = SOCK_STREAM;
-
-  addrinfo* head;
-  int r = getaddrinfo(host, std::to_string(port).c_str(), &hints, &head);
-  if(r != 0)
-  {
-#ifdef _WIN32
-    int cause = last_system_error();
-#endif
-    system_exception_builder_t builder;
-    builder << "Can't resolve";
-    if(host != nullptr)
-    {
-      builder << " host " << host;
-    }
-    builder << " port " << port;
-#ifdef _WIN32
-    builder.explode(cause);
-#else
-    builder << ": " << gai_strerror(r);
-    builder.explode();
-#endif
-  }
-
-  return std::shared_ptr<addrinfo const>(head, freeaddrinfo);
-}
-
-endpoints_t find_endpoints(int flags, char const* host, unsigned int port)
-{
-  std::shared_ptr<addrinfo const> info = make_addrinfo(flags, host, port);
-  assert(info != nullptr);
-
-  endpoints_t result;
-  for(addrinfo const* node = info.get(); node != nullptr; node = node->ai_next)
-  {
-    std::shared_ptr<sockaddr const> addr(info, node->ai_addr);
-    result.emplace_back(std::move(addr));
-  }
-  return result;
-}
-
 } // anonymous
-
-endpoint_t::endpoint_t(std::shared_ptr<sockaddr const> addr)
-: addr_(std::move(addr))
-{
-  if(addr_ != nullptr)
-  {
-    check_family(addr_->sa_family);
-  }
-}
 
 int endpoint_t::address_family() const
 {
@@ -229,43 +156,13 @@ unsigned int endpoint_t::port() const
   return result;
 }
 
-endpoint_t resolve_ip(char const* ip, unsigned int port)
+endpoint_t::endpoint_t(std::shared_ptr<sockaddr const> addr)
+: addr_(std::move(addr))
 {
-  assert(ip != nullptr);
-
-  std::shared_ptr<addrinfo const> info =
-    make_addrinfo(AI_NUMERICHOST, ip, port);
-  assert(info != nullptr);
-  assert(info->ai_next == nullptr);
-
-  std::shared_ptr<sockaddr const> addr(std::move(info), info->ai_addr);
-  return endpoint_t(std::move(addr));
-}
-
-endpoint_t resolve_ip(std::string const& ip, unsigned int port)
-{
-  return resolve_ip(ip.c_str(), port);
-}
-
-endpoints_t resolve_host(char const* host, unsigned int port)
-{
-  assert(host != nullptr);
-  return find_endpoints(0, host, port);
-}
-
-endpoints_t resolve_host(std::string const& host, unsigned int port)
-{
-  return resolve_host(host.c_str(), port);
-}
-
-endpoints_t local_interfaces(unsigned int port)
-{
-  return find_endpoints(0, nullptr, port);
-}
-
-endpoints_t all_interfaces(unsigned int port)
-{
-  return find_endpoints(AI_PASSIVE, nullptr, port);
+  if(addr_ != nullptr)
+  {
+    check_family(addr_->sa_family);
+  }
 }
 
 std::ostream& operator<<(std::ostream& os, endpoint_t const& endpoint)

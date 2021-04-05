@@ -17,7 +17,7 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#include "endpoint.hpp"
+#include "resolver.hpp"
 #include "system_error.hpp"
 
 #include <iostream>
