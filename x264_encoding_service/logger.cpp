@@ -46,35 +46,30 @@ char const* loglevel_string(loglevel_t level)
   return "<invalid log level>";
 }
 
-template<>
-loglevel_t parse_optval<loglevel_t>(char const* name, char const* value)
+void parse_optval(char const* name, char const* in, loglevel_t& out)
 {
-  loglevel_t result = loglevel_t::error;
-
-  if(std::strcmp(value, "error") == 0)
+  if(std::strcmp(in, "error") == 0)
   {
-    result = loglevel_t::error;
+    out = loglevel_t::error;
   }
-  else if(std::strcmp(value, "warning") == 0)
+  else if(std::strcmp(in, "warning") == 0)
   {
-    result = loglevel_t::warning;
+    out = loglevel_t::warning;
   }
-  else if(std::strcmp(value, "info") == 0)
+  else if(std::strcmp(in, "info") == 0)
   {
-    result = loglevel_t::info;
+    out = loglevel_t::info;
   }
-  else if(std::strcmp(value, "debug") == 0)
+  else if(std::strcmp(in, "debug") == 0)
   {
-    result = loglevel_t::debug;
+    out = loglevel_t::debug;
   }
   else
   {
     throw std::runtime_error(std::string("unexpected value '") +
-      value + "' for option " + name +
+      in + "' for option " + name +
       "; valid values are 'error', 'warning', 'info' and 'debug'");
   }
-
-  return result;
 }
     
 logger_t::logger_t(char const* argv0)

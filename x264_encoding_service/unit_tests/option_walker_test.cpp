@@ -597,6 +597,26 @@ void additional_type()
   assert(walker.next_index() == 3);
 }
 
+void bad_value_for_additional_type()
+{
+  char const* argv[] = { "command", "--loglevel", "unknown" };
+  int argc = sizeof argv / sizeof argv[0];
+  xes::option_walker_t walker(argc, argv);
+
+  bool caught = false;
+  try
+  {
+    xes::loglevel_t level;
+    walker.match("--loglevel", level);
+  }
+  catch(std::exception const& /* ex */)
+  {
+    // std::cout << ex.what() << std::endl;
+    caught = true;
+  }
+  assert(caught);
+}
+
 } // anonymous
 
 int main()
@@ -632,6 +652,7 @@ int main()
   unsigned_int_option();
 
   additional_type();
+  bad_value_for_additional_type();
 
   return 0;
 }

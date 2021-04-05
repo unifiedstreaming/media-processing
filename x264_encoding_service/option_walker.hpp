@@ -27,26 +27,15 @@ namespace xes
 {
 
 /*
- * Customization point for converting the string value for an option
- * called name to a value of type T. Must throw an exception with a
- * hopefully descriptive error message if the conversion fails; no
- * generic implementation provided.
+ * Convert the string value <in> for an option called <name> to a
+ * value of the type of <out>. parse_optval() throws an exception with
+ * a descriptive error message if the conversion fails. parse_optval()
+ * is a customization point: users may provide further overloads,
+ * found by ADL, for other types.
  */
-template<typename T>
-T parse_optval(char const* name, char const* value);
-
-/*
- * Predefined specializations; users may add additional
- * specializations for other types.
- */
-template<>
-int parse_optval<int>(char const* name, char const* value);
-
-template<>
-unsigned int parse_optval<unsigned int>(char const* name, char const* value);
-
-template<>
-std::string parse_optval<std::string>(char const* name, char const* value);
+void parse_optval(char const* name, char const* in, int& out);
+void parse_optval(char const* name, char const* in, unsigned int& out);
+void parse_optval(char const* name, char const* in, std::string& out);
 
 /*
  * Our option walker
@@ -64,16 +53,17 @@ struct option_walker_t
   }
 
   /*
-   * Tries to match name against the current command line option. If
-   * name matches, the option value is stored in value, the walker
-   * moves on to the potential next option, and true is returned. If
-   * name does not match, value is left unchanged, the walker stays at
-   * the current option, and false is returned.
+   * Tries to match the option <name> against the current command line
+   * option. On a match, the option value is stored in <value>, the
+   * walker moves on to the potential next option, and true is
+   * returned. If <name> does not match, <value> is left unchanged,
+   * the walker stays at the current option, and false is returned.
    *      
-   * A boolean value option is a simple flag that, if matched, simply
-   * sets value to true. If another type of option is matched, value
-   * is set to what is explictly specified on the command line by
-   * calling one of the parse_optval() specializations.
+   * Boolean options (flags) take no explicit value from the command
+   * line: if a boolean option is matched, <value> is simply set to
+   * true. If another type of option is matched, <value> is set to
+   * what is specified on the command line by calling one of the
+   * parse_optval() overloads.
    *
    * Precondition: !done().
    */
@@ -82,12 +72,12 @@ struct option_walker_t
   template<typename T>
   bool match(char const* name, T& value)
   {
-    char const* input = nullptr;
-    bool result = this->do_match(name, input);
+    char const* in = nullptr;
+    bool result = this->do_match(name, in);
     if(result)
     {
-      assert(input != nullptr);
-      value = parse_optval<T>(name, input);
+      assert(in != nullptr);
+      parse_optval(name, in, value);
     }
     return result;
   }

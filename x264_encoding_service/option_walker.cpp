@@ -101,6 +101,38 @@ unsigned int parse_unsigned(char const* name, char const* value,
     
 } // anonymous
 
+void parse_optval(char const* name, char const* in, int& out)
+{
+  static unsigned int const max = std::numeric_limits<int>::max();
+
+  if(*in == '-')
+  {
+    unsigned int unsigned_value = parse_unsigned(name, in + 1, max + 1);
+    --unsigned_value;
+
+    int signed_value = unsigned_value;
+    signed_value = -signed_value;
+    --signed_value;
+
+    out = signed_value;
+  }
+  else
+  {
+    out = parse_unsigned(name, in, max);
+  }
+}
+
+void parse_optval(char const* name, char const* in, unsigned int& out)
+{
+  static unsigned int const max = std::numeric_limits<unsigned int>::max();
+  out = parse_unsigned(name, in, max);
+}
+
+void parse_optval(char const*, char const* in, std::string& out)
+{
+  out = in;
+}
+
 option_walker_t::option_walker_t(int argc, char const* const argv[])
 : argc_(argc)
 , argv_(argv)
@@ -215,48 +247,6 @@ void option_walker_t::on_next_element()
       // long option found
     }
   }
-}
-
-template<>
-int parse_optval<int>(char const* name, char const* value)
-{
-  unsigned int max = std::numeric_limits<int>::max();
-  bool negative = *value == '-';
-  if(negative)
-  {
-    ++max;
-    ++value;
-  }
-
-  unsigned int uval = parse_unsigned(name, value, max);
-
-  int result;
-  if(negative)
-  {
-    --uval;
-    result = uval;
-    result  = -result;
-    --result;
-  }
-  else
-  {
-    result = uval;
-  }
-
-  return result;
-}
-
-template<>
-unsigned int parse_optval<unsigned int>(char const* name, char const* value)
-{
-  static unsigned int const max = std::numeric_limits<unsigned int>::max();
-  return parse_unsigned(name, value, max);
-}
-
-template<>
-std::string parse_optval<std::string>(char const*, char const* value)
-{
-  return value;
 }
 
 } // xes
