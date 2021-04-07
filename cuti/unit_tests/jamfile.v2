@@ -21,46 +21,46 @@ import testing ;
 
 unit-test fs_utils_test
 : fs_utils_test.cpp
-  ..//xes_utils
+  ..//cuti
 ;
 
 unit-test membuf_test
 : membuf_test.cpp
-  ..//xes_utils
+  ..//cuti
 ;
 
 unit-test option_walker_test
 : option_walker_test.cpp
-  ..//xes_utils
+  ..//cuti
 ;
 
 unit-test resolver_test
 : resolver_test.cpp
-  ..//xes_utils
+  ..//cuti
 ;
 
 unit-test socket_nifty_test
 : socket_nifty_test.cpp
-  ..//xes_utils
+  ..//cuti
 ;
 
 unit-test streambuf_backend_test
 : streambuf_backend_test.cpp
-  ..//xes_utils
+  ..//cuti
 ;
 
 unit-test tcp_acceptor_test
 : tcp_acceptor_test.cpp
-  ..//xes_utils
+  ..//cuti
 ;
 
 unit-test tcp_connection_test
 : tcp_connection_test.cpp
-  ..//xes_utils
+  ..//cuti
 ;
 
 unit-test tcp_socket_test
 : tcp_socket_test.cpp
-  ..//xes_utils
+  ..//cuti
 ;
 
