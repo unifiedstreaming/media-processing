@@ -12,7 +12,6 @@
 project cs_oss
 : requirements
   <cxxstd>14
-  <threading>multi
 : default-build
 # <variant>release
   <address-model>64

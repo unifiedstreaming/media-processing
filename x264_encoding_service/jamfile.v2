@@ -22,6 +22,7 @@ import package ;
 exe x264_encoding_service
 : main.cpp
   /cuti//cuti
+: <threading>multi
 ;
 
 package.install install xes

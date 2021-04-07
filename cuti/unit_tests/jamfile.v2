@@ -19,6 +19,11 @@
 
 import testing ;
 
+project
+: requirements
+  <threading>multi
+;
+
 unit-test fs_utils_test
 : fs_utils_test.cpp
   ..//cuti

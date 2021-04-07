@@ -54,6 +54,7 @@ lib cuti
 : <link>static
   <target-os>windows:<define>NOMINMAX
   <target-os>windows:<define>WIN32_LEAN_AND_MEAN
+  <threading>multi
 :
 : <include>.
 ; 
