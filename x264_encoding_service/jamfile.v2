@@ -23,10 +23,9 @@ exe x264_encoding_service
 : main.cpp
   /cuti//cuti
 : <threading>multi
+  <target-os>linux:<linkflags>-Wl,-enable-new-dtags
 ;
 
-# To get an executable-relative RUNPATH, use (bash)
-# b2 hardcode-dll-paths=true dll-path="'\$ORIGIN/../lib'" --prefix=<prefix> install
 package.install install xes
 : # properties
 : # binaries
