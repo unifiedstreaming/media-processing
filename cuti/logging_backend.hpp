@@ -20,6 +20,7 @@
 #ifndef CUTI_LOGGING_BACKEND_HPP_
 #define CUTI_LOGGING_BACKEND_HPP_
 
+#include "linkage.h"
 #include "logger.hpp"
 
 namespace cuti
@@ -30,7 +31,7 @@ namespace cuti
  * backend may assume it is not called concurrently, and is expected
  * to throw a system_exception_t on failure.
  */
-struct logging_backend_t
+struct CUTI_ABI logging_backend_t
 {
   logging_backend_t()
   { }
@@ -41,8 +42,7 @@ struct logging_backend_t
   virtual void report(loglevel_t level,
                       char const* begin_msg, char const* end_msg) = 0;
 
-  virtual ~logging_backend_t()
-  { }
+  virtual ~logging_backend_t();
 };
   
 } // cuti

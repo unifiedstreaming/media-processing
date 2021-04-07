@@ -20,6 +20,7 @@
 #ifndef CUTI_SYSLOG_BACKEND_HPP_
 #define CUTI_SYSLOG_BACKEND_HPP_
 
+#include "linkage.h"
 #include "logging_backend.hpp"
 
 #include <memory>
@@ -27,7 +28,7 @@
 namespace cuti
 {
 
-struct syslog_backend_t : logging_backend_t
+struct CUTI_ABI syslog_backend_t : logging_backend_t
 {
   explicit syslog_backend_t(char const* source_name);
 

@@ -21,6 +21,7 @@
 #define CUTI_TCP_ACCEPTOR_HPP_
 
 #include "endpoint.hpp"
+#include "linkage.h"
 #include "socket_nifty.hpp"
 #include "tcp_connection.hpp"
 #include "tcp_socket.hpp"
@@ -31,7 +32,7 @@
 namespace cuti
 {
 
-struct tcp_acceptor_t
+struct CUTI_ABI tcp_acceptor_t
 {
   explicit tcp_acceptor_t(endpoint_t const& endpoint);
 
@@ -61,7 +62,8 @@ private :
   endpoint_t local_endpoint_;
 };
 
-std::ostream& operator<<(std::ostream& os, tcp_acceptor_t const& acceptor);
+CUTI_ABI std::ostream& operator<<(std::ostream& os,
+                                  tcp_acceptor_t const& acceptor);
 
 } // cuti
 

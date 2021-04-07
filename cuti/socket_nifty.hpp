@@ -20,6 +20,8 @@
 #ifndef CUTI_SOCKET_NIFTY_HPP_
 #define CUTI_SOCKET_NIFTY_HPP_
 
+#include "linkage.h"
+
 namespace cuti
 {
 
@@ -29,7 +31,7 @@ struct socket_initializer_t;
  * Nifty counter for initializing the native socket layer. Including
  * this file ensures the socket layer is initialized.
  */
-struct socket_nifty_t
+struct CUTI_ABI socket_nifty_t
 {
   socket_nifty_t();
 

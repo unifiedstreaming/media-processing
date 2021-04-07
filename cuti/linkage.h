@@ -17,33 +17,22 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#ifndef CUTI_SYSTEM_ERROR_HPP_
-#define CUTI_SYSTEM_ERROR_HPP_
+#ifndef CUTI_LINKAGE_H_
+#define CUTI_LINKAGE_H_
 
-#include <ostream>
-#include <stdexcept>
-#include <string>
-
-#include "exception_builder.hpp"
-#include "linkage.h"
-
-namespace cuti
-{
-
-CUTI_ABI int last_system_error();
-CUTI_ABI bool is_wouldblock(int error);
-CUTI_ABI std::string system_error_string(int error);
-
-struct CUTI_ABI system_exception_t : std::runtime_error
-{
-  explicit system_exception_t(std::string complaint);
-  system_exception_t(std::string complaint, int cause);
-
-  ~system_exception_t() override;
-};
-
-using system_exception_builder_t = exception_builder_t<system_exception_t>;
-
-} // namespace cuti
-
+#ifdef _WIN32
+#define CUTI_EXPORT __declspec(dllexport)
+#define CUTI_IMPORT __declspec(dllimport)
+#else
+#define CUTI_EXPORT __attribute__ ((visibility ("default")))
+#define CUTI_IMPORT __attribute__ ((visibility ("default")))
 #endif
+
+#ifdef BUILDING_CUTI
+#define CUTI_ABI CUTI_EXPORT
+#else
+#define CUTI_ABI CUTI_IMPORT
+#endif
+
+#endif // CUTI_LINKAGE_H
+

@@ -20,6 +20,7 @@
 #ifndef CUTI_STREAMBUF_BACKEND_HPP_
 #define CUTI_STREAMBUF_BACKEND_HPP_
 
+#include "linkage.h"
 #include "logging_backend.hpp"
 
 #include <iosfwd>
@@ -38,7 +39,7 @@ namespace cuti
  * ostreams are synchronized.  See the C++14 standard, clauses 27.2.3
  * and and 27.4.1.
  */
-struct streambuf_backend_t : logging_backend_t
+struct CUTI_ABI streambuf_backend_t : logging_backend_t
 {
   explicit streambuf_backend_t(std::streambuf* sb);
   explicit streambuf_backend_t(std::ostream& os);

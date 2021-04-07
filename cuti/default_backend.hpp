@@ -20,6 +20,7 @@
 #ifndef CUTI_DEFAULT_BACKEND_HPP_
 #define CUTI_DEFAULT_BACKEND_HPP_
 
+#include "linkage.h"
 #include "logging_backend.hpp"
 
 #include <string>
@@ -33,7 +34,7 @@ namespace cuti
  * backend has been set. It is intended as a fallback during early
  * startup before a more sophisticated backend is set.
  */
-struct default_backend_t : logging_backend_t
+struct CUTI_ABI default_backend_t : logging_backend_t
 {
   explicit default_backend_t(char const* argv0);
 

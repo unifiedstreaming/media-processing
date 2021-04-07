@@ -20,6 +20,7 @@
 #ifndef CUTI_LOGGING_CONTEXT_HPP_
 #define CUTI_LOGGING_CONTEXT_HPP_
 
+#include "linkage.h"
 #include "logger.hpp"
 #include "membuf.hpp"
 
@@ -29,7 +30,7 @@
 namespace cuti
 {
 
-struct log_message_t : std::ostream
+struct CUTI_ABI log_message_t : std::ostream
 {
   log_message_t(logger_t& logger, loglevel_t level);
 
@@ -44,7 +45,7 @@ private :
   membuf_t buf_;
 };
 
-struct logging_context_t
+struct CUTI_ABI logging_context_t
 {
   logging_context_t(logger_t& logger, loglevel_t level)
   : logger_(logger)

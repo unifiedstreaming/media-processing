@@ -21,6 +21,7 @@
 #define CUTI_TCP_SOCKET_HPP_
 
 #include "endpoint.hpp"
+#include "linkage.h"
 #include "socket_nifty.hpp"
 
 #include <memory>
@@ -35,7 +36,7 @@ namespace cuti
  * that is, not holding an open file descriptor. Only re-assignment
  * and destruction make sense in that state.
  */
-struct tcp_socket_t
+struct CUTI_ABI tcp_socket_t
 {
   tcp_socket_t() noexcept
   : fd_(-1)

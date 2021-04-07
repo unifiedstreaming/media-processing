@@ -20,6 +20,7 @@
 #ifndef CUTI_FILE_BACKEND_HPP_
 #define CUTI_FILE_BACKEND_HPP_
 
+#include "linkage.h"
 #include "logging_backend.hpp"
 
 #include <memory>
@@ -36,7 +37,7 @@ namespace cuti
  * filename will lead to spectacular behaviour when rotation is
  * enabled.
  */
-struct file_backend_t : logging_backend_t
+struct CUTI_ABI file_backend_t : logging_backend_t
 {
   struct log_handle_t;
 

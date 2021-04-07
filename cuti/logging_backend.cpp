@@ -17,33 +17,12 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#ifndef CUTI_SYSTEM_ERROR_HPP_
-#define CUTI_SYSTEM_ERROR_HPP_
-
-#include <ostream>
-#include <stdexcept>
-#include <string>
-
-#include "exception_builder.hpp"
-#include "linkage.h"
+#include "logging_backend.hpp"
 
 namespace cuti
 {
 
-CUTI_ABI int last_system_error();
-CUTI_ABI bool is_wouldblock(int error);
-CUTI_ABI std::string system_error_string(int error);
+logging_backend_t::~logging_backend_t()
+{ }
 
-struct CUTI_ABI system_exception_t : std::runtime_error
-{
-  explicit system_exception_t(std::string complaint);
-  system_exception_t(std::string complaint, int cause);
-
-  ~system_exception_t() override;
-};
-
-using system_exception_builder_t = exception_builder_t<system_exception_t>;
-
-} // namespace cuti
-
-#endif
+} // cuti

@@ -20,13 +20,15 @@
 #ifndef CUTI_SCOPED_THREAD_HPP_
 #define CUTI_SCOPED_THREAD_HPP_
 
+#include "linkage.h"
+
 #include <functional>
 #include <thread>
 
 namespace cuti
 {
 
-struct scoped_thread_t
+struct CUTI_ABI scoped_thread_t
 {
   explicit scoped_thread_t(std::function<void()> f);
 

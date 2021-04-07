@@ -20,6 +20,7 @@
 #ifndef CUTI_ENDPOINT_HPP_
 #define CUTI_ENDPOINT_HPP_
 
+#include "linkage.h"
 #include "socket_nifty.hpp"
 
 #include <memory>
@@ -34,7 +35,7 @@ namespace cuti
 struct resolver_t;
 struct tcp_socket_t;
 
-struct endpoint_t
+struct CUTI_ABI endpoint_t
 {
   // Constructs an empty endpoint; access verboten. To obtain real,
   // non-empty endpoints, use the factory functions in resolver.hpp.
@@ -63,6 +64,7 @@ private :
   std::shared_ptr<sockaddr const> addr_;
 };
 
+CUTI_ABI
 std::ostream& operator<<(std::ostream& os, endpoint_t const& endpoint);
 
 } // namespace cuti

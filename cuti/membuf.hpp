@@ -20,12 +20,14 @@
 #ifndef CUTI_MEMBUF_HPP_
 #define CUTI_MEMBUF_HPP_
 
+#include "linkage.h"
+
 #include <streambuf>
 
 namespace cuti
 {
 
-struct membuf_t : std::streambuf
+struct CUTI_ABI membuf_t : std::streambuf
 {
   membuf_t();
 

@@ -20,6 +20,8 @@
 #ifndef CUTI_LOGGER_HPP_
 #define CUTI_LOGGER_HPP_
 
+#include "linkage.h"
+
 #include <chrono>
 #include <cstring>
 #include <memory>
@@ -31,14 +33,14 @@ namespace cuti
 
 enum class loglevel_t { error, warning, info, debug };
 
-char const *loglevel_string(loglevel_t level);
+CUTI_ABI char const *loglevel_string(loglevel_t level);
 
 // Enable option value parsing for loglevel_t
-void parse_optval(char const* name, char const* in, loglevel_t& out);
+CUTI_ABI void parse_optval(char const* name, char const* in, loglevel_t& out);
 
 struct logging_backend_t;
 
-struct logger_t
+struct CUTI_ABI logger_t
 {
   explicit logger_t(char const* argv0);
 

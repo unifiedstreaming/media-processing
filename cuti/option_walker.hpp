@@ -20,6 +20,8 @@
 #ifndef CUTI_OPTION_WALKER_HPP_
 #define CUTI_OPTION_WALKER_HPP_
 
+#include "linkage.h"
+
 #include <cassert>
 #include <string>
 
@@ -33,14 +35,17 @@ namespace cuti
  * parse_optval() is a customization point: users may provide further
  * overloads, found by ADL, for other types of <out>.
  */
-void parse_optval(char const* name, char const* in, int& out);
-void parse_optval(char const* name, char const* in, unsigned int& out);
-void parse_optval(char const* name, char const* in, std::string& out);
+CUTI_ABI void parse_optval(char const* name, char const* in,
+                           int& out);
+CUTI_ABI void parse_optval(char const* name, char const* in,
+                           unsigned int& out);
+CUTI_ABI void parse_optval(char const* name, char const* in,
+                           std::string& out);
 
 /*
  * Our option walker
  */
-struct option_walker_t
+struct CUTI_ABI option_walker_t
 {
   option_walker_t(int argc, char const* const argv[]);
 

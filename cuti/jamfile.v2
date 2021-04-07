@@ -30,13 +30,47 @@ else
   alias ws2_32 : ;
 }
 
+constant CUTI_VERSION_SUFFIX : _0_0_0 ;
+
+rule cuti-dll-name ( name : type ? : properties * )
+{
+  if $(type) != SHARED_LIB
+  {
+    return "" ;
+  }
+
+  local prefix ;
+  local extension ;
+  if [ os.name ] = NT
+  {
+    prefix = "" ;
+    extension = ".dll" ;
+  }
+  else if [ os.name ] = MACOSX
+  {
+    prefix = "" ;
+    extension = ".dylib" ;
+  }
+  else
+  {
+    prefix = "lib" ;
+    extension = ".so" ;
+  }
+
+  local result = "$(prefix)$(name)$(CUTI_VERSION_SUFFIX)$(extension)" ;
+# echo "cuti-dll-name: mapped $(name) to $(result)" ;
+  return $(result) ;
+}
+
 lib cuti
-: default_backend.cpp
+:
+  default_backend.cpp
   endpoint.cpp
   file_backend.cpp
   fs_utils.cpp
   format.cpp
   logger.cpp
+  logging_backend.cpp
   logging_context.cpp
   membuf.cpp
   option_walker.cpp
@@ -51,10 +85,19 @@ lib cuti
   tcp_socket.cpp
   advapi32
   ws2_32
-: <link>static
+:
+  <toolset>msvc:<cxxflags>/wd4251 # class needs to have dll-interface 
+  <toolset>msvc:<cxxflags>/wd4275 # non dll-interface class used as base
+  <define>BUILDING_CUTI
+  <link>shared
+  <tag>@cuti-dll-name
   <target-os>windows:<define>NOMINMAX
   <target-os>windows:<define>WIN32_LEAN_AND_MEAN
   <threading>multi
+  <visibility>hidden
 :
-: <include>.
+:
+  <toolset>msvc:<cxxflags>/wd4251 # class needs to have dll-interface 
+  <toolset>msvc:<cxxflags>/wd4275 # non dll-interface class used as base
+  <include>.
 ; 

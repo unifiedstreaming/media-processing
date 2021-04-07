@@ -21,6 +21,7 @@
 #define CUTI_TCP_CONNECTION_HPP_
 
 #include "endpoint.hpp"
+#include "linkage.h"
 #include "socket_nifty.hpp"
 #include "tcp_socket.hpp"
 
@@ -33,7 +34,7 @@ namespace cuti
 
 struct tcp_acceptor_t;
 
-struct tcp_connection_t
+struct CUTI_ABI tcp_connection_t
 {
   explicit tcp_connection_t(endpoint_t const& peer);
 
@@ -80,14 +81,15 @@ private :
   endpoint_t remote_endpoint_;
 };
 
-std::ostream& operator<<(std::ostream& os, tcp_connection_t const& connection);
+CUTI_ABI std::ostream& operator<<(std::ostream& os,
+                                  tcp_connection_t const& connection);
 
-std::pair<std::unique_ptr<tcp_connection_t>,
-          std::unique_ptr<tcp_connection_t>>
+CUTI_ABI std::pair<std::unique_ptr<tcp_connection_t>,
+                   std::unique_ptr<tcp_connection_t>>
 make_connected_pair(endpoint_t const& interface);
 
-std::pair<std::unique_ptr<tcp_connection_t>,
-          std::unique_ptr<tcp_connection_t>>
+CUTI_ABI std::pair<std::unique_ptr<tcp_connection_t>,
+                   std::unique_ptr<tcp_connection_t>>
 make_connected_pair();
 
 } // cuti

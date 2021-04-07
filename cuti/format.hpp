@@ -20,6 +20,7 @@
 #ifndef CUTI_FORMAT_HPP_
 #define CUTI_FORMAT_HPP_
 
+#include "linkage.h"
 #include "logger.hpp"
 
 #include <chrono>
@@ -28,13 +29,13 @@
 namespace cuti
 {
 
-void format_unsigned(std::streambuf& target, unsigned int number,
-                     int width = 0);
-void format_string(std::streambuf& target, const char* str,
-                   int width = 0);
-void format_loglevel(std::streambuf& target, loglevel_t level);
-void format_timepoint(std::streambuf& target,
-                      std::chrono::system_clock::time_point tp);
+CUTI_ABI void format_unsigned(std::streambuf& target, unsigned int number,
+                              int width = 0);
+CUTI_ABI void format_string(std::streambuf& target, const char* str,
+                            int width = 0);
+CUTI_ABI void format_loglevel(std::streambuf& target, loglevel_t level);
+CUTI_ABI void format_timepoint(std::streambuf& target,
+                               std::chrono::system_clock::time_point tp);
 
 } // namespace cuti
 
