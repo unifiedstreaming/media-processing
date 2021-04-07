@@ -30,9 +30,6 @@
 #include <string>
 #include <thread>
 
-namespace xes
-{
-
 namespace // anonymous
 {
 
@@ -87,9 +84,9 @@ struct options_t
   explicit options_t(char const* argv0)
   : delay_(0)
   , logfile_("")
-  , logfile_size_limit_(xes::file_backend_t::no_size_limit_)
+  , logfile_size_limit_(cuti::file_backend_t::no_size_limit_)
   , n_messages_(default_n_messages_)
-  , rotation_depth_(file_backend_t::default_rotation_depth_)
+  , rotation_depth_(cuti::file_backend_t::default_rotation_depth_)
   , service_name_(default_service_name(argv0))
   , syslog_(false)
   { }
@@ -103,7 +100,7 @@ struct options_t
   bool syslog_;
 };
 
-void read_options(options_t& options, option_walker_t& walker)
+void read_options(options_t& options, cuti::option_walker_t& walker)
 {
   while(!walker.done())
   {
@@ -146,7 +143,7 @@ void print_usage(std::ostream& os, char const* argv0)
 
     << "  --rotation-depth <depth>     sets logfile rotation depth\n"
     << "                                 (default: "
-    << file_backend_t::default_rotation_depth_ << ")\n"
+    << cuti::file_backend_t::default_rotation_depth_ << ")\n"
 
     << "  --service-name <name>        sets service name\n"
     << "                                 (default: "
@@ -160,7 +157,7 @@ void print_usage(std::ostream& os, char const* argv0)
 int throwing_main(int argc, char const* const argv[])
 {
   options_t options(argv[0]);
-  option_walker_t walker(argc, argv);
+  cuti::option_walker_t walker(argc, argv);
   read_options(options, walker);
 
   if(!walker.done() || walker.next_index() != argc)
@@ -169,38 +166,38 @@ int throwing_main(int argc, char const* const argv[])
     return 1;
   }
 
-  xes::logger_t logger(argv[0]);
+  cuti::logger_t logger(argv[0]);
   if(!options.logfile_.empty())
   {
-    logger.set_backend(std::make_unique<file_backend_t>(
+    logger.set_backend(std::make_unique<cuti::file_backend_t>(
       options.logfile_, options.logfile_size_limit_,
       options.rotation_depth_));
   }
   else if(options.syslog_)
   {
-    logger.set_backend(std::make_unique<syslog_backend_t>(
+    logger.set_backend(std::make_unique<cuti::syslog_backend_t>(
       options.service_name_.c_str()));
   }
   else
   {
-    logger.set_backend(std::make_unique<streambuf_backend_t>(std::cerr));
+    logger.set_backend(std::make_unique<cuti::streambuf_backend_t>(std::cerr));
   }
 
-  loglevel_t loglevel = loglevel_t::error;
+  auto loglevel = cuti::loglevel_t::error;
   for(unsigned int i = 0; i != options.n_messages_; ++i)
   {
     logger.report(loglevel, "logging message #" + std::to_string(i));
 
     switch(loglevel)
     {
-    case loglevel_t::error :
-      loglevel = loglevel_t::warning; break;
-    case loglevel_t::warning :
-      loglevel = loglevel_t::info; break;
-    case loglevel_t::info : loglevel =
-      loglevel_t::debug; break;
+    case cuti::loglevel_t::error :
+      loglevel = cuti::loglevel_t::warning; break;
+    case cuti::loglevel_t::warning :
+      loglevel = cuti::loglevel_t::info; break;
+    case cuti::loglevel_t::info :
+      loglevel = cuti::loglevel_t::debug; break;
     default :
-      loglevel = loglevel_t::error; break;
+      loglevel = cuti::loglevel_t::error; break;
     }
 
     if(options.delay_ != 0)
@@ -209,14 +206,12 @@ int throwing_main(int argc, char const* const argv[])
     }
   }
 
-  logger.report(loglevel_t::info, "exiting...");
+  logger.report(cuti::loglevel_t::info, "exiting...");
 
   return 0;
 }
   
 } // anonymous
-
-} // xes
 
 int main(int argc, char* argv[])
 {
@@ -224,7 +219,7 @@ int main(int argc, char* argv[])
 
   try
   {
-    result = xes::throwing_main(argc, argv);
+    result = throwing_main(argc, argv);
   }
   catch(std::exception const& ex)
   {

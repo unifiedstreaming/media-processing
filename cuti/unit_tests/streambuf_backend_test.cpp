@@ -1,19 +1,19 @@
 /*
  * Copyright (C) 2021 CodeShop B.V.
  *
- * This file is part of the x264_encoding_service.
+ * This file is part of the cuti library.
  *
- * The x264_encoding_service is free software: you can redistribute it
+ * The cuti library is free software: you can redistribute it
  * and/or modify it under the terms of version 2 of the GNU General
  * Public License as published by the Free Software Foundation.
  *
- * The x264_encoding_service is distributed in the hope that it will
+ * The cuti library is distributed in the hope that it will
  * be useful, but WITHOUT ANY WARRANTY; without even the implied
  * warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  * See version 2 of the GNU General Public License for more details.
  *
  * You should have received a copy of version 2 of the GNU General
- * Public License along with the x264_encoding_service.  If not, see
+ * Public License along with the cuti library.  If not, see
  * <http://www.gnu.org/licenses/>.
  */
 
@@ -80,20 +80,20 @@ private :
   unsigned int countdown_;
 };
 
-void log_away(xes::logger_t& logger, unsigned int n, unsigned int tid)
+void log_away(cuti::logger_t& logger, unsigned int n, unsigned int tid)
 {
   for(unsigned int i = 0; i != n; ++i)
   {
-    logger.report(xes::loglevel_t::error,
+    logger.report(cuti::loglevel_t::error,
       "event(e) " +  std::to_string(i) +
       " from thread <" + std::to_string(tid) + ">");
-    logger.report(xes::loglevel_t::warning,
+    logger.report(cuti::loglevel_t::warning,
       "event(w) " +  std::to_string(i) +
       " from thread <" + std::to_string(tid) + ">");
-    logger.report(xes::loglevel_t::info,
+    logger.report(cuti::loglevel_t::info,
       "event(i) " +  std::to_string(i) +
       " from thread <" + std::to_string(tid) + ">");
-    logger.report(xes::loglevel_t::debug,
+    logger.report(cuti::loglevel_t::debug,
       "event(d) " +  std::to_string(i) +
       " from thread <" + std::to_string(tid) + ">");
   }
@@ -119,9 +119,9 @@ unsigned int count_newlines(std::string const& in)
   return count(in, "\n");
 }
 
-unsigned int count_level(std::string const& in, xes::loglevel_t level)
+unsigned int count_level(std::string const& in, cuti::loglevel_t level)
 {
-  return count(in, xes::loglevel_string(level));
+  return count(in, cuti::loglevel_string(level));
 }
 
 unsigned int count_tid(std::string const& in, unsigned int tid)
@@ -134,9 +134,9 @@ void test_single_threaded(char const* argv0)
 {
   const unsigned int n_events = 100;
 
-  xes::logger_t logger(argv0);
+  cuti::logger_t logger(argv0);
   std::stringstream strm;
-  logger.set_backend(std::make_unique<xes::streambuf_backend_t>(strm));
+  logger.set_backend(std::make_unique<cuti::streambuf_backend_t>(strm));
   log_away(logger, n_events, 0);
   std::string s = strm.str();
 
@@ -144,10 +144,10 @@ void test_single_threaded(char const* argv0)
   std::cout << s << std::endl;
 #endif
 
-  assert(count_level(s, xes::loglevel_t::error) == n_events);
-  assert(count_level(s, xes::loglevel_t::warning) == n_events);
-  assert(count_level(s, xes::loglevel_t::info) == n_events);
-  assert(count_level(s, xes::loglevel_t::debug) == n_events);
+  assert(count_level(s, cuti::loglevel_t::error) == n_events);
+  assert(count_level(s, cuti::loglevel_t::warning) == n_events);
+  assert(count_level(s, cuti::loglevel_t::info) == n_events);
+  assert(count_level(s, cuti::loglevel_t::debug) == n_events);
 
   assert(count_newlines(s) == 4 * n_events);
 }
@@ -157,13 +157,13 @@ void test_multi_threaded(char const* argv0)
   const unsigned int n_threads = 10;
   const unsigned int n_events = 100;
 
-  xes::logger_t logger(argv0);
+  cuti::logger_t logger(argv0);
   std::stringstream strm;
-  logger.set_backend(std::make_unique<xes::streambuf_backend_t>(strm));
+  logger.set_backend(std::make_unique<cuti::streambuf_backend_t>(strm));
 
   thundering_herd_fence_t fence(n_threads);
   {
-    std::vector<std::unique_ptr<xes::scoped_thread_t>> threads;
+    std::vector<std::unique_ptr<cuti::scoped_thread_t>> threads;
     for(unsigned int tid = 0; tid != n_threads; ++tid)
     {
       auto code = [&, tid]
@@ -172,7 +172,7 @@ void test_multi_threaded(char const* argv0)
         log_away(logger, n_events, tid);
       };
 
-      threads.push_back(std::make_unique<xes::scoped_thread_t>(code));
+      threads.push_back(std::make_unique<cuti::scoped_thread_t>(code));
     }
   }
   
@@ -182,10 +182,10 @@ void test_multi_threaded(char const* argv0)
   std::cout << s << std::endl;
 #endif
 
-  assert(count_level(s, xes::loglevel_t::error) == n_events * n_threads);
-  assert(count_level(s, xes::loglevel_t::warning) == n_events * n_threads);
-  assert(count_level(s, xes::loglevel_t::info) == n_events * n_threads);
-  assert(count_level(s, xes::loglevel_t::debug) == n_events * n_threads);
+  assert(count_level(s, cuti::loglevel_t::error) == n_events * n_threads);
+  assert(count_level(s, cuti::loglevel_t::warning) == n_events * n_threads);
+  assert(count_level(s, cuti::loglevel_t::info) == n_events * n_threads);
+  assert(count_level(s, cuti::loglevel_t::debug) == n_events * n_threads);
 
   for(unsigned int tid = 0; tid != n_threads; ++tid)
   {

@@ -1,19 +1,19 @@
 /*
  * Copyright (C) 2021 CodeShop B.V.
  *
- * This file is part of the x264_encoding_service.
+ * This file is part of the cuti library.
  *
- * The x264_encoding_service is free software: you can redistribute it
+ * The cuti library is free software: you can redistribute it
  * and/or modify it under the terms of version 2 of the GNU General
  * Public License as published by the Free Software Foundation.
  *
- * The x264_encoding_service is distributed in the hope that it will
+ * The cuti library is distributed in the hope that it will
  * be useful, but WITHOUT ANY WARRANTY; without even the implied
  * warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  * See version 2 of the GNU General Public License for more details.
  *
  * You should have received a copy of version 2 of the GNU General
- * Public License along with the x264_encoding_service.  If not, see
+ * Public License along with the cuti library.  If not, see
  * <http://www.gnu.org/licenses/>.
  */
 
@@ -35,7 +35,7 @@ void no_options_no_args()
 {
   char const* argv[] = { "command" };
   int argc = sizeof argv / sizeof argv[0];
-  xes::option_walker_t walker(argc, argv);
+  cuti::option_walker_t walker(argc, argv);
 
   assert(walker.done());
   assert(walker.next_index() == 1);
@@ -45,7 +45,7 @@ void matching_flag()
 {
   char const* argv[] = { "command", "--flag" };
   int argc = sizeof argv / sizeof argv[0];
-  xes::option_walker_t walker(argc, argv);
+  cuti::option_walker_t walker(argc, argv);
 
   bool flag = false;
 
@@ -66,7 +66,7 @@ void non_matching_flag()
 {
   char const* argv[] = { "command", "--notflag" };
   int argc = sizeof argv / sizeof argv[0];
-  xes::option_walker_t walker(argc, argv);
+  cuti::option_walker_t walker(argc, argv);
 
   bool flag = false;
 
@@ -86,7 +86,7 @@ void underscore_matches_hyphen()
 {
   char const* argv[] = { "command", "--flag_option" };
   int argc = sizeof argv / sizeof argv[0];
-  xes::option_walker_t walker(argc, argv);
+  cuti::option_walker_t walker(argc, argv);
 
   bool flag = false;
 
@@ -107,7 +107,7 @@ void hyphen_matches_underscore()
 {
   char const* argv[] = { "command", "--flag-option" };
   int argc = sizeof argv / sizeof argv[0];
-  xes::option_walker_t walker(argc, argv);
+  cuti::option_walker_t walker(argc, argv);
 
   bool flag = false;
 
@@ -128,7 +128,7 @@ void multiple_flags()
 {
   char const* argv[] = { "command", "--flag1", "--flag2" };
   int argc = sizeof argv / sizeof argv[0];
-  xes::option_walker_t walker(argc, argv);
+  cuti::option_walker_t walker(argc, argv);
 
   bool flag1 = false;
   bool flag2 = false;
@@ -152,7 +152,7 @@ void value_assign()
 {
   char const* argv[] = { "command", "--option=value" };
   int argc = sizeof argv / sizeof argv[0];
-  xes::option_walker_t walker(argc, argv);
+  cuti::option_walker_t walker(argc, argv);
 
   std::string option;
 
@@ -173,7 +173,7 @@ void value_separate()
 {
   char const* argv[] = { "command", "--option", "value" };
   int argc = sizeof argv / sizeof argv[0];
-  xes::option_walker_t walker(argc, argv);
+  cuti::option_walker_t walker(argc, argv);
 
   std::string option;
 
@@ -194,7 +194,7 @@ void missing_value()
 {
   char const* argv[] = { "command", "--option" } ;
   int argc = sizeof argv / sizeof argv[0];
-  xes::option_walker_t walker(argc, argv);
+  cuti::option_walker_t walker(argc, argv);
 
   std::string option;
 
@@ -216,7 +216,7 @@ void two_values()
                          "--option1", "value1",
                          "--option2", "value2" };
   int argc = sizeof argv / sizeof argv[0];
-  xes::option_walker_t walker(argc, argv);
+  cuti::option_walker_t walker(argc, argv);
 
   std::string option1;
   std::string option2;
@@ -240,7 +240,7 @@ void single_arg()
 {
   char const* argv[] = { "command", "arg" };
   int argc = sizeof argv / sizeof argv[0];
-  xes::option_walker_t walker(argc, argv);
+  cuti::option_walker_t walker(argc, argv);
 
   assert(walker.done());
   assert(walker.next_index() == 1);
@@ -250,7 +250,7 @@ void multiple_args()
 {
   char const* argv[] = { "command", "arg1", "arg2" };
   int argc = sizeof argv / sizeof argv[0];
-  xes::option_walker_t walker(argc, argv);
+  cuti::option_walker_t walker(argc, argv);
 
   assert(walker.done());
   assert(walker.next_index() == 1);
@@ -260,7 +260,7 @@ void hyphens_at_start()
 {
   char const* argv[] = { "command", "--", "--arg" };
   int argc = sizeof argv / sizeof argv[0];
-  xes::option_walker_t walker(argc, argv);
+  cuti::option_walker_t walker(argc, argv);
 
   assert(walker.done());
   assert(walker.next_index() == 2);
@@ -270,7 +270,7 @@ void hyphens_in_middle()
 {
   char const* argv[] = { "command", "--flag", "--", "--arg" };
   int argc = sizeof argv / sizeof argv[0];
-  xes::option_walker_t walker(argc, argv);
+  cuti::option_walker_t walker(argc, argv);
 
   bool flag = false;
 
@@ -291,7 +291,7 @@ void hyphens_at_end()
 {
   char const* argv[] = { "command", "--flag1", "--flag2", "--" };
   int argc = sizeof argv / sizeof argv[0];
-  xes::option_walker_t walker(argc, argv);
+  cuti::option_walker_t walker(argc, argv);
 
   bool flag1 = false;
   bool flag2 = false;
@@ -315,7 +315,7 @@ void single_short_flag()
 {
   char const* argv[] = { "command", "-f" };
   int argc = sizeof argv / sizeof argv[0];
-  xes::option_walker_t walker(argc, argv);
+  cuti::option_walker_t walker(argc, argv);
 
   bool flag = false;
 
@@ -336,7 +336,7 @@ void multiple_short_flags()
 {
   char const* argv[] = { "command", "-f", "-g" };
   int argc = sizeof argv / sizeof argv[0];
-  xes::option_walker_t walker(argc, argv);
+  cuti::option_walker_t walker(argc, argv);
 
   bool fflag = false;
   bool gflag = false;
@@ -360,7 +360,7 @@ void abbreviated_flags()
 {
   char const* argv[] = { "command", "-fg" };
   int argc = sizeof argv / sizeof argv[0];
-  xes::option_walker_t walker(argc, argv);
+  cuti::option_walker_t walker(argc, argv);
 
   bool fflag = false;
   bool gflag = false;
@@ -384,7 +384,7 @@ void short_value()
 {
   char const* argv[] = { "command", "-o", "value" };
   int argc = sizeof argv / sizeof argv[0];
-  xes::option_walker_t walker(argc, argv);
+  cuti::option_walker_t walker(argc, argv);
 
   std::string option;
 
@@ -405,7 +405,7 @@ void value_in_abbreviation()
 {
   char const* argv[] = { "command", "-fo", "value" };
   int argc = sizeof argv / sizeof argv[0];
-  xes::option_walker_t walker(argc, argv);
+  cuti::option_walker_t walker(argc, argv);
 
   bool flag;
   std::string option;
@@ -428,7 +428,7 @@ void short_value_assign()
 {
   char const* argv[] = { "command", "-o=value" };
   int argc = sizeof argv / sizeof argv[0];
-  xes::option_walker_t walker(argc, argv);
+  cuti::option_walker_t walker(argc, argv);
 
   std::string option;
 
@@ -448,7 +448,7 @@ void missing_short_value()
 {
   char const* argv[] = { "command", "-o" };
   int argc = sizeof argv / sizeof argv[0];
-  xes::option_walker_t walker(argc, argv);
+  cuti::option_walker_t walker(argc, argv);
 
   std::string option;
 
@@ -468,7 +468,7 @@ void int_option()
 {
   char const* argv[] = { "command", "--number", "42" };
   int argc = sizeof argv / sizeof argv[0];
-  xes::option_walker_t walker(argc, argv);
+  cuti::option_walker_t walker(argc, argv);
 
   int number = 0;
 
@@ -489,7 +489,7 @@ void negative_int_option()
 {
   char const* argv[] = { "command", "--number", "-42" };
   int argc = sizeof argv / sizeof argv[0];
-  xes::option_walker_t walker(argc, argv);
+  cuti::option_walker_t walker(argc, argv);
 
   int number = 0;
 
@@ -513,7 +513,7 @@ void int_option_overflow()
 
   char const* argv[] = { "command", "--number", too_much.c_str() };
   int argc = sizeof argv / sizeof argv[0];
-  xes::option_walker_t walker(argc, argv);
+  cuti::option_walker_t walker(argc, argv);
 
   bool caught = false;
   try
@@ -536,7 +536,7 @@ void int_option_underflow()
 
   char const* argv[] = { "command", "--number", too_little.c_str() };
   int argc = sizeof argv / sizeof argv[0];
-  xes::option_walker_t walker(argc, argv);
+  cuti::option_walker_t walker(argc, argv);
 
   bool caught = false;
   try
@@ -559,7 +559,7 @@ void unsigned_int_option()
   
   char const* argv[] = { "command", "--number", value_string.c_str() };
   int argc = sizeof argv / sizeof argv[0];
-  xes::option_walker_t walker(argc, argv);
+  cuti::option_walker_t walker(argc, argv);
 
   unsigned int number = 0;
 
@@ -580,9 +580,9 @@ void additional_type()
 {
   char const* argv[] = { "command", "--loglevel", "info" };
   int argc = sizeof argv / sizeof argv[0];
-  xes::option_walker_t walker(argc, argv);
+  cuti::option_walker_t walker(argc, argv);
 
-  xes::loglevel_t level = xes::loglevel_t::error;
+  cuti::loglevel_t level = cuti::loglevel_t::error;
 
   while(!walker.done())
   {
@@ -593,7 +593,7 @@ void additional_type()
   }
 
   assert(walker.done());
-  assert(level == xes::loglevel_t::info);
+  assert(level == cuti::loglevel_t::info);
   assert(walker.next_index() == 3);
 }
 
@@ -601,12 +601,12 @@ void bad_value_for_additional_type()
 {
   char const* argv[] = { "command", "--loglevel", "unknown" };
   int argc = sizeof argv / sizeof argv[0];
-  xes::option_walker_t walker(argc, argv);
+  cuti::option_walker_t walker(argc, argv);
 
   bool caught = false;
   try
   {
-    xes::loglevel_t level;
+    cuti::loglevel_t level;
     walker.match("--loglevel", level);
   }
   catch(std::exception const& /* ex */)

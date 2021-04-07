@@ -1,19 +1,19 @@
 /*
  * Copyright (C) 2021 CodeShop B.V.
  *
- * This file is part of the x264_encoding_service.
+ * This file is part of the cuti library.
  *
- * The x264_encoding_service is free software: you can redistribute it
+ * The cuti library is free software: you can redistribute it
  * and/or modify it under the terms of version 2 of the GNU General
  * Public License as published by the Free Software Foundation.
  *
- * The x264_encoding_service is distributed in the hope that it will
+ * The cuti library is distributed in the hope that it will
  * be useful, but WITHOUT ANY WARRANTY; without even the implied
  * warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  * See version 2 of the GNU General Public License for more details.
  *
  * You should have received a copy of version 2 of the GNU General
- * Public License along with the x264_encoding_service.  If not, see
+ * Public License along with the cuti library.  If not, see
  * <http://www.gnu.org/licenses/>.
  */
 
@@ -27,7 +27,7 @@
 
 #include <windows.h>
 
-namespace xes
+namespace cuti
 {
 
 struct syslog_backend_t::impl_t
@@ -81,13 +81,13 @@ private :
   HANDLE handle_;
 };
 
-} // namespace xes
+} // namespace cuti
 
 #else // POSIX
 
 #include <syslog.h>
 
-namespace xes
+namespace cuti
 {
 
 struct syslog_backend_t::impl_t
@@ -128,11 +128,11 @@ private :
   std::string source_name_;
 };
 
-} // namespace xes
+} // namespace cuti
 
 #endif
 
-namespace xes
+namespace cuti
 {
 
 syslog_backend_t::syslog_backend_t(char const* source_name)
@@ -153,4 +153,4 @@ void syslog_backend_t::report(loglevel_t level,
 syslog_backend_t::~syslog_backend_t()
 { }
 
-} // namespace xes
+} // namespace cuti

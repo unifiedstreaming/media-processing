@@ -1,19 +1,19 @@
 /*
  * Copyright (C) 2021 CodeShop B.V.
  *
- * This file is part of the x264_encoding_service.
+ * This file is part of the cuti library.
  *
- * The x264_encoding_service is free software: you can redistribute it
+ * The cuti library is free software: you can redistribute it
  * and/or modify it under the terms of version 2 of the GNU General
  * Public License as published by the Free Software Foundation.
  *
- * The x264_encoding_service is distributed in the hope that it will
+ * The cuti library is distributed in the hope that it will
  * be useful, but WITHOUT ANY WARRANTY; without even the implied
  * warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  * See version 2 of the GNU General Public License for more details.
  *
  * You should have received a copy of version 2 of the GNU General
- * Public License along with the x264_encoding_service.  If not, see
+ * Public License along with the cuti library.  If not, see
  * <http://www.gnu.org/licenses/>.
  */
 
@@ -31,13 +31,13 @@ namespace // anonymous
 
 void socket_state_for_family(int family)
 {
-  xes::tcp_socket_t sock0;
+  cuti::tcp_socket_t sock0;
   assert(sock0.empty());
 
-  xes::tcp_socket_t sock1(family);
+  cuti::tcp_socket_t sock1(family);
   assert(!sock1.empty());
 
-  xes::tcp_socket_t sock2 = std::move(sock1);
+  cuti::tcp_socket_t sock2 = std::move(sock1);
   assert(sock1.empty());
   assert(!sock2.empty());
 
@@ -62,7 +62,7 @@ void socket_state_for_family(int family)
   
 void socket_state()
 {
-  auto interfaces = xes::local_interfaces(xes::any_port);
+  auto interfaces = cuti::local_interfaces(cuti::any_port);
   for(auto const& interface : interfaces)
   {
     socket_state_for_family(interface.address_family());

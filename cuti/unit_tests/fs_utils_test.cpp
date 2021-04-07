@@ -1,19 +1,19 @@
 /*
  * Copyright (C) 2021 CodeShop B.V.
  *
- * This file is part of the x264_encoding_service.
+ * This file is part of the cuti library.
  *
- * The x264_encoding_service is free software: you can redistribute it
+ * The cuti library is free software: you can redistribute it
  * and/or modify it under the terms of version 2 of the GNU General
  * Public License as published by the Free Software Foundation.
  *
- * The x264_encoding_service is distributed in the hope that it will
+ * The cuti library is distributed in the hope that it will
  * be useful, but WITHOUT ANY WARRANTY; without even the implied
  * warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  * See version 2 of the GNU General Public License for more details.
  *
  * You should have received a copy of version 2 of the GNU General
- * Public License along with the x264_encoding_service.  If not, see
+ * Public License along with the cuti library.  If not, see
  * <http://www.gnu.org/licenses/>.
  */
 
@@ -33,23 +33,23 @@ namespace // anonymous
 
 void test_current_directory()
 {
-  std::string dir = xes::current_directory();
+  std::string dir = cuti::current_directory();
 #if PRINT
   std::cout << "current directory: " << dir << std::endl;
 #endif
 
-  std::string abs = xes::absolute_path(dir.c_str());
+  std::string abs = cuti::absolute_path(dir.c_str());
   assert(dir == abs);
 }  
   
 void test_absolute_path(char const* path)
 {
-  std::string abs1 = xes::absolute_path(path);
+  std::string abs1 = cuti::absolute_path(path);
 #if PRINT
   std::cout << path << " -> " << abs1 << std::endl;
 #endif
 
-  std::string abs2 = xes::absolute_path(abs1.c_str());
+  std::string abs2 = cuti::absolute_path(abs1.c_str());
   assert(abs1 == abs2);
 }
 
