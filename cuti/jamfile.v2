@@ -76,6 +76,7 @@ lib cuti
   option_walker.cpp
   resolver.cpp
   scoped_thread.cpp
+  selector.cpp
   socket_nifty.cpp
   streambuf_backend.cpp
   syslog_backend.cpp
