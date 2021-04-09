@@ -40,7 +40,7 @@ struct CUTI_ABI selector_t
   selector_t& operator=(selector_t const&) = delete;
 
   /*
-   * Registers a callback for when fd becomes writable.  Returns a
+   * Registers a callback for when fd is writable.  Returns a
    * registration ticket, valid until either (1) the callback is
    * invoked, or (2) the ticket is canceled.  Call this function again
    * if you want another callback.
@@ -54,7 +54,7 @@ struct CUTI_ABI selector_t
   virtual void cancel_when_writable(int ticket) = 0;
 
   /*
-   * Registers a callback for when fd becomes readable.  Returns a
+   * Registers a callback for when fd is readable.  Returns a
    * registration ticket, valid until either (1) the callback is
    * invoked, or (2) the ticket is canceled.  Call this function again
    * if you want another callback.
