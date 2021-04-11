@@ -663,13 +663,8 @@ void blocking_transfer(logging_context_t const& context,
   char const* first = payload.data();
   char const* last = payload.data() + payload.size();
 
-  std::unique_ptr<tcp_connection_t> producer_out;
-  std::unique_ptr<tcp_connection_t> filter_in;
-  std::tie(producer_out, filter_in) = make_connected_pair(interface);
-  
-  std::unique_ptr<tcp_connection_t> filter_out;
-  std::unique_ptr<tcp_connection_t> consumer_in;
-  std::tie(filter_out, consumer_in) = make_connected_pair(interface);
+  auto[producer_out, filter_in] = make_connected_pair(interface);
+  auto[filter_out, consumer_in] = make_connected_pair(interface);
 
   if(auto msg = context.message_at(loglevel_t::info))
   {
@@ -705,17 +700,11 @@ void nonblocking_transfer(logging_context_t const& context,
   char const* first = payload.data();
   char const* last = payload.data() + payload.size();
 
-  std::unique_ptr<tcp_connection_t> producer_out;
-  std::unique_ptr<tcp_connection_t> filter_in;
-  std::tie(producer_out, filter_in) = make_connected_pair(interface);
+  auto[producer_out, filter_in] = make_connected_pair(interface);
+  auto[filter_out, consumer_in] = make_connected_pair(interface);
 
   producer_out->set_nonblocking();
   filter_in->set_nonblocking();
-  
-  std::unique_ptr<tcp_connection_t> filter_out;
-  std::unique_ptr<tcp_connection_t> consumer_in;
-  std::tie(filter_out, consumer_in) = make_connected_pair(interface);
-
   filter_out->set_nonblocking();
   consumer_in->set_nonblocking();
   
@@ -753,9 +742,7 @@ void blocking_client_server(logging_context_t const& context,
   char const* first = payload.data();
   char const* last = payload.data() + payload.size();
 
-  std::unique_ptr<tcp_connection_t> client_side;
-  std::unique_ptr<tcp_connection_t> server_side;
-  std::tie(client_side, server_side) = make_connected_pair(interface);
+  auto[client_side, server_side] = make_connected_pair(interface);
   
   if(auto msg = context.message_at(loglevel_t::info))
   {
@@ -789,9 +776,7 @@ void nonblocking_client_server(logging_context_t const& context,
   char const* first = payload.data();
   char const* last = payload.data() + payload.size();
 
-  std::unique_ptr<tcp_connection_t> client_side;
-  std::unique_ptr<tcp_connection_t> server_side;
-  std::tie(client_side, server_side) = make_connected_pair(interface);
+  auto[client_side, server_side] = make_connected_pair(interface);
 
   client_side->set_nonblocking();
   server_side->set_nonblocking();
@@ -827,9 +812,7 @@ void broken_pipe(logging_context_t const& context,
   char const* first = payload.data();
   char const* last = payload.data() + payload.size();
 
-  std::unique_ptr<tcp_connection_t> producer_out;
-  std::unique_ptr<tcp_connection_t> consumer_in;
-  std::tie(producer_out, consumer_in) = make_connected_pair(interface);
+  auto[producer_out, consumer_in] = make_connected_pair(interface);
   
   if(auto msg = context.message_at(loglevel_t::info))
   {
