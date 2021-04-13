@@ -29,6 +29,11 @@ unit-test fs_utils_test
   ..//cuti
 ;
 
+unit-test list_arena_test
+: list_arena_test.cpp
+  ..//cuti
+;
+
 unit-test membuf_test
 : membuf_test.cpp
   ..//cuti
