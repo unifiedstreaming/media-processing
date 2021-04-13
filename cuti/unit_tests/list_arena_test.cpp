@@ -185,7 +185,7 @@ void list_reversal()
   {
     for(int next = arena.next(pos);
         next != arena.last(list);
-	next = arena.next(pos))
+        next = arena.next(pos))
     {
       arena.move_element(next, arena.first(list));
     }
