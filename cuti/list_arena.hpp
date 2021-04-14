@@ -109,6 +109,14 @@ struct list_arena_t
   }
 
   /*
+   * Tells if <list> is empty.
+   */
+  bool list_empty(int list) const noexcept
+  {
+    return first(list) == last(list);
+  }
+    
+  /*
    * Returns <list>'s first element id.  For an empty list, this is
    * its past-the-end id.
    */
@@ -213,7 +221,7 @@ struct list_arena_t
     int element = free_top_;
     if(element != -1)
     {
-      // pop data node from the free list
+      // initialize and pop data node from the free list
       nodes_[element].data_.emplace(std::forward<Args>(args)...);
       free_top_ = nodes_[element].next_;
       nodes_[element].prev_ = prev;

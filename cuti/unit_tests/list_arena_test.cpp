@@ -35,6 +35,11 @@ template<typename T>
 void check_list(list_arena_t<T> const& arena, int list,
                 std::initializer_list<T> const& expected)
 {
+  if(empty(expected))
+  {
+    assert(arena.list_empty(list));
+  }
+
   int element = arena.first(list);
   for(auto it = expected.begin(); it != expected.end(); ++it)
   {
