@@ -25,6 +25,11 @@
 #include <functional>
 #include <thread>
 
+/*
+ * This is a wrapper for std::thread, that automatically joins the thread upon
+ * destruction.
+ */
+
 namespace cuti
 {
 
