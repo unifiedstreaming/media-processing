@@ -69,11 +69,13 @@ lib cuti
   file_backend.cpp
   fs_utils.cpp
   format.cpp
+  io_scheduler.cpp
   logger.cpp
   logging_backend.cpp
   logging_context.cpp
   membuf.cpp
   option_walker.cpp
+  poll_selector.cpp
   resolver.cpp
   scoped_thread.cpp
   selector.cpp

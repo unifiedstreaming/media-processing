@@ -20,11 +20,9 @@
 #ifndef CUTI_SELECTOR_HPP_
 #define CUTI_SELECTOR_HPP_
 
-#include "basic_callback.hpp"
+#include "io_scheduler.hpp"
 #include "linkage.h"
 #include "socket_nifty.hpp"
-
-#include <chrono>
 
 namespace cuti
 {
@@ -32,7 +30,7 @@ namespace cuti
 /*
  * Abstract selector interface
  */
-struct CUTI_ABI selector_t
+struct CUTI_ABI selector_t : virtual io_scheduler_t 
 {
   selector_t()
   { }
@@ -41,58 +39,27 @@ struct CUTI_ABI selector_t
   selector_t& operator=(selector_t const&) = delete;
 
   /*
-   * Registers a callback for when fd is writable.  Returns a
-   * registration ticket, valid until either (1) the callback is
-   * selected, or (2) the ticket is canceled.  Call this function
-   * again if you want another callback.
+   * Returns true if there are any registered events, false otherwise.
    */
-  virtual int call_when_writable(int fd, basic_callback_t callback) = 0;
-  
-  /*
-   * Cancels a callback registered with call_when_writable(),
-   * returning the registered callback.
-   */
-  virtual basic_callback_t cancel_when_writable(int ticket) = 0;
+  virtual bool has_work() const = 0;
 
   /*
-   * Registers a callback for when fd is readable.  Returns a
-   * registration ticket, valid until either (1) the callback is
-   * selected, or (2) the ticket is canceled.  Call this function
-   * again if you want another callback.
+   * Waits for no longer than <timeout_millis> milliseconds for one of
+   * the registered events to occur, returning either the non-empty
+   * callback for the first detected event, or an empty callback if no
+   * event was detected yet.
+   *
+   * If <timeout_millis> is negative, no timeout is applied; if
+   * <timeout_millis> is zero, this function does not block.
+   *
+   * Due to the intricacies of (gdb and) interrupted system calls,
+   * callers are expected to deal with spurious early returns: please
+   * keep in mind that, in rare cases, this function may return an
+   * empty callback before the timeout has expired.
+   *
+   * Precondition: this->has_work()
    */
-  virtual int call_when_readable(int fd, basic_callback_t callback) = 0;
-  
-  /*
-   * Cancels a callback registered with call_when_readable(),
-   * returning the registered callback.
-   */
-  virtual basic_callback_t cancel_when_readable(int ticket) = 0;
-
-  /*
-   * Returns true if there are no registered callbacks, and false if
-   * there are.
-   */
-  virtual bool empty() const = 0;
-
-  /*
-   * Waits for for one of the registered events to occur, returning
-   * the callback of the event detected first.  The selector must not
-   * be empty.
-   */
-  basic_callback_t select()
-  {
-    return this->select(std::chrono::milliseconds(-1));
-  }
-
-  /*
-   * Waits for at most timeout milliseconds for one of the registered
-   * events to occur, returning either an empty callback if no event
-   * was detected, or the non-empty callback of the event detected
-   * first.  This function does not block if timeout is 0; a negative
-   * timeout stands for no timeout and is only valid for a non-empty
-   * selector.
-   */
-  virtual basic_callback_t select(std::chrono::milliseconds timeout) = 0;
+  virtual basic_callback_t select(int timeout_millis) = 0;
 
   virtual ~selector_t();
 };
