@@ -25,6 +25,7 @@
 #include "socket_nifty.hpp"
 
 #include <memory>
+#include <utility>
 
 namespace cuti
 {
@@ -56,7 +57,7 @@ struct CUTI_ABI tcp_socket_t
   tcp_socket_t& operator=(tcp_socket_t&& rhs) noexcept
   {
     tcp_socket_t tmp(std::move(rhs));
-    this->swap(tmp);
+    this->do_swap(tmp);
     return *this;
   }
     
@@ -65,11 +66,11 @@ struct CUTI_ABI tcp_socket_t
     return fd_ == -1;
   }
 
-  void swap(tcp_socket_t& other) noexcept
+  void do_swap(tcp_socket_t& other) noexcept
   {
-    int tmp = fd_;
-    fd_ = other.fd_;
-    other.fd_ = tmp;
+    using std::swap;
+
+    swap(fd_, other.fd_);
   }
 
   ~tcp_socket_t()
@@ -132,7 +133,7 @@ private :
 inline
 void swap(tcp_socket_t& s1, tcp_socket_t& s2) noexcept
 {
-  s1.swap(s2);
+  s1.do_swap(s2);
 }
 
 } // cuti
