@@ -49,6 +49,11 @@ unit-test resolver_test
   ..//cuti
 ;
 
+unit-test scoped_guard_test
+: scoped_guard_test.cpp
+  ..//cuti
+;
+
 unit-test socket_nifty_test
 : socket_nifty_test.cpp
   ..//cuti
