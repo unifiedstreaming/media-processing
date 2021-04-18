@@ -106,7 +106,8 @@ struct poll_selector_t : selector_t
         if(pollfds_[ticket].revents != 0)
         {
           pollfds_[ticket] = inactive_pollfd;
-          callbacks_.move_element(ticket, callbacks_.last(pending_list_));
+          callbacks_.move_element_before(
+            callbacks_.last(pending_list_), ticket);
           --count;
         }
 
@@ -134,7 +135,7 @@ private :
 
     // Obtain a ticket, guarding it for exceptions
     int ticket =
-      callbacks_.add_element(callbacks_.last(watched_list_), callback);
+      callbacks_.add_element_before(callbacks_.last(watched_list_), callback);
     auto ticket_guard =
       make_scoped_guard([&] { callbacks_.remove_element(ticket); });
 

@@ -73,13 +73,13 @@ void single_element()
   list_arena_t<int> arena;
   int list = arena.add_list();
 
-  int element = arena.add_element(arena.last(list), 42);
+  int element = arena.add_element_before(arena.last(list), 42);
   check_list(arena, list, { 42 });
 
-  arena.move_element(element, element);
+  arena.move_element_before(element, element);
   check_list(arena, list, { 42 });
   
-  arena.move_element(element, arena.last(list));
+  arena.move_element_before(arena.last(list), element);
   check_list(arena, list, { 42 });
 
   arena.remove_element(element);
@@ -93,17 +93,17 @@ void multiple_elements()
   list_arena_t<int> arena;
   int list = arena.add_list();
 
-  int e4711 = arena.add_element(arena.last(list), 4711);
-  int e42 = arena.add_element(e4711, 42);
+  int e4711 = arena.add_element_before(arena.last(list), 4711);
+  int e42 = arena.add_element_before(e4711, 42);
   check_list(arena, list, { 42, 4711 });
 
-  arena.move_element(e4711, e42);
+  arena.move_element_before(e42, e4711);
   check_list(arena, list, { 4711, 42 } );
 
-  arena.move_element(e4711, e4711);
+  arena.move_element_before(e4711, e4711);
   check_list(arena, list, { 4711, 42 } );
 
-  arena.move_element(e4711, e42);
+  arena.move_element_before(e42, e4711);
   check_list(arena, list, { 4711, 42 } );
 
   arena.remove_element(e4711);
@@ -124,7 +124,7 @@ void multiple_lists()
 
   for(int value = 1; value <= 6; ++value)
   {
-    arena.add_element(arena.last(numbers), value);
+    arena.add_element_before(arena.last(numbers), value);
   }
   check_list(arena, numbers, { 1, 2, 3, 4, 5, 6 });
   check_list(arena, odds, { });
@@ -136,30 +136,29 @@ void multiple_lists()
   {
     if(arena.value(element) % 2 != 0)
     {
-      arena.move_element(element, arena.last(odds));
+      arena.move_element_before(arena.last(odds), element);
     }
     else
     {
-      arena.move_element(element, arena.last(evens));
+      arena.move_element_before(arena.last(evens), element);
     }
   }
   check_list(arena, numbers, { });
   check_list(arena, odds, { 1, 3, 5 });
   check_list(arena, evens, { 2, 4, 6 });
 
-  while(arena.first(odds) != arena.last(odds) &&
-        arena.first(evens) != arena.last(evens))
+  while(!arena.list_empty(odds) && !arena.list_empty(evens))
   {
-    arena.move_element(arena.first(odds), arena.last(numbers));
-    arena.move_element(arena.first(evens), arena.last(numbers));
+    arena.move_element_before(arena.last(numbers), arena.first(odds));
+    arena.move_element_before(arena.last(numbers), arena.first(evens));
   }
-  while(arena.first(odds) != arena.last(odds))
+  while(!arena.list_empty(odds))
   {
-    arena.move_element(arena.first(odds), arena.last(numbers));
+    arena.move_element_before(arena.last(numbers), arena.first(odds));
   }
-  while(arena.first(evens) != arena.last(evens))
+  while(!arena.list_empty(evens))
   {
-    arena.move_element(arena.first(evens), arena.last(numbers));
+    arena.move_element_before(arena.last(numbers), arena.first(evens));
   }
   check_list(arena, numbers, { 1, 2, 3, 4, 5, 6 });
   check_list(arena, odds, { });
@@ -181,7 +180,7 @@ void list_reversal()
   int list = arena.add_list();
   for(int value = 1; value <= 6; ++value)
   {
-    arena.add_element(arena.last(list), value);
+    arena.add_element_before(arena.last(list), value);
   }
   check_list(arena, list, { 1, 2, 3, 4, 5, 6 });
 
@@ -192,7 +191,7 @@ void list_reversal()
         next != arena.last(list);
         next = arena.next(pos))
     {
-      arena.move_element(next, arena.first(list));
+      arena.move_element_before(arena.first(list), next);
     }
   }
   check_list(arena, list, { 6, 5, 4, 3, 2, 1 });
@@ -223,7 +222,7 @@ void ctors_and_dtors()
 
   for(int i = 0; i != 6; ++i)
   {
-    arena1.add_element(arena1.last(list));
+    arena1.add_element_before(arena1.last(list));
   }
   assert(counted_t::count == 6);
 

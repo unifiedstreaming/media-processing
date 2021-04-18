@@ -211,7 +211,7 @@ struct list_arena_t
    * of its list.
    */
   template<typename... Args>
-  int add_element(int before, Args&&... args)
+  int add_element_before(int before, Args&&... args)
   {
     assert(is_valid(before));
 
@@ -249,10 +249,10 @@ struct list_arena_t
    * must not be the past-the-end id of its list; <before> may or may
    * not be the past-the-end id of its list.
    */
-  void move_element(int element, int before) noexcept
+  void move_element_before(int before, int element) noexcept
   {
-    assert(is_element(element));
     assert(is_valid(before));
+    assert(is_element(element));
 
     // unlink from the old neighbours...
     int old_prev = nodes_[element].prev_;
