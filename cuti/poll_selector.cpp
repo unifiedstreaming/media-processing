@@ -22,6 +22,7 @@
 #ifndef _WIN32
 
 #include "list_arena.hpp"
+#include "scoped_guard.hpp"
 #include "system_error.hpp"
 
 #include <algorithm>
@@ -40,48 +41,6 @@ namespace // anonymous
 
 // a pollfd with an fd of -1 is skipped by poll()
 pollfd const inactive_pollfd = { -1, 0, 0 };
-
-/*
- * This little helper temporarily manages a callback ticket while
- * exceptions are expected to occur.
- */
-struct ticket_holder_t
-{
-  ticket_holder_t(list_arena_t<basic_callback_t>& callbacks,
-                  int before,
-                  basic_callback_t callback)
-  : callbacks_(&callbacks)
-  , ticket_(callbacks_->add_element(before, callback))
-  { }
-
-  ticket_holder_t(ticket_holder_t const&) = delete;
-  ticket_holder_t& operator=(ticket_holder_t const&) = delete;
-
-  int ticket() const
-  {
-    assert(callbacks_ != nullptr);
-    return ticket_;
-  }
-
-  int release_ticket()
-  {
-    assert(callbacks_ != nullptr);
-    callbacks_ = nullptr;
-    return ticket_;
-  }
-
-  ~ticket_holder_t()
-  {
-    if(callbacks_ != nullptr)
-    {
-      callbacks_->remove_element(ticket_);
-    }
-  }
-
-private :
-  list_arena_t<basic_callback_t>* callbacks_;
-  int ticket_;
-};
 
 struct poll_selector_t : selector_t
 {
@@ -173,9 +132,11 @@ private :
   {
     assert(!callback.empty());
 
-    ticket_holder_t ticket_holder(
-      callbacks_, callbacks_.last(watched_list_), callback);
-    int ticket = ticket_holder.ticket();
+    // Obtain a ticket, guarding it for exceptions
+    int ticket =
+      callbacks_.add_element(callbacks_.last(watched_list_), callback);
+    auto ticket_guard =
+      make_scoped_guard([&] { callbacks_.remove_element(ticket); });
 
     std::size_t min_size = static_cast<unsigned int>(ticket) + 1;
     while(pollfds_.size() < min_size)
@@ -188,7 +149,8 @@ private :
     pollfds_[ticket].events = events;
     pollfds_[ticket].revents = 0;
 
-    return ticket_holder.release_ticket();
+    ticket_guard.dismiss();
+    return ticket;
   }
 
   basic_callback_t cancel_ticket(int ticket)
