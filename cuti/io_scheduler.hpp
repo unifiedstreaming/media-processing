@@ -44,7 +44,7 @@ struct CUTI_ABI io_scheduler_t
    * until either (1) the ticket is canceled, or (2) callback is
    * invoked.  Call this function again if you want another callback.
    */
-  virtual int call_when_writable(int fd, basic_callback_t callback) = 0;
+  virtual int call_when_writable(int fd, basic_callback_t const& callback) = 0;
   
   /*
    * Cancels a callback registered with call_when_writable(),
@@ -58,7 +58,7 @@ struct CUTI_ABI io_scheduler_t
    * until either (1) the ticket is canceled, or (2) callback is
    * invoked.  Call this function again if you want another callback.
    */
-  virtual int call_when_readable(int fd, basic_callback_t callback) = 0;
+  virtual int call_when_readable(int fd, basic_callback_t const& callback) = 0;
   
   /*
    * Cancels a callback registered with call_when_readable(),

@@ -52,7 +52,7 @@ struct poll_selector_t : selector_t
   , pollfds_()
   { }
 
-  int call_when_writable(int fd, basic_callback_t callback) override
+  int call_when_writable(int fd, basic_callback_t const& callback) override
   {
     return make_ticket(fd, POLLOUT, callback);
   }
@@ -62,7 +62,7 @@ struct poll_selector_t : selector_t
     return cancel_ticket(ticket);
   }
 
-  int call_when_readable(int fd, basic_callback_t callback) override
+  int call_when_readable(int fd, basic_callback_t const& callback) override
   {
     return make_ticket(fd, POLLIN, callback);
   }
@@ -129,7 +129,7 @@ struct poll_selector_t : selector_t
     
 
 private :
-  int make_ticket(int fd, int events, basic_callback_t callback)
+  int make_ticket(int fd, int events, basic_callback_t const& callback)
   {
     assert(!callback.empty());
 
