@@ -83,7 +83,7 @@ private :
 };
 
 template<typename F>
-auto make_scoped_guard(F&& f)
+auto make_scoped_guard(F&& f) noexcept
 {
   return scoped_guard_t<std::decay_t<F>>(std::forward<F>(f));
 }
