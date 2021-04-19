@@ -134,8 +134,7 @@ private :
 
     virtual void operator()() const = 0;
 
-    virtual ~impl_t()
-    { }
+    virtual ~impl_t();
   };
 
   template<typename F>

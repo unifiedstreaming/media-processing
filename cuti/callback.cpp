@@ -19,8 +19,10 @@
 
 #include "callback.hpp"
 
-/*
- * This empty implementation file triggers the required
- * __declspec(dllexport)s on Windows, even when all the code in
- * callback.hpp is inline.
- */
+namespace cuti
+{
+
+callback_t::impl_t::~impl_t()
+{ }
+
+} // cuti
