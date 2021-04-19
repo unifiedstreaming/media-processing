@@ -64,6 +64,7 @@ rule cuti-dll-name ( name : type ? : properties * )
 
 lib cuti
 :
+  callback.cpp
   default_backend.cpp
   endpoint.cpp
   file_backend.cpp
