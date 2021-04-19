@@ -124,7 +124,7 @@ struct CUTI_ABI callback_t
   }
 
 private :
-  struct impl_t
+  struct CUTI_ABI impl_t
   {
     impl_t()
     { }
