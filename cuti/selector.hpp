@@ -41,7 +41,7 @@ struct CUTI_ABI selector_t : virtual io_scheduler_t
   /*
    * Returns true if there are any registered events, false otherwise.
    */
-  virtual bool has_work() const = 0;
+  virtual bool has_work() const noexcept = 0;
 
   /*
    * Waits for no longer than <timeout_millis> milliseconds for one of
@@ -59,7 +59,7 @@ struct CUTI_ABI selector_t : virtual io_scheduler_t
    *
    * Precondition: this->has_work()
    */
-  virtual basic_callback_t select(int timeout_millis) = 0;
+  virtual callback_t select(int timeout_millis) = 0;
 
   virtual ~selector_t();
 };

@@ -28,6 +28,7 @@
 #include <algorithm>
 #include <cassert>
 #include <cstddef>
+#include <utility>
 #include <vector>
 
 #include <errno.h>
@@ -52,33 +53,33 @@ struct poll_selector_t : selector_t
   , pollfds_()
   { }
 
-  int call_when_writable(int fd, basic_callback_t const& callback) override
+  int call_when_writable(int fd, callback_t callback) override
   {
-    return make_ticket(fd, POLLOUT, callback);
+    return make_ticket(fd, POLLOUT, std::move(callback));
   }
 
-  basic_callback_t cancel_when_writable(int ticket) noexcept override
-  {
-    return cancel_ticket(ticket);
-  }
-
-  int call_when_readable(int fd, basic_callback_t const& callback) override
-  {
-    return make_ticket(fd, POLLIN, callback);
-  }
-
-  basic_callback_t cancel_when_readable(int ticket) noexcept override
+  callback_t cancel_when_writable(int ticket) noexcept override
   {
     return cancel_ticket(ticket);
   }
 
-  bool has_work() const override
+  int call_when_readable(int fd, callback_t callback) override
+  {
+    return make_ticket(fd, POLLIN, std::move(callback));
+  }
+
+  callback_t cancel_when_readable(int ticket) noexcept override
+  {
+    return cancel_ticket(ticket);
+  }
+
+  bool has_work() const noexcept override
   {
     return !callbacks_.list_empty(watched_list_) ||
            !callbacks_.list_empty(pending_list_);
   }
 
-  basic_callback_t select(int timeout_millis) override
+  callback_t select(int timeout_millis) override
   {
     assert(this->has_work());
 
@@ -117,25 +118,24 @@ struct poll_selector_t : selector_t
       assert(count == 0);
     }
             
-    basic_callback_t result;
+    callback_t result = nullptr;
     if(!callbacks_.list_empty(pending_list_))
     {
       int ticket = callbacks_.first(pending_list_);
-      result = callbacks_.value(ticket);
+      result = std::move(callbacks_.value(ticket));
       callbacks_.remove_element(ticket);
     }
     return result;
   }
     
-
 private :
-  int make_ticket(int fd, int events, basic_callback_t const& callback)
+  int make_ticket(int fd, int events, callback_t callback)
   {
-    assert(!callback.empty());
+    assert(callback != nullptr);
 
     // Obtain a ticket, guarding it for exceptions
-    int ticket =
-      callbacks_.add_element_before(callbacks_.last(watched_list_), callback);
+    int ticket = callbacks_.add_element_before(
+      callbacks_.last(watched_list_), std::move(callback));
     auto ticket_guard =
       make_scoped_guard([&] { callbacks_.remove_element(ticket); });
 
@@ -154,19 +154,19 @@ private :
     return ticket;
   }
 
-  basic_callback_t cancel_ticket(int ticket)
+  callback_t cancel_ticket(int ticket)
   {
     assert(ticket >= 0);
     assert(static_cast<std::size_t>(ticket) < pollfds_.size());
     pollfds_[ticket] = inactive_pollfd;
 
-    basic_callback_t result = callbacks_.value(ticket);
+    callback_t result = std::move(callbacks_.value(ticket));
     callbacks_.remove_element(ticket);
     return result;
   }
 
 private :
-  list_arena_t<basic_callback_t> callbacks_;
+  list_arena_t<callback_t> callbacks_;
   int const watched_list_;
   int const pending_list_;
   std::vector<pollfd> pollfds_; // indexed by the ids from callbacks_

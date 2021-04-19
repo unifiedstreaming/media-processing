@@ -20,7 +20,7 @@
 #ifndef CUTI_IO_SCHEDULER_HPP_
 #define CUTI_IO_SCHEDULER_HPP_
 
-#include "basic_callback.hpp"
+#include "callback.hpp"
 #include "linkage.h"
 #include "socket_nifty.hpp"
 
@@ -44,13 +44,13 @@ struct CUTI_ABI io_scheduler_t
    * until either (1) the ticket is canceled, or (2) callback is
    * invoked.  Call this function again if you want another callback.
    */
-  virtual int call_when_writable(int fd, basic_callback_t const& callback) = 0;
+  virtual int call_when_writable(int fd, callback_t callback) = 0;
   
   /*
    * Cancels a callback registered with call_when_writable(),
    * returning the registered callback.
    */
-  virtual basic_callback_t cancel_when_writable(int ticket) noexcept = 0;
+  virtual callback_t cancel_when_writable(int ticket) noexcept = 0;
 
   /*
    * Registers a callback for when fd is ready for reading; the
@@ -58,13 +58,13 @@ struct CUTI_ABI io_scheduler_t
    * until either (1) the ticket is canceled, or (2) callback is
    * invoked.  Call this function again if you want another callback.
    */
-  virtual int call_when_readable(int fd, basic_callback_t const& callback) = 0;
+  virtual int call_when_readable(int fd, callback_t callback) = 0;
   
   /*
    * Cancels a callback registered with call_when_readable(),
    * returning the registered callback.
    */
-  virtual basic_callback_t cancel_when_readable(int ticket) noexcept = 0;
+  virtual callback_t cancel_when_readable(int ticket) noexcept = 0;
 
   virtual ~io_scheduler_t();
 };
