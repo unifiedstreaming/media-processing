@@ -53,7 +53,7 @@ static_assert(std::is_nothrow_copy_assignable_v<callback_t>);
 static_assert(std::is_nothrow_move_assignable_v<callback_t>);
 static_assert(std::is_nothrow_swappable_v<callback_t>);
 
-// check that callback's templated constructor and assigment operator
+// check that callback's templated constructor and assignment operator
 // (which allocate an impl object) are not noexcept
 static_assert(!std::is_nothrow_constructible_v<callback_t, functor_t const&>);
 static_assert(!std::is_nothrow_assignable_v<callback_t, functor_t const&>);
@@ -66,6 +66,21 @@ static_assert(!std::is_nothrow_assignable_v<callback_t, functor_t&&>);
 // are properly SFINEA'd out for callback_t lvalues
 static_assert(std::is_nothrow_constructible_v<callback_t, callback_t&>);
 static_assert(std::is_nothrow_assignable_v<callback_t, callback_t&>);
+
+// check that callback_t's nullptr overloads don't trigger the templated
+// constructor and assignment operator
+static_assert(
+  std::is_nothrow_constructible_v<callback_t, std::nullptr_t const&>);
+static_assert(
+  std::is_nothrow_assignable_v<callback_t, std::nullptr_t const&>);
+static_assert(
+  std::is_nothrow_constructible_v<callback_t, std::nullptr_t&>);
+static_assert(
+  std::is_nothrow_assignable_v<callback_t, std::nullptr_t&>);
+static_assert(
+  std::is_nothrow_constructible_v<callback_t, std::nullptr_t&&>);
+static_assert(
+  std::is_nothrow_assignable_v<callback_t, std::nullptr_t&&>);
 
 bool function_called = false;
 
