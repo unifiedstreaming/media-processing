@@ -57,7 +57,7 @@ struct poll_selector_t : selector_t
     return make_ticket(fd, POLLOUT, callback);
   }
 
-  basic_callback_t cancel_when_writable(int ticket) override
+  basic_callback_t cancel_when_writable(int ticket) noexcept override
   {
     return cancel_ticket(ticket);
   }
@@ -67,7 +67,7 @@ struct poll_selector_t : selector_t
     return make_ticket(fd, POLLIN, callback);
   }
 
-  basic_callback_t cancel_when_readable(int ticket) override
+  basic_callback_t cancel_when_readable(int ticket) noexcept override
   {
     return cancel_ticket(ticket);
   }

@@ -50,7 +50,7 @@ struct CUTI_ABI io_scheduler_t
    * Cancels a callback registered with call_when_writable(),
    * returning the registered callback.
    */
-  virtual basic_callback_t cancel_when_writable(int ticket) = 0;
+  virtual basic_callback_t cancel_when_writable(int ticket) noexcept = 0;
 
   /*
    * Registers a callback for when fd is ready for reading; the
@@ -64,7 +64,7 @@ struct CUTI_ABI io_scheduler_t
    * Cancels a callback registered with call_when_readable(),
    * returning the registered callback.
    */
-  virtual basic_callback_t cancel_when_readable(int ticket) = 0;
+  virtual basic_callback_t cancel_when_readable(int ticket) noexcept = 0;
 
   virtual ~io_scheduler_t();
 };
