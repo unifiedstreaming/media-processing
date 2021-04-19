@@ -90,7 +90,7 @@ struct options_t
   , service_name_(default_service_name(argv0))
   , syslog_(false)
   { }
-  
+
   unsigned int delay_;
   std::string logfile_;
   unsigned int logfile_size_limit_;
@@ -210,7 +210,7 @@ int throwing_main(int argc, char const* const argv[])
 
   return 0;
 }
-  
+
 } // anonymous
 
 int main(int argc, char* argv[])
