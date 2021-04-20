@@ -91,17 +91,19 @@ int selector_timeout(std::chrono::system_clock::duration timeout)
 
   if(timeout == zero)
   {
-    result = 0; // a poll
+    // a true poll
+    result = 0; 
   }
   else
   {
-    auto count =std::chrono::duration_cast<
+    // not a true poll
+    auto count = std::chrono::duration_cast<
       std::chrono::milliseconds>(timeout).count();
     if(count < 1)
     {
-      result = 1; // not a poll; prevent spinloop
+      result = 1; // prevent spinloop
     }
-    else if (count < 30000)
+    else if(count < 30000)
     {
       result = static_cast<int>(count);
     }
@@ -620,6 +622,7 @@ void selector_switch(logging_context_t& context,
   auto selector1 = factory();
   auto selector2 = factory();
   tcp_acceptor_t acceptor(interface);
+  acceptor.set_nonblocking();
 
   if(auto msg = context.message_at(loglevel_t::info))
   {
