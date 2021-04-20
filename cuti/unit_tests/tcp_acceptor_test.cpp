@@ -613,6 +613,50 @@ void multiple_acceptors(logging_context_t& context)
   }
 }
 
+void selector_switch(logging_context_t& context,
+                     selector_factory_t const& factory,
+                     endpoint_t const& interface)
+{
+  auto selector1 = factory();
+  auto selector2 = factory();
+  tcp_acceptor_t acceptor(interface);
+
+  if(auto msg = context.message_at(loglevel_t::info))
+  {
+    *msg << "selector_switch(): factory: " << factory <<
+      " acceptor: " << acceptor;
+  }
+
+  assert(!selector1->has_work());
+  assert(!selector2->has_work());
+
+  acceptor.call_when_ready([] { }, *selector1);
+  assert(selector1->has_work());
+  assert(!selector2->has_work());
+
+  acceptor.call_when_ready([] { }, *selector2);
+  assert(!selector1->has_work());
+  assert(selector2->has_work());
+
+  acceptor.cancel_when_ready();
+  assert(!selector1->has_work());
+  assert(!selector2->has_work());
+}
+
+void selector_switch(logging_context_t& context)
+{
+  auto factories = available_selector_factories();
+  auto interfaces = local_interfaces(any_port);
+
+  for(auto const& factory : factories)
+  {
+    for(auto const& interface : interfaces)
+    {
+      selector_switch(context, factory, interface);
+    }
+  }
+}
+
 int throwing_main(int argc, char const* const argv[])
 {
   logger_t logger(argv[0]);
@@ -630,6 +674,7 @@ int throwing_main(int argc, char const* const argv[])
   single_client(context);
   multiple_clients(context);
   multiple_acceptors(context);
+  selector_switch(context);
 
   return 0;
 }
