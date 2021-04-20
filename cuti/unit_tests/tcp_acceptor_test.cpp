@@ -82,19 +82,13 @@ std::vector<selector_factory_t> available_selector_factories()
   return result;
 }
   
-int selector_timeout(std::chrono::system_clock::duration timeout)
+int selector_timeout_millis(std::chrono::system_clock::duration timeout)
 {
   static auto zero = std::chrono::system_clock::duration::zero();
   assert(timeout >= zero);
 
-  int result;
-
-  if(timeout == zero)
-  {
-    // a true poll
-    result = 0; 
-  }
-  else
+  int result = 0; // assume a true poll
+  if(timeout != zero)
   {
     // not a true poll
     auto count = std::chrono::duration_cast<
@@ -124,22 +118,16 @@ void run_selector(logging_context_t& context,
 
   auto now = std::chrono::system_clock::now();
   auto const limit = now + std::chrono::milliseconds(timeout_millis);
-
-  do
+  while(selector.has_work() && now <= limit)
   {
-    if(!selector.has_work())
-    {
-      break;
-    }
-
-    timeout_millis = selector_timeout(limit - now);
+    timeout_millis = selector_timeout_millis(limit - now);
     if(auto msg = context.message_at(loglevel_t::info))
     {
       *msg << "run_selector(): awaiting callback for " <<
-        timeout_millis << " milliseconds...";
+        timeout_millis << " millisecond(s)...";
     }
     
-    auto callback = selector.select(selector_timeout(limit - now));
+    auto callback = selector.select(timeout_millis);
     if(callback == nullptr)
     {
       if(auto msg = context.message_at(loglevel_t::info))
@@ -157,8 +145,7 @@ void run_selector(logging_context_t& context,
     }
 
     now = std::chrono::system_clock::now();
-
-  } while(now < limit);
+  }
 
   if(auto msg = context.message_at(loglevel_t::info))
   {
@@ -182,7 +169,7 @@ void start_accept(logging_context_t& context,
   {
     if(auto msg = context.message_at(loglevel_t::info))
     {
-      *msg << "start_accept() " << acceptor <<
+      *msg << "start_accept(): " << acceptor <<
         ": no connection yet; rescheduling...";
     }
     acceptor.call_when_ready(
