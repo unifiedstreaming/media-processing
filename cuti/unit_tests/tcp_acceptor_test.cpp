@@ -445,7 +445,7 @@ void no_client(logging_context_t& context,
   }
   start_accept(context, *selector, acceptor);
 
-  run_selector(context, *selector, 10);
+  run_selector(context, *selector, 0);
   assert(selector->has_work());
 }
 
@@ -478,7 +478,7 @@ void single_client(logging_context_t& context,
   }
   start_accept(context, *selector, acceptor);
 
-  run_selector(context, *selector, 10);
+  run_selector(context, *selector, 0);
   assert(selector->has_work());
 
   tcp_connection_t client(acceptor.local_endpoint());
@@ -520,7 +520,7 @@ void multiple_clients(logging_context_t& context,
   }
 
   start_accept(context, *selector, acceptor);
-  run_selector(context, *selector, 10);
+  run_selector(context, *selector, 0);
   assert(selector->has_work());
 
   tcp_connection_t client1(acceptor.local_endpoint());
@@ -561,7 +561,6 @@ void multiple_acceptors(logging_context_t& context,
 
   tcp_acceptor_t acceptor1(interface);
   acceptor1.set_nonblocking();
-
   tcp_acceptor_t acceptor2(interface);
   acceptor2.set_nonblocking();
 
@@ -573,7 +572,7 @@ void multiple_acceptors(logging_context_t& context,
   start_accept(context, *selector, acceptor1);
   start_accept(context, *selector, acceptor2);
 
-  run_selector(context, *selector, 10);
+  run_selector(context, *selector, 0);
   assert(selector->has_work());
 
   tcp_connection_t client1(acceptor1.local_endpoint());
