@@ -29,6 +29,7 @@ namespace cuti
 tcp_acceptor_t::tcp_acceptor_t(endpoint_t const& endpoint)
 : socket_(endpoint.address_family())
 , local_endpoint_()
+, ready_event_manager_(readable_event_adapter_t(socket_))
 {
   socket_.bind(endpoint);
   socket_.listen();

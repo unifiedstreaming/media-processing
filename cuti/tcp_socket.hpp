@@ -21,6 +21,7 @@
 #define CUTI_TCP_SOCKET_HPP_
 
 #include "endpoint.hpp"
+#include "io_scheduler.hpp"
 #include "linkage.h"
 #include "socket_nifty.hpp"
 
@@ -119,6 +120,24 @@ struct CUTI_ABI tcp_socket_t
   // In non-blocking mode, nullptr may be returned.
   char* read_some(char* first, char* last);
 
+  /*
+   * Event reporting; the tickets returned may be canceled by directly
+   * calling cancel_when_{writable, readable}() on the scheduler.
+   */
+  template<typename F>
+  int call_when_writable(F&& callback, io_scheduler_t& scheduler)
+  {
+    assert(!this->empty());
+    return scheduler.call_when_writable(fd_, std::forward<F>(callback));
+  }
+ 
+  template<typename F>
+  int call_when_readable(F&& callback, io_scheduler_t& scheduler)
+  {
+    assert(!this->empty());
+    return scheduler.call_when_readable(fd_, std::forward<F>(callback));
+  }
+ 
 private :
   static void close_fd(int fd) noexcept;
 

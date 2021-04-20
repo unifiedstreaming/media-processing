@@ -18,13 +18,16 @@
  */
 
 #include "tcp_acceptor.hpp"
-#include "tcp_connection.hpp"
+
 #include "endpoint.hpp"
 #include "logging_context.hpp"
 #include "logger.hpp"
+#include "poll_selector.hpp"
 #include "resolver.hpp"
+#include "selector.hpp"
 #include "streambuf_backend.hpp"
 #include "system_error.hpp"
+#include "tcp_connection.hpp"
 
 #include <chrono>
 #include <iostream>
@@ -38,6 +41,160 @@ namespace // anonymous
 {
 
 using namespace cuti;
+
+struct selector_factory_t
+{
+  selector_factory_t(std::string name,
+                     std::unique_ptr<selector_t>(*creator)())
+  : name_(std::move(name))
+  , creator_(creator)
+  { }
+
+  std::string const& name() const
+  {
+    return name_;
+  }
+
+  std::unique_ptr<selector_t> operator()() const
+  {
+    return (*creator_)();
+  }
+
+private :
+  std::string name_;
+  std::unique_ptr<selector_t>(*creator_)();
+};
+
+std::ostream& operator<<(std::ostream& os, selector_factory_t const& factory)
+{
+  os << factory.name();
+  return os;
+}
+
+std::vector<selector_factory_t> available_selector_factories()
+{
+  std::vector<selector_factory_t> result;
+
+#ifndef _WIN32
+  result.emplace_back("poll_selector", create_poll_selector);
+#endif
+
+  return result;
+}
+  
+int selector_timeout(std::chrono::system_clock::duration timeout)
+{
+  static auto zero = std::chrono::system_clock::duration::zero();
+  assert(timeout >= zero);
+
+  int result;
+
+  if(timeout == zero)
+  {
+    result = 0; // a poll
+  }
+  else
+  {
+    auto count =std::chrono::duration_cast<
+      std::chrono::milliseconds>(timeout).count();
+    if(count < 1)
+    {
+      result = 1; // not a poll; prevent spinloop
+    }
+    else if (count < 30000)
+    {
+      result = static_cast<int>(count);
+    }
+    else
+    {
+      result = 30000;
+    }
+  }
+
+  return result;
+}    
+      
+void run_selector(logging_context_t& context,
+                  selector_t& selector,
+                  int timeout_millis)
+{
+  assert(timeout_millis >= 0);
+
+  auto now = std::chrono::system_clock::now();
+  auto const limit = now + std::chrono::milliseconds(timeout_millis);
+
+  do
+  {
+    if(!selector.has_work())
+    {
+      break;
+    }
+
+    timeout_millis = selector_timeout(limit - now);
+    if(auto msg = context.message_at(loglevel_t::info))
+    {
+      *msg << "run_selector(): awaiting callback for " <<
+        timeout_millis << " milliseconds...";
+    }
+    
+    auto callback = selector.select(selector_timeout(limit - now));
+    if(callback == nullptr)
+    {
+      if(auto msg = context.message_at(loglevel_t::info))
+      {
+        *msg << "run_selector(): got empty callback";
+      }
+    }
+    else
+    {
+      if(auto msg = context.message_at(loglevel_t::info))
+      {
+        *msg << "run_selector(): invoking callback";
+      }
+      callback();
+    }
+
+    now = std::chrono::system_clock::now();
+
+  } while(now < limit);
+
+  if(auto msg = context.message_at(loglevel_t::info))
+  {
+    if(selector.has_work())
+    {
+      *msg << "run_selector(): timeout";
+    }
+    else
+    {
+      *msg << "run_selector(): out of work";
+    }
+  }
+}
+
+void start_accept(logging_context_t& context,
+                  io_scheduler_t& scheduler,
+                  tcp_acceptor_t& acceptor)
+{
+  auto connection = acceptor.accept();
+  if(connection == nullptr)
+  {
+    if(auto msg = context.message_at(loglevel_t::info))
+    {
+      *msg << "start_accept() " << acceptor <<
+        ": no connection yet; rescheduling...";
+    }
+    acceptor.call_when_ready(
+      [&] { start_accept(context, scheduler, acceptor); },
+      scheduler);
+  }
+  else
+  {
+    if(auto msg = context.message_at(loglevel_t::info))
+    {
+      *msg << "start_accept(): accepted connection " << *connection;
+    }
+  }
+}    
 
 void blocking_accept(logging_context_t const& context,
                      endpoint_t const& interface)
@@ -263,6 +420,199 @@ void dual_stack(logging_context_t const& context)
   assert(proven);
 }
 
+void empty_selector(logging_context_t& context,
+                    selector_factory_t const& factory)
+{
+  if(auto msg = context.message_at(loglevel_t::info))
+  {
+    *msg << "empty_selector(): factory: " << factory;
+  }
+
+  auto selector = factory();
+  run_selector(context, *selector, 60000);
+  assert(!selector->has_work());
+}
+
+void empty_selector(logging_context_t& context)
+{
+  auto factories = available_selector_factories();
+  for(auto const& factory : factories)
+  {
+    empty_selector(context, factory);
+  }
+}
+
+void no_client(logging_context_t& context,
+               selector_factory_t const& factory,
+               endpoint_t const& interface)
+{
+  auto selector = factory();
+  tcp_acceptor_t acceptor(interface);
+  acceptor.set_nonblocking();
+
+  if(auto msg = context.message_at(loglevel_t::info))
+  {
+    *msg << "no_client(): factory: " << factory << " acceptor: " << acceptor;
+  }
+  start_accept(context, *selector, acceptor);
+
+  run_selector(context, *selector, 10);
+  assert(selector->has_work());
+}
+
+void no_client(logging_context_t& context)
+{
+  auto factories = available_selector_factories();
+  auto interfaces = local_interfaces(any_port);
+
+  for(auto const& factory : factories)
+  {
+    for(auto const& interface : interfaces)
+    {
+      no_client(context, factory, interface);
+    }
+  }
+}
+
+void single_client(logging_context_t& context,
+                   selector_factory_t const& factory,
+                   endpoint_t const& interface)
+{
+  auto selector = factory();
+  tcp_acceptor_t acceptor(interface);
+  acceptor.set_nonblocking();
+
+  if(auto msg = context.message_at(loglevel_t::info))
+  {
+    *msg << "single_client(): factory: " << factory <<
+      " acceptor: " << acceptor;
+  }
+  start_accept(context, *selector, acceptor);
+
+  run_selector(context, *selector, 10);
+  assert(selector->has_work());
+
+  tcp_connection_t client(acceptor.local_endpoint());
+  if(auto msg = context.message_at(loglevel_t::info))
+  {
+    *msg << "single_client(): client " << client;
+  }
+
+  run_selector(context, *selector, 60000);
+  assert(!selector->has_work());
+}
+
+void single_client(logging_context_t& context)
+{
+  auto factories = available_selector_factories();
+  auto interfaces = local_interfaces(any_port);
+
+  for(auto const& factory : factories)
+  {
+    for(auto const& interface : interfaces)
+    {
+      single_client(context, factory, interface);
+    }
+  }
+}
+
+void multiple_clients(logging_context_t& context,
+                      selector_factory_t const& factory,
+                      endpoint_t const& interface)
+{
+  auto selector = factory();
+  tcp_acceptor_t acceptor(interface);
+  acceptor.set_nonblocking();
+
+  if(auto msg = context.message_at(loglevel_t::info))
+  {
+    *msg << "multiple_clients(): factory: " << factory <<
+      " acceptor: " << acceptor;
+  }
+
+  start_accept(context, *selector, acceptor);
+  run_selector(context, *selector, 10);
+  assert(selector->has_work());
+
+  tcp_connection_t client1(acceptor.local_endpoint());
+  tcp_connection_t client2(acceptor.local_endpoint());
+  if(auto msg = context.message_at(loglevel_t::info))
+  {
+    *msg << "multiple_clients(): client1: " << client1 <<
+      " client2: " << client2;
+  }
+
+  run_selector(context, *selector, 60000);
+  assert(!selector->has_work());
+
+  start_accept(context, *selector, acceptor);
+  run_selector(context, *selector, 60000);
+  assert(!selector->has_work());
+}
+
+void multiple_clients(logging_context_t& context)
+{
+  auto factories = available_selector_factories();
+  auto interfaces = local_interfaces(any_port);
+
+  for(auto const& factory : factories)
+  {
+    for(auto const& interface : interfaces)
+    {
+      multiple_clients(context, factory, interface);
+    }
+  }
+}
+
+void multiple_acceptors(logging_context_t& context,
+                        selector_factory_t const& factory,
+                        endpoint_t const& interface)
+{
+  auto selector = factory();
+
+  tcp_acceptor_t acceptor1(interface);
+  acceptor1.set_nonblocking();
+
+  tcp_acceptor_t acceptor2(interface);
+  acceptor2.set_nonblocking();
+
+  if(auto msg = context.message_at(loglevel_t::info))
+  {
+    *msg << "multiple_accceptors(): factory: " << factory <<
+      " acceptor1: " << acceptor1 << " acceptor2: " << acceptor2;
+  }
+  start_accept(context, *selector, acceptor1);
+  start_accept(context, *selector, acceptor2);
+
+  run_selector(context, *selector, 10);
+  assert(selector->has_work());
+
+  tcp_connection_t client1(acceptor1.local_endpoint());
+  tcp_connection_t client2(acceptor2.local_endpoint());
+  if(auto msg = context.message_at(loglevel_t::info))
+  {
+    *msg << "multiple_acceptors(): client1: " << client1 <<
+      " client2: " << client2;
+  }
+
+  run_selector(context, *selector, 60000);
+  assert(!selector->has_work());
+}
+
+void multiple_acceptors(logging_context_t& context)
+{
+  auto factories = available_selector_factories();
+  auto interfaces = local_interfaces(any_port);
+
+  for(auto const& factory : factories)
+  {
+    for(auto const& interface : interfaces)
+    {
+      multiple_acceptors(context, factory, interface);
+    }
+  }
+}
+
 int throwing_main(int argc, char const* const argv[])
 {
   logger_t logger(argv[0]);
@@ -274,6 +624,12 @@ int throwing_main(int argc, char const* const argv[])
   nonblocking_accept(context);
   duplicate_bind(context);
   dual_stack(context);
+
+  empty_selector(context);
+  no_client(context);
+  single_client(context);
+  multiple_clients(context);
+  multiple_acceptors(context);
 
   return 0;
 }

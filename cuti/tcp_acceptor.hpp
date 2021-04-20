@@ -21,6 +21,7 @@
 #define CUTI_TCP_ACCEPTOR_HPP_
 
 #include "endpoint.hpp"
+#include "io_event_managers.hpp"
 #include "linkage.h"
 #include "socket_nifty.hpp"
 #include "tcp_connection.hpp"
@@ -57,9 +58,26 @@ struct CUTI_ABI tcp_acceptor_t
   // In non-blocking mode, nullptr may be returned.
   std::unique_ptr<tcp_connection_t> accept();
 
+  /*
+   * Event reporting
+   */
+  // Schedule a single callback for when <scheduler> detects the
+  // acceptor is ready to accept a connection, cancelling any
+  // previously set callback.  Spurious callbacks are rare, but
+  // possible.
+  template<typename F>
+  void call_when_ready(F&& callback, io_scheduler_t& scheduler)
+  { ready_event_manager_.set(std::forward<F>(callback), scheduler); }
+
+  // Cancel any previously set callback for when the acceptor is ready
+  // to accept a connection.
+  void cancel_when_ready()
+  { ready_event_manager_.reset(); }
+
 private :
   tcp_socket_t socket_;
   endpoint_t local_endpoint_;
+  readable_event_manager_t ready_event_manager_;
 };
 
 CUTI_ABI std::ostream& operator<<(std::ostream& os,
