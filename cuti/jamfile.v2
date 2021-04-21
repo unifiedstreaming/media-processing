@@ -80,6 +80,7 @@ lib cuti
   resolver.cpp
   scoped_thread.cpp
   selector.cpp
+  selector_factory.cpp
   socket_nifty.cpp
   streambuf_backend.cpp
   syslog_backend.cpp

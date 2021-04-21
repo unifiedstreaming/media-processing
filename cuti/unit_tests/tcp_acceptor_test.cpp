@@ -22,9 +22,9 @@
 #include "endpoint.hpp"
 #include "logging_context.hpp"
 #include "logger.hpp"
-#include "poll_selector.hpp"
 #include "resolver.hpp"
 #include "selector.hpp"
+#include "selector_factory.hpp"
 #include "streambuf_backend.hpp"
 #include "system_error.hpp"
 #include "tcp_connection.hpp"
@@ -42,46 +42,6 @@ namespace // anonymous
 {
 
 using namespace cuti;
-
-struct selector_factory_t
-{
-  selector_factory_t(std::string name,
-                     std::unique_ptr<selector_t>(*creator)())
-  : name_(std::move(name))
-  , creator_(creator)
-  { }
-
-  std::string const& name() const
-  {
-    return name_;
-  }
-
-  std::unique_ptr<selector_t> operator()() const
-  {
-    return (*creator_)();
-  }
-
-private :
-  std::string name_;
-  std::unique_ptr<selector_t>(*creator_)();
-};
-
-std::ostream& operator<<(std::ostream& os, selector_factory_t const& factory)
-{
-  os << factory.name();
-  return os;
-}
-
-std::vector<selector_factory_t> available_selector_factories()
-{
-  std::vector<selector_factory_t> result;
-
-#ifndef _WIN32
-  result.emplace_back("poll_selector", create_poll_selector);
-#endif
-
-  return result;
-}
 
 /*
  * The ultimate denial-of-service protector accepts and kills up to
