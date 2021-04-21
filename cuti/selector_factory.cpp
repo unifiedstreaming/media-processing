@@ -21,9 +21,7 @@
 
 #include "poll_selector.hpp"
 
-#include <cassert>
 #include <ostream>
-#include <type_traits>
 
 namespace cuti
 {
