@@ -24,14 +24,18 @@
 #include "linkage.h"
 #include "socket_nifty.hpp"
 
+#include <chrono>
+
 namespace cuti
 {
 
 /*
  * Abstract selector interface
  */
-struct CUTI_ABI selector_t : virtual io_scheduler_t 
+struct CUTI_ABI selector_t : io_scheduler_t 
 {
+  using timeout_t = std::chrono::system_clock::duration;
+
   selector_t()
   { }
 
@@ -39,27 +43,25 @@ struct CUTI_ABI selector_t : virtual io_scheduler_t
   selector_t& operator=(selector_t const&) = delete;
 
   /*
-   * Returns true if there are any registered events, false otherwise.
+   * Returns true if there are any pending callbacks, false otherwise.
    */
   virtual bool has_work() const noexcept = 0;
 
   /*
-   * Waits for no longer than <timeout_millis> milliseconds for one of
-   * the registered events to occur, returning either the non-empty
-   * callback for the first detected event, or an empty callback if no
-   * event was detected yet.
+   * Waits for no longer than <timeout> for an I/O event to occur,
+   * returning either the non-empty callback for the first detected
+   * event, or an empty callback if no event was detected yet.
    *
-   * If <timeout_millis> is negative, no timeout is applied; if
-   * <timeout_millis> is zero, this function does not block.
+   * If <timeout> is negative, no timeout is applied; if <timeout> is
+   * zero, this function does not block.
    *
-   * Due to the intricacies of (gdb and) interrupted system calls,
-   * callers are expected to deal with spurious early returns: please
+   * Callers are expected to deal with spurious early returns: please
    * keep in mind that, in rare cases, this function may return an
-   * empty callback before the timeout has expired.
+   * empty callback before the timeout is reached.
    *
    * Precondition: this->has_work()
    */
-  virtual callback_t select(int timeout_millis) = 0;
+  virtual callback_t select(timeout_t timeout) = 0;
 
   virtual ~selector_t();
 };

@@ -58,19 +58,18 @@ struct poll_selector_t : selector_t
     return make_ticket(fd, POLLOUT, std::move(callback));
   }
 
-  callback_t cancel_when_writable(int ticket) noexcept override
-  {
-    return cancel_ticket(ticket);
-  }
-
   int call_when_readable(int fd, callback_t callback) override
   {
     return make_ticket(fd, POLLIN, std::move(callback));
   }
 
-  callback_t cancel_when_readable(int ticket) noexcept override
+  void cancel_callback(int ticket) noexcept override
   {
-    return cancel_ticket(ticket);
+    assert(ticket >= 0);
+    assert(static_cast<std::size_t>(ticket) < pollfds_.size());
+
+    pollfds_[ticket] = inactive_pollfd;
+    callbacks_.remove_element(ticket);
   }
 
   bool has_work() const noexcept override
@@ -79,14 +78,14 @@ struct poll_selector_t : selector_t
            !callbacks_.list_empty(pending_list_);
   }
 
-  callback_t select(int timeout_millis) override
+  callback_t select(timeout_t timeout) override
   {
     assert(this->has_work());
 
     if(callbacks_.list_empty(pending_list_))
     {
-      int count = ::poll(pollfds_.data(), pollfds_.size(),
-        timeout_millis < 0 ? -1 : timeout_millis);
+      int count = ::poll(
+        pollfds_.data(), pollfds_.size(), poll_timeout(timeout));
       if(count < 0)
       {
         int cause = last_system_error();
@@ -154,14 +153,39 @@ private :
     return ticket;
   }
 
-  callback_t cancel_ticket(int ticket)
+  static int poll_timeout(timeout_t timeout)
   {
-    assert(ticket >= 0);
-    assert(static_cast<std::size_t>(ticket) < pollfds_.size());
-    pollfds_[ticket] = inactive_pollfd;
+    static timeout_t const zero = timeout_t::zero();
+    static int const max_poll_timeout = 30000;
 
-    callback_t result = std::move(callbacks_.value(ticket));
-    callbacks_.remove_element(ticket);
+    int result;
+
+    if(timeout < zero)
+    {
+      result = -1;
+    }
+    else if(timeout == zero)
+    {
+      result = 0;
+    }
+    else // timeout > zero
+    {
+      auto count = std::chrono::duration_cast<std::chrono::milliseconds>(
+        timeout).count();
+      if(count < 1)
+      {
+        result = 1; // prevent spinloop
+      }
+      else if(count < max_poll_timeout)
+      {
+        result = static_cast<int>(count);
+      }
+      else
+      {
+        result = max_poll_timeout;  
+      }
+    }
+
     return result;
   }
 

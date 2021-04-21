@@ -31,6 +31,7 @@
 
 #include <chrono>
 #include <iostream>
+#include <memory>
 #include <thread>
 
 // Enable assert()
@@ -81,53 +82,129 @@ std::vector<selector_factory_t> available_selector_factories()
 
   return result;
 }
-  
-int selector_timeout_millis(std::chrono::system_clock::duration timeout)
-{
-  static auto zero = std::chrono::system_clock::duration::zero();
-  assert(timeout >= zero);
 
-  int result = 0; // assume a true poll
-  if(timeout != zero)
+/*
+ * The ultimate denial-of-service protector accepts and kills up to
+ * <count> incoming connections on a randomly chosen local endpoint.
+ */
+struct dos_protector_t : std::enable_shared_from_this<dos_protector_t>
+{
+  static endpoint_t start(logging_context_t& context,
+                          io_scheduler_t& scheduler,
+                          endpoint_t const& interface,
+                          int count)
   {
-    // not a true poll
-    auto count = std::chrono::duration_cast<
-      std::chrono::milliseconds>(timeout).count();
-    if(count < 1)
+    std::shared_ptr<dos_protector_t> protector(
+      new dos_protector_t(context, scheduler, interface, count));
+    protector->proceed();
+    return protector->local_endpoint();
+  }
+
+  ~dos_protector_t()
+  {
+    if(auto msg = context_.message_at(loglevel_t::info))
     {
-      result = 1; // prevent spinloop
+      *msg << "dos_protector: " << acceptor_ << ": destroying";
     }
-    else if(count < 30000)
+  }
+  
+private :
+  dos_protector_t(logging_context_t& context,
+                  io_scheduler_t& scheduler,
+                  endpoint_t const& interface,
+                  int count)
+  : context_(context)
+  , scheduler_(scheduler)
+  , acceptor_(interface)
+  , count_(count)
+  {
+    acceptor_.set_nonblocking();
+  }
+
+  endpoint_t const& local_endpoint() const
+  {
+    return acceptor_.local_endpoint();
+  }
+
+  void proceed()
+  {
+    if(count_ > 0)
     {
-      result = static_cast<int>(count);
+      if(auto msg = context_.message_at(loglevel_t::info))
+      {
+        *msg << "dos_protector: " << acceptor_ << ": scheduling callback";
+      }
+      acceptor_.call_when_ready(scheduler_,
+        [self = shared_from_this()] { self->on_acceptor_ready(); });
     }
     else
     {
-      result = 30000;
+      if(auto msg = context_.message_at(loglevel_t::info))
+      {
+        *msg << "dos_protector: " << acceptor_ << ": done";
+      }
     }
   }
 
-  return result;
-}    
-      
+  void on_acceptor_ready()
+  {
+    assert(count_ > 0);
+
+    auto incoming = acceptor_.accept();
+    if(incoming == nullptr)
+    {
+      if(auto msg = context_.message_at(loglevel_t::info))
+      {
+        *msg << "dos_protector: " << acceptor_ <<
+          ": no incoming connection yet";
+      }
+    }
+    else
+    {
+      if(auto msg = context_.message_at(loglevel_t::info))
+      {
+        *msg << "dos_protector: " << acceptor_ <<
+          ": killing incoming connection " << *incoming;
+      }
+      --count_;
+    }
+
+    proceed();
+  }
+
+private :
+  logging_context_t& context_;
+  io_scheduler_t& scheduler_;
+  tcp_acceptor_t acceptor_;
+  int count_;
+};
+  
 void run_selector(logging_context_t& context,
                   selector_t& selector,
-                  int timeout_millis)
+                  selector_t::timeout_t timeout)
 {
-  assert(timeout_millis >= 0);
+  assert(timeout >= selector_t::timeout_t::zero());
 
   auto now = std::chrono::system_clock::now();
-  auto const limit = now + std::chrono::milliseconds(timeout_millis);
-  while(selector.has_work() && now <= limit)
+  auto const limit = now + timeout;
+
+  do
   {
-    timeout_millis = selector_timeout_millis(limit - now);
-    if(auto msg = context.message_at(loglevel_t::info))
+    if(!selector.has_work())
     {
-      *msg << "run_selector(): awaiting callback for " <<
-        timeout_millis << " millisecond(s)...";
+      break;
     }
     
-    auto callback = selector.select(timeout_millis);
+    timeout = limit - now; 
+    if(auto msg = context.message_at(loglevel_t::info))
+    {
+      auto milliseconds = std::chrono::duration_cast<
+        std::chrono::milliseconds>(timeout).count();
+      *msg << "run_selector(): awaiting callback for " <<
+        milliseconds << " millisecond(s)...";
+    }
+    
+    auto callback = selector.select(timeout);
     if(callback == nullptr)
     {
       if(auto msg = context.message_at(loglevel_t::info))
@@ -145,7 +222,7 @@ void run_selector(logging_context_t& context,
     }
 
     now = std::chrono::system_clock::now();
-  }
+  } while(now < limit);
 
   if(auto msg = context.message_at(loglevel_t::info))
   {
@@ -159,31 +236,6 @@ void run_selector(logging_context_t& context,
     }
   }
 }
-
-void start_accept(logging_context_t& context,
-                  io_scheduler_t& scheduler,
-                  tcp_acceptor_t& acceptor)
-{
-  auto connection = acceptor.accept();
-  if(connection == nullptr)
-  {
-    if(auto msg = context.message_at(loglevel_t::info))
-    {
-      *msg << "start_accept(): " << acceptor <<
-        ": no connection yet; rescheduling...";
-    }
-    acceptor.call_when_ready(
-      [&] { start_accept(context, scheduler, acceptor); },
-      scheduler);
-  }
-  else
-  {
-    if(auto msg = context.message_at(loglevel_t::info))
-    {
-      *msg << "start_accept(): accepted connection " << *connection;
-    }
-  }
-}    
 
 void blocking_accept(logging_context_t const& context,
                      endpoint_t const& interface)
@@ -418,7 +470,7 @@ void empty_selector(logging_context_t& context,
   }
 
   auto selector = factory();
-  run_selector(context, *selector, 60000);
+  run_selector(context, *selector, std::chrono::seconds(60));
   assert(!selector->has_work());
 }
 
@@ -436,16 +488,16 @@ void no_client(logging_context_t& context,
                endpoint_t const& interface)
 {
   auto selector = factory();
-  tcp_acceptor_t acceptor(interface);
-  acceptor.set_nonblocking();
+  endpoint_t protector =
+    dos_protector_t::start(context, *selector, interface, 1);
 
   if(auto msg = context.message_at(loglevel_t::info))
   {
-    *msg << "no_client(): factory: " << factory << " acceptor: " << acceptor;
+    *msg << "no_client(): factory: " << factory <<
+      " protector: " << protector;
   }
-  start_accept(context, *selector, acceptor);
 
-  run_selector(context, *selector, 0);
+  run_selector(context, *selector, std::chrono::seconds(0));
   assert(selector->has_work());
 }
 
@@ -468,26 +520,25 @@ void single_client(logging_context_t& context,
                    endpoint_t const& interface)
 {
   auto selector = factory();
-  tcp_acceptor_t acceptor(interface);
-  acceptor.set_nonblocking();
+  endpoint_t protector =
+    dos_protector_t::start(context, *selector, interface, 1);
 
   if(auto msg = context.message_at(loglevel_t::info))
   {
     *msg << "single_client(): factory: " << factory <<
-      " acceptor: " << acceptor;
+      " protector: " << protector;
   }
-  start_accept(context, *selector, acceptor);
 
-  run_selector(context, *selector, 0);
+  run_selector(context, *selector, std::chrono::seconds(0));
   assert(selector->has_work());
 
-  tcp_connection_t client(acceptor.local_endpoint());
+  tcp_connection_t client(protector);
   if(auto msg = context.message_at(loglevel_t::info))
   {
     *msg << "single_client(): client " << client;
   }
 
-  run_selector(context, *selector, 60000);
+  run_selector(context, *selector, std::chrono::seconds(60));
   assert(!selector->has_work());
 }
 
@@ -510,32 +561,27 @@ void multiple_clients(logging_context_t& context,
                       endpoint_t const& interface)
 {
   auto selector = factory();
-  tcp_acceptor_t acceptor(interface);
-  acceptor.set_nonblocking();
+  endpoint_t protector =
+    dos_protector_t::start(context, *selector, interface, 2);
 
   if(auto msg = context.message_at(loglevel_t::info))
   {
     *msg << "multiple_clients(): factory: " << factory <<
-      " acceptor: " << acceptor;
+      " protector: " << protector;
   }
 
-  start_accept(context, *selector, acceptor);
-  run_selector(context, *selector, 0);
+  run_selector(context, *selector, std::chrono::seconds(0));
   assert(selector->has_work());
 
-  tcp_connection_t client1(acceptor.local_endpoint());
-  tcp_connection_t client2(acceptor.local_endpoint());
+  tcp_connection_t client1(protector);
+  tcp_connection_t client2(protector);
   if(auto msg = context.message_at(loglevel_t::info))
   {
     *msg << "multiple_clients(): client1: " << client1 <<
       " client2: " << client2;
   }
 
-  run_selector(context, *selector, 60000);
-  assert(!selector->has_work());
-
-  start_accept(context, *selector, acceptor);
-  run_selector(context, *selector, 60000);
+  run_selector(context, *selector, std::chrono::seconds(60));
   assert(!selector->has_work());
 }
 
@@ -558,32 +604,29 @@ void multiple_acceptors(logging_context_t& context,
                         endpoint_t const& interface)
 {
   auto selector = factory();
-
-  tcp_acceptor_t acceptor1(interface);
-  acceptor1.set_nonblocking();
-  tcp_acceptor_t acceptor2(interface);
-  acceptor2.set_nonblocking();
+  endpoint_t protector1 =
+    dos_protector_t::start(context, *selector, interface, 1);
+  endpoint_t protector2 =
+    dos_protector_t::start(context, *selector, interface, 1);
 
   if(auto msg = context.message_at(loglevel_t::info))
   {
     *msg << "multiple_accceptors(): factory: " << factory <<
-      " acceptor1: " << acceptor1 << " acceptor2: " << acceptor2;
+      " protector1: " << protector1 << " protector2: " << protector2;
   }
-  start_accept(context, *selector, acceptor1);
-  start_accept(context, *selector, acceptor2);
 
-  run_selector(context, *selector, 0);
+  run_selector(context, *selector, std::chrono::seconds(0));
   assert(selector->has_work());
 
-  tcp_connection_t client1(acceptor1.local_endpoint());
-  tcp_connection_t client2(acceptor2.local_endpoint());
+  tcp_connection_t client1(protector1);
+  tcp_connection_t client2(protector2);
   if(auto msg = context.message_at(loglevel_t::info))
   {
     *msg << "multiple_acceptors(): client1: " << client1 <<
       " client2: " << client2;
   }
 
-  run_selector(context, *selector, 60000);
+  run_selector(context, *selector, std::chrono::seconds(60));
   assert(!selector->has_work());
 }
 
@@ -619,15 +662,16 @@ void selector_switch(logging_context_t& context,
   assert(!selector1->has_work());
   assert(!selector2->has_work());
 
-  acceptor.call_when_ready([] { }, *selector1);
+  int ticket = acceptor.call_when_ready(*selector1, [] { });
   assert(selector1->has_work());
   assert(!selector2->has_work());
 
-  acceptor.call_when_ready([] { }, *selector2);
+  selector1->cancel_callback(ticket);
+  ticket = acceptor.call_when_ready(*selector2, [] { });
   assert(!selector1->has_work());
   assert(selector2->has_work());
 
-  acceptor.cancel_when_ready();
+  selector2->cancel_callback(ticket);
   assert(!selector1->has_work());
   assert(!selector2->has_work());
 }
@@ -663,6 +707,7 @@ int throwing_main(int argc, char const* const argv[])
   single_client(context);
   multiple_clients(context);
   multiple_acceptors(context);
+
   selector_switch(context);
 
   return 0;

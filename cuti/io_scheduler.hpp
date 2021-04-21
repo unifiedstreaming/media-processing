@@ -39,32 +39,27 @@ struct CUTI_ABI io_scheduler_t
   io_scheduler_t& operator=(io_scheduler_t const&) = delete;
 
   /*
-   * Registers a callback for when fd is ready for writing; the
-   * callback must not be empty.  Returns a registration ticket, valid
-   * until either (1) the ticket is canceled, or (2) callback is
-   * invoked.  Call this function again if you want another callback.
+   * Schedules a one-time callback for when fd is ready for writing;
+   * the callback must be != nullptr.  Returns a non-negative
+   * cancellation ticket that may be used to cancel the callback
+   * before it is invoked.  Call this function again if you want
+   * another callback.
    */
   virtual int call_when_writable(int fd, callback_t callback) = 0;
   
   /*
-   * Cancels a callback registered with call_when_writable(),
-   * returning the registered callback.
-   */
-  virtual callback_t cancel_when_writable(int ticket) noexcept = 0;
-
-  /*
-   * Registers a callback for when fd is ready for reading; the
-   * callback must not be empty.  Returns a registration ticket, valid
-   * until either (1) the ticket is canceled, or (2) callback is
-   * invoked.  Call this function again if you want another callback.
+   * Schedules a one-time callback for when fd is ready for reading;
+   * the callback must be != nullptr.  Returns a non-negative
+   * cancellation ticket that may be used to cancel the callback
+   * before it is invoked.  Call this function again if you want
+   * another callback.
    */
   virtual int call_when_readable(int fd, callback_t callback) = 0;
   
   /*
-   * Cancels a callback registered with call_when_readable(),
-   * returning the registered callback.
+   * Cancels a pending callback.
    */
-  virtual callback_t cancel_when_readable(int ticket) noexcept = 0;
+  virtual void cancel_callback(int ticket) noexcept = 0;
 
   virtual ~io_scheduler_t();
 };

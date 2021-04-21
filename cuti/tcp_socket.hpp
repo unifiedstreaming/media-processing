@@ -121,23 +121,24 @@ struct CUTI_ABI tcp_socket_t
   char* read_some(char* first, char* last);
 
   /*
-   * Event reporting; the tickets returned may be canceled by directly
-   * calling cancel_when_{writable, readable}() on the scheduler.
+   * Event reporting; see io_scheduler.hpp for detailed semantics.
    */
-  template<typename F>
-  int call_when_writable(F&& callback, io_scheduler_t& scheduler)
+  template<typename Callback>
+  int call_when_writable(io_scheduler_t& scheduler, Callback&& callback)
   {
     assert(!this->empty());
-    return scheduler.call_when_writable(fd_, std::forward<F>(callback));
+    return scheduler.call_when_writable(fd_,
+      std::forward<Callback>(callback));
   }
- 
-  template<typename F>
-  int call_when_readable(F&& callback, io_scheduler_t& scheduler)
+
+  template<typename Callback>
+  int call_when_readable(io_scheduler_t& scheduler, Callback&& callback)
   {
     assert(!this->empty());
-    return scheduler.call_when_readable(fd_, std::forward<F>(callback));
+    return scheduler.call_when_readable(fd_,
+      std::forward<Callback>(callback));
   }
- 
+
 private :
   static void close_fd(int fd) noexcept;
 
