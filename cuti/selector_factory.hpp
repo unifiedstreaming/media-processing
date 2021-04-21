@@ -26,7 +26,6 @@
 
 #include <iosfwd>
 #include <memory>
-#include <string>
 #include <vector>
 
 namespace cuti
@@ -34,16 +33,21 @@ namespace cuti
 
 struct CUTI_ABI selector_factory_t
 {
-  selector_factory_t(std::string name,
-                     std::unique_ptr<selector_t>(*creator)());
+  template<int N>
+  selector_factory_t(char const(&name)[N],
+                     std::unique_ptr<selector_t>(&creator)())
+  : name_(name)
+  , creator_(creator)
+  { }
 
-  std::string const& name() const;
-  std::unique_ptr<selector_t> operator()() const;
+  char const* name() const noexcept
+  { return name_; }
 
-  ~selector_factory_t();
+  std::unique_ptr<selector_t> operator()() const
+  { return (*creator_)(); }
 
 private :
-  std::string name_;
+  char const* name_;
   std::unique_ptr<selector_t>(*creator_)();
 };
 

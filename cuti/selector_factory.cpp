@@ -28,32 +28,6 @@
 namespace cuti
 {
 
-selector_factory_t::selector_factory_t(
-  std::string name,
-  std::unique_ptr<selector_t>(*creator)())
-: name_(std::move(name))
-, creator_((assert(creator != nullptr), creator))
-{ }
-
-std::string const& selector_factory_t::name() const
-{
-  return name_;
-}
-
-std::unique_ptr<selector_t> selector_factory_t::operator()() const
-{
-  auto result = (*creator_)();
-  assert(result != nullptr);
-  return result;
-}
-
-selector_factory_t::~selector_factory_t()
-{
-  // dtor suppresses move ctor & move assignment op -> no empty state
-  static_assert(!std::is_nothrow_move_constructible_v<selector_factory_t>);
-  static_assert(!std::is_nothrow_move_assignable_v<selector_factory_t>);
-}
-
 std::ostream& operator<<(std::ostream& os, selector_factory_t const& factory)
 {
   os << factory.name();
