@@ -139,64 +139,6 @@ private :
   int count_;
 };
   
-void run_selector(logging_context_t& context,
-                  selector_t& selector,
-                  selector_t::timeout_t timeout)
-{
-  assert(timeout >= selector_t::timeout_t::zero());
-
-  auto now = std::chrono::system_clock::now();
-  auto const limit = now + timeout;
-
-  do
-  {
-    if(!selector.has_work())
-    {
-      break;
-    }
-    
-    timeout = limit - now; 
-    if(auto msg = context.message_at(loglevel_t::info))
-    {
-      auto milliseconds = std::chrono::duration_cast<
-        std::chrono::milliseconds>(timeout).count();
-      *msg << "run_selector(): awaiting callback for " <<
-        milliseconds << " millisecond(s)...";
-    }
-    
-    auto callback = selector.select(timeout);
-    if(callback == nullptr)
-    {
-      if(auto msg = context.message_at(loglevel_t::info))
-      {
-        *msg << "run_selector(): got empty callback";
-      }
-    }
-    else
-    {
-      if(auto msg = context.message_at(loglevel_t::info))
-      {
-        *msg << "run_selector(): invoking callback";
-      }
-      callback();
-    }
-
-    now = std::chrono::system_clock::now();
-  } while(now < limit);
-
-  if(auto msg = context.message_at(loglevel_t::info))
-  {
-    if(selector.has_work())
-    {
-      *msg << "run_selector(): timeout";
-    }
-    else
-    {
-      *msg << "run_selector(): out of work";
-    }
-  }
-}
-
 void blocking_accept(logging_context_t const& context,
                      endpoint_t const& interface)
 {
@@ -426,7 +368,7 @@ void empty_selector(logging_context_t& context,
 {
   if(auto msg = context.message_at(loglevel_t::info))
   {
-    *msg << "empty_selector(): factory: " << factory;
+    *msg << "empty_selector(): using " << factory << " selector";
   }
 
   auto selector = factory();
@@ -453,8 +395,8 @@ void no_client(logging_context_t& context,
 
   if(auto msg = context.message_at(loglevel_t::info))
   {
-    *msg << "no_client(): factory: " << factory <<
-      " protector: " << protector;
+    *msg << "no_client(): using " << factory <<
+      " selector; protector: " << protector;
   }
 
   run_selector(context, *selector, std::chrono::seconds(0));
@@ -485,8 +427,8 @@ void single_client(logging_context_t& context,
 
   if(auto msg = context.message_at(loglevel_t::info))
   {
-    *msg << "single_client(): factory: " << factory <<
-      " protector: " << protector;
+    *msg << "single_client(): using " << factory <<
+      " selector; protector: " << protector;
   }
 
   run_selector(context, *selector, std::chrono::seconds(0));
@@ -526,8 +468,8 @@ void multiple_clients(logging_context_t& context,
 
   if(auto msg = context.message_at(loglevel_t::info))
   {
-    *msg << "multiple_clients(): factory: " << factory <<
-      " protector: " << protector;
+    *msg << "multiple_clients(): using " << factory <<
+      " selector; protector: " << protector;
   }
 
   run_selector(context, *selector, std::chrono::seconds(0));
@@ -571,8 +513,9 @@ void multiple_acceptors(logging_context_t& context,
 
   if(auto msg = context.message_at(loglevel_t::info))
   {
-    *msg << "multiple_accceptors(): factory: " << factory <<
-      " protector1: " << protector1 << " protector2: " << protector2;
+    *msg << "multiple_acceptors(): using " << factory <<
+      " selector; protector1: " << protector1 <<
+      " protector2: " << protector2;
   }
 
   run_selector(context, *selector, std::chrono::seconds(0));
@@ -615,8 +558,8 @@ void selector_switch(logging_context_t& context,
 
   if(auto msg = context.message_at(loglevel_t::info))
   {
-    *msg << "selector_switch(): factory: " << factory <<
-      " acceptor: " << acceptor;
+    *msg << "selector_switch(): using " << factory <<
+      " selector; acceptor: " << acceptor;
   }
 
   assert(!selector1->has_work());

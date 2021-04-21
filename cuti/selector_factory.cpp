@@ -37,7 +37,7 @@ std::vector<selector_factory_t> available_selector_factories()
   std::vector<selector_factory_t> result;
 
 #ifndef _WIN32
-  result.emplace_back("poll_selector", create_poll_selector);
+  result.emplace_back("poll", create_poll_selector);
 #endif
 
   return result;

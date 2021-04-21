@@ -29,6 +29,8 @@
 namespace cuti
 {
 
+struct logging_context_t;
+
 /*
  * Abstract selector interface
  */
@@ -65,6 +67,21 @@ struct CUTI_ABI selector_t : io_scheduler_t
 
   virtual ~selector_t();
 };
+
+/*
+ * Keep invoking the callbacks returned from <selector>.select() for
+ * no longer than <timeout>.  <timeout> must not be negative; if it is
+ * zero, this function invokes at most one callback and does not wait
+ * for further events.  Returns early when <selector> runs out of
+ * work.
+ * Usually, you'll want more than just a (single) selector to
+ * drive an event loop; this function mainly exists for testing
+ * purposes.
+ */
+CUTI_ABI
+void run_selector(logging_context_t& context,
+                  selector_t& selector,
+                  selector_t::timeout_t timeout);
 
 } // cuti
 

@@ -21,6 +21,7 @@
 #define CUTI_TCP_CONNECTION_HPP_
 
 #include "endpoint.hpp"
+#include "io_scheduler.hpp"
 #include "linkage.h"
 #include "socket_nifty.hpp"
 #include "tcp_socket.hpp"
@@ -70,6 +71,23 @@ struct CUTI_ABI tcp_connection_t
   // Returns a pointer to the next byte to read; first on EOF.
   // In non-blocking mode, nullptr may be returned.
   char* read_some(char* first, char* last);
+
+  /*
+   * Event reporting; see io_scheduler.hpp for detailed semantics.
+   */
+  template<typename Callback>
+  int call_when_writable(io_scheduler_t& scheduler, Callback&& callback)
+  {
+    return socket_.call_when_writable(scheduler,
+      std::forward<Callback>(callback));
+  }
+
+  template<typename Callback>
+  int call_when_readable(io_scheduler_t& scheduler, Callback&& callback)
+  {
+    return socket_.call_when_readable(scheduler,
+      std::forward<Callback>(callback));
+  }
 
 private :
   friend struct tcp_acceptor_t;
