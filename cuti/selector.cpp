@@ -27,7 +27,7 @@ namespace cuti
 selector_t::~selector_t()
 { }
 
-void run_selector(logging_context_t& context,
+void run_selector(logging_context_t const& context,
                   loglevel_t loglevel,
                   selector_t& selector,
                   selector_t::timeout_t timeout)

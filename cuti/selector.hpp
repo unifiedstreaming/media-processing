@@ -80,7 +80,7 @@ struct CUTI_ABI selector_t : io_scheduler_t
  * purposes.
  */
 CUTI_ABI
-void run_selector(logging_context_t& context,
+void run_selector(logging_context_t const& context,
                   loglevel_t loglevel,
                   selector_t& selector,
                   selector_t::timeout_t timeout);

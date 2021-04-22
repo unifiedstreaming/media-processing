@@ -24,6 +24,8 @@
 #include "option_walker.hpp"
 #include "resolver.hpp"
 #include "scoped_thread.hpp"
+#include "selector.hpp"
+#include "selector_factory.hpp"
 #include "streambuf_backend.hpp"
 #include "tcp_connection.hpp"
 #include "system_error.hpp"
@@ -398,7 +400,39 @@ struct logged_tcp_connection_t
 
     return result;
   }
-    
+
+  template<typename Callback>
+  int call_when_writable(io_scheduler_t& scheduler, Callback&& callback)
+  {
+    if(auto msg = context_.message_at(loglevel_))
+    {
+      *msg << prefix_ << conn_ << ": requesting writable callback";
+    }
+
+    return conn_.call_when_writable(
+      scheduler, std::forward<Callback>(callback));
+  }
+      
+  template<typename Callback>
+  int call_when_readable(io_scheduler_t& scheduler, Callback&& callback)
+  {
+    if(auto msg = context_.message_at(loglevel_))
+    {
+      *msg << prefix_ << conn_ << ": requesting readable callback";
+    }
+
+    return conn_.call_when_readable(
+      scheduler, std::forward<Callback>(callback));
+  }
+
+  ~logged_tcp_connection_t()
+  {
+    if(auto msg = context_.message_at(loglevel_))
+    {
+      *msg << prefix_ << conn_ << ": connection destructor";
+    }
+  }
+  
 private :
   logging_context_t const& context_;
   loglevel_t loglevel_;
@@ -436,6 +470,23 @@ struct producer_t
     return eof_sent_ ? io_state_t::done : io_state_t::wants_write;
   }
   
+  static void start(std::shared_ptr<producer_t> const& self,
+                    io_scheduler_t& scheduler)
+  {
+    switch(self->io_state())
+    {
+    case io_state_t::wants_write :
+      self->out_.call_when_writable(scheduler,
+        [self, &scheduler] { on_writable(self, scheduler); });
+      break;
+    case io_state_t::done :
+      break;
+    default :
+      assert(!"expected io_state");
+      break;
+    }
+  }
+
   bool progress()
   {
     if(eof_sent_)
@@ -466,6 +517,14 @@ struct producer_t
     assert(next <= limit);
     first_  = next;
     return true;
+  }
+
+private :
+  static void on_writable(std::shared_ptr<producer_t> const& self,
+                          io_scheduler_t& scheduler)
+  {
+    self->progress();
+    start(self, scheduler);
   }
   
 private :
@@ -504,6 +563,27 @@ struct filter_t
       first_ != last_ ? io_state_t::wants_write :
       eof_seen_ ? io_state_t::wants_write :
       io_state_t::wants_read;
+  }
+
+  static void start(std::shared_ptr<filter_t> const& self,
+                    io_scheduler_t& scheduler)
+  {
+    switch(self->io_state())
+    {
+    case io_state_t::wants_write :
+      self->out_.call_when_writable(scheduler,
+        [self, &scheduler] { on_writable(self, scheduler); });
+      break;
+    case io_state_t::wants_read :
+      self->in_.call_when_readable(scheduler,
+        [self, &scheduler] { on_readable(self, scheduler); });
+      break;
+    case io_state_t::done :
+      break;
+    default :
+      assert(!"expected io_state");
+      break;
+    }
   }
 
   bool progress()
@@ -556,6 +636,21 @@ struct filter_t
   }
     
 private :
+  static void on_writable(std::shared_ptr<filter_t> const& self,
+                          io_scheduler_t& scheduler)
+  {
+    self->progress();
+    start(self, scheduler);
+  }
+  
+  static void on_readable(std::shared_ptr<filter_t> const& self,
+                          io_scheduler_t& scheduler)
+  {
+    self->progress();
+    start(self, scheduler);
+  }
+  
+private :
   logged_tcp_connection_t in_;
   logged_tcp_connection_t out_;
   std::vector<char> buf_;
@@ -584,6 +679,23 @@ struct consumer_t
   io_state_t io_state() const
   {
     return eof_seen_ ? io_state_t::done : io_state_t::wants_read;
+  }
+
+  static void start(std::shared_ptr<consumer_t> const& self,
+                    io_scheduler_t& scheduler)
+  {
+    switch(self->io_state())
+    {
+    case io_state_t::wants_read :
+      self->in_.call_when_readable(scheduler,
+        [self, &scheduler] { on_readable(self, scheduler); });
+      break;
+    case io_state_t::done :
+      break;
+    default :
+      assert(!"expected io_state");
+      break;
+    }
   }
 
   bool progress()
@@ -617,6 +729,14 @@ struct consumer_t
     return true;
   }
     
+private :
+  static void on_readable(std::shared_ptr<consumer_t> const& self,
+                          io_scheduler_t& scheduler)
+  {
+    self->progress();
+    start(self, scheduler);
+  }
+  
 private :
   logged_tcp_connection_t in_;
   std::vector<char> buf_;
@@ -658,6 +778,13 @@ void run_pipe_serially(producer_t& producer,
     while(consumer.progress() && agile)
       ;
   }
+}
+
+template<typename IOHandler, typename... Args>
+void start_io_handler(io_scheduler_t& scheduler, Args&&... args)
+{
+  auto handler = std::make_shared<IOHandler>(std::forward<Args>(args)...);
+  IOHandler::start(handler, scheduler);
 }
     
 unsigned int const bufsize = 256 * 1024;
@@ -742,6 +869,60 @@ void nonblocking_transfer(logging_context_t const& context, bool agile)
   }
 }
       
+void selected_transfer(logging_context_t const& context,
+                       selector_factory_t const& factory,
+                       endpoint_t const& interface)
+{
+  char const* first = payload.data();
+  char const* last = payload.data() + payload.size();
+
+  auto[producer_out, filter_in] = make_connected_pair(interface);
+  auto[filter_out, consumer_in] = make_connected_pair(interface);
+
+  producer_out->set_nonblocking();
+  filter_in->set_nonblocking();
+  filter_out->set_nonblocking();
+  consumer_in->set_nonblocking();
+
+  if(auto msg = context.message_at(loglevel_t::info))
+  {
+    *msg << "selected_transfer():" <<
+      " selector: " << factory <<
+      " producer out: " << *producer_out <<
+      " filter in: " << *filter_in <<
+      " filter out: " << *filter_out <<
+      " consumer in: " << *consumer_in <<
+      " buffer size: " << bufsize <<
+      " bytes to transfer: " << payload.size();
+  }
+
+  auto selector = factory();
+
+  start_io_handler<producer_t>(*selector,
+    context, *producer_out, first, last, bufsize);
+  start_io_handler<filter_t>(*selector,
+    context, *filter_in, *filter_out, bufsize);
+  start_io_handler<consumer_t>(*selector,
+    context, *consumer_in, first, last, bufsize);
+
+  run_selector(context, loglevel_t::debug, *selector, std::chrono::minutes(1));
+  assert(!selector->has_work());
+}
+
+void selected_transfer(logging_context_t const& context)
+{
+  auto factories = available_selector_factories();
+  auto interfaces = local_interfaces(any_port);
+
+  for(auto const& factory : factories)
+  {
+    for(auto const& interface : interfaces)
+    {
+      selected_transfer(context, factory, interface);
+    }
+  }
+}
+
 void blocking_client_server(logging_context_t const& context,
                             endpoint_t const& interface)
 {
@@ -812,6 +993,54 @@ void nonblocking_client_server(logging_context_t const& context, bool agile)
   }
 }
       
+void selected_client_server(logging_context_t const& context,
+                            selector_factory_t const& factory,
+                            endpoint_t const& interface)
+{
+  char const* first = payload.data();
+  char const* last = payload.data() + payload.size();
+
+  auto[client_side, server_side] = make_connected_pair(interface);
+
+  client_side->set_nonblocking();
+  server_side->set_nonblocking();
+  
+  if(auto msg = context.message_at(loglevel_t::info))
+  {
+    *msg << "selected_client_server():" <<
+      " selector: " << factory <<
+      " client side: " << *client_side <<
+      " server_side: " << *server_side <<
+      " bytes to transfer: " << payload.size();
+  }
+
+  auto selector = factory();
+
+  start_io_handler<producer_t>(*selector,
+    context, *client_side, first, last, bufsize);
+  start_io_handler<filter_t>(*selector,
+    context, *server_side, *server_side, bufsize);
+  start_io_handler<consumer_t>(*selector,
+    context, *client_side, first, last, bufsize);
+
+  run_selector(context, loglevel_t::debug, *selector, std::chrono::minutes(1));
+  assert(!selector->has_work());
+}
+
+void selected_client_server(logging_context_t const& context)
+{
+  auto factories = available_selector_factories();
+  auto interfaces = local_interfaces(any_port);
+
+  for(auto const& factory : factories)
+  {
+    for(auto const& interface : interfaces)
+    {
+      selected_client_server(context, factory, interface);
+    }
+  }
+}
+
 void broken_pipe(logging_context_t const& context,
                  endpoint_t const& interface)
 {
@@ -919,10 +1148,12 @@ int throwing_main(int argc, char const* const argv[])
   blocking_transfer(context);
   nonblocking_transfer(context, false);
   nonblocking_transfer(context, true);
+  selected_transfer(context);
 
   blocking_client_server(context);
   nonblocking_client_server(context, false);
   nonblocking_client_server(context, true);
+  selected_client_server(context);
 
   broken_pipe(context);
 
