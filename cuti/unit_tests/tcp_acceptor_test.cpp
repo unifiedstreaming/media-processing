@@ -66,6 +66,7 @@ struct dos_protector_t
     return acceptor_.local_endpoint();
   }
 
+  // SSTS: static start takes shared
   static void start(std::shared_ptr<dos_protector_t> const& self,
                     io_scheduler_t& scheduler)
   {
@@ -123,7 +124,7 @@ private :
   int count_;
 };
 
-
+// SSTS: static start takes shared
 template<typename... Args>
 endpoint_t start_dos_protector(io_scheduler_t& scheduler, Args&&... args)
 {

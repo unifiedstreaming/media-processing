@@ -470,6 +470,7 @@ struct producer_t
     return eof_sent_ ? io_state_t::done : io_state_t::wants_write;
   }
   
+  // SSTS: static start takes shared
   static void start(std::shared_ptr<producer_t> const& self,
                     io_scheduler_t& scheduler)
   {
@@ -565,6 +566,7 @@ struct filter_t
       io_state_t::wants_read;
   }
 
+  // SSTS: static start takes shared
   static void start(std::shared_ptr<filter_t> const& self,
                     io_scheduler_t& scheduler)
   {
@@ -681,6 +683,7 @@ struct consumer_t
     return eof_seen_ ? io_state_t::done : io_state_t::wants_read;
   }
 
+  // SSTS: static start takes shared
   static void start(std::shared_ptr<consumer_t> const& self,
                     io_scheduler_t& scheduler)
   {
@@ -780,6 +783,7 @@ void run_pipe_serially(producer_t& producer,
   }
 }
 
+// SSTS: static start takes shared
 template<typename IOHandler, typename... Args>
 void start_io_handler(io_scheduler_t& scheduler, Args&&... args)
 {
