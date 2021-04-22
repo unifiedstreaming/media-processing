@@ -406,6 +406,8 @@ private :
   tcp_connection_t& conn_;
 };
 
+enum class io_state_t { wants_write, wants_read, done };
+
 /*
  * Our test producer sends [first,last>, and then a half-close, to out.
  */
@@ -429,11 +431,11 @@ struct producer_t
   producer_t(producer_t const&) = delete;
   producer_t& operator=(producer_t const&) = delete;
 
-  bool done() const
+  io_state_t io_state() const
   {
-    return eof_sent_;
+    return eof_sent_ ? io_state_t::done : io_state_t::wants_write;
   }
-
+  
   bool progress()
   {
     if(eof_sent_)
@@ -495,9 +497,13 @@ struct filter_t
   filter_t(filter_t const&) = delete;
   filter_t& operator=(filter_t const&) = delete;
 
-  bool done() const
+  io_state_t io_state() const
   {
-    return eof_sent_;
+    return
+      eof_sent_ ? io_state_t::done :
+      first_ != last_ ? io_state_t::wants_write :
+      eof_seen_ ? io_state_t::wants_write :
+      io_state_t::wants_read;
   }
 
   bool progress()
@@ -575,9 +581,9 @@ struct consumer_t
   , eof_seen_(false)
   { }
 
-  bool done() const
+  io_state_t io_state() const
   {
-    return eof_seen_;
+    return eof_seen_ ? io_state_t::done : io_state_t::wants_read;
   }
 
   bool progress()
@@ -622,7 +628,7 @@ private :
 template<typename T>
 void run_to_completion(T& function)
 {
-  while(!function.done())
+  while(function.io_state() != io_state_t::done)
   {
     bool progressed = function.progress();
     assert(progressed);
@@ -643,7 +649,7 @@ void run_pipe_serially(producer_t& producer,
                        consumer_t& consumer,
                        bool agile)
 {
-  while(!consumer.done())
+  while(consumer.io_state() != io_state_t::done)
   {
     while(producer.progress() && agile)
       ;
