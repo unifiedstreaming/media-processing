@@ -49,34 +49,12 @@ loglevel_t const loglevel = loglevel_t::info;
  * The ultimate denial-of-service protector accepts and kills up to
  * <count> incoming connections on a randomly chosen local endpoint.
  */
-struct dos_protector_t : std::enable_shared_from_this<dos_protector_t>
+struct dos_protector_t
 {
-  static endpoint_t start(logging_context_t& context,
-                          io_scheduler_t& scheduler,
-                          endpoint_t const& interface,
-                          int count)
-  {
-    std::shared_ptr<dos_protector_t> protector(
-      new dos_protector_t(context, scheduler, interface, count));
-    protector->proceed();
-    return protector->local_endpoint();
-  }
-
-  ~dos_protector_t()
-  {
-    if(auto msg = context_.message_at(loglevel))
-    {
-      *msg << "dos_protector: " << acceptor_ << ": destroying";
-    }
-  }
-  
-private :
   dos_protector_t(logging_context_t& context,
-                  io_scheduler_t& scheduler,
                   endpoint_t const& interface,
                   int count)
   : context_(context)
-  , scheduler_(scheduler)
   , acceptor_(interface)
   , count_(count)
   {
@@ -88,58 +66,72 @@ private :
     return acceptor_.local_endpoint();
   }
 
-  void proceed()
+  static void start(std::shared_ptr<dos_protector_t> const& self,
+                    io_scheduler_t& scheduler)
   {
-    if(count_ > 0)
+    if(self->count_ > 0)
     {
-      if(auto msg = context_.message_at(loglevel))
+      if(auto msg = self->context_.message_at(loglevel))
       {
-        *msg << "dos_protector: " << acceptor_ << ": scheduling callback";
+        *msg << "dos_protector: " << self->acceptor_ <<
+	   ": requesting on_ready() callback";
       }
-      acceptor_.call_when_ready(scheduler_,
-        [self = shared_from_this()] { self->on_acceptor_ready(); });
-    }
-    else
-    {
-      if(auto msg = context_.message_at(loglevel))
-      {
-        *msg << "dos_protector: " << acceptor_ << ": done";
-      }
+      self->acceptor_.call_when_ready(scheduler,
+        [self, &scheduler] { on_ready(self, scheduler); });
     }
   }
-
-  void on_acceptor_ready()
+      
+  ~dos_protector_t()
   {
-    assert(count_ > 0);
+    if(auto msg = context_.message_at(loglevel))
+    {
+      *msg << "dos_protector: " << acceptor_ << ": destructor";
+    }
+  }
+  
+private :
+  static void on_ready(std::shared_ptr<dos_protector_t> const& self,
+                       io_scheduler_t& scheduler)
+  {
+    assert(self->count_ > 0);
 
-    auto incoming = acceptor_.accept();
+    auto incoming = self->acceptor_.accept();
     if(incoming == nullptr)
     {
-      if(auto msg = context_.message_at(loglevel))
+      if(auto msg = self->context_.message_at(loglevel))
       {
-        *msg << "dos_protector: " << acceptor_ <<
+        *msg << "dos_protector: " << self->acceptor_ <<
           ": no incoming connection yet";
       }
     }
     else
     {
-      if(auto msg = context_.message_at(loglevel))
+      if(auto msg = self->context_.message_at(loglevel))
       {
-        *msg << "dos_protector: " << acceptor_ <<
+        *msg << "dos_protector: " << self->acceptor_ <<
           ": killing incoming connection " << *incoming;
       }
-      --count_;
+      --self->count_;
     }
 
-    proceed();
+    start(self, scheduler);
   }
 
 private :
   logging_context_t& context_;
-  io_scheduler_t& scheduler_;
   tcp_acceptor_t acceptor_;
   int count_;
 };
+
+
+template<typename... Args>
+endpoint_t start_dos_protector(io_scheduler_t& scheduler, Args&&... args)
+{
+  auto protector =
+    std::make_shared<dos_protector_t>(std::forward<Args>(args)...);
+  dos_protector_t::start(protector, scheduler);
+  return protector->local_endpoint();
+}
   
 void blocking_accept(logging_context_t const& context,
                      endpoint_t const& interface)
@@ -392,8 +384,7 @@ void no_client(logging_context_t& context,
                endpoint_t const& interface)
 {
   auto selector = factory();
-  endpoint_t protector =
-    dos_protector_t::start(context, *selector, interface, 1);
+  endpoint_t protector = start_dos_protector(*selector, context, interface, 1);
 
   if(auto msg = context.message_at(loglevel))
   {
@@ -424,8 +415,7 @@ void single_client(logging_context_t& context,
                    endpoint_t const& interface)
 {
   auto selector = factory();
-  endpoint_t protector =
-    dos_protector_t::start(context, *selector, interface, 1);
+  endpoint_t protector = start_dos_protector(*selector, context, interface, 1);
 
   if(auto msg = context.message_at(loglevel))
   {
@@ -465,8 +455,7 @@ void multiple_clients(logging_context_t& context,
                       endpoint_t const& interface)
 {
   auto selector = factory();
-  endpoint_t protector =
-    dos_protector_t::start(context, *selector, interface, 2);
+  endpoint_t protector = start_dos_protector(*selector, context, interface, 2);
 
   if(auto msg = context.message_at(loglevel))
   {
@@ -508,10 +497,10 @@ void multiple_acceptors(logging_context_t& context,
                         endpoint_t const& interface)
 {
   auto selector = factory();
-  endpoint_t protector1 =
-    dos_protector_t::start(context, *selector, interface, 1);
-  endpoint_t protector2 =
-    dos_protector_t::start(context, *selector, interface, 1);
+  endpoint_t protector1 = start_dos_protector(
+    *selector, context, interface, 1);
+  endpoint_t protector2 = start_dos_protector(
+    *selector, context, interface, 1);
 
   if(auto msg = context.message_at(loglevel))
   {
