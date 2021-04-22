@@ -67,8 +67,8 @@ struct dos_protector_t
   }
 
   // SSTS: static start takes shared
-  static void start(std::shared_ptr<dos_protector_t> const& self,
-                    io_scheduler_t& scheduler)
+  static endpoint_t start(std::shared_ptr<dos_protector_t> const& self,
+                          io_scheduler_t& scheduler)
   {
     if(self->count_ > 0)
     {
@@ -80,6 +80,7 @@ struct dos_protector_t
       self->acceptor_.call_when_ready(scheduler,
         [self, &scheduler] { on_ready(self, scheduler); });
     }
+    return self->local_endpoint();
   }
       
   ~dos_protector_t()
@@ -128,10 +129,8 @@ private :
 template<typename... Args>
 endpoint_t start_dos_protector(io_scheduler_t& scheduler, Args&&... args)
 {
-  auto protector =
-    std::make_shared<dos_protector_t>(std::forward<Args>(args)...);
-  dos_protector_t::start(protector, scheduler);
-  return protector->local_endpoint();
+  return start_io_handler<dos_protector_t>(
+    scheduler, std::forward<Args>(args)...);
 }
   
 void blocking_accept(logging_context_t const& context,

@@ -24,6 +24,9 @@
 #include "linkage.h"
 #include "socket_nifty.hpp"
 
+#include <utility>
+#include <memory>
+
 namespace cuti
 {
 
@@ -69,6 +72,14 @@ struct CUTI_ABI io_scheduler_t
   virtual ~io_scheduler_t();
 };
 
+// SSTS: static start takes shared
+template<typename IOHandler, typename... Args>
+auto start_io_handler(io_scheduler_t& scheduler, Args&&... args)
+{
+  auto handler = std::make_shared<IOHandler>(std::forward<Args>(args)...);
+  return IOHandler::start(handler, scheduler);
+}
+    
 } // cuti
 
 #endif

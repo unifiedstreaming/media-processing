@@ -783,14 +783,6 @@ void run_pipe_serially(producer_t& producer,
   }
 }
 
-// SSTS: static start takes shared
-template<typename IOHandler, typename... Args>
-void start_io_handler(io_scheduler_t& scheduler, Args&&... args)
-{
-  auto handler = std::make_shared<IOHandler>(std::forward<Args>(args)...);
-  IOHandler::start(handler, scheduler);
-}
-    
 unsigned int const bufsize = 256 * 1024;
 std::string const payload = make_lorems(256);
 
