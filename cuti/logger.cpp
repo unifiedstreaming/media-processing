@@ -19,61 +19,18 @@
 
 #include "logger.hpp"
 
-#include "exception_builder.hpp"
 #include "format.hpp"
 #include "membuf.hpp"
 #include "default_backend.hpp"
 #include "logging_backend.hpp"
 #include "system_error.hpp"
 
-#include <cstring>
 #include <limits>
-#include <stdexcept>
 #include <utility>
 
 namespace cuti
 {
 
-char const* loglevel_string(loglevel_t level)
-{
-  switch(level)
-  {
-  case loglevel_t::error : return "error";
-  case loglevel_t::warning : return "warning";
-  case loglevel_t::info: return "info";
-  case loglevel_t::debug: return "debug";
-  }
-
-  return "<invalid log level>";
-}
-
-void parse_optval(char const* name, char const* in, loglevel_t& out)
-{
-  if(std::strcmp(in, "error") == 0)
-  {
-    out = loglevel_t::error;
-  }
-  else if(std::strcmp(in, "warning") == 0)
-  {
-    out = loglevel_t::warning;
-  }
-  else if(std::strcmp(in, "info") == 0)
-  {
-    out = loglevel_t::info;
-  }
-  else if(std::strcmp(in, "debug") == 0)
-  {
-    out = loglevel_t::debug;
-  }
-  else
-  {
-    exception_builder_t<std::runtime_error> builder;
-    builder << "unexpected value '" << in << "' for option " << name <<
-      "; valid values are 'error', 'warning', 'info' and 'debug'";
-    builder.explode();
-  }
-}
-    
 logger_t::logger_t(char const* argv0)
 : mutex_()
 , backend_(new default_backend_t(argv0))

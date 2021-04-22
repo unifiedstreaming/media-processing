@@ -74,6 +74,7 @@ lib cuti
   logger.cpp
   logging_backend.cpp
   logging_context.cpp
+  loglevel.cpp
   membuf.cpp
   option_walker.cpp
   poll_selector.cpp
