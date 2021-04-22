@@ -46,7 +46,12 @@ struct CUTI_ABI io_scheduler_t
    * another callback.
    */
   virtual int call_when_writable(int fd, callback_t callback) = 0;
-  
+
+  /*
+   * Cancels a callback scheduled with call_when_writable().
+   */
+  virtual void cancel_when_writable(int cancellation_ticket) noexcept = 0;
+
   /*
    * Schedules a one-time callback for when fd is ready for reading;
    * the callback must be != nullptr.  Returns a non-negative
@@ -55,11 +60,11 @@ struct CUTI_ABI io_scheduler_t
    * another callback.
    */
   virtual int call_when_readable(int fd, callback_t callback) = 0;
-  
+
   /*
-   * Cancels a pending callback.
+   * Cancels a callback scheduled with call_when_readable().
    */
-  virtual void cancel_callback(int ticket) noexcept = 0;
+  virtual void cancel_when_readable(int cancellation_ticket) noexcept = 0;
 
   virtual ~io_scheduler_t();
 };

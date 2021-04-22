@@ -69,6 +69,12 @@ struct CUTI_ABI tcp_acceptor_t
       std::forward<Callback>(callback));
   }
 
+  void cancel_when_ready(io_scheduler_t& scheduler,
+                         int cancellation_ticket) noexcept
+  {
+    socket_.cancel_when_readable(scheduler, cancellation_ticket);
+  }
+
 private :
   tcp_socket_t socket_;
   endpoint_t local_endpoint_;

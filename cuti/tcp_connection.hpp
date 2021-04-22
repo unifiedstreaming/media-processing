@@ -82,11 +82,23 @@ struct CUTI_ABI tcp_connection_t
       std::forward<Callback>(callback));
   }
 
+  void cancel_when_writable(io_scheduler_t& scheduler,
+                            int cancellation_ticket) noexcept
+  {
+    socket_.cancel_when_writable(scheduler, cancellation_ticket);
+  }
+
   template<typename Callback>
   int call_when_readable(io_scheduler_t& scheduler, Callback&& callback)
   {
     return socket_.call_when_readable(scheduler,
       std::forward<Callback>(callback));
+  }
+
+  void cancel_when_readable(io_scheduler_t& scheduler,
+                            int cancellation_ticket) noexcept
+  {
+    socket_.cancel_when_readable(scheduler, cancellation_ticket);
   }
 
 private :

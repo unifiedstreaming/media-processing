@@ -58,18 +58,19 @@ struct poll_selector_t : selector_t
     return make_ticket(fd, POLLOUT, std::move(callback));
   }
 
+  void cancel_when_writable(int cancellation_ticket) noexcept override
+  {
+    cancel_callback(cancellation_ticket);
+  }
+
   int call_when_readable(int fd, callback_t callback) override
   {
     return make_ticket(fd, POLLIN, std::move(callback));
   }
 
-  void cancel_callback(int ticket) noexcept override
+  void cancel_when_readable(int cancellation_ticket) noexcept override
   {
-    assert(ticket >= 0);
-    assert(static_cast<std::size_t>(ticket) < pollfds_.size());
-
-    pollfds_[ticket] = inactive_pollfd;
-    callbacks_.remove_element(ticket);
+    cancel_callback(cancellation_ticket);
   }
 
   bool has_work() const noexcept override
@@ -151,6 +152,15 @@ private :
 
     ticket_guard.dismiss();
     return ticket;
+  }
+
+  void cancel_callback(int ticket) noexcept
+  {
+    assert(ticket >= 0);
+    assert(static_cast<std::size_t>(ticket) < pollfds_.size());
+
+    pollfds_[ticket] = inactive_pollfd;
+    callbacks_.remove_element(ticket);
   }
 
   static int poll_timeout(timeout_t timeout)
