@@ -22,6 +22,7 @@
 
 #include "io_scheduler.hpp"
 #include "linkage.h"
+#include "loglevel.hpp"
 #include "socket_nifty.hpp"
 
 #include <chrono>
@@ -80,6 +81,7 @@ struct CUTI_ABI selector_t : io_scheduler_t
  */
 CUTI_ABI
 void run_selector(logging_context_t& context,
+                  loglevel_t loglevel,
                   selector_t& selector,
                   selector_t::timeout_t timeout);
 

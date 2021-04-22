@@ -43,6 +43,8 @@ namespace // anonymous
 
 using namespace cuti;
 
+loglevel_t const loglevel = loglevel_t::info;
+
 /*
  * The ultimate denial-of-service protector accepts and kills up to
  * <count> incoming connections on a randomly chosen local endpoint.
@@ -62,7 +64,7 @@ struct dos_protector_t : std::enable_shared_from_this<dos_protector_t>
 
   ~dos_protector_t()
   {
-    if(auto msg = context_.message_at(loglevel_t::info))
+    if(auto msg = context_.message_at(loglevel))
     {
       *msg << "dos_protector: " << acceptor_ << ": destroying";
     }
@@ -90,7 +92,7 @@ private :
   {
     if(count_ > 0)
     {
-      if(auto msg = context_.message_at(loglevel_t::info))
+      if(auto msg = context_.message_at(loglevel))
       {
         *msg << "dos_protector: " << acceptor_ << ": scheduling callback";
       }
@@ -99,7 +101,7 @@ private :
     }
     else
     {
-      if(auto msg = context_.message_at(loglevel_t::info))
+      if(auto msg = context_.message_at(loglevel))
       {
         *msg << "dos_protector: " << acceptor_ << ": done";
       }
@@ -113,7 +115,7 @@ private :
     auto incoming = acceptor_.accept();
     if(incoming == nullptr)
     {
-      if(auto msg = context_.message_at(loglevel_t::info))
+      if(auto msg = context_.message_at(loglevel))
       {
         *msg << "dos_protector: " << acceptor_ <<
           ": no incoming connection yet";
@@ -121,7 +123,7 @@ private :
     }
     else
     {
-      if(auto msg = context_.message_at(loglevel_t::info))
+      if(auto msg = context_.message_at(loglevel))
       {
         *msg << "dos_protector: " << acceptor_ <<
           ": killing incoming connection " << *incoming;
@@ -143,21 +145,21 @@ void blocking_accept(logging_context_t const& context,
                      endpoint_t const& interface)
 {
   tcp_acceptor_t acceptor(interface);
-  if(auto msg = context.message_at(loglevel_t::info))
+  if(auto msg = context.message_at(loglevel))
   {
     *msg << "blocking_accept: acceptor " << acceptor <<
       " at interface " << interface;
   }
 
   tcp_connection_t client(acceptor.local_endpoint());
-  if(auto msg = context.message_at(loglevel_t::info))
+  if(auto msg = context.message_at(loglevel))
   {
     *msg << "client side: " << client;
   }
 
   auto server = acceptor.accept();
   assert(server != nullptr);
-  if(auto msg = context.message_at(loglevel_t::info))
+  if(auto msg = context.message_at(loglevel))
   {
     *msg << "server side: " << *server;
   }
@@ -178,7 +180,7 @@ void nonblocking_accept(logging_context_t const& context,
                         endpoint_t const& interface)
 {
   tcp_acceptor_t acceptor(interface);
-  if(auto msg = context.message_at(loglevel_t::info))
+  if(auto msg = context.message_at(loglevel))
   {
     *msg << "nonblocking_accept: acceptor " << acceptor <<
       " at interface " << interface;
@@ -187,13 +189,13 @@ void nonblocking_accept(logging_context_t const& context,
 
   auto server = acceptor.accept();
   assert(server == nullptr);
-  if(auto msg = context.message_at(loglevel_t::info))
+  if(auto msg = context.message_at(loglevel))
   {
     *msg << acceptor << " returned expected nullptr";
   }
 
   tcp_connection_t client(acceptor.local_endpoint());
-  if(auto msg = context.message_at(loglevel_t::info))
+  if(auto msg = context.message_at(loglevel))
   {
     *msg << "client side: " << client;
   }
@@ -208,7 +210,7 @@ void nonblocking_accept(logging_context_t const& context,
     }
     pause = pause * 2 + 1;
 
-    if(auto msg = context.message_at(loglevel_t::info))
+    if(auto msg = context.message_at(loglevel))
     {
       *msg << acceptor << ": accept(): attempt# " << attempt + 1;
     }
@@ -216,14 +218,14 @@ void nonblocking_accept(logging_context_t const& context,
     server = acceptor.accept();
   }
 
-  if(auto msg = context.message_at(loglevel_t::info))
+  if(auto msg = context.message_at(loglevel))
   {
     *msg << acceptor << ": " << attempt << " attempts(s)";
   }
 
   assert(server != nullptr);
 
-  if(auto msg = context.message_at(loglevel_t::info))
+  if(auto msg = context.message_at(loglevel))
   {
     *msg << "server side: " << *server;
   }
@@ -244,7 +246,7 @@ void duplicate_bind(logging_context_t const& context,
                     endpoint_t const& interface)
 {
   tcp_acceptor_t acceptor1(interface);
-  if(auto msg = context.message_at(loglevel_t::info))
+  if(auto msg = context.message_at(loglevel))
   {
     *msg << "duplicate_bind: acceptor " << acceptor1 <<
       " at interface " << interface;
@@ -253,7 +255,7 @@ void duplicate_bind(logging_context_t const& context,
   bool caught = false;
   try
   {
-    if(auto msg = context.message_at(loglevel_t::info))
+    if(auto msg = context.message_at(loglevel))
     {
       *msg << "binding to " << acceptor1;
     }
@@ -261,7 +263,7 @@ void duplicate_bind(logging_context_t const& context,
   }
   catch(system_exception_t const& ex)
   {
-    if(auto msg = context.message_at(loglevel_t::info))
+    if(auto msg = context.message_at(loglevel))
     {
       *msg << "caught expected exception: " << ex.what();
     }
@@ -291,7 +293,7 @@ bool prove_dual_stack(logging_context_t const& context,
    */
   endpoint_t interface1 = interfaces.front();
   tcp_acceptor_t acceptor1(interface1);
-  if(auto msg = context.message_at(loglevel_t::info))
+  if(auto msg = context.message_at(loglevel))
   {
     *msg << "dual_stack: acceptor1 " << acceptor1 <<
       " at interface " << interface1;
@@ -314,7 +316,7 @@ bool prove_dual_stack(logging_context_t const& context,
   try
   {
     tcp_acceptor_t acceptor2(target);
-    if(auto msg = context.message_at(loglevel_t::info))
+    if(auto msg = context.message_at(loglevel))
     {
       *msg << "dual_stack: acceptor2 " << acceptor2 <<
         " at interface " << interface2;
@@ -323,7 +325,7 @@ bool prove_dual_stack(logging_context_t const& context,
   }
   catch(system_exception_t const& ex)
   {
-    if(auto msg = context.message_at(loglevel_t::info))
+    if(auto msg = context.message_at(loglevel))
     {
       *msg << "failed to bind to " << target << ": " << ex.what();
     }
@@ -340,7 +342,7 @@ void dual_stack(logging_context_t const& context)
   
   if(interfaces.size() == 1)
   {
-    if(auto msg = context.message_at(loglevel_t::info))
+    if(auto msg = context.message_at(loglevel))
     {
       *msg << "dual_stack: single local interface - can't test";
     }
@@ -355,7 +357,7 @@ void dual_stack(logging_context_t const& context)
     proven = prove_dual_stack(context, interfaces);
   }
 
-  if(auto msg = context.message_at(loglevel_t::info))
+  if(auto msg = context.message_at(loglevel))
   {
     *msg << "dual_stack: " << attempt << " attempt(s)";
   }
@@ -366,13 +368,13 @@ void dual_stack(logging_context_t const& context)
 void empty_selector(logging_context_t& context,
                     selector_factory_t const& factory)
 {
-  if(auto msg = context.message_at(loglevel_t::info))
+  if(auto msg = context.message_at(loglevel))
   {
     *msg << "empty_selector(): using " << factory << " selector";
   }
 
   auto selector = factory();
-  run_selector(context, *selector, std::chrono::seconds(60));
+  run_selector(context, loglevel, *selector, std::chrono::seconds(60));
   assert(!selector->has_work());
 }
 
@@ -393,13 +395,13 @@ void no_client(logging_context_t& context,
   endpoint_t protector =
     dos_protector_t::start(context, *selector, interface, 1);
 
-  if(auto msg = context.message_at(loglevel_t::info))
+  if(auto msg = context.message_at(loglevel))
   {
     *msg << "no_client(): using " << factory <<
       " selector; protector: " << protector;
   }
 
-  run_selector(context, *selector, std::chrono::seconds(0));
+  run_selector(context, loglevel, *selector, std::chrono::seconds(0));
   assert(selector->has_work());
 }
 
@@ -425,22 +427,22 @@ void single_client(logging_context_t& context,
   endpoint_t protector =
     dos_protector_t::start(context, *selector, interface, 1);
 
-  if(auto msg = context.message_at(loglevel_t::info))
+  if(auto msg = context.message_at(loglevel))
   {
     *msg << "single_client(): using " << factory <<
       " selector; protector: " << protector;
   }
 
-  run_selector(context, *selector, std::chrono::seconds(0));
+  run_selector(context, loglevel, *selector, std::chrono::seconds(0));
   assert(selector->has_work());
 
   tcp_connection_t client(protector);
-  if(auto msg = context.message_at(loglevel_t::info))
+  if(auto msg = context.message_at(loglevel))
   {
     *msg << "single_client(): client " << client;
   }
 
-  run_selector(context, *selector, std::chrono::seconds(60));
+  run_selector(context, loglevel, *selector, std::chrono::seconds(60));
   assert(!selector->has_work());
 }
 
@@ -466,24 +468,24 @@ void multiple_clients(logging_context_t& context,
   endpoint_t protector =
     dos_protector_t::start(context, *selector, interface, 2);
 
-  if(auto msg = context.message_at(loglevel_t::info))
+  if(auto msg = context.message_at(loglevel))
   {
     *msg << "multiple_clients(): using " << factory <<
       " selector; protector: " << protector;
   }
 
-  run_selector(context, *selector, std::chrono::seconds(0));
+  run_selector(context, loglevel, *selector, std::chrono::seconds(0));
   assert(selector->has_work());
 
   tcp_connection_t client1(protector);
   tcp_connection_t client2(protector);
-  if(auto msg = context.message_at(loglevel_t::info))
+  if(auto msg = context.message_at(loglevel))
   {
     *msg << "multiple_clients(): client1: " << client1 <<
       " client2: " << client2;
   }
 
-  run_selector(context, *selector, std::chrono::seconds(60));
+  run_selector(context, loglevel, *selector, std::chrono::seconds(60));
   assert(!selector->has_work());
 }
 
@@ -511,25 +513,25 @@ void multiple_acceptors(logging_context_t& context,
   endpoint_t protector2 =
     dos_protector_t::start(context, *selector, interface, 1);
 
-  if(auto msg = context.message_at(loglevel_t::info))
+  if(auto msg = context.message_at(loglevel))
   {
     *msg << "multiple_acceptors(): using " << factory <<
       " selector; protector1: " << protector1 <<
       " protector2: " << protector2;
   }
 
-  run_selector(context, *selector, std::chrono::seconds(0));
+  run_selector(context, loglevel, *selector, std::chrono::seconds(0));
   assert(selector->has_work());
 
   tcp_connection_t client1(protector1);
   tcp_connection_t client2(protector2);
-  if(auto msg = context.message_at(loglevel_t::info))
+  if(auto msg = context.message_at(loglevel))
   {
     *msg << "multiple_acceptors(): client1: " << client1 <<
       " client2: " << client2;
   }
 
-  run_selector(context, *selector, std::chrono::seconds(60));
+  run_selector(context, loglevel, *selector, std::chrono::seconds(60));
   assert(!selector->has_work());
 }
 
@@ -556,7 +558,7 @@ void selector_switch(logging_context_t& context,
   tcp_acceptor_t acceptor(interface);
   acceptor.set_nonblocking();
 
-  if(auto msg = context.message_at(loglevel_t::info))
+  if(auto msg = context.message_at(loglevel))
   {
     *msg << "selector_switch(): using " << factory <<
       " selector; acceptor: " << acceptor;
@@ -597,8 +599,8 @@ int throwing_main(int argc, char const* const argv[])
 {
   logger_t logger(argv[0]);
   logger.set_backend(std::make_unique<cuti::streambuf_backend_t>(std::cerr));
-  logging_context_t context(logger,
-                            argc == 1 ? loglevel_t::error : loglevel_t::info);
+  logging_context_t context(
+    logger, argc == 1 ? loglevel_t::error : loglevel_t::info);
 
   blocking_accept(context);
   nonblocking_accept(context);

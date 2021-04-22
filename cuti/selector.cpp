@@ -28,6 +28,7 @@ selector_t::~selector_t()
 { }
 
 void run_selector(logging_context_t& context,
+                  loglevel_t loglevel,
                   selector_t& selector,
                   selector_t::timeout_t timeout)
 {
@@ -44,7 +45,7 @@ void run_selector(logging_context_t& context,
     }
     
     timeout = limit - now; 
-    if(auto msg = context.message_at(loglevel_t::info))
+    if(auto msg = context.message_at(loglevel))
     {
       auto milliseconds = std::chrono::duration_cast<
         std::chrono::milliseconds>(timeout).count();
@@ -55,14 +56,14 @@ void run_selector(logging_context_t& context,
     auto callback = selector.select(timeout);
     if(callback == nullptr)
     {
-      if(auto msg = context.message_at(loglevel_t::info))
+      if(auto msg = context.message_at(loglevel))
       {
         *msg << "run_selector(): got empty callback";
       }
     }
     else
     {
-      if(auto msg = context.message_at(loglevel_t::info))
+      if(auto msg = context.message_at(loglevel))
       {
         *msg << "run_selector(): invoking callback";
       }
@@ -72,7 +73,7 @@ void run_selector(logging_context_t& context,
     now = std::chrono::system_clock::now();
   } while(now < limit);
 
-  if(auto msg = context.message_at(loglevel_t::info))
+  if(auto msg = context.message_at(loglevel))
   {
     if(selector.has_work())
     {
