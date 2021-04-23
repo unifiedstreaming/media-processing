@@ -66,7 +66,7 @@ struct CUTI_ABI option_walker_t
    * the walker stays at the current option, and false is returned.
    *      
    * flag options take no explicit value from the command line: if a
-   * boolean option is matched, <value> is simply set to true. If
+   * flag option is matched, <value> is simply set to true. If
    * another type of option is matched, <value> is set to what is
    * specified on the command line by calling one of the
    * parse_optval() overloads.
