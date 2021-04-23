@@ -147,7 +147,7 @@ option_walker_t::option_walker_t(int argc, char const* const argv[])
   on_next_element();
 }
 
-bool option_walker_t::match(const char *name, bool& value)
+bool option_walker_t::match(const char *name, flag_t& value)
 {
   assert(!done_);
 

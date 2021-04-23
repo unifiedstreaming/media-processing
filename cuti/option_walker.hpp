@@ -20,6 +20,7 @@
 #ifndef CUTI_OPTION_WALKER_HPP_
 #define CUTI_OPTION_WALKER_HPP_
 
+#include "flag.hpp"
 #include "linkage.h"
 
 #include <cassert>
@@ -64,15 +65,15 @@ struct CUTI_ABI option_walker_t
    * returned. If <name> does not match, <value> is left unchanged,
    * the walker stays at the current option, and false is returned.
    *      
-   * Boolean options (flags) take no explicit value from the command
-   * line: if a boolean option is matched, <value> is simply set to
-   * true. If another type of option is matched, <value> is set to
-   * what is specified on the command line by calling one of the
+   * flag options take no explicit value from the command line: if a
+   * boolean option is matched, <value> is simply set to true. If
+   * another type of option is matched, <value> is set to what is
+   * specified on the command line by calling one of the
    * parse_optval() overloads.
    *
    * Precondition: !done().
    */
-  bool match(char const* name, bool& value);
+  bool match(char const* name, flag_t& value);
 
   template<typename T>
   bool match(char const* name, T& value)

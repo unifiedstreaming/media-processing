@@ -97,7 +97,7 @@ struct options_t
   unsigned int n_messages_;
   unsigned int rotation_depth_;
   std::string service_name_;
-  bool syslog_;
+  cuti::flag_t syslog_;
 };
 
 void read_options(options_t& options, cuti::option_walker_t& walker)

@@ -47,7 +47,7 @@ void matching_flag()
   int argc = sizeof argv / sizeof argv[0];
   cuti::option_walker_t walker(argc, argv);
 
-  bool flag = false;
+  cuti::flag_t flag = false;
 
   while(!walker.done())
   {
@@ -68,7 +68,7 @@ void non_matching_flag()
   int argc = sizeof argv / sizeof argv[0];
   cuti::option_walker_t walker(argc, argv);
 
-  bool flag = false;
+  cuti::flag_t flag = false;
 
   while(!walker.done())
   {
@@ -88,7 +88,7 @@ void underscore_matches_hyphen()
   int argc = sizeof argv / sizeof argv[0];
   cuti::option_walker_t walker(argc, argv);
 
-  bool flag = false;
+  cuti::flag_t flag = false;
 
   while(!walker.done())
   {
@@ -109,7 +109,7 @@ void hyphen_matches_underscore()
   int argc = sizeof argv / sizeof argv[0];
   cuti::option_walker_t walker(argc, argv);
 
-  bool flag = false;
+  cuti::flag_t flag = false;
 
   while(!walker.done())
   {
@@ -130,8 +130,8 @@ void multiple_flags()
   int argc = sizeof argv / sizeof argv[0];
   cuti::option_walker_t walker(argc, argv);
 
-  bool flag1 = false;
-  bool flag2 = false;
+  cuti::flag_t flag1 = false;
+  cuti::flag_t flag2 = false;
 
   while(!walker.done())
   {
@@ -272,7 +272,7 @@ void hyphens_in_middle()
   int argc = sizeof argv / sizeof argv[0];
   cuti::option_walker_t walker(argc, argv);
 
-  bool flag = false;
+  cuti::flag_t flag = false;
 
   while(!walker.done())
   {
@@ -293,8 +293,8 @@ void hyphens_at_end()
   int argc = sizeof argv / sizeof argv[0];
   cuti::option_walker_t walker(argc, argv);
 
-  bool flag1 = false;
-  bool flag2 = false;
+  cuti::flag_t flag1 = false;
+  cuti::flag_t flag2 = false;
 
   while(!walker.done())
   {
@@ -317,7 +317,7 @@ void single_short_flag()
   int argc = sizeof argv / sizeof argv[0];
   cuti::option_walker_t walker(argc, argv);
 
-  bool flag = false;
+  cuti::flag_t flag = false;
 
   while(!walker.done())
   {
@@ -338,8 +338,8 @@ void multiple_short_flags()
   int argc = sizeof argv / sizeof argv[0];
   cuti::option_walker_t walker(argc, argv);
 
-  bool fflag = false;
-  bool gflag = false;
+  cuti::flag_t fflag = false;
+  cuti::flag_t gflag = false;
 
   while(!walker.done())
   {
@@ -362,8 +362,8 @@ void abbreviated_flags()
   int argc = sizeof argv / sizeof argv[0];
   cuti::option_walker_t walker(argc, argv);
 
-  bool fflag = false;
-  bool gflag = false;
+  cuti::flag_t fflag = false;
+  cuti::flag_t gflag = false;
 
   while(!walker.done())
   {
@@ -407,7 +407,7 @@ void value_in_abbreviation()
   int argc = sizeof argv / sizeof argv[0];
   cuti::option_walker_t walker(argc, argv);
 
-  bool flag;
+  cuti::flag_t flag;
   std::string option;
 
   while(!walker.done())
