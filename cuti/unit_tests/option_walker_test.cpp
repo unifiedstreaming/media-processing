@@ -636,6 +636,7 @@ void repeated_flag_option()
   assert(flags.size() == 3);
   for(auto flag : flags)
   {
+    assert(flag);
     assert(flag == flag);
     assert(!(flag != flag));
 
