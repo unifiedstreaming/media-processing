@@ -25,6 +25,8 @@
 
 #include <cassert>
 #include <string>
+#include <utility>
+#include <vector>
 
 namespace cuti
 {
@@ -71,10 +73,27 @@ struct CUTI_ABI option_walker_t
    * specified on the command line by calling one of the
    * parse_optval() overloads.
    *
+   * If <value> is a std::vector<T>, then on a match, a single value
+   * of type T is appended to the vector.  This gives meaningful results
+   * for repeated command line options.
+   *
    * Precondition: !done().
    */
   bool match(char const* name, flag_t& value);
 
+  template<typename T>
+  bool match(char const* name, std::vector<T>& value)
+  {
+    T element;
+    if(!this->match(name, element))
+    {
+      return false;
+    }
+
+    value.push_back(std::move(element));
+    return true;
+  }
+    
   template<typename T>
   bool match(char const* name, T& value)
   {

@@ -42,6 +42,24 @@ struct CUTI_ABI flag_t
   explicit operator bool() const noexcept
   { return value_; }
 
+  bool operator==(flag_t const& that) const noexcept
+  { return value_ == that.value_; }
+
+  bool operator!=(flag_t const& that) const noexcept
+  { return !(*this == that); }
+
+  friend bool operator==(flag_t const& lhs, bool rhs) noexcept
+  { return lhs.value_ == rhs; }
+
+  friend bool operator==(bool lhs, flag_t const& rhs) noexcept
+  { return rhs == lhs; }
+
+  friend bool operator!=(flag_t const& lhs, bool rhs) noexcept
+  { return !(lhs == rhs); }
+
+  friend bool operator!=(bool lhs, flag_t const& rhs) noexcept
+  { return !(lhs == rhs); }
+
 private :
   bool value_;
 };

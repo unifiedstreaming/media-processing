@@ -617,6 +617,52 @@ void bad_value_for_additional_type()
   assert(caught);
 }
 
+void repeated_flag_option()
+{
+  char const* argv[] = { "command", "-vvv" };
+  int argc = sizeof argv / sizeof argv[0];
+  cuti::option_walker_t walker(argc, argv);
+
+  std::vector<cuti::flag_t> flags;
+  while(!walker.done())
+  {
+    if(!walker.match("-v", flags))
+    {
+      break;
+    }
+  }
+
+  assert(walker.done());
+  assert(flags.size() == 3);
+  for(auto flag : flags)
+  {
+    assert(flag == true);
+  }
+}
+
+void repeated_value_option()
+{
+  char const* argv[] =
+    { "command", "--file=file1", "--file=file2", "--file=file3" };
+  int argc = sizeof argv / sizeof argv[0];
+  cuti::option_walker_t walker(argc, argv);
+
+  std::vector<std::string> files;
+  while(!walker.done())
+  {
+    if(!walker.match("--file", files))
+    {
+      break;
+    }
+  }
+
+  assert(walker.done());
+  assert(files.size() == 3);
+  assert(files[0] == "file1");
+  assert(files[1] == "file2");
+  assert(files[2] == "file3");
+}  
+
 } // anonymous
 
 int main()
@@ -653,6 +699,9 @@ int main()
 
   additional_type();
   bad_value_for_additional_type();
+
+  repeated_flag_option();
+  repeated_value_option();
 
   return 0;
 }
