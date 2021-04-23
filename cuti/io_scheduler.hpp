@@ -35,6 +35,43 @@ namespace cuti
  */
 struct CUTI_ABI io_scheduler_t
 {
+  enum class event_t { writable, readable };
+
+  template<event_t Event>
+  struct cancellation_ticket_t
+  {
+    /*
+     * Constructs an empty cancellation ticket
+     */
+    cancellation_ticket_t() noexcept
+    : id_(-1)
+    { }
+
+    /*
+     * Tells if the ticket is empty.  Scheduling a callback returns a
+     * non-empty cancellation ticket, but even non-empty tickets
+     * become invalid when the callback is invoked.
+     */
+    bool empty() const noexcept
+    { return id_ == -1; }
+
+  private :
+    friend struct io_scheduler_t;
+
+    explicit cancellation_ticket_t(int id) noexcept
+    : id_(id)
+    { }
+
+    int id() const noexcept
+    { return id_; }
+
+  private :  
+    int id_;
+  };
+
+  using writable_ticket_t = cancellation_ticket_t<event_t::writable>;
+  using readable_ticket_t = cancellation_ticket_t<event_t::readable>;
+  
   io_scheduler_t()
   { }
 
@@ -42,35 +79,57 @@ struct CUTI_ABI io_scheduler_t
   io_scheduler_t& operator=(io_scheduler_t const&) = delete;
 
   /*
-   * Schedules a one-time callback for when fd is ready for writing;
-   * the callback must be != nullptr.  Returns a non-negative
-   * cancellation ticket that may be used to cancel the callback
-   * before it is invoked.  Call this function again if you want
-   * another callback.
+   * Schedules a one-time callback for when fd is ready for writing.
+   * Returns a cancellation ticket that may be used to cancel the
+   * callback before it is invoked. Call this function again if you
+   * want another callback.
    */
-  virtual int call_when_writable(int fd, callback_t callback) = 0;
+  template<typename Callback>
+  writable_ticket_t call_when_writable(int fd, Callback&& callback)
+  {
+    return writable_ticket_t(this->do_call_when_writable(
+      fd, std::forward<Callback>(callback)));
+  }
+    
+  /*
+   * Schedules a one-time callback for when fd is ready for reading.
+   * Returns a cancellation ticket that may be used to cancel the
+   * callback before it is invoked. Call this function again if you
+   * want another callback.
+   */
+  template<typename Callback>
+  readable_ticket_t call_when_readable(int fd, Callback&& callback)
+  {
+    return readable_ticket_t(this->do_call_when_readable(
+      fd, std::forward<Callback>(callback)));
+  }
 
   /*
-   * Cancels a callback scheduled with call_when_writable().
+   * Cancels a callback before the callback is invoked.
    */
-  virtual void cancel_when_writable(int cancellation_ticket) noexcept = 0;
+  void cancel_callback(writable_ticket_t ticket) noexcept
+  {
+    assert(!ticket.empty());
+    this->do_cancel_when_writable(ticket.id());
+  }
 
-  /*
-   * Schedules a one-time callback for when fd is ready for reading;
-   * the callback must be != nullptr.  Returns a non-negative
-   * cancellation ticket that may be used to cancel the callback
-   * before it is invoked.  Call this function again if you want
-   * another callback.
-   */
-  virtual int call_when_readable(int fd, callback_t callback) = 0;
-
-  /*
-   * Cancels a callback scheduled with call_when_readable().
-   */
-  virtual void cancel_when_readable(int cancellation_ticket) noexcept = 0;
+  void cancel_callback(readable_ticket_t ticket) noexcept
+  {
+    assert(!ticket.empty());
+    this->do_cancel_when_readable(ticket.id());
+  }
 
   virtual ~io_scheduler_t();
+
+private :
+  virtual int do_call_when_writable(int fd, callback_t callback) = 0;
+  virtual void do_cancel_when_writable(int ticket) noexcept = 0;
+  virtual int do_call_when_readable(int fd, callback_t callback) = 0;
+  virtual void do_cancel_when_readable(int ticket) noexcept = 0;
 };
+
+using writable_ticket_t = io_scheduler_t::writable_ticket_t;
+using readable_ticket_t = io_scheduler_t::readable_ticket_t;
 
 // SSTS: static start takes shared
 template<typename IOHandler, typename... Args>

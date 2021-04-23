@@ -73,32 +73,24 @@ struct CUTI_ABI tcp_connection_t
   char* read_some(char* first, char* last);
 
   /*
-   * Event reporting; see io_scheduler.hpp for detailed semantics.
+   * Event reporting; see io_scheduler.hpp for detailed semantics.  A
+   * callback can be canceled by calling cancel_callback() directly on
+   * the scheduler.
    */
   template<typename Callback>
-  int call_when_writable(io_scheduler_t& scheduler, Callback&& callback)
+  writable_ticket_t call_when_writable(io_scheduler_t& scheduler,
+                                       Callback&& callback)
   {
     return socket_.call_when_writable(scheduler,
       std::forward<Callback>(callback));
   }
 
-  void cancel_when_writable(io_scheduler_t& scheduler,
-                            int cancellation_ticket) noexcept
-  {
-    socket_.cancel_when_writable(scheduler, cancellation_ticket);
-  }
-
   template<typename Callback>
-  int call_when_readable(io_scheduler_t& scheduler, Callback&& callback)
+  readable_ticket_t call_when_readable(io_scheduler_t& scheduler,
+                                       Callback&& callback)
   {
     return socket_.call_when_readable(scheduler,
       std::forward<Callback>(callback));
-  }
-
-  void cancel_when_readable(io_scheduler_t& scheduler,
-                            int cancellation_ticket) noexcept
-  {
-    socket_.cancel_when_readable(scheduler, cancellation_ticket);
   }
 
 private :

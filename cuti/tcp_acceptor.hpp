@@ -34,6 +34,8 @@
 namespace cuti
 {
 
+using ready_ticket_t = readable_ticket_t;
+
 struct CUTI_ABI tcp_acceptor_t
 {
   explicit tcp_acceptor_t(endpoint_t const& endpoint);
@@ -60,19 +62,16 @@ struct CUTI_ABI tcp_acceptor_t
   std::unique_ptr<tcp_connection_t> accept();
 
   /*
-   * Event reporting; see io_scheduler.hpp for detailed semantics.
+   * Event reporting; see io_scheduler.hpp for detailed semantics.  A
+   * callback can be canceled by calling cancel_callback() directly on
+   * the scheduler.
    */
   template<typename Callback>
-  int call_when_ready(io_scheduler_t& scheduler, Callback&& callback)
+  ready_ticket_t call_when_ready(io_scheduler_t& scheduler,
+                                 Callback&& callback)
   {
     return socket_.call_when_readable(scheduler,
       std::forward<Callback>(callback));
-  }
-
-  void cancel_when_ready(io_scheduler_t& scheduler,
-                         int cancellation_ticket) noexcept
-  {
-    socket_.cancel_when_readable(scheduler, cancellation_ticket);
   }
 
 private :

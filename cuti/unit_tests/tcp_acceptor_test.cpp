@@ -556,16 +556,20 @@ void selector_switch(logging_context_t& context,
   assert(!selector1->has_work());
   assert(!selector2->has_work());
 
-  int ticket = acceptor.call_when_ready(*selector1, [] { });
+  ready_ticket_t ticket = acceptor.call_when_ready(*selector1, [] { });
+  assert(!ticket.empty());
+
   assert(selector1->has_work());
   assert(!selector2->has_work());
 
-  acceptor.cancel_when_ready(*selector1, ticket);
+  selector1->cancel_callback(ticket);
   ticket = acceptor.call_when_ready(*selector2, [] { });
+  assert(!ticket.empty());
+
   assert(!selector1->has_work());
   assert(selector2->has_work());
 
-  acceptor.cancel_when_ready(*selector2, ticket);
+  selector2->cancel_callback(ticket);
   assert(!selector1->has_work());
   assert(!selector2->has_work());
 }

@@ -402,7 +402,8 @@ struct logged_tcp_connection_t
   }
 
   template<typename Callback>
-  int call_when_writable(io_scheduler_t& scheduler, Callback&& callback)
+  writable_ticket_t call_when_writable(io_scheduler_t& scheduler,
+                                       Callback&& callback)
   {
     if(auto msg = context_.message_at(loglevel_))
     {
@@ -414,7 +415,8 @@ struct logged_tcp_connection_t
   }
       
   template<typename Callback>
-  int call_when_readable(io_scheduler_t& scheduler, Callback&& callback)
+  readable_ticket_t call_when_readable(io_scheduler_t& scheduler,
+                                       Callback&& callback)
   {
     if(auto msg = context_.message_at(loglevel_))
     {
@@ -1082,6 +1084,67 @@ void broken_pipe(logging_context_t const& context)
   }
 }
 
+void selector_switch(logging_context_t const& context,
+                     selector_factory_t const& factory,
+                     endpoint_t const& interface)
+{
+  auto sel1 = factory();
+  auto sel2 = factory();
+  auto [conn1, conn2] = make_connected_pair(interface);
+
+  if(auto msg = context.message_at(loglevel_t::info))
+  {
+    *msg << "selector_switch(): selector: " << factory <<
+      " conn1: " << *conn1 << " conn2: " << *conn2;
+  }
+
+  assert(!sel1->has_work());
+  assert(!sel2->has_work());
+
+  readable_ticket_t ticket1;
+  writable_ticket_t ticket2;
+  assert(ticket1.empty());
+  assert(ticket2.empty());
+
+  ticket1 = conn1->call_when_readable(*sel1, [] { });
+  assert(!ticket1.empty());
+  assert(sel1->has_work());
+
+  ticket2 = conn2->call_when_writable(*sel1, [] { });
+  assert(!ticket2.empty());
+  assert(sel1->has_work());
+
+  sel1->cancel_callback(ticket1);
+  ticket1 = conn1->call_when_readable(*sel2, [] { });
+  assert(!ticket1.empty());
+  assert(sel1->has_work());
+  assert(sel2->has_work());
+
+  sel1->cancel_callback(ticket2);
+  ticket2 = conn1->call_when_writable(*sel2, [] { });
+  assert(!ticket2.empty());
+  assert(!sel1->has_work());
+  assert(sel2->has_work());
+
+  sel2->cancel_callback(ticket1);
+  sel2->cancel_callback(ticket2);
+  assert(!sel2->has_work());
+}
+
+void selector_switch(logging_context_t const& context)
+{
+  auto factories = available_selector_factories();
+  auto interfaces = local_interfaces(any_port);
+
+  for(auto const& factory : factories)
+  {
+    for(auto const& interface : interfaces)
+    {
+      selector_switch(context, factory, interface);
+    }
+  }
+}
+
 struct options_t
 {
   static loglevel_t const default_loglevel = loglevel_t::error;
@@ -1152,6 +1215,8 @@ int throwing_main(int argc, char const* const argv[])
   selected_client_server(context);
 
   broken_pipe(context);
+
+  selector_switch(context);
 
   if(auto msg = context.message_at(loglevel_t::info))
   {
