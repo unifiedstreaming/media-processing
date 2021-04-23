@@ -28,11 +28,13 @@
 #include <algorithm>
 #include <cassert>
 #include <cstddef>
+#include <limits>
 #include <utility>
 #include <vector>
 
 #include <errno.h>
 #include <poll.h>
+#include <sys/resource.h>
 
 namespace cuti
 {
@@ -43,6 +45,27 @@ namespace // anonymous
 // a pollfd with an fd of -1 is skipped by poll()
 pollfd const inactive_pollfd = { -1, 0, 0 };
 
+unsigned int max_pollfds_size()
+{
+  struct rlimit rl;
+
+  int r = getrlimit(RLIMIT_NOFILE, &rl);
+  if(r == -1)
+  {
+    int cause = last_system_error();
+    throw system_exception_t("getrlimit(RLIMIT_NOFILE) failure", cause);
+  }
+
+  auto max = std::numeric_limits<unsigned int>::max();
+  auto result = max;
+  if(rl.rlim_cur != RLIM_INFINITY && rl.rlim_cur < max)
+  {
+    assert(rl.rlim_cur >= 0);
+    result = static_cast<unsigned int>(rl.rlim_cur);
+  }
+  return result;
+}
+  
 struct poll_selector_t : selector_t
 {
   poll_selector_t()
@@ -50,6 +73,7 @@ struct poll_selector_t : selector_t
   , callbacks_()
   , watched_list_(callbacks_.add_list())
   , pending_list_(callbacks_.add_list())
+  , max_pollfds_size_(max_pollfds_size())
   , pollfds_()
   { }
 
@@ -142,6 +166,14 @@ private :
     std::size_t min_size = static_cast<unsigned int>(ticket) + 1;
     while(pollfds_.size() < min_size)
     {
+      if(pollfds_.size() == max_pollfds_size_)
+      {
+        system_exception_builder_t builder;
+        builder << "poll_selector: maximum number of pollfds (" <<
+          max_pollfds_size_ << ") exceeded";
+        builder.explode();
+      }
+        
       // use push_back(), not resize(), for amortized O(1)
       pollfds_.push_back(inactive_pollfd);
     }
@@ -203,6 +235,7 @@ private :
   list_arena_t<callback_t> callbacks_;
   int const watched_list_;
   int const pending_list_;
+  unsigned int const max_pollfds_size_;
   std::vector<pollfd> pollfds_; // indexed by the ids from callbacks_
 };
   
