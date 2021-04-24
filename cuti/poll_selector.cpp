@@ -45,7 +45,7 @@ namespace // anonymous
 // a pollfd with an fd of -1 is skipped by poll()
 pollfd const inactive_pollfd = { -1, 0, 0 };
 
-unsigned int max_pollfds_size()
+std::size_t max_pollfds_size()
 {
   struct rlimit rl;
 
@@ -56,12 +56,11 @@ unsigned int max_pollfds_size()
     throw system_exception_t("getrlimit(RLIMIT_NOFILE) failure", cause);
   }
 
-  auto max = std::numeric_limits<unsigned int>::max();
-  auto result = max;
-  if(rl.rlim_cur != RLIM_INFINITY && rl.rlim_cur < max)
+  auto result = std::numeric_limits<std::size_t>::max();
+  if(rl.rlim_cur != RLIM_INFINITY)
   {
     assert(rl.rlim_cur >= 0);
-    result = static_cast<unsigned int>(rl.rlim_cur);
+    result = rl.rlim_cur;
   }
   return result;
 }
@@ -164,16 +163,16 @@ private :
       make_scoped_guard([&] { callbacks_.remove_element(ticket); });
 
     std::size_t min_size = static_cast<unsigned int>(ticket) + 1;
+    if(min_size > max_pollfds_size_)
+    {
+      system_exception_builder_t builder;
+      builder << "poll_selector: maximum number of pollfds (" <<
+        max_pollfds_size_ << ") exceeded";
+      builder.explode();
+    }
+        
     while(pollfds_.size() < min_size)
     {
-      if(pollfds_.size() == max_pollfds_size_)
-      {
-        system_exception_builder_t builder;
-        builder << "poll_selector: maximum number of pollfds (" <<
-          max_pollfds_size_ << ") exceeded";
-        builder.explode();
-      }
-        
       // use push_back(), not resize(), for amortized O(1)
       pollfds_.push_back(inactive_pollfd);
     }
@@ -235,7 +234,7 @@ private :
   list_arena_t<callback_t> callbacks_;
   int const watched_list_;
   int const pending_list_;
-  unsigned int const max_pollfds_size_;
+  std::size_t const max_pollfds_size_;
   std::vector<pollfd> pollfds_; // indexed by the ids from callbacks_
 };
   
