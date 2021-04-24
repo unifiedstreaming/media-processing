@@ -81,8 +81,10 @@ struct CUTI_ABI io_scheduler_t
   /*
    * Schedules a one-time callback for when fd is ready for writing.
    * Returns a cancellation ticket that may be used to cancel the
-   * callback before it is invoked. Call this function again if you
+   * callback before it is invoked.  Call this function again if you
    * want another callback.
+   * Please note: when the callback is invoked, the ticket has already
+   * lost its purpose; any further use leads to undefined behavior.
    */
   template<typename Callback>
   writable_ticket_t call_when_writable(int fd, Callback&& callback)
@@ -94,8 +96,10 @@ struct CUTI_ABI io_scheduler_t
   /*
    * Schedules a one-time callback for when fd is ready for reading.
    * Returns a cancellation ticket that may be used to cancel the
-   * callback before it is invoked. Call this function again if you
+   * callback before it is invoked.  Call this function again if you
    * want another callback.
+   * Please note: when the callback is invoked, the ticket has already
+   * lost its purpose; any further use leads to undefined behavior.
    */
   template<typename Callback>
   readable_ticket_t call_when_readable(int fd, Callback&& callback)
