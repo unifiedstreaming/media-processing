@@ -154,7 +154,7 @@ private :
 
   int make_ticket(int fd, int events, callback_t callback)
   {
-    assert(fd >= 0);
+    assert(fd != -1);
     assert(callback != nullptr);
 
     // Obtain a ticket, guarding it for exceptions
