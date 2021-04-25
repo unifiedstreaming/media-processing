@@ -247,9 +247,6 @@ private :
 
   void remove_registration(int ticket) noexcept
   {
-    assert(ticket >= 0);
-    assert(ticket <= std::numeric_limits<int>::max());
-
 #ifdef _WIN32
     switch(registrations_.value(ticket).event_)
     {
