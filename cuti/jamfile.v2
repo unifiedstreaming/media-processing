@@ -71,6 +71,7 @@ lib cuti
   fs_utils.cpp
   format.cpp
   io_scheduler.cpp
+  kqueue_selector.cpp
   logger.cpp
   logging_backend.cpp
   logging_context.cpp
