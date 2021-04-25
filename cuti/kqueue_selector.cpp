@@ -112,6 +112,11 @@ struct kqueue_selector_t : selector_t
         count = 0;
       }
 
+      // kevent(2) returns the number of events placed in the eventlist, and
+      // since we used the kevents vector for both input and output (this is
+      // just fine), resize it now to the actual number.
+      kevents.resize(count);
+
       int ticket = registrations_.first(watched_list_);
       while(count > 0 && ticket != registrations_.last(watched_list_))
       {
