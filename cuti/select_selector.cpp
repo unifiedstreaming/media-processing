@@ -196,6 +196,7 @@ private :
 
   int make_ticket(int fd, event_t event, callback_t callback)
   {
+    assert(fd >= 0);
     assert(callback != nullptr);
 
     bool overflow = false;
