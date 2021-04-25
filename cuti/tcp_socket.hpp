@@ -61,7 +61,7 @@ struct CUTI_ABI tcp_socket_t
     this->do_swap(tmp);
     return *this;
   }
-    
+
   bool empty() const noexcept
   {
     return fd_ == -1;
@@ -115,7 +115,7 @@ struct CUTI_ABI tcp_socket_t
   // reading side open. This will eventually result in an EOF at the
   // peer.
   void close_write_end();
-  
+
   // Returns a pointer to the next byte to read; first on EOF.
   // In non-blocking mode, nullptr may be returned.
   char* read_some(char* first, char* last);
@@ -149,7 +149,7 @@ private :
 private :
   friend struct socket_initializer_t;
   static bool stops_sigpipe();
-  
+
 private :
   int fd_;
 };

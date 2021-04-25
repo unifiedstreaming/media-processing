@@ -95,7 +95,7 @@ std::string system_error_string(int error)
   {
     return buf;
   }
-  return "System error number #" + std::to_string(error);  
+  return "System error number #" + std::to_string(error);
 
 #else
 

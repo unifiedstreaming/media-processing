@@ -78,7 +78,7 @@ void single_element()
 
   arena.move_element_before(element, element);
   check_list(arena, list, { 42 });
-  
+
   arena.move_element_before(arena.last(list), element);
   check_list(arena, list, { 42 });
 
@@ -108,7 +108,7 @@ void multiple_elements()
 
   arena.remove_element(e4711);
   check_list(arena, list, { 42 } );
-  
+
   arena.remove_element(e42);
   check_list(arena, list, { } );
 
@@ -167,11 +167,11 @@ void multiple_lists()
   arena.remove_list(evens);
   check_list(arena, numbers, { 1, 2, 3, 4, 5, 6 });
   check_list(arena, odds, { });
-  
+
   arena.remove_list(odds);
   check_list(arena, numbers, { 1, 2, 3, 4, 5, 6 });
-  
-  arena.remove_list(numbers);    
+
+  arena.remove_list(numbers);
 }
 
 void list_reversal()

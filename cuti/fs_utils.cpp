@@ -82,7 +82,7 @@ std::string current_directory()
 
   assert(length < buffer.size());
   return std::string(buffer.data(), buffer.data() + length);
-}  
+}
 
 std::string absolute_path(char const* path)
 {
@@ -164,7 +164,7 @@ std::string current_directory()
     }
     buffer.resize(buffer.size() * 2);
   }
-    
+
   return result;
 }
 
@@ -234,10 +234,10 @@ std::string absolute_path(char const* path)
       }
     }
   }
-    
-  return result;    
+
+  return result;
 }
-  
+
 } // cuti
 
 #endif // POSIX

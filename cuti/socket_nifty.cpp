@@ -47,7 +47,7 @@ struct socket_initializer_t
 
   socket_initializer_t(socket_initializer_t const&) = delete;
   socket_initializer_t& operator=(socket_initializer_t const&) = delete;
-  
+
   ~socket_initializer_t()
   {
      auto ret = WSACleanup();
@@ -80,10 +80,10 @@ struct socket_initializer_t
       assert(r != -1);
     }
   }
-      
+
   socket_initializer_t(socket_initializer_t const&) = delete;
   socket_initializer_t& operator=(socket_initializer_t const&) = delete;
-  
+
   ~socket_initializer_t()
   {
     if(ignore_sigpipe_)

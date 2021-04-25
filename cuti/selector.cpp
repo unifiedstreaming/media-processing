@@ -56,7 +56,7 @@ int selector_t::timeout_millis(timeout_t timeout)
     }
     else
     {
-      result = max_millis;  
+      result = max_millis;
     }
   }
 
@@ -79,8 +79,8 @@ void run_selector(logging_context_t const& context,
     {
       break;
     }
-    
-    timeout = limit - now; 
+
+    timeout = limit - now;
     if(auto msg = context.message_at(loglevel))
     {
       auto milliseconds = std::chrono::duration_cast<
@@ -88,7 +88,7 @@ void run_selector(logging_context_t const& context,
       *msg << "run_selector(): awaiting callback for " <<
         milliseconds << " millisecond(s)...";
     }
-    
+
     auto callback = selector.select(timeout);
     if(callback == nullptr)
     {

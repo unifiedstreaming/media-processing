@@ -115,7 +115,7 @@ struct list_arena_t
   {
     return first(list) == last(list);
   }
-    
+
   /*
    * Returns <list>'s first element id.  For an empty list, this is
    * its past-the-end id.
@@ -154,7 +154,7 @@ struct list_arena_t
    */
   int prev(int element) const noexcept
   {
-    assert(is_valid(element)); 
+    assert(is_valid(element));
     int result = nodes_[element].prev_;
     assert(is_element(result));
     return result;

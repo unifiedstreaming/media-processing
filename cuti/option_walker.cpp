@@ -102,7 +102,7 @@ unsigned int parse_unsigned(char const* name, char const* value,
 
   return result;
 }
-    
+
 } // anonymous
 
 void parse_optval(char const* name, char const* in, int& out)
@@ -180,7 +180,7 @@ bool option_walker_t::match(const char *name, flag_t& value)
       on_next_element();
     }
   }
-    
+
   return result;
 }
 
@@ -217,7 +217,7 @@ bool option_walker_t::do_match(char const* name, char const*& value)
 
   return result;
 }
-        
+
 void option_walker_t::on_next_element()
 {
   short_option_ptr_ = nullptr;

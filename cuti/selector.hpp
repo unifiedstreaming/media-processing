@@ -35,7 +35,7 @@ struct logging_context_t;
 /*
  * Abstract selector interface
  */
-struct CUTI_ABI selector_t : io_scheduler_t 
+struct CUTI_ABI selector_t : io_scheduler_t
 {
   using timeout_t = std::chrono::system_clock::duration;
 

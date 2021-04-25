@@ -132,7 +132,7 @@ void copy_construct()
   assert(cb1 != nullptr);
   assert(cb2 != nullptr);
 }
-  
+
 void move_construct()
 {
   callback_t cb1(function);
@@ -142,7 +142,7 @@ void move_construct()
   assert(cb1 == nullptr);
   assert(cb2 != nullptr);
 }
-  
+
 void copy_assign()
 {
   callback_t cb1(function);
@@ -153,7 +153,7 @@ void copy_assign()
   assert(cb1 != nullptr);
   assert(cb2 != nullptr);
 }
-  
+
 void move_assign()
 {
   callback_t cb1(function);
@@ -177,7 +177,7 @@ void swapped()
   assert(cb1 == nullptr);
   assert(cb2 != nullptr);
 }
-  
+
 } // anonymous
 
 int main()

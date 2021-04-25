@@ -59,7 +59,7 @@ void socket_state_for_family(int family)
   assert(sock1.empty());
   assert(sock2.empty());
 }
-  
+
 void socket_state()
 {
   auto interfaces = cuti::local_interfaces(cuti::any_port);

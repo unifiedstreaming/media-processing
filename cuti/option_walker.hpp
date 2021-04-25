@@ -66,7 +66,7 @@ struct CUTI_ABI option_walker_t
    * walker moves on to the potentially next option, and true is
    * returned. If <name> does not match, <value> is left unchanged,
    * the walker stays at the current option, and false is returned.
-   *      
+   *
    * flag options take no explicit value from the command line: if a
    * flag option is matched, <value> is simply set to true. If
    * another type of option is matched, <value> is set to what is
@@ -93,7 +93,7 @@ struct CUTI_ABI option_walker_t
     value.push_back(std::move(element));
     return true;
   }
-    
+
   template<typename T>
   bool match(char const* name, T& value)
   {
@@ -106,12 +106,12 @@ struct CUTI_ABI option_walker_t
     }
     return result;
   }
-    
+
   /*
    * Returns the index of the first non-option element in the argv
    * array passed to the constructor, or argc if there are no
    * non-option elements.
-   * 
+   *
    * Precondition: done().
    */
   int next_index() const

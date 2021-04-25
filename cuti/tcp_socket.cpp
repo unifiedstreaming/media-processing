@@ -63,7 +63,7 @@ void set_v6only(int fd, bool enable)
     throw system_exception_t("Error setting IPV6_V6ONLY", cause);
   }
 }
-    
+
 void set_nodelay(int fd, bool enable)
 {
   const int optval = enable;
@@ -75,7 +75,7 @@ void set_nodelay(int fd, bool enable)
     throw system_exception_t("Error setting TCP_NODELAY", cause);
   }
 }
-    
+
 void set_keepalive(int fd, bool enable)
 {
   const int optval = enable;
@@ -154,7 +154,7 @@ void set_reuseaddr(int fd, bool enable)
     throw system_exception_t("Error setting SO_REUSEADDR", cause);
   }
 }
-    
+
 #ifndef SOCK_CLOEXEC
 
 /*
@@ -232,7 +232,7 @@ tcp_socket_t::tcp_socket_t(int family)
     int cause = last_system_error();
     throw system_exception_t("Can't create socket", cause);
   }
-    
+
 #if !defined(_WIN32) && !defined(SOCK_CLOEXEC)
   set_cloexec(fd_, true);
 #endif
@@ -304,7 +304,7 @@ endpoint_t tcp_socket_t::local_endpoint() const
     int cause = last_system_error();
     throw system_exception_t("getsockname() failure", cause);
   }
-  
+
   std::shared_ptr<sockaddr const> addr(std::move(storage), &storage->addr_);
   return endpoint_t(std::move(addr));
 }
@@ -322,7 +322,7 @@ endpoint_t tcp_socket_t::remote_endpoint() const
     int cause = last_system_error();
     throw system_exception_t("getpeername() failure", cause);
   }
-  
+
   std::shared_ptr<sockaddr const> addr(std::move(storage), &storage->addr_);
   return endpoint_t(std::move(addr));
 }
@@ -382,7 +382,7 @@ char const* tcp_socket_t::write_some(char const* first, char const* last)
   {
     count = static_cast<int>(last - first);
   }
-    
+
 #if defined(SO_NOSIGPIPE) || !defined(MSG_NOSIGNAL)
   auto r = ::send(fd_, first, count, 0);
 #else
@@ -414,7 +414,7 @@ void tcp_socket_t::close_write_end()
     int cause = last_system_error();
     throw system_exception_t("shutdown() failure", cause);
   }
-}  
+}
 
 char* tcp_socket_t::read_some(char* first, char* last)
 {
@@ -426,7 +426,7 @@ char* tcp_socket_t::read_some(char* first, char* last)
   {
     count = static_cast<int>(last - first);
   }
-    
+
   auto r = ::recv(fd_, first, count, 0);
 
   if(r == -1)

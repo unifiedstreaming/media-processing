@@ -40,8 +40,8 @@ void test_current_directory()
 
   std::string abs = cuti::absolute_path(dir.c_str());
   assert(dir == abs);
-}  
-  
+}
+
 void test_absolute_path(char const* path)
 {
   std::string abs1 = cuti::absolute_path(path);
@@ -62,7 +62,7 @@ int main()
   test_absolute_path("simple");
   test_absolute_path("in/subdir");
   test_absolute_path("trailing/slash/");
-  
+
   test_absolute_path("./leading/dot");
   test_absolute_path("middle/./dot");
   test_absolute_path("trailing/dot/.");
@@ -74,7 +74,7 @@ int main()
   test_absolute_path("/");
   test_absolute_path("/.");
   test_absolute_path("/..");
-  
+
   test_absolute_path("/inroot");
   test_absolute_path("/./dotroot");
   test_absolute_path("/rootdot/.");

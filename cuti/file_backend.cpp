@@ -52,7 +52,7 @@ struct file_backend_t::log_handle_t
       builder.explode(cause);
     }
   }
-    
+
   log_handle_t(log_handle_t const&);
   log_handle_t& operator=(log_handle_t const&);
 
@@ -66,7 +66,7 @@ struct file_backend_t::log_handle_t
     }
     return static_cast<std::size_t>(size.QuadPart);
   }
-  
+
   void write(char const* first, char const* last)
   {
     char const* newline = std::find(first, last, '\n');
@@ -106,7 +106,7 @@ private :
       {
         to_write = max;
       }
-      
+
       DWORD written;
       BOOL result = WriteFile(handle_, first, static_cast<DWORD>(to_write),
                               &written, nullptr);
@@ -166,7 +166,7 @@ struct file_backend_t::log_handle_t
     }
     return statbuf.st_size;
   }
-    
+
   void write(char const* first, char const* last)
   {
     while(first != last)
@@ -180,7 +180,7 @@ struct file_backend_t::log_handle_t
       first += result;
     }
   }
-        
+
   ~log_handle_t()
   {
     ::close(fd_);
@@ -209,7 +209,7 @@ void write_log_entry(file_backend_t::log_handle_t& handle,
   delegate.report(level, begin_msg, end_msg);
   handle.write(buffer.begin(), buffer.end());
 }
-  
+
 void do_rotate(std::string const& name, unsigned int level, unsigned int depth)
 {
   std::string old_name = name;
@@ -253,7 +253,7 @@ void file_backend_t::report(loglevel_t level,
   auto handle = open_log_handle();
   write_log_entry(*handle, level, begin_msg, end_msg);
 }
-    
+
 std::unique_ptr<file_backend_t::log_handle_t>
 file_backend_t::open_log_handle()
 {
@@ -266,7 +266,7 @@ file_backend_t::open_log_handle()
      */
     if(!rotate_reported_)
     {
-      static char const message[] = "Size limit reached. Rotating..."; 
+      static char const message[] = "Size limit reached. Rotating...";
       write_log_entry(*result, loglevel_t::info,
                       message, message + sizeof message - 1);
       rotate_reported_ = true;

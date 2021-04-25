@@ -59,7 +59,7 @@ struct CUTI_ABI file_backend_t : logging_backend_t
 
 private :
   std::unique_ptr<log_handle_t> open_log_handle();
-  
+
 private :
   std::string const filename_;
   unsigned int const size_limit_;

@@ -49,7 +49,7 @@ namespace // anonymous
 
 using namespace cuti;
 
-char const lorem[] = 
+char const lorem[] =
 R"(Lorem ipsum dolor sit amet, consectetur adipiscing elit. Maecenas
 in velit enim. Nulla sollicitudin, metus in feugiat pretium, odio ante
 molestie urna, vitae dictum sem quam faucibus lacus. Curabitur gravida
@@ -361,7 +361,7 @@ struct logged_tcp_connection_t
 
     return result;
   }
-    
+
   void close_write_end()
   {
     if(auto msg = context_.message_at(loglevel_))
@@ -413,7 +413,7 @@ struct logged_tcp_connection_t
     return conn_.call_when_writable(
       scheduler, std::forward<Callback>(callback));
   }
-      
+
   template<typename Callback>
   readable_ticket_t call_when_readable(io_scheduler_t& scheduler,
                                        Callback&& callback)
@@ -434,7 +434,7 @@ struct logged_tcp_connection_t
       *msg << prefix_ << conn_ << ": connection destructor";
     }
   }
-  
+
 private :
   logging_context_t const& context_;
   loglevel_t loglevel_;
@@ -471,7 +471,7 @@ struct producer_t
   {
     return eof_sent_ ? io_state_t::done : io_state_t::wants_write;
   }
-  
+
   // SSTS: static start takes shared
   static void start(std::shared_ptr<producer_t> const& self,
                     io_scheduler_t& scheduler)
@@ -529,7 +529,7 @@ private :
     self->progress();
     start(self, scheduler);
   }
-  
+
 private :
   logged_tcp_connection_t out_;
   int const bufsize_;
@@ -638,7 +638,7 @@ struct filter_t
 
     return true;
   }
-    
+
 private :
   static void on_writable(std::shared_ptr<filter_t> const& self,
                           io_scheduler_t& scheduler)
@@ -646,14 +646,14 @@ private :
     self->progress();
     start(self, scheduler);
   }
-  
+
   static void on_readable(std::shared_ptr<filter_t> const& self,
                           io_scheduler_t& scheduler)
   {
     self->progress();
     start(self, scheduler);
   }
-  
+
 private :
   logged_tcp_connection_t in_;
   logged_tcp_connection_t out_;
@@ -733,7 +733,7 @@ struct consumer_t
 
     return true;
   }
-    
+
 private :
   static void on_readable(std::shared_ptr<consumer_t> const& self,
                           io_scheduler_t& scheduler)
@@ -741,7 +741,7 @@ private :
     self->progress();
     start(self, scheduler);
   }
-  
+
 private :
   logged_tcp_connection_t in_;
   std::vector<char> buf_;
@@ -823,7 +823,7 @@ void blocking_transfer(logging_context_t const& context)
     blocking_transfer(context, interface);
   }
 }
-      
+
 void nonblocking_transfer(logging_context_t const& context,
                           endpoint_t const& interface,
                           bool agile)
@@ -838,7 +838,7 @@ void nonblocking_transfer(logging_context_t const& context,
   filter_in->set_nonblocking();
   filter_out->set_nonblocking();
   consumer_in->set_nonblocking();
-  
+
   if(auto msg = context.message_at(loglevel_t::info))
   {
     *msg << "nonblocking_transfer():" <<
@@ -866,7 +866,7 @@ void nonblocking_transfer(logging_context_t const& context, bool agile)
     nonblocking_transfer(context, interface, agile);
   }
 }
-      
+
 void selected_transfer(logging_context_t const& context,
                        selector_factory_t const& factory,
                        endpoint_t const& interface)
@@ -928,7 +928,7 @@ void blocking_client_server(logging_context_t const& context,
   char const* last = payload.data() + payload.size();
 
   auto[client_side, server_side] = make_connected_pair(interface);
-  
+
   if(auto msg = context.message_at(loglevel_t::info))
   {
     *msg << "blocking_client_server():" <<
@@ -953,7 +953,7 @@ void blocking_client_server(logging_context_t const& context)
     blocking_client_server(context, interface);
   }
 }
-      
+
 void nonblocking_client_server(logging_context_t const& context,
                                endpoint_t const& interface,
                                bool agile)
@@ -965,7 +965,7 @@ void nonblocking_client_server(logging_context_t const& context,
 
   client_side->set_nonblocking();
   server_side->set_nonblocking();
-  
+
   if(auto msg = context.message_at(loglevel_t::info))
   {
     *msg << "nonblocking_client_server():" <<
@@ -990,7 +990,7 @@ void nonblocking_client_server(logging_context_t const& context, bool agile)
     nonblocking_client_server(context, interface, agile);
   }
 }
-      
+
 void selected_client_server(logging_context_t const& context,
                             selector_factory_t const& factory,
                             endpoint_t const& interface)
@@ -1002,7 +1002,7 @@ void selected_client_server(logging_context_t const& context,
 
   client_side->set_nonblocking();
   server_side->set_nonblocking();
-  
+
   if(auto msg = context.message_at(loglevel_t::info))
   {
     *msg << "selected_client_server():" <<
@@ -1046,7 +1046,7 @@ void broken_pipe(logging_context_t const& context,
   char const* last = payload.data() + payload.size();
 
   auto[producer_out, consumer_in] = make_connected_pair(interface);
-  
+
   if(auto msg = context.message_at(loglevel_t::info))
   {
     *msg << "broken_pipe():" <<
@@ -1191,7 +1191,7 @@ int throwing_main(int argc, char const* const argv[])
     print_usage(std::cerr, argv[0]);
     return 1;
   }
-    
+
   logger_t logger(argv[0]);
   if(!options.logfile_.empty())
   {

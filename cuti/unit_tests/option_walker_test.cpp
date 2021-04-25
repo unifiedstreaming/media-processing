@@ -61,7 +61,7 @@ void matching_flag()
   assert(flag);
   assert(walker.next_index() == 2);
 }
-  
+
 void non_matching_flag()
 {
   char const* argv[] = { "command", "--notflag" };
@@ -265,7 +265,7 @@ void hyphens_at_start()
   assert(walker.done());
   assert(walker.next_index() == 2);
 }
-  
+
 void hyphens_in_middle()
 {
   char const* argv[] = { "command", "--flag", "--", "--arg" };
@@ -286,7 +286,7 @@ void hyphens_in_middle()
   assert(flag);
   assert(walker.next_index() == 3);
 }
-  
+
 void hyphens_at_end()
 {
   char const* argv[] = { "command", "--flag1", "--flag2", "--" };
@@ -556,7 +556,7 @@ void unsigned_int_option()
 {
   unsigned int value = std::numeric_limits<unsigned int>::max();
   std::string value_string = std::to_string(value);
-  
+
   char const* argv[] = { "command", "--number", value_string.c_str() };
   int argc = sizeof argv / sizeof argv[0];
   cuti::option_walker_t walker(argc, argv);
@@ -644,7 +644,7 @@ void repeated_flag_option()
     assert(true == flag);
     assert(!(flag != true));
     assert(!(true != flag));
-    
+
   }
 }
 
@@ -669,7 +669,7 @@ void repeated_value_option()
   assert(files[0] == "file1");
   assert(files[1] == "file2");
   assert(files[2] == "file3");
-}  
+}
 
 } // anonymous
 
@@ -690,7 +690,7 @@ int main()
   hyphens_at_start();
   hyphens_in_middle();
   hyphens_at_end();
-  
+
   single_short_flag();
   multiple_short_flags();
   abbreviated_flags();

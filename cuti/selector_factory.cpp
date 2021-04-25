@@ -40,7 +40,7 @@ std::vector<selector_factory_t> available_selector_factories()
 
 #if defined(__APPLE__) || defined(__FreeBSD__)
   result.emplace_back("kqueue", create_kqueue_selector);
-#endif  
+#endif
 #ifndef _WIN32
   result.emplace_back("poll", create_poll_selector);
 #endif

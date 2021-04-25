@@ -82,7 +82,7 @@ struct dos_protector_t
     }
     return self->local_endpoint();
   }
-      
+
   ~dos_protector_t()
   {
     if(auto msg = context_.message_at(loglevel))
@@ -90,7 +90,7 @@ struct dos_protector_t
       *msg << "dos_protector: " << acceptor_ << ": destructor";
     }
   }
-  
+
 private :
   static void on_ready(std::shared_ptr<dos_protector_t> const& self,
                        io_scheduler_t& scheduler)
@@ -132,7 +132,7 @@ endpoint_t start_dos_protector(io_scheduler_t& scheduler, Args&&... args)
   return start_io_handler<dos_protector_t>(
     scheduler, std::forward<Args>(args)...);
 }
-  
+
 void blocking_accept(logging_context_t const& context,
                      endpoint_t const& interface)
 {
@@ -161,7 +161,7 @@ void blocking_accept(logging_context_t const& context)
 {
   auto interfaces = local_interfaces(any_port);
   assert(!interfaces.empty());
-  
+
   for(auto const& interface : interfaces)
   {
     blocking_accept(context, interface);
@@ -227,7 +227,7 @@ void nonblocking_accept(logging_context_t const& context)
 {
   auto interfaces = local_interfaces(any_port);
   assert(!interfaces.empty());
-  
+
   for(auto const& interface : interfaces)
   {
     nonblocking_accept(context, interface);
@@ -268,7 +268,7 @@ void duplicate_bind(logging_context_t const& context)
 {
   auto interfaces = local_interfaces(any_port);
   assert(!interfaces.empty());
-  
+
   for(auto const& interface : interfaces)
   {
     duplicate_bind(context, interface);
@@ -325,13 +325,13 @@ bool prove_dual_stack(logging_context_t const& context,
 
   return result;
 }
-    
+
 void dual_stack(logging_context_t const& context)
 {
   // Check that we have multiple local interfaces (one for each family)
   auto interfaces = local_interfaces(any_port);
   assert(!interfaces.empty());
-  
+
   if(interfaces.size() == 1)
   {
     if(auto msg = context.message_at(loglevel))

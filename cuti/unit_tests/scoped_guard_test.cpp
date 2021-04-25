@@ -46,7 +46,7 @@ void dismissed()
   }
   assert(n_calls == 0);
 }
-  
+
 void lvalue_lambda()
 {
   unsigned int n_calls = 0;
@@ -57,7 +57,7 @@ void lvalue_lambda()
   }
   assert(n_calls == 2);
 }
-  
+
 } // anonymous
 
 int main()

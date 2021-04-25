@@ -42,10 +42,10 @@ struct CUTI_ABI tcp_acceptor_t
 
   tcp_acceptor_t(tcp_acceptor_t const&) = delete;
   tcp_acceptor_t& operator=(tcp_acceptor_t const&) = delete;
-  
+
   endpoint_t const& local_endpoint() const
   { return local_endpoint_; }
-  
+
   /*
    * I/O functions
    */

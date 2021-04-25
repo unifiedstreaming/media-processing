@@ -65,13 +65,13 @@ struct CUTI_ABI io_scheduler_t
     int id() const noexcept
     { return id_; }
 
-  private :  
+  private :
     int id_;
   };
 
   using writable_ticket_t = cancellation_ticket_t<event_t::writable>;
   using readable_ticket_t = cancellation_ticket_t<event_t::readable>;
-  
+
   io_scheduler_t()
   { }
 
@@ -92,7 +92,7 @@ struct CUTI_ABI io_scheduler_t
     return writable_ticket_t(this->do_call_when_writable(
       fd, std::forward<Callback>(callback)));
   }
-    
+
   /*
    * Schedules a one-time callback for when fd is ready for reading.
    * Returns a cancellation ticket that may be used to cancel the
@@ -142,7 +142,7 @@ auto start_io_handler(io_scheduler_t& scheduler, Args&&... args)
   auto handler = std::make_shared<IOHandler>(std::forward<Args>(args)...);
   return IOHandler::start(handler, scheduler);
 }
-    
+
 } // cuti
 
 #endif

@@ -66,5 +66,5 @@ void parse_optval(char const* name, char const* in, loglevel_t& out)
     builder.explode();
   }
 }
-    
+
 } // cuti

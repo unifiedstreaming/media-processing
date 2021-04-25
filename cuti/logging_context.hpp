@@ -38,7 +38,7 @@ struct CUTI_ABI log_message_t : std::ostream
   log_message_t& operator=(log_message_t const&) = delete;
 
   ~log_message_t() override;
-  
+
 private :
   logger_t& logger_;
   loglevel_t level_;
@@ -61,7 +61,7 @@ struct CUTI_ABI logging_context_t
     }
     return result;
   }
-      
+
 private :
   logger_t& logger_;
   loglevel_t level_;

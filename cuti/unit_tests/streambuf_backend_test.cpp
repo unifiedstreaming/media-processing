@@ -73,7 +73,7 @@ struct thundering_herd_fence_t
       open_.notify_all();
     }
   }
-  
+
 private :
   std::mutex mutex_;
   std::condition_variable open_;
@@ -151,7 +151,7 @@ void test_single_threaded(char const* argv0)
 
   assert(count_newlines(s) == 4 * n_events);
 }
-  
+
 void test_multi_threaded(char const* argv0)
 {
   const unsigned int n_threads = 10;
@@ -175,7 +175,7 @@ void test_multi_threaded(char const* argv0)
       threads.push_back(std::make_unique<cuti::scoped_thread_t>(code));
     }
   }
-  
+
   std::string s = strm.str();
 
 #if 0
@@ -191,10 +191,10 @@ void test_multi_threaded(char const* argv0)
   {
     assert(count_tid(s, tid) == 4 * n_events);
   }
-  
+
   assert(count_newlines(s) == 4 * n_events * n_threads);
 }
-  
+
 } // anonymous
 
 int main(int, char *argv[])

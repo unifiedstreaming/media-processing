@@ -88,7 +88,7 @@ void format_loglevel(std::streambuf& target, loglevel_t level)
   format_string(target, loglevel_string(level), 7);
   target.sputc(']');
 }
-  
+
 void format_timepoint(std::streambuf& target,
                       std::chrono::system_clock::time_point tp)
 {
@@ -97,7 +97,7 @@ void format_timepoint(std::streambuf& target,
     std::chrono::seconds>(duration).count();
   unsigned int msecs = std::chrono::duration_cast<
     std::chrono::milliseconds>(duration).count() % 1000;
-  
+
   std::tm ltm;
   get_localtime(ltm, secs);
 

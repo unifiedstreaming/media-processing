@@ -49,7 +49,7 @@ struct syslog_backend_t::impl_t
   {
     char const* strings[1];
     strings[0] = message;
-    
+
     BOOL result = ReportEvent(handle_, loglevel_type(level), 0, 0,
                               nullptr, 1, 0, strings, nullptr);
     if(!result)
@@ -58,7 +58,7 @@ struct syslog_backend_t::impl_t
       throw system_exception_t("ReportEvent() failure", cause);
     }
   }
-    
+
   ~impl_t()
   {
     DeregisterEventSource(handle_);
@@ -105,12 +105,12 @@ struct syslog_backend_t::impl_t
   {
     syslog(priority(level), "%s", message);
   }
-    
+
   ~impl_t()
   {
     closelog();
   }
-  
+
 private :
   static int priority(loglevel_t level)
   {

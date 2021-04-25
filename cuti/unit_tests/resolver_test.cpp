@@ -77,7 +77,7 @@ void not_an_ip_address()
 #endif
     caught = true;
   }
-  
+
   assert(caught);
 }
 
@@ -220,7 +220,7 @@ void unknown_host()
   }
   assert(caught);
 }
-  
+
 void unknown_host_with_port()
 {
   bool caught = false;
@@ -240,7 +240,7 @@ void unknown_host_with_port()
   }
   assert(caught);
 }
-  
+
 } // anonymous
 
 int main()

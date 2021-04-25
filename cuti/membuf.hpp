@@ -33,7 +33,7 @@ struct CUTI_ABI membuf_t : std::streambuf
 
   membuf_t(membuf_t const&) = delete;
   membuf_t& operator=(membuf_t const&) = delete;
-  
+
   char const* begin() const
   {
     return buf_;
@@ -53,7 +53,7 @@ private :
   char inline_buf_[256];
   char* buf_;
 };
-    
+
 } // namespace cuti
 
 #endif

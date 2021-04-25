@@ -172,7 +172,7 @@ struct select_selector_t : selector_t
     }
     return result;
   }
-  
+
 private :
   int do_call_when_writable(int fd, callback_t callback) override
   {
@@ -183,7 +183,7 @@ private :
   {
     remove_registration(cancellation_ticket);
   }
-    
+
   int do_call_when_readable(int fd, callback_t callback) override
   {
     return make_ticket(fd, event_t::readable, std::move(callback));
@@ -289,7 +289,7 @@ private :
   int n_readables_;
 #endif
 };
-  
+
 } // anonymous
 
 std::unique_ptr<selector_t> create_select_selector()

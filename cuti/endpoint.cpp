@@ -102,7 +102,7 @@ unsigned int endpoint_t::socket_address_size() const
   auto on_ipv4 = [&](sockaddr_in const& addr) { result = sizeof addr; };
   auto on_ipv6 = [&](sockaddr_in6 const& addr) { result = sizeof addr; };
   visit_sockaddr(*addr_, on_ipv4, on_ipv6);
-  
+
   return result;
 }
 
@@ -112,7 +112,7 @@ std::string endpoint_t::ip_address() const
 
   static char const longest_expected[] =
     "ffff:ffff:ffff:ffff:ffff:ffff:255.255.255.255";
-  char buf[sizeof longest_expected]; 
+  char buf[sizeof longest_expected];
 
   int r = getnameinfo(
     addr_.get(), this->socket_address_size(),

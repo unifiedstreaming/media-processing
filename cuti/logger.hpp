@@ -43,7 +43,7 @@ struct CUTI_ABI logger_t
 
   void set_backend(std::unique_ptr<logging_backend_t> backend);
 
-  void report(loglevel_t level, 
+  void report(loglevel_t level,
               char const* begin_msg, char const* end_msg);
 
   void report(loglevel_t level, char const* msg)

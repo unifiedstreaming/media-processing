@@ -44,7 +44,7 @@ struct CUTI_ABI logging_backend_t
 
   virtual ~logging_backend_t();
 };
-  
+
 } // cuti
 
 #endif

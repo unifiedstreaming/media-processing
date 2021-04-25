@@ -64,7 +64,7 @@ std::size_t max_pollfds_size()
   }
   return result;
 }
-  
+
 struct poll_selector_t : selector_t
 {
   poll_selector_t()
@@ -120,7 +120,7 @@ struct poll_selector_t : selector_t
 
       assert(count == 0);
     }
-            
+
     callback_t result = nullptr;
     if(!callbacks_.list_empty(pending_list_))
     {
@@ -130,7 +130,7 @@ struct poll_selector_t : selector_t
     }
     return result;
   }
-    
+
 private :
   int do_call_when_writable(int fd, callback_t callback) override
   {
@@ -171,7 +171,7 @@ private :
         max_pollfds_size_ << ") exceeded";
       builder.explode();
     }
-        
+
     while(pollfds_.size() < min_size)
     {
       // use push_back(), not resize(), for amortized O(1)
@@ -202,7 +202,7 @@ private :
   std::size_t const max_pollfds_size_;
   std::vector<pollfd> pollfds_; // indexed by the ids from callbacks_
 };
-  
+
 } // anonymous
 
 std::unique_ptr<selector_t> create_poll_selector()

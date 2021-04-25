@@ -39,7 +39,7 @@ struct CUTI_ABI scoped_thread_t
 
   scoped_thread_t(scoped_thread_t const&) = delete;
   scoped_thread_t& operator=(scoped_thread_t const&) = delete;
-  
+
   ~scoped_thread_t();
 
 private :

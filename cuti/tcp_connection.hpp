@@ -44,7 +44,7 @@ struct CUTI_ABI tcp_connection_t
 
   endpoint_t const& local_endpoint() const
   { return local_endpoint_; }
-  
+
   endpoint_t const& remote_endpoint() const
   { return remote_endpoint_; }
 
@@ -67,7 +67,7 @@ struct CUTI_ABI tcp_connection_t
   // reading side open. This will eventually result in an EOF at the
   // peer.
   void close_write_end();
-  
+
   // Returns a pointer to the next byte to read; first on EOF.
   // In non-blocking mode, nullptr may be returned.
   char* read_some(char* first, char* last);
@@ -95,8 +95,8 @@ struct CUTI_ABI tcp_connection_t
 
 private :
   friend struct tcp_acceptor_t;
-  explicit tcp_connection_t(tcp_socket_t&& socket); 
-  
+  explicit tcp_connection_t(tcp_socket_t&& socket);
+
 private :
   tcp_socket_t socket_;
   endpoint_t local_endpoint_;
