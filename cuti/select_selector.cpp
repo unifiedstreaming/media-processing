@@ -285,8 +285,8 @@ private :
   };
 
   list_arena_t<registration_t> registrations_;
-  int watched_list_;
-  int pending_list_;
+  int const watched_list_;
+  int const pending_list_;
 #ifdef _WIN32
   int n_writables_;
   int n_readables_;
