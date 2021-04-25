@@ -67,6 +67,9 @@ struct CUTI_ABI selector_t : io_scheduler_t
   virtual callback_t select(timeout_t timeout) = 0;
 
   virtual ~selector_t();
+
+protected :
+  static int timeout_millis(timeout_t timeout);
 };
 
 /*

@@ -27,6 +27,42 @@ namespace cuti
 selector_t::~selector_t()
 { }
 
+int selector_t::timeout_millis(timeout_t timeout)
+{
+  static timeout_t const zero = timeout_t::zero();
+  static int const max_millis = 30000;
+
+  int result;
+
+  if(timeout < zero)
+  {
+    result = -1;
+  }
+  else if(timeout == zero)
+  {
+    result = 0;
+  }
+  else // timeout > zero
+  {
+    auto count = std::chrono::duration_cast<std::chrono::milliseconds>(
+        timeout).count();
+    if(count < 1)
+    {
+      result = 1; // prevent spinloop
+    }
+    else if(count < max_millis)
+    {
+      result = static_cast<int>(count);
+    }
+    else
+    {
+      result = max_millis;  
+    }
+  }
+
+  return result;
+}
+
 void run_selector(logging_context_t const& context,
                   loglevel_t loglevel,
                   selector_t& selector,

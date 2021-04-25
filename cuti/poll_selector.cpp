@@ -89,7 +89,7 @@ struct poll_selector_t : selector_t
     if(callbacks_.list_empty(pending_list_))
     {
       int count = ::poll(
-        pollfds_.data(), pollfds_.size(), poll_timeout(timeout));
+        pollfds_.data(), pollfds_.size(), timeout_millis(timeout));
       if(count < 0)
       {
         int cause = last_system_error();
@@ -192,42 +192,6 @@ private :
 
     pollfds_[ticket] = inactive_pollfd;
     callbacks_.remove_element(ticket);
-  }
-
-  static int poll_timeout(timeout_t timeout)
-  {
-    static timeout_t const zero = timeout_t::zero();
-    static int const max_poll_timeout = 30000;
-
-    int result;
-
-    if(timeout < zero)
-    {
-      result = -1;
-    }
-    else if(timeout == zero)
-    {
-      result = 0;
-    }
-    else // timeout > zero
-    {
-      auto count = std::chrono::duration_cast<std::chrono::milliseconds>(
-        timeout).count();
-      if(count < 1)
-      {
-        result = 1; // prevent spinloop
-      }
-      else if(count < max_poll_timeout)
-      {
-        result = static_cast<int>(count);
-      }
-      else
-      {
-        result = max_poll_timeout;  
-      }
-    }
-
-    return result;
   }
 
 private :

@@ -17,32 +17,20 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#include "selector_factory.hpp"
+#ifndef CUTI_SELECT_SELECTOR_HPP_
+#define CUTI_SELECT_SELECTOR_HPP_
 
-#include "poll_selector.hpp"
-#include "select_selector.hpp"
+#include "linkage.h"
+#include "selector.hpp"
 
-#include <ostream>
+#include <memory>
 
 namespace cuti
 {
 
-std::ostream& operator<<(std::ostream& os, selector_factory_t const& factory)
-{
-  os << factory.name();
-  return os;
+CUTI_ABI
+std::unique_ptr<selector_t> create_select_selector();
+
 }
 
-std::vector<selector_factory_t> available_selector_factories()
-{
-  std::vector<selector_factory_t> result;
-
-#ifndef _WIN32
-  result.emplace_back("poll", create_poll_selector);
 #endif
-  result.emplace_back("select", create_select_selector);
-
-  return result;
-}
-
-} // cuti
