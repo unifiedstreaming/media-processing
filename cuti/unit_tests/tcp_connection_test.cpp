@@ -569,7 +569,7 @@ struct filter_t
 
   bool progress()
   { return read_step() || write_step(); }
-    
+
   // SSTS: static start takes shared
   static void start(std::shared_ptr<filter_t> const& self,
                     io_scheduler_t& scheduler)
@@ -634,7 +634,7 @@ private :
       {
         return false;
       }
-  
+
       assert(next > begin_data_);
       assert(next <= end_data_);
       if(next != end_data_)
@@ -658,7 +658,7 @@ private :
 
     return false;
   }
-      
+
 private :
   void on_readable(std::shared_ptr<filter_t> const& self,
                    io_scheduler_t& scheduler)
@@ -716,7 +716,7 @@ struct consumer_t
 
   bool progress()
   { return read_step(); }
-  
+
   // SSTS: static start takes shared
   static void start(std::shared_ptr<consumer_t> const& self,
                     io_scheduler_t& scheduler)
