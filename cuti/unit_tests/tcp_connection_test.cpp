@@ -371,7 +371,7 @@ struct logged_tcp_connection_t
     conn_.close_write_end();
   }
 
-  char* read_some(char* first, char* last)
+  char* read_some(char* first, char const* last)
   {
     if(auto msg = context_.message_at(loglevel_))
     {
@@ -442,8 +442,6 @@ private :
   tcp_connection_t& conn_;
 };
 
-enum class io_state_t { wants_write, wants_read, done };
-
 /*
  * Our test producer sends [first,last>, and then a half-close, to out.
  */
@@ -462,35 +460,34 @@ struct producer_t
   , first_(first)
   , last_(last)
   , eof_sent_(false)
+  , writable_ticket_()
   { }
 
   producer_t(producer_t const&) = delete;
   producer_t& operator=(producer_t const&) = delete;
 
-  io_state_t io_state() const
-  {
-    return eof_sent_ ? io_state_t::done : io_state_t::wants_write;
-  }
+  bool done() const
+  { return !wants_write(); }
+
+  bool progress()
+  { return write_step(); }
 
   // SSTS: static start takes shared
   static void start(std::shared_ptr<producer_t> const& self,
                     io_scheduler_t& scheduler)
   {
-    switch(self->io_state())
+    if(self->writable_ticket_.empty() && self->wants_write())
     {
-    case io_state_t::wants_write :
-      self->out_.call_when_writable(scheduler,
-        [self, &scheduler] { on_writable(self, scheduler); });
-      break;
-    case io_state_t::done :
-      break;
-    default :
-      assert(!"expected io_state");
-      break;
+      self->writable_ticket_ = self->out_.call_when_writable(scheduler,
+        [ self, &scheduler ] { self->on_writable(self, scheduler); });
     }
   }
 
-  bool progress()
+private :
+  bool wants_write() const
+  { return !eof_sent_; }
+
+  bool write_step()
   {
     if(eof_sent_)
     {
@@ -523,10 +520,13 @@ struct producer_t
   }
 
 private :
-  static void on_writable(std::shared_ptr<producer_t> const& self,
-                          io_scheduler_t& scheduler)
+  void on_writable(std::shared_ptr<producer_t> const& self,
+                   io_scheduler_t& scheduler)
   {
-    self->progress();
+    assert(self.get() == this);
+
+    writable_ticket_.clear();
+    write_step();
     start(self, scheduler);
   }
 
@@ -536,6 +536,7 @@ private :
   char const* first_;
   char const* const last_;
   bool eof_sent_;
+  writable_ticket_t writable_ticket_;
 };
 
 /*
@@ -550,107 +551,132 @@ struct filter_t
   : in_(context, loglevel_t::debug, "filter", in)
   , out_(context, loglevel_t::debug, "filter", out)
   , buf_((assert(bufsize > 0), bufsize))
-  , first_(buf_.data())
-  , last_(buf_.data())
+  , begin_buf_(buf_.data())
+  , begin_data_(begin_buf_)
+  , end_data_(begin_buf_)
+  , end_buf_(begin_buf_ + bufsize)
   , eof_seen_(false)
   , eof_sent_(false)
+  , readable_ticket_()
+  , writable_ticket_()
   { }
 
   filter_t(filter_t const&) = delete;
   filter_t& operator=(filter_t const&) = delete;
 
-  io_state_t io_state() const
-  {
-    return
-      eof_sent_ ? io_state_t::done :
-      first_ != last_ ? io_state_t::wants_write :
-      eof_seen_ ? io_state_t::wants_write :
-      io_state_t::wants_read;
-  }
+  bool done() const
+  { return !wants_read() && !wants_write(); }
 
+  bool progress()
+  { return read_step() || write_step(); }
+    
   // SSTS: static start takes shared
   static void start(std::shared_ptr<filter_t> const& self,
                     io_scheduler_t& scheduler)
   {
-    switch(self->io_state())
+    if(self->readable_ticket_.empty() && self->wants_read())
     {
-    case io_state_t::wants_write :
-      self->out_.call_when_writable(scheduler,
-        [self, &scheduler] { on_writable(self, scheduler); });
-      break;
-    case io_state_t::wants_read :
-      self->in_.call_when_readable(scheduler,
-        [self, &scheduler] { on_readable(self, scheduler); });
-      break;
-    case io_state_t::done :
-      break;
-    default :
-      assert(!"expected io_state");
-      break;
+      self->readable_ticket_ = self->in_.call_when_readable(scheduler,
+        [ self, &scheduler ] { self->on_readable(self, scheduler); });
+    }
+
+    if(self->writable_ticket_.empty() && self->wants_write())
+    {
+      self->writable_ticket_ = self->out_.call_when_writable(scheduler,
+        [ self, &scheduler ] { self->on_writable(self, scheduler); });
     }
   }
 
-  bool progress()
+private :
+  bool wants_read() const
+  { return end_data_ != end_buf_ && !eof_seen_; }
+
+  bool read_step()
   {
-    if(eof_sent_)
+    if(end_data_ == end_buf_)
     {
       return false;
     }
 
-    if(first_ != last_)
+    if(eof_seen_)
     {
-      char const* next = out_.write_some(first_, last_);
+      return false;
+    }
+
+    char* next = in_.read_some(end_data_, end_buf_);
+    if(next == nullptr)
+    {
+      return false;
+    }
+
+    if(next == end_data_)
+    {
+       eof_seen_ = true;
+       return true;
+    }
+
+    assert(next > end_data_);
+    assert(next <= end_buf_);
+    end_data_ = next;
+
+    return true;
+  }
+
+  bool wants_write() const
+  { return begin_data_ != end_data_ || (eof_seen_ && !eof_sent_); }
+
+  bool write_step()
+  {
+    if(begin_data_ != end_data_)
+    {
+      char const* next = out_.write_some(begin_data_, end_data_);
       if(next == nullptr)
       {
         return false;
       }
-
-      assert(next > first_);
-      assert(next <= last_);
-      first_ = next;
+  
+      assert(next > begin_data_);
+      assert(next <= end_data_);
+      if(next != end_data_)
+      {
+        begin_data_ = next;
+      }
+      else
+      {
+        begin_data_ = begin_buf_;
+        end_data_ = begin_buf_;
+      }
       return true;
     }
 
-    if(eof_seen_)
+    if(eof_seen_ && !eof_sent_)
     {
       out_.close_write_end();
       eof_sent_ = true;
       return true;
     }
 
-    char* next = in_.read_some(buf_.data(), buf_.data() + buf_.size());
-    if(next == nullptr)
-    {
-      return false;
-    }
-
-    if(next == buf_.data())
-    {
-       eof_seen_ = true;
-       return true;
-    }
-
-    assert(next > buf_.data());
-    assert(next <= buf_.data() + buf_.size());
-
-    first_ = buf_.data();
-    last_ = next;
-
-    return true;
+    return false;
   }
-
+      
 private :
-  static void on_writable(std::shared_ptr<filter_t> const& self,
-                          io_scheduler_t& scheduler)
+  void on_readable(std::shared_ptr<filter_t> const& self,
+                   io_scheduler_t& scheduler)
   {
-    self->progress();
+    assert(self.get() == this);
+
+    readable_ticket_.clear();
+    read_step();
     start(self, scheduler);
   }
 
-  static void on_readable(std::shared_ptr<filter_t> const& self,
-                          io_scheduler_t& scheduler)
+  void on_writable(std::shared_ptr<filter_t> const& self,
+                   io_scheduler_t& scheduler)
   {
-    self->progress();
+    assert(self.get() == this);
+
+    writable_ticket_.clear();
+    write_step();
     start(self, scheduler);
   }
 
@@ -658,10 +684,14 @@ private :
   logged_tcp_connection_t in_;
   logged_tcp_connection_t out_;
   std::vector<char> buf_;
-  char const* first_;
-  char const* last_;
+  char* const begin_buf_;
+  char const* begin_data_;
+  char* end_data_;
+  char const* const end_buf_;
   bool eof_seen_;
   bool eof_sent_;
+  readable_ticket_t readable_ticket_;
+  writable_ticket_t writable_ticket_;
 };
 
 /*
@@ -678,32 +708,31 @@ struct consumer_t
   , first_(first)
   , last_(last)
   , eof_seen_(false)
+  , readable_ticket_()
   { }
 
-  io_state_t io_state() const
-  {
-    return eof_seen_ ? io_state_t::done : io_state_t::wants_read;
-  }
+  bool done() const
+  { return !wants_read(); }
 
+  bool progress()
+  { return read_step(); }
+  
   // SSTS: static start takes shared
   static void start(std::shared_ptr<consumer_t> const& self,
                     io_scheduler_t& scheduler)
   {
-    switch(self->io_state())
+    if(self->readable_ticket_.empty() && self->wants_read())
     {
-    case io_state_t::wants_read :
-      self->in_.call_when_readable(scheduler,
-        [self, &scheduler] { on_readable(self, scheduler); });
-      break;
-    case io_state_t::done :
-      break;
-    default :
-      assert(!"expected io_state");
-      break;
+      self->readable_ticket_ = self->in_.call_when_readable(scheduler,
+        [ self, &scheduler ] { self->on_readable(self, scheduler); });
     }
   }
 
-  bool progress()
+private :
+  bool wants_read() const
+  { return !eof_seen_; }
+
+  bool read_step()
   {
     if(eof_seen_)
     {
@@ -735,10 +764,13 @@ struct consumer_t
   }
 
 private :
-  static void on_readable(std::shared_ptr<consumer_t> const& self,
-                          io_scheduler_t& scheduler)
+  void on_readable(std::shared_ptr<consumer_t> const& self,
+                   io_scheduler_t& scheduler)
   {
-    self->progress();
+    assert(self.get() == this);
+
+    readable_ticket_.clear();
+    read_step();
     start(self, scheduler);
   }
 
@@ -748,12 +780,13 @@ private :
   char const* first_;
   char const* const last_;
   bool eof_seen_;
+  readable_ticket_t readable_ticket_;
 };
 
 template<typename T>
 void run_to_completion(T& function)
 {
-  while(function.io_state() != io_state_t::done)
+  while(!function.done())
   {
     bool progressed = function.progress();
     assert(progressed);
@@ -774,7 +807,7 @@ void run_pipe_serially(producer_t& producer,
                        consumer_t& consumer,
                        bool agile)
 {
-  while(consumer.io_state() != io_state_t::done)
+  while(!consumer.done())
   {
     while(producer.progress() && agile)
       ;

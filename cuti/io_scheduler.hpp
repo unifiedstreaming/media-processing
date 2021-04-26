@@ -55,6 +55,12 @@ struct CUTI_ABI io_scheduler_t
     bool empty() const noexcept
     { return id_ == -1; }
 
+    /*
+     * Sets the ticket to the empty state.
+     */
+    void clear() noexcept
+    { id_ = -1; }
+
   private :
     friend struct io_scheduler_t;
 

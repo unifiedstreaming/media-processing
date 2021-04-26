@@ -416,7 +416,7 @@ void tcp_socket_t::close_write_end()
   }
 }
 
-char* tcp_socket_t::read_some(char* first, char* last)
+char* tcp_socket_t::read_some(char* first, char const* last)
 {
   assert(!empty());
   assert(first <= last);

@@ -118,7 +118,7 @@ struct CUTI_ABI tcp_socket_t
 
   // Returns a pointer to the next byte to read; first on EOF.
   // In non-blocking mode, nullptr may be returned.
-  char* read_some(char* first, char* last);
+  char* read_some(char* first, char const* last);
 
   /*
    * Event reporting; see io_scheduler.hpp for detailed semantics.  A
