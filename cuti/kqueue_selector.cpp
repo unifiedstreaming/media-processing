@@ -74,81 +74,50 @@ struct kqueue_selector_t : selector_t
 
     if(registrations_.list_empty(pending_list_))
     {
-      std::vector<struct kevent> kevents;
-
-      for(int ticket = registrations_.first(watched_list_);
-          ticket != registrations_.last(watched_list_);
-          ticket = registrations_.next(ticket))
+      struct timespec ts;
+      struct timespec* pts = nullptr;
+      if(timeout >= timeout_t::zero())
       {
-        auto const& registration = registrations_.value(ticket);
-        int fd = registration.fd_;
+        int millis = timeout_millis(timeout);
+        assert(millis >= 0);
 
-        switch(registration.event_)
-        {
-        case event_t::writable :
-          kevents.push_back(make_kevent(fd, EVFILT_WRITE, EV_ADD | EV_ONESHOT));
-          break;
-        case event_t::readable :
-          kevents.push_back(make_kevent(fd, EVFILT_READ, EV_ADD | EV_ONESHOT));
-          break;
-        default :
-          assert(!"expected event type");
-          break;
-        }
+        ts.tv_sec = millis / 1000;
+        ts.tv_nsec = (millis % 1000) * 1000000;
+        pts = &ts;
       }
-      assert(!kevents.empty());
 
-      auto ke_timeout = kevent_timeout(timeout);
-      int count = ::kevent(kqueue_fd_, kevents.data(), kevents.size(),
-                           kevents.data(), kevents.size(),
-                           ke_timeout.tv_sec < 0 ? nullptr : &ke_timeout);
+      int const num_events = 16;
+      struct kevent kevents[num_events];
+      int count = ::kevent(kqueue_fd_, nullptr, 0, kevents, num_events, pts);
       if(count < 0)
       {
         int cause = last_system_error();
         if(cause != EINTR)
         {
-          throw system_exception_t("kevent() failure", cause);
+          throw system_exception_t("kevent() failed to retrieve events", cause);
         }
         count = 0;
       }
 
-      // kevent(2) returns the number of events placed in the eventlist, and
-      // since we used the kevents vector for both input and output (this is
-      // just fine), resize it now to the actual number.
-      kevents.resize(count);
-
-      int ticket = registrations_.first(watched_list_);
-      while(count > 0 && ticket != registrations_.last(watched_list_))
+      for(int i = 0; i < count; ++i)
       {
-        int next = registrations_.next(ticket);
-        auto const& registration = registrations_.value(ticket);
-        int fd = registration.fd_;
+        // Two-stage cast, to avoid the compiler choking on "error: cast from
+        // pointer to smaller type 'int' loses information"
+        auto lticket = reinterpret_cast<intptr_t>(kevents[i].udata);
+        assert(lticket >= 0 && lticket <= std::numeric_limits<int>::max());
+        auto ticket = static_cast<int>(lticket);
 
-        bool is_set = false;
-        switch(registration.event_)
-        {
-        case event_t::writable :
-          is_set = match_kevent(kevents, fd, EVFILT_WRITE);
-          break;
-        case event_t::readable :
-          is_set = match_kevent(kevents, fd, EVFILT_READ);
-          break;
-        default :
-          assert(!"expected event type");
-          break;
-        }
+        auto& registration = registrations_.value(ticket);
+        assert(registration.fd_ == kevents[i].ident);
+        assert((registration.event_ == event_t::writable &&
+                kevents[i].filter == EVFILT_WRITE) ||
+               (registration.event_ == event_t::readable &&
+                kevents[i].filter == EVFILT_READ));
 
-        if(is_set)
-        {
-          registrations_.move_element_before(
-            registrations_.last(pending_list_), ticket);
-          --count;
-        }
-
-        ticket = next;
+        registration.fd_ = -1;
+        registrations_.move_element_before(
+          registrations_.last(pending_list_), ticket);
       }
-
-      assert(count == 0);
     }
 
     callback_t result = nullptr;
@@ -173,25 +142,6 @@ private :
     return fd;
   }
 
-  static struct kevent make_kevent(int fd, int filter, int flags)
-  {
-    struct kevent result;
-    EV_SET(&result, fd, filter, flags, 0, 0, nullptr);
-    return result;
-  }
-
-  static bool match_kevent(std::vector<struct kevent> const& kevents, int fd,
-                           int filter)
-  {
-    auto first = kevents.begin();
-    auto last = kevents.end();
-    auto cmp = [fd, filter](struct kevent const& kev)
-    {
-      return kev.ident == fd && kev.filter == filter;
-    };
-    return std::find_if(first, last, cmp) != last;
-  }
-
   int do_call_when_writable(int fd, callback_t callback) override
   {
     return make_ticket(fd, event_t::writable, std::move(callback));
@@ -214,50 +164,48 @@ private :
 
   int make_ticket(int fd, event_t event, callback_t callback)
   {
+    assert(fd != -1);
     assert(callback != nullptr);
 
+    // Obtain a ticket, guarding it for exceptions
     int ticket = registrations_.add_element_before(
       registrations_.last(watched_list_),
       registration_t(fd, event, std::move(callback)));
+    auto ticket_guard =
+      make_scoped_guard([&] { registrations_.remove_element(ticket); });
 
+    // Add an event to monitor to the kqueue.
+    struct kevent kev;
+    EV_SET(&kev, fd, event == event_t::writable ? EVFILT_WRITE : EVFILT_READ,
+           EV_ADD | EV_ONESHOT, 0, 0, reinterpret_cast<void*>(ticket));
+    int count = ::kevent(kqueue_fd_, &kev, 1, nullptr, 0, nullptr);
+    if(count == -1)
+    {
+      int cause = last_system_error();
+      throw system_exception_t("kevent() failed to add event", cause);
+    }
+
+    ticket_guard.dismiss();
     return ticket;
   }
 
   void remove_registration(int ticket) noexcept
   {
+    assert(ticket >= 0);
+
+    auto const& registration = registrations_.value(ticket);
+    if(registration.fd_ != -1)
+    {
+      // Remove the event from the kqueue.
+      struct kevent kev;
+      EV_SET(&kev, registration.fd_, registration.event_ == event_t::writable ?
+             EVFILT_WRITE : EVFILT_READ, EV_DELETE, 0, 0,
+             reinterpret_cast<void*>(ticket));
+      int count = ::kevent(kqueue_fd_, &kev, 1, nullptr, 0, nullptr);
+      assert(count == 0);
+    }
+
     registrations_.remove_element(ticket);
-  }
-
-  static struct timespec kevent_timeout(timeout_t timeout)
-  {
-    static timeout_t const zero = timeout_t::zero();
-    static long long const nano = 1'000'000'000;
-    static long long const max_kevent_timeout = 30 * nano;
-
-    struct timespec result;
-
-    if(timeout < zero)
-    {
-      result.tv_sec = -1;
-      result.tv_nsec = 0;
-    }
-    else
-    {
-      auto count = std::chrono::duration_cast<std::chrono::nanoseconds>(
-        timeout).count();
-      if(count < 1 && timeout > zero)
-      {
-        count = 1; // prevent spinloop
-      }
-      else if(count > max_kevent_timeout)
-      {
-        count = max_kevent_timeout;
-      }
-      result.tv_sec = count / nano;
-      result.tv_nsec = count % nano;
-    }
-
-    return result;
   }
 
 private :
