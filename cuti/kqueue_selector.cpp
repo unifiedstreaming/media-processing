@@ -61,11 +61,24 @@ struct kqueue_t
   kqueue_t(kqueue_t const&) = delete;
   kqueue_t& operator=(kqueue_t const&) = delete;
 
-  int operator()(const struct kevent *changelist, int nchanges,
-                 struct kevent *eventlist, int nevents,
-                 const struct timespec *timeout) const
+  int add_oneshot(int fd, int filter, void* udata) const
   {
-    return ::kevent(fd_, changelist, nchanges, eventlist, nevents, timeout);
+    struct kevent kev;
+    EV_SET(&kev, fd, filter, EV_ADD | EV_ONESHOT, 0, 0, udata);
+    return ::kevent(fd_, &kev, 1, nullptr, 0, nullptr);
+  }
+
+  int remove(int fd, int filter, void* udata) const
+  {
+    struct kevent kev;
+    EV_SET(&kev, fd, filter, EV_DELETE, 0, 0, udata);
+    return ::kevent(fd_, &kev, 1, nullptr, 0, nullptr);
+  }
+
+  int get(struct kevent *eventlist, int nevents,
+          const struct timespec *timeout) const
+  {
+    return ::kevent(fd_, nullptr, 0, eventlist, nevents, timeout);
   }
 
 private:
@@ -109,7 +122,7 @@ struct kqueue_selector_t : selector_t
 
       int const num_events = 16;
       struct kevent kevents[num_events];
-      int count = kqueue_(nullptr, 0, kevents, num_events, pts);
+      int count = kqueue_.get(kevents, num_events, pts);
       if(count < 0)
       {
         int cause = last_system_error();
@@ -185,10 +198,9 @@ private :
       make_scoped_guard([&] { registrations_.remove_element(ticket); });
 
     // Add an event to monitor to the kqueue.
-    struct kevent kev;
-    EV_SET(&kev, fd, event == event_t::writable ? EVFILT_WRITE : EVFILT_READ,
-           EV_ADD | EV_ONESHOT, 0, 0, reinterpret_cast<void*>(ticket));
-    int count = kqueue_(&kev, 1, nullptr, 0, nullptr);
+    int count = kqueue_.add_oneshot(fd,
+      event == event_t::writable ? EVFILT_WRITE : EVFILT_READ,
+      reinterpret_cast<void*>(ticket));
     if(count == -1)
     {
       int cause = last_system_error();
@@ -207,11 +219,9 @@ private :
     if(registration.fd_ != -1)
     {
       // Remove the event from the kqueue.
-      struct kevent kev;
-      EV_SET(&kev, registration.fd_, registration.event_ == event_t::writable ?
-             EVFILT_WRITE : EVFILT_READ, EV_DELETE, 0, 0,
-             reinterpret_cast<void*>(ticket));
-      int count = kqueue_(&kev, 1, nullptr, 0, nullptr);
+      int count = kqueue_.remove(registration.fd_,
+        registration.event_ == event_t::writable ? EVFILT_WRITE : EVFILT_READ,
+        reinterpret_cast<void*>(ticket));
       assert(count == 0);
     }
 
