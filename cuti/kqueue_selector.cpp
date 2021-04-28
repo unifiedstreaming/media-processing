@@ -68,26 +68,6 @@ struct kqueue_t
     return ::kevent(fd_, changelist, nchanges, eventlist, nevents, timeout);
   }
 
-  int add(int fd, int filter, void* udata)
-  {
-    struct kevent kev;
-    EV_SET(&kev, fd, filter, EV_ADD | EV_ONESHOT, 0, 0, udata);
-    return ::kevent(fd_, &kev, 1, nullptr, 0, nullptr);
-  }
-
-  int remove(int fd, int filter, void* udata)
-  {
-    struct kevent kev;
-    EV_SET(&kev, fd, filter, EV_DELETE, 0, 0, udata);
-    return ::kevent(fd_, &kev, 1, nullptr, 0, nullptr);
-  }
-
-  int get(struct kevent *eventlist, int nevents,
-          const struct timespec *timeout) const
-  {
-    return ::kevent(fd_, nullptr, 0, eventlist, nevents, timeout);
-  }
-
 private:
   int fd_;
 };
