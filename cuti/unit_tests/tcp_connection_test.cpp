@@ -17,6 +17,7 @@
  * <http://www.gnu.org/licenses/>.
  */
 
+#include "circular_buffer.hpp"
 #include "endpoint.hpp"
 #include "file_backend.hpp"
 #include "logger.hpp"
@@ -550,11 +551,7 @@ struct filter_t
            unsigned int bufsize)
   : in_(context, loglevel_t::debug, "filter", in)
   , out_(context, loglevel_t::debug, "filter", out)
-  , buf_((assert(bufsize > 0), bufsize))
-  , begin_buf_(buf_.data())
-  , begin_data_(begin_buf_)
-  , end_data_(begin_buf_)
-  , end_buf_(begin_buf_ + bufsize)
+  , buffer_((assert(bufsize > 0), bufsize))
   , eof_seen_(false)
   , eof_sent_(false)
   , readable_ticket_()
@@ -589,11 +586,11 @@ struct filter_t
 
 private :
   bool wants_read() const
-  { return end_data_ != end_buf_ && !eof_seen_; }
+  { return buffer_.has_slack() && !eof_seen_; }
 
   bool read_step()
   {
-    if(end_data_ == end_buf_)
+    if(!buffer_.has_slack())
     {
       return false;
     }
@@ -603,49 +600,41 @@ private :
       return false;
     }
 
-    char* next = in_.read_some(end_data_, end_buf_);
+    char* next = in_.read_some(buffer_.begin_slack(), buffer_.end_slack());
     if(next == nullptr)
     {
       return false;
     }
 
-    if(next == end_data_)
+    if(next == buffer_.begin_slack())
     {
        eof_seen_ = true;
        return true;
     }
 
-    assert(next > end_data_);
-    assert(next <= end_buf_);
-    end_data_ = next;
-
+    assert(next > buffer_.begin_slack());
+    assert(next <= buffer_.end_slack());
+    buffer_.push_back(next);
     return true;
   }
 
   bool wants_write() const
-  { return begin_data_ != end_data_ || (eof_seen_ && !eof_sent_); }
+  { return buffer_.has_data() || (eof_seen_ && !eof_sent_); }
 
   bool write_step()
   {
-    if(begin_data_ != end_data_)
+    if(buffer_.has_data())
     {
-      char const* next = out_.write_some(begin_data_, end_data_);
+      char const* next =
+        out_.write_some(buffer_.begin_data(), buffer_.end_data());
       if(next == nullptr)
       {
         return false;
       }
 
-      assert(next > begin_data_);
-      assert(next <= end_data_);
-      if(next != end_data_)
-      {
-        begin_data_ = next;
-      }
-      else
-      {
-        begin_data_ = begin_buf_;
-        end_data_ = begin_buf_;
-      }
+      assert(next > buffer_.begin_data());
+      assert(next <= buffer_.end_data());
+      buffer_.pop_front(next);
       return true;
     }
 
@@ -683,11 +672,7 @@ private :
 private :
   logged_tcp_connection_t in_;
   logged_tcp_connection_t out_;
-  std::vector<char> buf_;
-  char* const begin_buf_;
-  char const* begin_data_;
-  char* end_data_;
-  char const* const end_buf_;
+  circular_buffer_t buffer_;
   bool eof_seen_;
   bool eof_sent_;
   readable_ticket_t readable_ticket_;
@@ -704,7 +689,7 @@ struct consumer_t
              char const* first, char const* last,
              unsigned int bufsize)
   : in_(context, loglevel_t::debug, "consumer", in)
-  , buf_((assert(bufsize > 0), bufsize))
+  , buffer_((assert(bufsize > 0), bufsize))
   , first_(first)
   , last_(last)
   , eof_seen_(false)
@@ -739,27 +724,29 @@ private :
       return false;
     }
 
-    char* next = in_.read_some(buf_.data(), buf_.data() + buf_.size());
+    assert(buffer_.has_slack());
+    char* next = in_.read_some(buffer_.begin_slack(), buffer_.end_slack());
     if(next == nullptr)
     {
       return false;
     }
+    assert(next >= buffer_.begin_slack());
+    assert(next <= buffer_.end_slack());
+    buffer_.push_back(next);
 
-    if(next == buf_.data())
+    if(!buffer_.has_data())
     {
       assert(first_ == last_);
       eof_seen_ = true;
       return true;
     }
 
-    assert(next > buf_.data());
-    assert(next <= buf_.data() + buf_.size());
+    assert(buffer_.end_data() - buffer_.begin_data() <= last_ - first_);
+    assert(std::equal(buffer_.begin_data(), buffer_.end_data(), first_));
 
-    assert(next - buf_.data() <= last_ - first_);
-    assert(std::equal(buf_.data(), next, first_));
-
-    first_ += next - buf_.data();
-
+    first_ += buffer_.end_data() - buffer_.begin_data();
+    buffer_.pop_front(buffer_.end_data());
+    
     return true;
   }
 
@@ -776,7 +763,7 @@ private :
 
 private :
   logged_tcp_connection_t in_;
-  std::vector<char> buf_;
+  circular_buffer_t buffer_;
   char const* first_;
   char const* const last_;
   bool eof_seen_;

@@ -29,6 +29,11 @@ unit-test callback_test
   ..//cuti
 ;
 
+unit-test circular_buffer_test
+: circular_buffer_test.cpp
+  ..//cuti
+;
+
 unit-test fs_utils_test
 : fs_utils_test.cpp
   ..//cuti
