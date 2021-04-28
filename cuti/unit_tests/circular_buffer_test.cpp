@@ -31,18 +31,18 @@ namespace // anonymous
 
 using namespace cuti;
 
-void validate_buffer(circular_buffer_t&& buffer, char const* data)
+void validate_buffer(circular_buffer_t&& buffer, char const* expected)
 {
-  if(*data == '\0')
+  if(*expected == '\0')
   {
     buffer.push_back(buffer.begin_slack());
     buffer.pop_front(buffer.begin_data());
   }
-  else for(; *data != '\0'; ++data)
+  else for(; *expected != '\0'; ++expected)
   {
     assert(buffer.has_data());
     assert(buffer.begin_data() < buffer.end_data());
-    assert(*buffer.begin_data() == *data);
+    assert(*buffer.begin_data() == *expected);
 
     buffer.pop_front(buffer.begin_data() + 1);
 
@@ -63,7 +63,7 @@ void validate_buffer(circular_buffer_t&& buffer, char const* data)
   }
 }
 
-void check_buffer(circular_buffer_t&& buffer, char const* data)
+void check_buffer(circular_buffer_t&& buffer, char const* expected)
 {
   circular_buffer_t copy_constructed(buffer);
   circular_buffer_t copy_assigned;
@@ -86,10 +86,10 @@ void check_buffer(circular_buffer_t&& buffer, char const* data)
   assert(!moved_from_2.has_data());
   assert(moved_from_2.begin_data() == moved_from_2.end_data());
 
-  validate_buffer(std::move(buffer), data);
-  validate_buffer(std::move(copy_constructed), data);
-  validate_buffer(std::move(move_constructed), data);
-  validate_buffer(std::move(move_assigned), data);
+  validate_buffer(std::move(buffer), expected);
+  validate_buffer(std::move(copy_constructed), expected);
+  validate_buffer(std::move(move_constructed), expected);
+  validate_buffer(std::move(move_assigned), expected);
 }
 
 void default_buffer()
