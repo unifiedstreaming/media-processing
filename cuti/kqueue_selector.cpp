@@ -41,9 +41,6 @@ namespace cuti
 namespace // anonymous
 {
 
-// a kqueuefd with an fd of -1 is skipped by kqueue()
-//kqueuefd const inactive_kqueuefd = { -1, 0, 0 };
-
 struct kqueue_selector_t : selector_t
 {
   kqueue_selector_t()
@@ -51,15 +48,18 @@ struct kqueue_selector_t : selector_t
   , registrations_()
   , watched_list_(registrations_.add_list())
   , pending_list_(registrations_.add_list())
-  , kqueue_fd_(make_kqueue())
-  { }
-
-  ~kqueue_selector_t()
+  , kqueue_fd_(::kqueue())
   {
-    if(kqueue_fd_ != -1)
+    if(kqueue_fd_ == -1)
     {
-      ::close(kqueue_fd_);
+      int cause = last_system_error();
+      throw system_exception_t("kqueue() failure", cause);
     }
+  }
+
+  ~kqueue_selector_t() override
+  {
+    ::close(kqueue_fd_);
   }
 
   bool has_work() const noexcept override
@@ -131,17 +131,6 @@ struct kqueue_selector_t : selector_t
   }
 
 private :
-  static int make_kqueue()
-  {
-    int fd = ::kqueue();
-    if(fd == -1)
-    {
-      int cause = last_system_error();
-      throw system_exception_t("kqueue() failure", cause);
-    }
-    return fd;
-  }
-
   int do_call_when_writable(int fd, callback_t callback) override
   {
     return make_ticket(fd, event_t::writable, std::move(callback));
