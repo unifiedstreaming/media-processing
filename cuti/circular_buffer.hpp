@@ -130,7 +130,7 @@ struct CUTI_ABI circular_buffer_t
   { return empty_ || slack_ > data_ ? end_ : data_;  }
 
   /*
-   * Transfers the range [begin_slack(), until> to the end of the data
+   * Moves the range [begin_slack(), until> to the end of the data
    * area; until must be <= end_slack().
    */
   void push_back(char* until) noexcept
@@ -164,7 +164,7 @@ struct CUTI_ABI circular_buffer_t
   { return empty_ || data_ < slack_ ? slack_ : end_; }
 
   /*
-   * Transfers the range [begin_data(), until> to the end of the slack
+   * Moves the range [begin_data(), until> to the end of the slack
    * area; until must be <= end_data().  Resets the buffer to its
    * initial state if the data area becomes empty.
    */
