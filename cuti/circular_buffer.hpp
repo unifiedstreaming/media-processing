@@ -112,8 +112,7 @@ struct CUTI_ABI circular_buffer_t
   { return empty_ ? buf_ != end_ : slack_ != data_; }
 
   /*
-   * Returns a pointer to the beginning of the first contiguous slack
-   * memory block.
+   * Returns the beginning of the first contiguous slack memory block.
    */
   char const* begin_slack() const noexcept
   { return slack_; }
@@ -122,8 +121,7 @@ struct CUTI_ABI circular_buffer_t
   { return slack_; }
 
   /*
-   * Returns a pointer to the end of the first contiguous slack memory
-   * block.
+   * Returns the end of the first contiguous slack memory block.
    */
   char const* end_slack() const noexcept
   { return empty_ || slack_ > data_ ? end_ : data_; }
@@ -154,15 +152,13 @@ struct CUTI_ABI circular_buffer_t
   { return !empty_; }
 
   /*
-   * Returns a pointer to the beginning of the first contiguous data
-   * memory block.
+   * Returns the beginning of the first contiguous data memory block.
    */
   char const* begin_data() const noexcept
   { return data_; }
 
   /*
-   * Returns a pointer to the end of the first contiguous data memory
-   * block.
+   * Returns the end of the first contiguous data memory block.
    */
   char const* end_data() const noexcept
   { return empty_ || data_ < slack_ ? slack_ : end_; }
