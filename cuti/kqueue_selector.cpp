@@ -41,6 +41,57 @@ namespace cuti
 namespace // anonymous
 {
 
+struct kqueue_t
+{
+  kqueue_t()
+  : fd_(::kqueue())
+  {
+    if(fd_ == -1)
+    {
+      int cause = last_system_error();
+      throw system_exception_t("kqueue() failure", cause);
+    }
+  }
+
+  ~kqueue_t()
+  {
+    ::close(fd_);
+  }
+
+  kqueue_t(kqueue_t const&) = delete;
+  kqueue_t& operator=(kqueue_t const&) = delete;
+
+  int operator()(const struct kevent *changelist, int nchanges,
+                 struct kevent *eventlist, int nevents,
+                 const struct timespec *timeout) const
+  {
+    return ::kevent(fd_, changelist, nchanges, eventlist, nevents, timeout);
+  }
+
+  int add(int fd, int filter, void* udata)
+  {
+    struct kevent kev;
+    EV_SET(&kev, fd, filter, EV_ADD | EV_ONESHOT, 0, 0, udata);
+    return ::kevent(fd_, &kev, 1, nullptr, 0, nullptr);
+  }
+
+  int remove(int fd, int filter, void* udata)
+  {
+    struct kevent kev;
+    EV_SET(&kev, fd, filter, EV_DELETE, 0, 0, udata);
+    return ::kevent(fd_, &kev, 1, nullptr, 0, nullptr);
+  }
+
+  int get(struct kevent *eventlist, int nevents,
+          const struct timespec *timeout) const
+  {
+    return ::kevent(fd_, nullptr, 0, eventlist, nevents, timeout);
+  }
+
+private:
+  int fd_;
+};
+
 struct kqueue_selector_t : selector_t
 {
   kqueue_selector_t()
@@ -48,18 +99,8 @@ struct kqueue_selector_t : selector_t
   , registrations_()
   , watched_list_(registrations_.add_list())
   , pending_list_(registrations_.add_list())
-  , kqueue_fd_(::kqueue())
+  , kqueue_()
   {
-    if(kqueue_fd_ == -1)
-    {
-      int cause = last_system_error();
-      throw system_exception_t("kqueue() failure", cause);
-    }
-  }
-
-  ~kqueue_selector_t() override
-  {
-    ::close(kqueue_fd_);
   }
 
   bool has_work() const noexcept override
@@ -88,7 +129,7 @@ struct kqueue_selector_t : selector_t
 
       int const num_events = 16;
       struct kevent kevents[num_events];
-      int count = ::kevent(kqueue_fd_, nullptr, 0, kevents, num_events, pts);
+      int count = kqueue_(nullptr, 0, kevents, num_events, pts);
       if(count < 0)
       {
         int cause = last_system_error();
@@ -167,7 +208,7 @@ private :
     struct kevent kev;
     EV_SET(&kev, fd, event == event_t::writable ? EVFILT_WRITE : EVFILT_READ,
            EV_ADD | EV_ONESHOT, 0, 0, reinterpret_cast<void*>(ticket));
-    int count = ::kevent(kqueue_fd_, &kev, 1, nullptr, 0, nullptr);
+    int count = kqueue_(&kev, 1, nullptr, 0, nullptr);
     if(count == -1)
     {
       int cause = last_system_error();
@@ -190,7 +231,7 @@ private :
       EV_SET(&kev, registration.fd_, registration.event_ == event_t::writable ?
              EVFILT_WRITE : EVFILT_READ, EV_DELETE, 0, 0,
              reinterpret_cast<void*>(ticket));
-      int count = ::kevent(kqueue_fd_, &kev, 1, nullptr, 0, nullptr);
+      int count = kqueue_(&kev, 1, nullptr, 0, nullptr);
       assert(count == 0);
     }
 
@@ -214,7 +255,7 @@ private :
   list_arena_t<registration_t> registrations_;
   int const watched_list_;
   int const pending_list_;
-  int kqueue_fd_;
+  kqueue_t kqueue_;
 };
 
 } // anonymous
