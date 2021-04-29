@@ -43,27 +43,18 @@ circular_buffer_t::circular_buffer_t(std::size_t capacity)
 { }
 
 circular_buffer_t::circular_buffer_t(circular_buffer_t const& rhs)
-: empty_(true)
-, buf_(rhs.buf_ == nullptr ? nullptr : new char[rhs.end_ - rhs.buf_])
-, data_(buf_)
-, slack_(buf_)
-, end_(buf_ + (rhs.end_ - rhs.buf_))
+: circular_buffer_t(rhs.capacity())
 {
-  if(!rhs.empty_)
+  if(rhs.has_data())
   {
-    empty_ = false;
     if(rhs.data_ < rhs.slack_)
     {
-      slack_ = std::copy(rhs.data_, rhs.slack_, slack_);
+      this->push_back(std::copy(rhs.data_, rhs.slack_, this->begin_slack()));
     }
     else
     {
-      slack_ = std::copy(rhs.data_, rhs.end_, slack_);
-      slack_ = std::copy(rhs.buf_, rhs.slack_, slack_);
-      if(slack_ == end_)
-      {
-        slack_ = buf_;
-      }
+      this->push_back(std::copy(rhs.data_, rhs.end_, this->begin_slack()));
+      this->push_back(std::copy(rhs.buf_, rhs.slack_, this->begin_slack()));
     }
   }
 }
@@ -108,6 +99,23 @@ void circular_buffer_t::swap(circular_buffer_t& that) noexcept
   swap(this->end_, that.end_);
 }
   
+void circular_buffer_t::reserve(std::size_t capacity)
+{
+  if(capacity >= this->data_size())
+  {
+    circular_buffer_t tmp(capacity);
+
+    while(this->has_data())
+    {
+      tmp.push_back(
+        std::copy(this->begin_data(), this->end_data(), tmp.begin_slack()));
+      this->pop_front(this->end_data());
+    }
+    
+    this->swap(tmp);
+  }
+}
+
 circular_buffer_t::~circular_buffer_t()
 {
   delete[] buf_;

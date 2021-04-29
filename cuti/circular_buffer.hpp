@@ -106,6 +106,39 @@ struct CUTI_ABI circular_buffer_t
   void swap(circular_buffer_t& that) noexcept;
 
   /*
+   * Returns the buffer's capacity.
+   */
+  std::size_t capacity() const noexcept
+  { return end_ - buf_; }
+
+  /*
+   * Returns the total size of the slack area, including any second
+   * contiguous slack memory block.
+   */
+  std::size_t slack_size() const noexcept
+  {
+    return empty_ ? end_ - buf_ :
+           slack_ <= data_ ? data_ - slack_ :
+           (end_ - slack_) + (data_ - buf_);
+  }
+
+  /*
+   * Returns the total size of the data area, including any second
+   * contiguous data memory block.
+   */
+  std::size_t data_size() const noexcept
+  {
+    return empty_ ? 0 :
+           data_ < slack_ ? slack_ - data_ :
+           (end_ - data_) + (slack_ - buf_);
+  }
+
+  /*
+   * Sets the buffer's capacity; no effect if capacity < data_size().
+   */
+  void reserve(std::size_t capacity);
+
+  /*
    * Tells if the buffer has space in its slack area.
    */
   bool has_slack() const noexcept
@@ -179,8 +212,8 @@ struct CUTI_ABI circular_buffer_t
       if(data_ == slack_)
       {
         empty_ = true;
-	data_ = buf_;
-	slack_ = buf_;
+        data_ = buf_;
+        slack_ = buf_;
       }
     }
   }

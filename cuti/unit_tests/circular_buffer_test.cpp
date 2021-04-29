@@ -33,6 +33,8 @@ using namespace cuti;
 
 void validate_buffer(circular_buffer_t&& buffer, char const* expected)
 {
+  assert(buffer.capacity() ==  buffer.data_size() + buffer.slack_size());
+
   if(*expected == '\0')
   {
     buffer.push_back(buffer.begin_slack());
@@ -40,25 +42,32 @@ void validate_buffer(circular_buffer_t&& buffer, char const* expected)
   }
   else for(; *expected != '\0'; ++expected)
   {
+    assert(buffer.data_size() != 0);
     assert(buffer.has_data());
     assert(buffer.begin_data() < buffer.end_data());
     assert(*buffer.begin_data() == *expected);
 
     buffer.pop_front(buffer.begin_data() + 1);
 
+    assert(buffer.slack_size() != 0);
     assert(buffer.has_slack());
     assert(buffer.begin_slack() < buffer.end_slack());
   }
 
+  assert(buffer.data_size() == 0);
   assert(!buffer.has_data());
   assert(buffer.begin_data() == buffer.end_data());
 
+  assert(buffer.slack_size() == buffer.capacity());
+
   if(!buffer.has_slack())
   {
+    assert(buffer.slack_size() == 0);
     assert(buffer.begin_slack() == buffer.end_slack());
   }
   else
   {
+    assert(buffer.slack_size() != 0);
     assert(buffer.begin_slack() < buffer.end_slack());
   }
 }
@@ -194,7 +203,63 @@ void wrapped_data()
 
   check_buffer(std::move(buffer), "34");
 }
+
+void reserve_too_small()
+{
+  circular_buffer_t buffer(1);
+  assert(buffer.capacity() == 1);
+
+  *buffer.begin_slack() = '1';
+  buffer.push_back(buffer.begin_slack() + 1);
+
+  buffer.reserve(0);
+  assert(buffer.capacity() == 1);
+
+  check_buffer(std::move(buffer), "1");
+}  
   
+void reserve_to_capacity()
+{
+  circular_buffer_t buffer(1);
+  assert(buffer.capacity() == 1);
+
+  *buffer.begin_slack() = '1';
+  buffer.push_back(buffer.begin_slack() + 1);
+
+  buffer.reserve(buffer.capacity());
+  assert(buffer.capacity() == 1);
+
+  check_buffer(std::move(buffer), "1");
+}  
+  
+void shrink_to_fit()
+{
+  circular_buffer_t buffer(2);
+  assert(buffer.capacity() == 2);
+
+  *buffer.begin_slack() = '1';
+  buffer.push_back(buffer.begin_slack() + 1);
+
+  buffer.reserve(buffer.data_size());
+  assert(buffer.capacity() == 1);
+
+  check_buffer(std::move(buffer), "1");
+}
+
+void enlarge_slack()
+{
+  circular_buffer_t buffer(1);
+  assert(buffer.capacity() == 1);
+
+  *buffer.begin_slack() = '1';
+  buffer.push_back(buffer.begin_slack() + 1);
+
+  buffer.reserve(buffer.data_size() + 1);
+  assert(buffer.capacity() == 2);
+
+  check_buffer(std::move(buffer), "1");
+}
+
 } // anonymous
 
 int main()
@@ -208,6 +273,11 @@ int main()
   half_full();
   wrapped_slack();
   wrapped_data();
+
+  reserve_too_small();
+  reserve_to_capacity();
+  shrink_to_fit();
+  enlarge_slack();
 
   return 0;
 }
