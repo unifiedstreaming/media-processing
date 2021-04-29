@@ -99,7 +99,7 @@ lib cuti
   <toolset>msvc:<cxxflags>/wd4275 # non dll-interface class used as base
   <define>BUILDING_CUTI
   <link>shared
-  <target-os>linux:<linkflags>-Wl,-enable-new-dtags
+  <target-os>linux:<linkflags>-Wl,--enable-new-dtags
   <tag>@cuti-dll-name
   <target-os>windows:<define>NOMINMAX
   <target-os>windows:<define>WIN32_LEAN_AND_MEAN

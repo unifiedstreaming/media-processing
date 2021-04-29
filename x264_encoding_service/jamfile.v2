@@ -23,7 +23,7 @@ exe x264_encoding_service
 : main.cpp
   /cuti//cuti
 : <threading>multi
-  <target-os>linux:<linkflags>-Wl,-enable-new-dtags
+  <target-os>linux:<linkflags>-Wl,--enable-new-dtags
 ;
 
 package.install install xes
