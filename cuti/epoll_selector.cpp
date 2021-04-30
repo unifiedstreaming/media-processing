@@ -219,6 +219,8 @@ private :
         ++epoll_event)
     {
       static unsigned int max_ticket = std::numeric_limits<int>::max();
+      static_cast<void>(max_ticket); // suppress NDEBUG mode warning
+
       assert(epoll_event->data.u64 >= 0);
       assert(epoll_event->data.u64 <= max_ticket);
 
