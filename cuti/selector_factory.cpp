@@ -39,17 +39,19 @@ std::vector<selector_factory_t> available_selector_factories()
 {
   std::vector<selector_factory_t> result;
 
-#if !defined(_WIN32)
+#if CUTI_HAS_POLL_SELECTOR
   result.emplace_back("poll", create_poll_selector);
 #endif
 
+#if CUTI_HAS_SELECT_SELECTOR
   result.emplace_back("select", create_select_selector);
+#endif
 
-#if defined(__linux__)
+#if CUTI_HAS_EPOLL_SELECTOR
   result.emplace_back("epoll", create_epoll_selector);
 #endif
 
-#if defined(__APPLE__) || defined(__FreeBSD__)
+#if CUTI_HAS_KQUEUE_SELECTOR
   result.emplace_back("kqueue", create_kqueue_selector);
 #endif
 

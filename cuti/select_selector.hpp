@@ -25,6 +25,10 @@
 
 #include <memory>
 
+#define CUTI_HAS_SELECT_SELECTOR 1
+
+#if CUTI_HAS_SELECT_SELECTOR
+
 namespace cuti
 {
 
@@ -33,4 +37,6 @@ std::unique_ptr<selector_t> create_select_selector();
 
 }
 
-#endif
+#endif // CUTI_HAS_SELECT_SELECTOR
+
+#endif // CUTI_SELECT_SELECTOR_HPP_

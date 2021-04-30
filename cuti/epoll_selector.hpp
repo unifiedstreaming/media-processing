@@ -25,16 +25,23 @@
 
 #include <memory>
 
+#if defined(__linux__)
+#define CUTI_HAS_EPOLL_SELECTOR 1
+#else
+#undef CUTI_HAS_EPOLL_SELECTOR
+#endif
+
+#if CUTI_HAS_EPOLL_SELECTOR
+
 namespace cuti
 {
-
-#if defined(__linux__)
 
 CUTI_ABI
 std::unique_ptr<selector_t> create_epoll_selector();
 
-#endif // __linux__
-
 } // cuti
 
-#endif
+#endif // CUTI_HAS_EPOLL_SELECTOR
+
+#endif // CUTI_EPOLL_SELECTOR_HPP_
+

@@ -19,7 +19,7 @@
 
 #include "epoll_selector.hpp"
 
-#if defined(__linux__)
+#if CUTI_HAS_EPOLL_SELECTOR
 
 #include "list_arena.hpp"
 #include "scoped_guard.hpp"
@@ -288,4 +288,4 @@ std::unique_ptr<selector_t> create_epoll_selector()
 
 } // cuti
 
-#endif // __linux__
+#endif // CUTI_HAS_EPOLL_SELECTOR

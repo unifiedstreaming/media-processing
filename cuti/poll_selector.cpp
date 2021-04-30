@@ -19,7 +19,7 @@
 
 #include "poll_selector.hpp"
 
-#ifndef _WIN32
+#if CUTI_HAS_POLL_SELECTOR
 
 #include "list_arena.hpp"
 #include "scoped_guard.hpp"
@@ -212,4 +212,4 @@ std::unique_ptr<selector_t> create_poll_selector()
 
 } // cuti
 
-#endif // !_WIN32
+#endif // CUTI_HAS_POLL_SELECTOR

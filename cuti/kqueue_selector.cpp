@@ -19,7 +19,7 @@
 
 #include "kqueue_selector.hpp"
 
-#if defined(__APPLE__) || defined(__FreeBSD__)
+#if CUTI_HAS_KQUEUE_SELECTOR
 
 #include "list_arena.hpp"
 #include "scoped_guard.hpp"
@@ -257,4 +257,4 @@ std::unique_ptr<selector_t> create_kqueue_selector()
 
 } // cuti
 
-#endif // __APPLE__ || __FreeBSD__
+#endif // CUTI_HAS_KQUEUE_SELECTOR

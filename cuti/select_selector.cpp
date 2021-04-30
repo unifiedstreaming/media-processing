@@ -19,6 +19,8 @@
 
 #include "select_selector.hpp"
 
+#if CUTI_HAS_SELECT_SELECTOR
+
 #include "list_arena.hpp"
 
 #include <cassert>
@@ -298,3 +300,5 @@ std::unique_ptr<selector_t> create_select_selector()
 }
 
 } // cuti
+
+#endif // CUTI_HAS_SELECT_SELECTOR

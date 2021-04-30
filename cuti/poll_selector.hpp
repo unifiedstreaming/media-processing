@@ -25,16 +25,22 @@
 
 #include <memory>
 
+#if !defined(_WIN32)
+#define CUTI_HAS_POLL_SELECTOR 1
+#else
+#undef CUTI_HAS_POLL_SELECTOR
+#endif
+
+#if CUTI_HAS_POLL_SELECTOR
+
 namespace cuti
 {
-
-#ifndef _WIN32
 
 CUTI_ABI
 std::unique_ptr<selector_t> create_poll_selector();
 
-#endif // !_WIN32
-
 } // cuti
 
-#endif
+#endif // CUTI_HAS_POLL_SELECTOR
+
+#endif // CUTI_POLL_SELECTOR_HPP_

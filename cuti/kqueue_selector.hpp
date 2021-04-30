@@ -25,16 +25,22 @@
 
 #include <memory>
 
+#if defined(__APPLE__) || defined(__FreeBSD__)
+#define CUTI_HAS_KQUEUE_SELECTOR 1
+#else
+#undef CUTI_HAS_KQUEUE_SELECTOR
+#endif
+
+#if CUTI_HAS_KQUEUE_SELECTOR
+
 namespace cuti
 {
-
-#if defined(__APPLE__) || defined(__FreeBSD__)
 
 CUTI_ABI
 std::unique_ptr<selector_t> create_kqueue_selector();
 
-#endif // __APPLE__ || __FreeBSD__
-
 } // cuti
 
-#endif
+#endif // CUTI_HAS_KQUEUE_SELECTOR
+
+#endif // CUTI_KQUEUE_SELECTOR_HPP_
