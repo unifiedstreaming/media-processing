@@ -83,7 +83,7 @@ struct epoll_selector_t : selector_t
         count = 0;
       }
 
-      for(pollfd const* pfd = pollfds; pfd != pollfds + 2 && count > 0; ++pfd)
+      for(pollfd const* pfd = pollfds; count > 0 && pfd != pollfds + 2; ++pfd)
       {
         if(pfd->revents != 0)
         {
