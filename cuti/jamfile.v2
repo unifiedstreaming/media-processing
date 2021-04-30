@@ -68,6 +68,7 @@ lib cuti
   circular_buffer.cpp
   default_backend.cpp
   endpoint.cpp
+  epoll_selector.cpp
   file_backend.cpp
   fs_utils.cpp
   format.cpp

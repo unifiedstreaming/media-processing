@@ -17,43 +17,24 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#include "selector_factory.hpp"
+#ifndef CUTI_EPOLL_SELECTOR_HPP_
+#define CUTI_EPOLL_SELECTOR_HPP_
 
-#include "epoll_selector.hpp"
-#include "kqueue_selector.hpp"
-#include "poll_selector.hpp"
-#include "select_selector.hpp"
+#include "linkage.h"
+#include "selector.hpp"
 
-#include <ostream>
+#include <memory>
 
 namespace cuti
 {
 
-std::ostream& operator<<(std::ostream& os, selector_factory_t const& factory)
-{
-  os << factory.name();
-  return os;
-}
-
-std::vector<selector_factory_t> available_selector_factories()
-{
-  std::vector<selector_factory_t> result;
-
-#if !defined(_WIN32)
-  result.emplace_back("poll", create_poll_selector);
-#endif
-
-  result.emplace_back("select", create_select_selector);
-
 #if defined(__linux__)
-  result.emplace_back("epoll", create_epoll_selector);
-#endif
 
-#if defined(__APPLE__) || defined(__FreeBSD__)
-  result.emplace_back("kqueue", create_kqueue_selector);
-#endif
+CUTI_ABI
+std::unique_ptr<selector_t> create_epoll_selector();
 
-  return result;
-}
+#endif // __linux__
 
 } // cuti
+
+#endif
