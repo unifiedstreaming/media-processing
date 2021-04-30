@@ -163,7 +163,7 @@ struct list_arena_t
   /*
    * Returns a reference to the value of <element>; <element> must not
    * be the past-the-end id of its list.  The next call to add_list()
-   * or add_element() invalidates this reference.
+   * or add_element_before() invalidates this reference.
    */
   T& value(int element) noexcept
   {
