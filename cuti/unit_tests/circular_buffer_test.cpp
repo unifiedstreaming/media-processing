@@ -33,7 +33,8 @@ using namespace cuti;
 
 void validate_buffer(circular_buffer_t&& buffer, char const* expected)
 {
-  assert(buffer.capacity() ==  buffer.data_size() + buffer.slack_size());
+  assert(buffer.capacity() ==
+    buffer.total_data_size() + buffer.total_slack_size());
 
   if(*expected == '\0')
   {
@@ -42,32 +43,32 @@ void validate_buffer(circular_buffer_t&& buffer, char const* expected)
   }
   else for(; *expected != '\0'; ++expected)
   {
-    assert(buffer.data_size() != 0);
+    assert(buffer.total_data_size() != 0);
     assert(buffer.has_data());
     assert(buffer.begin_data() < buffer.end_data());
     assert(*buffer.begin_data() == *expected);
 
     buffer.pop_front(buffer.begin_data() + 1);
 
-    assert(buffer.slack_size() != 0);
+    assert(buffer.total_slack_size() != 0);
     assert(buffer.has_slack());
     assert(buffer.begin_slack() < buffer.end_slack());
   }
 
-  assert(buffer.data_size() == 0);
+  assert(buffer.total_data_size() == 0);
   assert(!buffer.has_data());
   assert(buffer.begin_data() == buffer.end_data());
 
-  assert(buffer.slack_size() == buffer.capacity());
+  assert(buffer.total_slack_size() == buffer.capacity());
 
   if(!buffer.has_slack())
   {
-    assert(buffer.slack_size() == 0);
+    assert(buffer.total_slack_size() == 0);
     assert(buffer.begin_slack() == buffer.end_slack());
   }
   else
   {
-    assert(buffer.slack_size() != 0);
+    assert(buffer.total_slack_size() != 0);
     assert(buffer.begin_slack() < buffer.end_slack());
   }
 }
@@ -240,7 +241,7 @@ void shrink_to_fit()
   *buffer.begin_slack() = '1';
   buffer.push_back(buffer.begin_slack() + 1);
 
-  buffer.reserve(buffer.data_size());
+  buffer.reserve(buffer.total_data_size());
   assert(buffer.capacity() == 1);
 
   check_buffer(std::move(buffer), "1");
@@ -254,7 +255,7 @@ void enlarge_slack()
   *buffer.begin_slack() = '1';
   buffer.push_back(buffer.begin_slack() + 1);
 
-  buffer.reserve(buffer.data_size() + 1);
+  buffer.reserve(buffer.total_data_size() + 1);
   assert(buffer.capacity() == 2);
 
   check_buffer(std::move(buffer), "1");

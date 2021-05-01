@@ -115,7 +115,7 @@ struct CUTI_ABI circular_buffer_t
    * Returns the total size of the slack area, including any second
    * contiguous slack memory block.
    */
-  std::size_t slack_size() const noexcept
+  std::size_t total_slack_size() const noexcept
   {
     return empty_ ? end_ - buf_ :
            slack_ <= data_ ? data_ - slack_ :
@@ -126,7 +126,7 @@ struct CUTI_ABI circular_buffer_t
    * Returns the total size of the data area, including any second
    * contiguous data memory block.
    */
-  std::size_t data_size() const noexcept
+  std::size_t total_data_size() const noexcept
   {
     return empty_ ? 0 :
            data_ < slack_ ? slack_ - data_ :
@@ -134,7 +134,7 @@ struct CUTI_ABI circular_buffer_t
   }
 
   /*
-   * Sets the buffer's capacity; no effect if capacity < data_size().
+   * Sets the buffer's capacity; no effect if capacity < total_data_size().
    */
   void reserve(std::size_t capacity);
 

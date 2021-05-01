@@ -101,7 +101,7 @@ void circular_buffer_t::swap(circular_buffer_t& that) noexcept
   
 void circular_buffer_t::reserve(std::size_t capacity)
 {
-  if(capacity >= this->data_size())
+  if(capacity >= this->total_data_size())
   {
     circular_buffer_t tmp(capacity);
 
