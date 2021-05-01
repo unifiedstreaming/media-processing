@@ -28,6 +28,7 @@
 
 #ifdef _WIN32
 
+#define FD_SETSIZE 512
 #include <winsock2.h>
 
 #else
