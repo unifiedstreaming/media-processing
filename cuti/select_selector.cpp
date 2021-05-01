@@ -15,7 +15,8 @@
  * You should have received a copy of version 2.1 of the GNU Lesser
  * General Public License along with the cuti library.  If not, see
  * <http://www.gnu.org/licenses/>.
- */
+ */es
+ 
 
 #include "select_selector.hpp"
 
@@ -24,12 +25,11 @@
 #include "list_arena.hpp"
 
 #include <cassert>
-#include <iostream>
 #include <utility>
 
 #ifdef _WIN32
 
-#ifndef FD_SETSiZE
+#ifndef FD_SETSIZE
 #define FD_SETSIZE 512
 #endif
 
@@ -61,9 +61,7 @@ struct select_selector_t : selector_t
   , n_writables_(0)
   , n_readables_(0)
 #endif
-  {
-    std::cerr << "FD_SETSIZE: " << FD_SETSIZE << std::endl;
-  }
+  { }
 
   bool has_work() const noexcept override
   {
