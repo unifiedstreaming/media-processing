@@ -24,12 +24,15 @@
 #include "list_arena.hpp"
 
 #include <cassert>
+#include <iostream>
 #include <utility>
 
 #ifdef _WIN32
 
-#undef FD_SETSIZE
+#ifndef FD_SETSiZE
 #define FD_SETSIZE 512
+#endif
+
 #include <winsock2.h>
 
 #else
@@ -58,7 +61,9 @@ struct select_selector_t : selector_t
   , n_writables_(0)
   , n_readables_(0)
 #endif
-  { }
+  {
+    std::cerr << "FD_SETSIZE: " << FD_SETSIZE << std::endl;
+  }
 
   bool has_work() const noexcept override
   {
