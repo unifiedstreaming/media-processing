@@ -107,14 +107,12 @@ struct epoll_selector_t : selector_t
 private :
   struct registration_t
   {
-    registration_t(int fd, event_t event, callback_t callback)
+    registration_t(int fd, callback_t callback)
     : fd_(fd)
-    , event_(event)
     , callback_(std::move(callback))
     { }
 
     int fd_;
-    event_t event_;
     callback_t callback_;
   };
 
@@ -146,7 +144,7 @@ private :
 
   void do_cancel_when_writable(int cancellation_ticket) noexcept override
   {
-    cancel_ticket(cancellation_ticket);
+    cancel_ticket(cancellation_ticket, writable_instance_.fd_);
   }
 
   int do_call_when_readable(int fd, callback_t callback) override
@@ -156,7 +154,7 @@ private :
 
   void do_cancel_when_readable(int cancellation_ticket) noexcept override
   {
-    cancel_ticket(cancellation_ticket);
+    cancel_ticket(cancellation_ticket, readable_instance_.fd_);
   }
 
   int make_ticket(int fd, event_t event, callback_t callback)
@@ -166,8 +164,7 @@ private :
 
     // Obtain a ticket, guarding it for exceptions
     int ticket = registrations_.add_element_before(
-      registrations_.last(watched_list_),
-      registration_t(fd, event, std::move(callback)));
+      registrations_.last(watched_list_), fd, std::move(callback));
     auto ticket_guard =
       make_scoped_guard([&] { registrations_.remove_element(ticket); });
 
@@ -225,13 +222,13 @@ private :
       assert(epoll_event->data.u64 <= max_ticket);
 
       int ticket = static_cast<int>(epoll_event->data.u64);
-      delete_epoll_event(registrations_.value(ticket));
+      delete_epoll_event(registrations_.value(ticket), epoll_fd);
       registrations_.move_element_before(
         registrations_.last(pending_list_), ticket);
     }
   }
   
-  void cancel_ticket(int ticket) noexcept
+  void cancel_ticket(int ticket, int epoll_fd) noexcept
   {
     assert(ticket >= 0);
     assert(ticket <= std::numeric_limits<int>::max());
@@ -239,30 +236,15 @@ private :
     auto& registration = registrations_.value(ticket);
     if(registration.fd_ != -1)
     {
-      delete_epoll_event(registration);
+      delete_epoll_event(registration, epoll_fd);
     }
 
     registrations_.remove_element(ticket);
   }
     
-  void delete_epoll_event(registration_t& registration) noexcept
+  void delete_epoll_event(registration_t& registration, int epoll_fd) noexcept
   {
     assert(registration.fd_ != -1);
-
-    int epoll_fd = -1;
-    switch(registration.event_)
-    {
-    case event_t::writable :
-      epoll_fd = writable_instance_.fd_;
-      break;
-    case event_t::readable :
-      epoll_fd = readable_instance_.fd_;
-      break;
-    default :
-      assert(!"expected event type");
-      break;
-    }
-
     if(::epoll_ctl(epoll_fd, EPOLL_CTL_DEL, registration.fd_, nullptr) == -1)
     {
       assert(!"success deleting epoll event");
