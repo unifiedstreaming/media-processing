@@ -17,6 +17,15 @@
  * <http://www.gnu.org/licenses/>.
  */
  
+#ifdef _WIN32
+
+// before including anything, default FD_SETSIZE to something
+// acceptable
+#ifndef FD_SETSIZE
+#define FD_SETSIZE 512
+#endif
+
+#endif // _WIN32
 
 #include "select_selector.hpp"
 
@@ -28,10 +37,6 @@
 #include <utility>
 
 #ifdef _WIN32
-
-#ifndef FD_SETSIZE
-#define FD_SETSIZE 512
-#endif
 
 #include <winsock2.h>
 
