@@ -58,80 +58,137 @@ namespace // anonymous
 struct fd_set_t
 {
   fd_set_t()
-  : buffers_(&inline_buffer_)
-  , n_buffers_(1)
-  {
-    buffers_->fd_set_.fd_count = 0;
-  }
-  
+  : inline_impl_()
+  , current_impl_(&inline_impl_)
+  , impl_holder_(nullptr)
+  { }
+
   fd_set_t(fd_set_t const&) = delete;
-  void operator=(fd_set_t const&) = delete;
+  fd_set_t& operator=(fd_set_t const&) = delete;
+  
+  /*
+   * Adds a socket.  Assumes no duplicate sockets, and that select()
+   * was not called yet.
+   */
+  void add(int fd)
+  {
+    if(current_impl_->full())
+    {
+      impl_holder_.reset(current_impl_->successor());
+      current_impl_ = impl_holder_.get();
+    }
+    current_impl_->add(fd);
+  }
 
   /*
-   * Add a socket to the set; assumes no duplicate sockets and that
-   * select() has not been called yet.
+   * Returns a pointer to the current impersonator, yet another
+   * wannabe fd_set.
    */
-  void add(SOCKET socket)
-  {
-    if(buffers_->fd_set_.fd_count + 1 == n_buffers_ * (FD_SETSIZE + 1))
-    {
-      // allocate more buffers
-      std::size_t new_n_buffers = n_buffers_;
-      new_n_buffers += n_buffers_ / 2;
-      new_n_buffers += 1;
-
-      buffer_t* new_buffers = new buffer_t[new_n_buffers];
-      std::copy(buffers_, buffers_ + n_buffers_, new_buffers);
-
-      if(n_buffers_ != 1)
-      {
-        delete[] buffers_;
-      }
-      buffers_ = new_buffers;
-      n_buffers_ = new_n_buffers;
-    }
-
-    SOCKET* sockets = buffers_->fd_set_.fd_array;
-    sockets[buffers_->fd_set_.fd_count] = socket;
-    ++buffers_->fd_set_.fd_count;
-  }
-
   fd_set* get()
   {
-    return &buffers_->fd_set_;
+    return current_impl_->get();
   }
 
   /*
-   * Tells if socket is in the set; assumes select() has been called.
-   * This still leads to O(N^2) complexity, but is only called while
-   * there are selected sockets to be found.
+   * Tells if fd was selected, assuming select() was called.  When
+   * there are only a few ready sockets (which is what we optimize for
+   * in C10K land), we're close to O(N) complexity; if all sockets are
+   * ready, then checking each of them does lead us to O(N^2).
    */
-  bool contains(SOCKET socket)
+  bool contains(int fd)
   {
-    return FD_ISSET(socket, &buffers_->fd_set_);
-  }
-
-  ~fd_set_t()
-  {
-    if(n_buffers_ != 1)
-    {
-      delete[] buffers_;
-    }
+    return FD_ISSET(fd, current_impl_->get());
   }
 
 private :
-  using socket_array_t = SOCKET[FD_SETSIZE + 1];
-  static_assert(sizeof(fd_set) == sizeof(socket_array_t));
-
-  union buffer_t
+  struct impl_t
   {
-    fd_set fd_set_;
-    socket_array_t sockets_;
+    impl_t()
+    { }
+
+    impl_t(impl_t const&) = delete;
+    impl_t& operator=(impl_t const&) = delete;
+
+    virtual bool full() const = 0;
+    virtual impl_t* successor() const = 0;
+
+    virtual void add(SOCKET socket) = 0;
+    virtual fd_set* get() = 0;
+
+    virtual ~impl_t()
+    { }
   };
 
-  buffer_t inline_buffer_;
-  buffer_t* buffers_;
-  std::size_t n_buffers_; 
+  template<std::size_t FdSetSize>
+  struct impl_instance_t : impl_t
+  {
+    impl_instance_t()
+    : impl_t()
+    {
+      impersonator_.fd_count = 0;
+    }
+
+    template<std::size_t RhsFdSetSize>
+    impl_instance_t(impl_instance_t<RhsFdSetSize> const& rhs)
+    : impl_t()
+    {
+      static_assert(RhsFdSetSize <= FdSetSize);
+      assert(rhs.impersonator_.fd_count <= RhsFdSetSize);
+
+      this->impersonator_.fd_count = rhs.impersonator_.fd_count;
+      std::copy(rhs.impersonator_.fd_array,
+                rhs.impersonator_.fd_array + rhs.impersonator_.fd_count,
+                this->impersonator_.fd_array);
+    }
+
+    bool full() const override
+    { return impersonator_.fd_count == FdSetSize; }
+
+    impl_t* successor() const override
+    {
+      constexpr size_t MaxFdSetSize = 10000; // C10K! :-)
+      constexpr size_t NextFdSetSize = FdSetSize + FdSetSize / 2 + 1;
+
+      impl_t* result = nullptr;
+
+      if constexpr(NextFdSetSize <= MaxFdSetSize)
+      {
+        result = new impl_instance_t<NextFdSetSize>(*this);
+      }
+      else
+      {
+        throw system_exception_t("select_selector(): FD_SETSIZE overflow");
+      }
+
+      return result;
+    }
+
+    void add(SOCKET socket) override
+    {
+      assert(impersonator_.fd_count < FdSetSize);
+      impersonator_.fd_array[impersonator_.fd_count] = socket;
+      ++impersonator_.fd_count;
+    }
+        
+    fd_set* get() override
+    {
+      // just one little lie, but we could say there's a common
+      // initial prefix, so have mercy please!
+      return reinterpret_cast<fd_set*>(&impersonator_);
+    }
+
+    // should be very close to struct fd_set in winsock2.h
+    struct
+    {
+      u_int fd_count;
+      SOCKET fd_array[FdSetSize];
+    }
+    impersonator_;
+  };
+
+  impl_instance_t<FD_SETSIZE> inline_impl_;
+  impl_t* current_impl_;
+  std::unique_ptr<impl_t> impl_holder_;
 };
 
 #else
