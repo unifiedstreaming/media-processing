@@ -17,22 +17,14 @@
  * <http://www.gnu.org/licenses/>.
  */
  
-#ifdef _WIN32
-
-// before including anything, default FD_SETSIZE to something
-// acceptable
-#ifndef FD_SETSIZE
-#define FD_SETSIZE 512
-#endif
-
-#endif // _WIN32
-
 #include "select_selector.hpp"
 
 #if CUTI_HAS_SELECT_SELECTOR
 
 #include "list_arena.hpp"
+#include "system_error.hpp"
 
+#include <algorithm>
 #include <cassert>
 #include <utility>
 
@@ -55,6 +47,125 @@ namespace cuti
 namespace // anonymous
 {
 
+#ifdef _WIN32
+
+/*
+ * As a hack to avoid O(N^2) scalability when building an fd_set
+ * (where N is the number of sockets to monitor) and escape from the
+ * limitations of FD_SETSIZE, we provide a one-shot wrapper for
+ * winsock's fd_set type.
+ */
+struct fd_set_t
+{
+  fd_set_t()
+  : buffers_(&inline_buffer_)
+  , n_buffers_(1)
+  {
+    buffers_->fd_set_.fd_count = 0;
+  }
+  
+  fd_set_t(fd_set_t const&) = delete;
+  void operator=(fd_set_t const&) = delete;
+
+  /*
+   * Add a socket to the set; assumes no duplicate sockets and that
+   * select() has not been called yet.
+   */
+  void add(SOCKET socket)
+  {
+    if(buffers_->fd_set_.fd_count + 1 == n_buffers_ * (FD_SETSIZE + 1))
+    {
+      // allocate more buffers
+      std::size_t new_n_buffers = n_buffers_;
+      new_n_buffers += n_buffers_ / 2;
+      new_n_buffers += 1;
+
+      buffer_t* new_buffers = new buffer_t[new_n_buffers];
+      std::copy(buffers_, buffers_ + n_buffers_, new_buffers);
+
+      if(n_buffers_ != 1)
+      {
+        delete[] buffers_;
+      }
+      buffers_ = new_buffers;
+      n_buffers_ = new_n_buffers;
+    }
+
+    SOCKET* sockets = buffers_->fd_set_.fd_array;
+    sockets[buffers_->fd_set_.fd_count] = socket;
+    ++buffers_->fd_set_.fd_count;
+  }
+
+  fd_set* get()
+  {
+    return &buffers_->fd_set_;
+  }
+
+  /*
+   * Tells if socket is in the set; assumes select() has been called.
+   * This still leads to O(N^2) complexity, but is only called while
+   * there are selected sockets to be found.
+   */
+  bool contains(SOCKET socket)
+  {
+    return FD_ISSET(socket, &buffers_->fd_set_);
+  }
+
+  ~fd_set_t()
+  {
+    if(n_buffers_ != 1)
+    {
+      delete[] buffers_;
+    }
+  }
+
+private :
+  using socket_array_t = SOCKET[FD_SETSIZE + 1];
+  static_assert(sizeof(fd_set) == sizeof(socket_array_t));
+
+  union buffer_t
+  {
+    fd_set fd_set_;
+    socket_array_t sockets_;
+  };
+
+  buffer_t inline_buffer_;
+  buffer_t* buffers_;
+  std::size_t n_buffers_; 
+};
+
+#else
+
+struct fd_set_t
+{
+  fd_set_t()
+  { FD_ZERO(&set_); }
+
+  fd_set_t(fd_set_t const&) = delete;
+  void operator=(fd_set_t const&) = delete;
+
+  void add(int fd)
+  {
+    assert(fd >= 0);
+    if(fd >= FD_SETSIZE)
+    {
+      throw system_exception_t("select_selector: FD_SETSIZE overflow");
+    }
+    FD_SET(fd, &set_);
+  }
+
+  fd_set* get()
+  { return &set_; }
+
+  bool contains(int fd)
+  { return FD_ISSET(fd, &set_); }
+  
+private :
+  fd_set set_;
+};
+
+#endif // !_WIN32
+
 struct select_selector_t : selector_t
 {
   select_selector_t()
@@ -62,10 +173,6 @@ struct select_selector_t : selector_t
   , registrations_()
   , watched_list_(registrations_.add_list())
   , pending_list_(registrations_.add_list())
-#ifdef _WIN32
-  , n_writables_(0)
-  , n_readables_(0)
-#endif
   { }
 
   bool has_work() const noexcept override
@@ -80,11 +187,8 @@ struct select_selector_t : selector_t
 
     if(registrations_.list_empty(pending_list_))
     {
-      fd_set infds;
-      FD_ZERO(&infds);
-
-      fd_set outfds;
-      FD_ZERO(&outfds);
+      fd_set_t infds;
+      fd_set_t outfds;
 
       int nfds = 0;
 
@@ -98,10 +202,10 @@ struct select_selector_t : selector_t
         switch(registration.event_)
         {
         case event_t::writable :
-          FD_SET(fd, &outfds);
+          outfds.add(fd);
           break;
         case event_t::readable :
-          FD_SET(fd, &infds);
+          infds.add(fd);
           break;
         default :
           assert(!"expected event type");
@@ -126,7 +230,7 @@ struct select_selector_t : selector_t
         ptv = &tv;
       }
 
-      int count = ::select(nfds, &infds, &outfds, nullptr, ptv);
+      int count = ::select(nfds, infds.get(), outfds.get(), nullptr, ptv);
       if(count < 0)
       {
         int cause = last_system_error();
@@ -152,10 +256,10 @@ struct select_selector_t : selector_t
         switch(registration.event_)
         {
         case event_t::writable :
-          is_set = FD_ISSET(fd, &outfds);
+          is_set = outfds.contains(fd);
           break;
         case event_t::readable :
-          is_set = FD_ISSET(fd, &infds);
+          is_set = infds.contains(fd);
           break;
         default :
           assert(!"expected event type");
@@ -210,72 +314,15 @@ private :
   {
     assert(callback != nullptr);
 
-    bool overflow = false;
-
-#ifdef _WIN32
-    switch(event)
-    {
-    case event_t::writable :
-      overflow = n_writables_ >= FD_SETSIZE;
-      break;
-    case event_t::readable :
-      overflow = n_readables_ >= FD_SETSIZE;
-      break;
-    default :
-      assert(!"expected event type");
-      break;
-    }
-#else
-    assert(fd >= 0);
-    overflow = fd >= FD_SETSIZE;
-#endif
-
-    if(overflow)
-    {
-      throw system_exception_t("select_selector: FD_SETSIZE overflow");
-    }
-
     int ticket = registrations_.add_element_before(
       registrations_.last(watched_list_),
       registration_t(fd, event, std::move(callback)));
-
-#ifdef _WIN32
-    switch(event)
-    {
-    case event_t::writable :
-      ++n_writables_;
-      break;
-    case event_t::readable :
-      ++n_readables_;
-      break;
-    default :
-      assert(!"expected event type");
-      break;
-    }
-#endif
 
     return ticket;
   }
 
   void remove_registration(int ticket) noexcept
   {
-#ifdef _WIN32
-    switch(registrations_.value(ticket).event_)
-    {
-    case event_t::writable :
-      assert(n_writables_ > 0);
-      --n_writables_;
-      break;
-    case event_t::readable :
-      assert(n_readables_ > 0);
-      --n_readables_;
-      break;
-    default :
-      assert(!"expected event type");
-      break;
-    }
-#endif
-
     registrations_.remove_element(ticket);
   }
 
@@ -296,10 +343,6 @@ private :
   list_arena_t<registration_t> registrations_;
   int const watched_list_;
   int const pending_list_;
-#ifdef _WIN32
-  int n_writables_;
-  int n_readables_;
-#endif
 };
 
 } // anonymous
