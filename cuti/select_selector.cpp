@@ -50,10 +50,10 @@ namespace // anonymous
 #ifdef _WIN32
 
 /*
- * As a hack to avoid O(N^2) scalability when building an fd_set
- * (where N is the number of sockets to monitor) and escape from the
- * limitations of FD_SETSIZE, we provide a one-shot wrapper for
- * winsock's fd_set type.
+ * As a hack to avoid the O(N^2) scalability of building an fd_set
+ * with FD_SET (where N is the number of sockets to monitor) and to
+ * escape from the limitations of FD_SETSIZE, we provide a one-shot
+ * wrapper for winsock's fd_set type.
  */
 struct fd_set_t
 {
@@ -72,21 +72,24 @@ struct fd_set_t
    */
   void add(int fd)
   {
-    if(current_impl_->full())
+    bool added = current_impl_->add(fd);
+    if(!added)
     {
-      impl_holder_.reset(current_impl_->successor());
+      // current_impl_ is full; get a bigger one
+      impl_holder_.reset(current_impl_->create_successor());
       current_impl_ = impl_holder_.get();
+      added = current_impl_->add(fd);
+      assert(added);
     }
-    current_impl_->add(fd);
   }
 
   /*
    * Returns a pointer to the current impersonator, yet another
    * wannabe fd_set.
    */
-  fd_set* get()
+  fd_set* as_fd_set()
   {
-    return current_impl_->get();
+    return current_impl_->as_fd_set();
   }
 
   /*
@@ -97,7 +100,7 @@ struct fd_set_t
    */
   bool contains(int fd)
   {
-    return FD_ISSET(fd, current_impl_->get());
+    return FD_ISSET(fd, current_impl_->as_fd_set());
   }
 
 private :
@@ -109,11 +112,9 @@ private :
     impl_t(impl_t const&) = delete;
     impl_t& operator=(impl_t const&) = delete;
 
-    virtual bool full() const = 0;
-    virtual impl_t* successor() const = 0;
-
-    virtual void add(SOCKET socket) = 0;
-    virtual fd_set* get() = 0;
+    virtual bool add(SOCKET socket) = 0;
+    virtual impl_t* create_successor() const = 0;
+    virtual fd_set* as_fd_set() = 0;
 
     virtual ~impl_t()
     { }
@@ -141,43 +142,50 @@ private :
                 this->impersonator_.fd_array);
     }
 
-    bool full() const override
-    { return impersonator_.fd_count == FdSetSize; }
-
-    impl_t* successor() const override
+    bool add(SOCKET socket) override
     {
-      constexpr size_t MaxFdSetSize = 10000; // C10K! :-)
-      constexpr size_t NextFdSetSize = FdSetSize + FdSetSize / 2 + 1;
+      bool result = false;
 
+      if(impersonator_.fd_count < FdSetSize)
+      {
+        impersonator_.fd_array[impersonator_.fd_count] = socket;
+        ++impersonator_.fd_count;
+        result = true;
+      }
+
+      return result;
+    }
+        
+    impl_t* create_successor() const override
+    {
+      constexpr std::size_t MaxFdSetSize = 10000; // C10K! :-)
       impl_t* result = nullptr;
 
-      if constexpr(NextFdSetSize <= MaxFdSetSize)
+      if constexpr(FdSetSize < MaxFdSetSize)
       {
+        constexpr std::size_t NextFdSetSize = FdSetSize + FdSetSize / 2 +
+          FD_SETSIZE;
         result = new impl_instance_t<NextFdSetSize>(*this);
       }
       else
       {
-        throw system_exception_t("select_selector(): FD_SETSIZE overflow");
+        system_exception_builder_t builder;
+        builder << "select_selector(): maximum FD_SETSIZE(" <<
+          FdSetSize << ") exceeded";
+        builder.explode();
       }
 
       return result;
     }
 
-    void add(SOCKET socket) override
-    {
-      assert(impersonator_.fd_count < FdSetSize);
-      impersonator_.fd_array[impersonator_.fd_count] = socket;
-      ++impersonator_.fd_count;
-    }
-        
-    fd_set* get() override
+    fd_set* as_fd_set() override
     {
       // just one little lie, but we could say there's a common
       // initial prefix, so have mercy please!
       return reinterpret_cast<fd_set*>(&impersonator_);
     }
 
-    // should be very close to struct fd_set in winsock2.h
+    // should be very close to struct fd_set from <winsock2.h>
     struct
     {
       u_int fd_count;
@@ -211,7 +219,7 @@ struct fd_set_t
     FD_SET(fd, &set_);
   }
 
-  fd_set* get()
+  fd_set* as_fd_set()
   { return &set_; }
 
   bool contains(int fd)
@@ -287,7 +295,8 @@ struct select_selector_t : selector_t
         ptv = &tv;
       }
 
-      int count = ::select(nfds, infds.get(), outfds.get(), nullptr, ptv);
+      int count = ::select(nfds,
+        infds.as_fd_set(), outfds.as_fd_set(), nullptr, ptv);
       if(count < 0)
       {
         int cause = last_system_error();
@@ -373,7 +382,7 @@ private :
 
     int ticket = registrations_.add_element_before(
       registrations_.last(watched_list_),
-      registration_t(fd, event, std::move(callback)));
+      fd, event, std::move(callback));
 
     return ticket;
   }
