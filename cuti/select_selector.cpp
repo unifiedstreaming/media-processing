@@ -144,35 +144,33 @@ private :
 
     bool add(SOCKET socket) override
     {
-      bool result = false;
-
-      if(impersonator_.fd_count < FdSetSize)
+      if(impersonator_.fd_count >= FdSetSize)
       {
-        impersonator_.fd_array[impersonator_.fd_count] = socket;
-        ++impersonator_.fd_count;
-        result = true;
+        return false;
       }
 
-      return result;
+      impersonator_.fd_array[impersonator_.fd_count] = socket;
+      ++impersonator_.fd_count;
+      return true;
     }
         
     impl_t* create_successor() const override
     {
-      constexpr std::size_t MaxFdSetSize = 10000; // C10K! :-)
       impl_t* result = nullptr;
 
-      if constexpr(FdSetSize < MaxFdSetSize)
-      {
-        constexpr std::size_t NextFdSetSize = FdSetSize + FdSetSize / 2 +
-          FD_SETSIZE;
-        result = new impl_instance_t<NextFdSetSize>(*this);
-      }
-      else
+      constexpr std::size_t MaxFdSetSize = 10000; // C10K! :-)
+      if constexpr(FdSetSize >= MaxFdSetSize)
       {
         system_exception_builder_t builder;
         builder << "select_selector(): maximum FD_SETSIZE(" <<
           FdSetSize << ") exceeded";
         builder.explode();
+      }
+      else
+      {
+        constexpr std::size_t NextFdSetSize =
+          FdSetSize + FdSetSize / 2 + FD_SETSIZE;
+        result = new impl_instance_t<NextFdSetSize>(*this);
       }
 
       return result;
@@ -345,13 +343,14 @@ struct select_selector_t : selector_t
       assert(count == 0);
     }
 
-    callback_t result = nullptr;
-    if(!registrations_.list_empty(pending_list_))
+    if(registrations_.list_empty(pending_list_))
     {
-      int ticket = registrations_.first(pending_list_);
-      result = std::move(registrations_.value(ticket).callback_);
-      remove_registration(ticket);
+      return nullptr;
     }
+
+    int ticket = registrations_.first(pending_list_);
+    auto result = std::move(registrations_.value(ticket).callback_);
+    remove_registration(ticket);
     return result;
   }
 
