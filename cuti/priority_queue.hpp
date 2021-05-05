@@ -168,9 +168,9 @@ struct priority_queue_t
   }
 
   /*
-   * Returns a reference to the priority of the element identified by <id>;
-   * this reference is invalidated at the next call to add_element(),
-   * or when the element is removed.
+   * Returns a reference to the priority of the element identified by
+   * <id>; this reference is invalidated at the next call to
+   * add_element(), or when the element is removed.
    */
   Priority const& priority(int id) const noexcept
   {
