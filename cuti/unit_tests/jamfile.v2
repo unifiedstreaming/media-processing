@@ -54,6 +54,11 @@ unit-test option_walker_test
   ..//cuti
 ;
 
+unit-test priority_queue_test
+: priority_queue_test.cpp
+  ..//cuti
+;
+
 unit-test resolver_test
 : resolver_test.cpp
   ..//cuti
