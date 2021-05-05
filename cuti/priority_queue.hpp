@@ -37,11 +37,6 @@ namespace cuti
 /*
  * The cuti priority queue.
  *
- * Just like std::priority_queue, the default comparator type,
- * std::less<Priority>, results in a maxheap with the highest priority
- * elements at the front.  Use std::greater<Priority> to obtain a
- * minheap.
- *
  * Unlike std::priority_queue, adding an element to a cuti priority
  * queue returns a small, non-negative stable integer id that
  * identifies the element in the queue.  This id may be used to access
@@ -49,6 +44,11 @@ namespace cuti
  * the queue's front element.  Furthermore, in addition to its
  * priority, each element also holds a modifiable value of some
  * arbitrary type.
+ *
+ * Please note: just as specified for std::priority_queue, the default
+ * comparator type, std::less<Priority>, results in a maxheap with the
+ * highest priority elements at the front.  Use std::greater<Priority>
+ * to obtain a minheap.
  */
 template<typename Priority, typename Value,
          typename Cmp = std::less<Priority>>
