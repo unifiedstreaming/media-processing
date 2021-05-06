@@ -39,6 +39,11 @@ unit-test fs_utils_test
   ..//cuti
 ;
 
+unit-test indexed_heap_test
+: indexed_heap_test.cpp
+  ..//cuti
+;
+
 unit-test list_arena_test
 : list_arena_test.cpp
   ..//cuti
@@ -51,11 +56,6 @@ unit-test membuf_test
 
 unit-test option_walker_test
 : option_walker_test.cpp
-  ..//cuti
-;
-
-unit-test priority_queue_test
-: priority_queue_test.cpp
   ..//cuti
 ;
 

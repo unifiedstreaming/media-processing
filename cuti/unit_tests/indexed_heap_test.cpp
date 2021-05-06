@@ -17,7 +17,7 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#include "priority_queue.hpp"
+#include "indexed_heap.hpp"
 
 #include <string>
 
@@ -32,7 +32,7 @@ using namespace cuti;
 
 void maxheap()
 {
-  priority_queue_t<int, std::string> q;
+  indexed_heap_t<int, std::string> q;
   assert(q.empty());
 
   int id1 = q.add_element(1, "one");
@@ -90,7 +90,7 @@ void maxheap()
 
 void minheap()
 {
-  priority_queue_t<int, std::string, std::greater<int>> q;
+  indexed_heap_t<int, std::string, std::greater<int>> q;
   assert(q.empty());
 
   int id1 = q.add_element(1, "one");
@@ -148,7 +148,7 @@ void minheap()
 
 void duplicate_prios_maxheap()
 {
-  priority_queue_t<int, std::string> q;
+  indexed_heap_t<int, std::string> q;
   assert(q.empty());
 
   int id11 = q.add_element(1, "11");
@@ -206,7 +206,7 @@ void duplicate_prios_maxheap()
   
 void duplicate_prios_minheap()
 {
-  priority_queue_t<int, std::string, std::greater<int>> q;
+  indexed_heap_t<int, std::string, std::greater<int>> q;
   assert(q.empty());
 
   int id11 = q.add_element(1, "11");
@@ -266,7 +266,7 @@ void four_layers()
 {
   // known to cause a decent number of left and right sinks
 
-  priority_queue_t<int, std::string> q;
+  indexed_heap_t<int, std::string> q;
   assert(q.empty());
 
   std::vector<int> ids;
@@ -318,27 +318,27 @@ void drain_equal_queues(Q& q1, Q& q2)
 
 void copy_construct()
 {
-  priority_queue_t<int, std::string> q1;
+  indexed_heap_t<int, std::string> q1;
 
   q1.add_element(1, "1");
   q1.add_element(2, "2");
   q1.add_element(3, "3");
 
-  priority_queue_t<int, std::string> q2 = q1;
+  indexed_heap_t<int, std::string> q2 = q1;
 
   drain_equal_queues(q1, q2);
 }
 
 void move_construct()
 {
-  priority_queue_t<int, std::string> q1;
+  indexed_heap_t<int, std::string> q1;
 
   q1.add_element(1, "1");
   q1.add_element(2, "2");
   q1.add_element(3, "3");
 
-  priority_queue_t<int, std::string> q2 = q1;
-  priority_queue_t<int, std::string> q3 = std::move(q1);
+  indexed_heap_t<int, std::string> q2 = q1;
+  indexed_heap_t<int, std::string> q3 = std::move(q1);
 
   assert(q1.empty());
   
@@ -347,13 +347,13 @@ void move_construct()
 
 void copy_assign()
 {
-  priority_queue_t<int, std::string> q1;
+  indexed_heap_t<int, std::string> q1;
 
   q1.add_element(1, "1");
   q1.add_element(2, "2");
   q1.add_element(3, "3");
 
-  priority_queue_t<int, std::string> q2;
+  indexed_heap_t<int, std::string> q2;
   q2 = q1;
 
   drain_equal_queues(q1, q2);
@@ -361,14 +361,14 @@ void copy_assign()
 
 void move_assign()
 {
-  priority_queue_t<int, std::string> q1;
+  indexed_heap_t<int, std::string> q1;
 
   q1.add_element(1, "1");
   q1.add_element(2, "2");
   q1.add_element(3, "3");
 
-  priority_queue_t<int, std::string> q2 = q1;
-  priority_queue_t<int, std::string> q3;
+  indexed_heap_t<int, std::string> q2 = q1;
+  indexed_heap_t<int, std::string> q3;
   q3 = std::move(q1);
 
   assert(q1.empty());
@@ -378,20 +378,20 @@ void move_assign()
 
 void swap()
 {
-  priority_queue_t<int, std::string> q1;
+  indexed_heap_t<int, std::string> q1;
 
   q1.add_element(1, "1");
   q1.add_element(2, "2");
   q1.add_element(3, "3");
 
-  priority_queue_t<int, std::string> q2;
+  indexed_heap_t<int, std::string> q2;
 
   q2.add_element(4, "4");
   q2.add_element(5, "5");
   q2.add_element(6, "6");
 
-  priority_queue_t<int, std::string> q3 = q1;
-  priority_queue_t<int, std::string> q4 = q2;
+  indexed_heap_t<int, std::string> q3 = q1;
+  indexed_heap_t<int, std::string> q4 = q2;
 
   swap(q3, q4);
 

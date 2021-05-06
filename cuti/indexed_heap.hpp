@@ -17,8 +17,8 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#ifndef CUTI_PRIORITY_QUEUE_HPP_
-#define CUTI_PRIORITY_QUEUE_HPP_
+#ifndef CUTI_INDEXED_HEAP_HPP_
+#define CUTI_INDEXED_HEAP_HPP_
 
 #include <cassert>
 #include <functional>
@@ -35,26 +35,22 @@ namespace cuti
 {
 
 /*
- * The cuti priority queue.
+ * indexed_heap_t models a priority queue of <priority, value>
+ * elements.  Each element is identified by a stable, small
+ * non-negative integer id.  This id may be used to access the
+ * element, or to remove it from the queue, even when it is not the
+ * queue's front element.
  *
- * Unlike std::priority_queue, adding an element to a cuti priority
- * queue returns a small, non-negative stable integer id that
- * identifies the element in the queue.  This id may be used to access
- * the element, or to remove it from the queue, even when it is not
- * the queue's front element.  Furthermore, in addition to its
- * priority, each element also holds a modifiable value of some
- * arbitrary type.
- *
- * Please note: just as specified for std::priority_queue, the default
- * comparator type, std::less<Priority>, results in a maxheap with the
- * highest priority elements at the front.  Use std::greater<Priority>
- * to obtain a minheap.
+ * Please note: just like std::priority_queue, indexed_heap_t's
+ * default comparator type (std::less<Priority>) results in a maxheap
+ * with the highest priority elements at the front.  Use
+ * std::greater<Priority> to obtain a minheap.
  */
 template<typename Priority, typename Value,
          typename Cmp = std::less<Priority>>
-struct priority_queue_t
+struct indexed_heap_t
 {
-  priority_queue_t()
+  indexed_heap_t()
     noexcept(std::is_nothrow_default_constructible_v<Cmp>)
   : elements_()
   , free_top_(-1)
@@ -62,7 +58,7 @@ struct priority_queue_t
   , cmp_()
   { }
 
-  explicit priority_queue_t(Cmp const& cmp)
+  explicit indexed_heap_t(Cmp const& cmp)
     noexcept(std::is_nothrow_copy_constructible_v<Cmp>)
   : elements_()
   , free_top_(-1)
@@ -70,7 +66,7 @@ struct priority_queue_t
   , cmp_(cmp)
   { }
 
-  explicit priority_queue_t(Cmp&& cmp)
+  explicit indexed_heap_t(Cmp&& cmp)
     noexcept(std::is_nothrow_move_constructible_v<Cmp>)
   : elements_()
   , free_top_(-1)
@@ -78,14 +74,14 @@ struct priority_queue_t
   , cmp_(std::move(cmp))
   { }
 
-  priority_queue_t(priority_queue_t const& rhs)
+  indexed_heap_t(indexed_heap_t const& rhs)
   : elements_(rhs.elements_)
   , free_top_(rhs.free_top_)
   , ordering_(rhs.ordering_)
   , cmp_(rhs.cmp_)
   { }
 
-  priority_queue_t(priority_queue_t&& rhs)
+  indexed_heap_t(indexed_heap_t&& rhs)
     noexcept(std::is_nothrow_move_constructible_v<Cmp>)
   : elements_(std::move(rhs.elements_))
   , free_top_(rhs.free_top_)
@@ -93,18 +89,18 @@ struct priority_queue_t
   , cmp_(std::move(rhs.cmp_))
   { rhs.clear(); }
 
-  priority_queue_t& operator=(priority_queue_t const& rhs)
+  indexed_heap_t& operator=(indexed_heap_t const& rhs)
   {
-    priority_queue_t tmp(rhs);
+    indexed_heap_t tmp(rhs);
     this->swap(tmp);
     return *this;
   }
 
-  priority_queue_t& operator=(priority_queue_t&& rhs)
+  indexed_heap_t& operator=(indexed_heap_t&& rhs)
     noexcept(std::is_nothrow_move_constructible_v<Cmp> &&
              std::is_nothrow_swappable_v<Cmp>)
   {
-    priority_queue_t tmp(std::move(rhs));
+    indexed_heap_t tmp(std::move(rhs));
     this->swap(tmp);
     return *this;
   }
@@ -119,7 +115,7 @@ struct priority_queue_t
     ordering_.clear();
   }
 
-  void swap(priority_queue_t& that)
+  void swap(indexed_heap_t& that)
     noexcept(std::is_nothrow_swappable_v<Cmp>)
   {
     using std::swap;
@@ -256,7 +252,7 @@ private :
       constexpr unsigned int max_size = std::numeric_limits<int>::max();
       if(elements_.size() == max_size)
       {
-        throw system_exception_t("priority_queue_t: out of element ids");
+        throw system_exception_t("indexed_heap_t: out of element ids");
       }
 
       id = static_cast<int>(elements_.size());
@@ -410,8 +406,8 @@ private :
 };
 
 template<typename Priority, typename Value, typename Cmp>
-void swap(priority_queue_t<Priority, Value, Cmp>& q1,
-          priority_queue_t<Priority, Value, Cmp>& q2)
+void swap(indexed_heap_t<Priority, Value, Cmp>& q1,
+          indexed_heap_t<Priority, Value, Cmp>& q2)
   noexcept(std::is_nothrow_swappable_v<Cmp>)
 {
   q1.swap(q2);
