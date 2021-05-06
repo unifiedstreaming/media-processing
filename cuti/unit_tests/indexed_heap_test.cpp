@@ -35,56 +35,32 @@ void maxheap()
   indexed_heap_t<int, std::string> q;
   assert(q.empty());
 
-  int id1 = q.add_element(1, "one");
-  assert(!q.empty());
+  std::vector<int> ids;
+  for(int i = 0; i < 15; ++i)
+  {
+    int id = q.add_element(i + 42, std::to_string(i + 42));
+    ids.push_back(id);
+    
+    assert(!q.empty());
+    assert(q.front_element() == id);
+    assert(q.priority(id) == i + 42);
+    assert(q.value(id) == std::to_string(i + 42));
+  }
 
-  assert(q.front_element() == id1);
-  assert(q.priority(id1) == 1);
-  assert(q.value(id1) == "one");
+  while(!ids.empty())
+  {
+    int id = ids.back();
+    int i = static_cast<int>(ids.size()) - 1;
 
-  int id2 = q.add_element(2, "two");
-  assert(!q.empty());
+    assert(!q.empty());
+    assert(q.front_element() == id);
+    assert(q.priority(id) == i + 42);
+    assert(q.value(id) == std::to_string(i + 42));
 
-  assert(q.front_element() == id2);
-  assert(q.priority(id2) == 2);
-  assert(q.value(id2) == "two");
+    ids.pop_back();
+    q.remove_element(id);
+  }
 
-  int id3 = q.add_element(3, "three");
-  assert(!q.empty());
-
-  assert(q.front_element() == id3);
-  assert(q.priority(id3) == 3);
-  assert(q.value(id3) == "three");
-
-  int id4 = q.add_element(4, "four");
-  assert(!q.empty());
-
-  assert(q.front_element() == id4);
-  assert(q.priority(id4) == 4);
-  assert(q.value(id4) == "four");
-
-  q.remove_element(id4);
-  assert(!q.empty());
-
-  assert(q.front_element() == id3);
-  assert(q.priority(id3) == 3);
-  assert(q.value(id3) == "three");
-
-  q.remove_element(id3);
-  assert(!q.empty());
-
-  assert(q.front_element() == id2);
-  assert(q.priority(id2) == 2);
-  assert(q.value(id2) == "two");
-
-  q.remove_element(id2);
-  assert(!q.empty());
-
-  assert(q.front_element() == id1);
-  assert(q.priority(id1) == 1);
-  assert(q.value(id1) == "one");
-
-  q.remove_element(id1);
   assert(q.empty());
 }
 
@@ -93,56 +69,33 @@ void minheap()
   indexed_heap_t<int, std::string, std::greater<int>> q;
   assert(q.empty());
 
-  int id1 = q.add_element(1, "one");
-  assert(!q.empty());
+  std::vector<int> ids;
+  for(int i = 0; i < 15; ++i)
+  {
+    int id = q.add_element(i + 42, std::to_string(i + 42));
+    ids.push_back(id);
+    
+    assert(!q.empty());
+    assert(q.front_element() == ids.front());
+    assert(q.priority(id) == i + 42);
+    assert(q.value(id) == std::to_string(i + 42));
+  }
 
-  assert(q.front_element() == id1);
-  assert(q.priority(id1) == 1);
-  assert(q.value(id1) == "one");
 
-  int id2 = q.add_element(2, "two");
-  assert(!q.empty());
+  while(!ids.empty())
+  {
+    int id = ids.back();
+    int i = static_cast<int>(ids.size()) - 1;
 
-  assert(q.front_element() == id1);
-  assert(q.priority(id2) == 2);
-  assert(q.value(id2) == "two");
+    assert(!q.empty());
+    assert(q.front_element() == ids.front());
+    assert(q.priority(id) == i + 42);
+    assert(q.value(id) == std::to_string(i + 42));
 
-  int id3 = q.add_element(3, "three");
-  assert(!q.empty());
+    ids.pop_back();
+    q.remove_element(id);
+  }
 
-  assert(q.front_element() == id1);
-  assert(q.priority(id3) == 3);
-  assert(q.value(id3) == "three");
-
-  int id4 = q.add_element(4, "four");
-  assert(!q.empty());
-
-  assert(q.front_element() == id1);
-  assert(q.priority(id4) == 4);
-  assert(q.value(id4) == "four");
-
-  q.remove_element(id4);
-  assert(!q.empty());
-
-  assert(q.front_element() == id1);
-  assert(q.priority(id3) == 3);
-  assert(q.value(id3) == "three");
-
-  q.remove_element(id3);
-  assert(!q.empty());
-
-  assert(q.front_element() == id1);
-  assert(q.priority(id2) == 2);
-  assert(q.value(id2) == "two");
-
-  q.remove_element(id2);
-  assert(!q.empty());
-
-  assert(q.front_element() == id1);
-  assert(q.priority(id1) == 1);
-  assert(q.value(id1) == "one");
-
-  q.remove_element(id1);
   assert(q.empty());
 }
 
@@ -151,152 +104,83 @@ void duplicate_prios_maxheap()
   indexed_heap_t<int, std::string> q;
   assert(q.empty());
 
-  int id11 = q.add_element(1, "11");
-  assert(!q.empty());
+  std::vector<int> ids;
+  for(int prio = 0; prio < 15; ++prio)
+  {
+    for(int value = 42; value < 57; ++value)
+    {
+      int id = q.add_element(prio, std::to_string(value));
+      ids.push_back(id);
+    
+      assert(!q.empty());
+      assert(q.priority(q.front_element()) == prio);
+      assert(q.priority(id) == prio);
+      assert(q.value(id) == std::to_string(value));
+    }
+  }
 
-  assert(q.front_element() == id11);
-  assert(q.priority(id11) == 1);
-  assert(q.value(id11) == "11");
+  for(int prio = 14; prio >= 0; --prio)
+  {
+    for(int value = 56; value >= 42; --value)
+    {
+      assert(!ids.empty());
+      int id = ids.back();
 
-  int id12 = q.add_element(1, "12");
-  assert(!q.empty());
+      assert(!q.empty());
+      assert(q.priority(q.front_element()) == prio);
+      assert(q.priority(id) == prio);
+      assert(q.value(id) == std::to_string(value));
+      
+      ids.pop_back();
+      q.remove_element(id);
+    }
+  }
 
-  assert(q.front_element() == id11 || q.front_element() == id12);
-  assert(q.priority(id12) == 1);
-  assert(q.value(id12) == "12");
-
-  int id21 = q.add_element(2, "21");
-  assert(!q.empty());
-
-  assert(q.front_element() == id21);
-  assert(q.priority(id21) == 2);
-  assert(q.value(id21) == "21");
-
-  int id22 = q.add_element(2, "22");
-  assert(!q.empty());
-
-  assert(q.front_element() == id21 || q.front_element() == id22);
-  assert(q.priority(id22) == 2);
-  assert(q.value(id22) == "22");
-
-  q.remove_element(id22);
-  assert(!q.empty());
-
-  assert(q.front_element() == id21);
-  assert(q.priority(id21) == 2);
-  assert(q.value(id21) == "21");
-
-  q.remove_element(id21);
-  assert(!q.empty());
-
-  assert(q.front_element() == id11 || q.front_element() == id12);
-  assert(q.priority(id12) == 1);
-  assert(q.value(id12) == "12");
-
-  q.remove_element(id12);
-  assert(!q.empty());
-
-  assert(q.front_element() == id11);
-  assert(q.priority(id11) == 1);
-  assert(q.value(id11) == "11");
-
-  q.remove_element(id11);
+  assert(ids.empty());
   assert(q.empty());
 }
-  
+
 void duplicate_prios_minheap()
 {
   indexed_heap_t<int, std::string, std::greater<int>> q;
   assert(q.empty());
 
-  int id11 = q.add_element(1, "11");
-  assert(!q.empty());
-
-  assert(q.front_element() == id11);
-  assert(q.priority(id11) == 1);
-  assert(q.value(id11) == "11");
-
-  int id12 = q.add_element(1, "12");
-  assert(!q.empty());
-
-  assert(q.front_element() == id11 || q.front_element() == id12);
-  assert(q.priority(id12) == 1);
-  assert(q.value(id12) == "12");
-
-  int id21 = q.add_element(2, "21");
-  assert(!q.empty());
-
-  assert(q.front_element() == id11 || q.front_element() == id12);
-  assert(q.priority(id21) == 2);
-  assert(q.value(id21) == "21");
-
-  int id22 = q.add_element(2, "22");
-  assert(!q.empty());
-
-  assert(q.front_element() == id11 || q.front_element() == id12);
-  assert(q.priority(id22) == 2);
-  assert(q.value(id22) == "22");
-
-  q.remove_element(id22);
-  assert(!q.empty());
-
-  assert(q.front_element() == id11 || q.front_element() == id12);
-  assert(q.priority(id21) == 2);
-  assert(q.value(id21) == "21");
-
-  q.remove_element(id21);
-  assert(!q.empty());
-
-  assert(q.front_element() == id11 || q.front_element() == id12);
-  assert(q.priority(id12) == 1);
-  assert(q.value(id12) == "12");
-
-  q.remove_element(id12);
-  assert(!q.empty());
-
-  assert(q.front_element() == id11);
-  assert(q.priority(id11) == 1);
-  assert(q.value(id11) == "11");
-
-  q.remove_element(id11);
-  assert(q.empty());
-}
-
-void four_layers()
-{
-  // known to cause a decent number of left and right sinks
-
-  indexed_heap_t<int, std::string> q;
-  assert(q.empty());
-
   std::vector<int> ids;
-  for(int i = 0; i < 15; ++i)
+  for(int prio = 0; prio < 15; ++prio)
   {
-    int id = q.add_element(i, std::to_string(i));
-    assert(!q.empty());
-    assert(q.front_element() == id);
-    assert(q.priority(id) == i);
-    assert(q.value(id) == std::to_string(i));
-
-    ids.push_back(id);
+    for(int value = 42; value < 57; ++value)
+    {
+      int id = q.add_element(prio, std::to_string(value));
+      ids.push_back(id);
+    
+      assert(!q.empty());
+      assert(q.priority(q.front_element()) == 0);
+      assert(q.priority(id) == prio);
+      assert(q.value(id) == std::to_string(value));
+    }
   }
 
-  while(!ids.empty())
+  for(int prio = 14; prio >= 0; --prio)
   {
-    int id = ids.back();
-    ids.pop_back();
-    int i = static_cast<int>(ids.size());
+    for(int value = 56; value >= 42; --value)
+    {
+      assert(!ids.empty());
+      int id = ids.back();
 
-    assert(!q.empty());
-    assert(q.front_element() == id);
-    assert(q.priority(id) == i);
-    assert(q.value(id) == std::to_string(i));
-    q.remove_element(id);
+      assert(!q.empty());
+      assert(q.priority(q.front_element()) == 0);
+      assert(q.priority(id) == prio);
+      assert(q.value(id) == std::to_string(value));
+      
+      ids.pop_back();
+      q.remove_element(id);
+    }
   }
 
+  assert(ids.empty());
   assert(q.empty());
 }
-  
+
 template<typename Q>
 void drain_equal_queues(Q& q1, Q& q2)
 {
@@ -407,8 +291,6 @@ int main()
   minheap();
   duplicate_prios_maxheap();
   duplicate_prios_minheap();
-
-  four_layers();
 
   copy_construct();
   move_construct();
