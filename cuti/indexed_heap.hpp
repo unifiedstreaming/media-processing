@@ -35,16 +35,16 @@ namespace cuti
 {
 
 /*
- * indexed_heap_t models a priority queue of <priority, value>
+ * indexed_heap_t models a priority queue of <Priority, Value>
  * elements.  Each element is identified by a stable, small
  * non-negative integer id.  This id may be used to access the
  * element, or to remove it from the queue, even when it is not the
  * queue's front element.
  *
- * Please note: just like std::priority_queue, indexed_heap_t's
- * default comparator type (std::less<Priority>) results in a maxheap
- * with the highest priority elements at the front.  Use
- * std::greater<Priority> to obtain a minheap.
+ * Please note: just as is the case for std::priority_queue,
+ * indexed_heap_t's default comparator type (std::less<Priority>)
+ * results in a maxheap with the highest priority elements at the
+ * front.  Use std::greater<Priority> to obtain a minheap.
  */
 template<typename Priority, typename Value,
          typename Cmp = std::less<Priority>>
@@ -322,7 +322,7 @@ private :
   }
 
   /*
-   * Move id down as deep as possible.
+   * Move id down as far as needed.
    */
   void sink(int id) noexcept
   {
@@ -331,46 +331,34 @@ private :
     assert(valid_index(index));
 
     int limit = ordering_size();
-    while(index < limit / 2 && 2 * index + 1 < limit)
+    while(index < limit / 2)
     {
-      // we have a left child
-      int left_index = 2 * index + 1;
-      assert(valid_index(left_index));
-      int left_id = ordering_[left_index];
-      assert(valid_id(left_id));
-
       // assume id has the highest priority until proven otherwise
       int highest_id = id;
       int highest_index = index;
 
-      if(left_index + 1 < limit)
+      // check the priorities of index's two potential children,
+      // whose indexes are 2 * index + 1 and 2 * index + 2
+      for(int child_index = 2 * index + 1;
+          child_index < limit && child_index <= 2 * index + 2;
+          ++child_index)
       {
-        // we have a right child
-        int right_index = left_index + 1;
-        assert(valid_index(right_index));
-        int right_id = ordering_[right_index];
-        assert(valid_id(right_id));
-
-        if(!cmp_(elements_[right_id].opt_pv_->first,
-                 elements_[id].opt_pv_->first))
+        assert(valid_index(child_index));
+        int child_id = ordering_[child_index];
+        assert(valid_id(child_id));
+        
+        if(cmp_(elements_[highest_id].opt_pv_->first,
+                elements_[child_id].opt_pv_->first))
         {
-          // right child priority >= priority
-          highest_id = right_id;
-          highest_index = right_index;
+          // child priority > highest priority
+          highest_id = child_id;
+          highest_index = child_index;
         }
       }
 
-      if(!cmp_(elements_[left_id].opt_pv_->first,
-               elements_[highest_id].opt_pv_->first))
+      if(highest_index == index)
       {
-        // left child priority >= highest priority
-        highest_id = left_id;
-        highest_index = left_index;
-      }
-
-      if(id == highest_id)
-      {
-        // children have lower priorities; done
+        // no child with higher priority; done
         break;
       }
 
