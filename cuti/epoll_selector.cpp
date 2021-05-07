@@ -39,10 +39,10 @@ namespace cuti
 namespace // anonymous
 {
 
-struct epoll_selector_t : selector_t
+struct epoll_selector_t : io_selector_t
 {
   epoll_selector_t()
-  : selector_t()
+  : io_selector_t()
   , registrations_()
   , watched_list_(registrations_.add_list())
   , pending_list_(registrations_.add_list())
@@ -263,7 +263,7 @@ private :
     
 } // anonymous
 
-std::unique_ptr<selector_t> create_epoll_selector()
+std::unique_ptr<io_selector_t> create_epoll_selector()
 {
   return std::make_unique<epoll_selector_t>();
 }

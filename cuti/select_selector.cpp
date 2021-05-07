@@ -229,10 +229,10 @@ private :
 
 #endif // !_WIN32
 
-struct select_selector_t : selector_t
+struct select_selector_t : io_selector_t
 {
   select_selector_t()
-  : selector_t()
+  : io_selector_t()
   , registrations_()
   , watched_list_(registrations_.add_list())
   , pending_list_(registrations_.add_list())
@@ -412,7 +412,7 @@ private :
 
 } // anonymous
 
-std::unique_ptr<selector_t> create_select_selector()
+std::unique_ptr<io_selector_t> create_select_selector()
 {
   return std::make_unique<select_selector_t>();
 }

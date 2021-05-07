@@ -20,8 +20,8 @@
 #ifndef CUTI_EPOLL_SELECTOR_HPP_
 #define CUTI_EPOLL_SELECTOR_HPP_
 
+#include "io_selector.hpp"
 #include "linkage.h"
-#include "selector.hpp"
 
 #include <memory>
 
@@ -37,7 +37,7 @@ namespace cuti
 {
 
 CUTI_ABI
-std::unique_ptr<selector_t> create_epoll_selector();
+std::unique_ptr<io_selector_t> create_epoll_selector();
 
 } // cuti
 

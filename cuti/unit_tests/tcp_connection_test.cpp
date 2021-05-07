@@ -20,13 +20,13 @@
 #include "circular_buffer.hpp"
 #include "endpoint.hpp"
 #include "file_backend.hpp"
+#include "io_selector.hpp"
+#include "io_selector_factory.hpp"
 #include "logger.hpp"
 #include "logging_context.hpp"
 #include "option_walker.hpp"
 #include "resolver.hpp"
 #include "scoped_thread.hpp"
-#include "selector.hpp"
-#include "selector_factory.hpp"
 #include "streambuf_backend.hpp"
 #include "tcp_connection.hpp"
 #include "system_error.hpp"
@@ -888,7 +888,7 @@ void nonblocking_transfer(logging_context_t const& context, bool agile)
 }
 
 void selected_transfer(logging_context_t const& context,
-                       selector_factory_t const& factory,
+                       io_selector_factory_t const& factory,
                        endpoint_t const& interface)
 {
   char const* first = payload.data();
@@ -923,13 +923,14 @@ void selected_transfer(logging_context_t const& context,
   start_io_handler<consumer_t>(*selector,
     context, *consumer_in, first, last, bufsize);
 
-  run_selector(context, loglevel_t::debug, *selector, std::chrono::minutes(1));
+  run_io_selector(context, loglevel_t::debug, *selector,
+    std::chrono::minutes(1));
   assert(!selector->has_work());
 }
 
 void selected_transfer(logging_context_t const& context)
 {
-  auto factories = available_selector_factories();
+  auto factories = available_io_selector_factories();
   auto interfaces = local_interfaces(any_port);
 
   for(auto const& factory : factories)
@@ -1012,7 +1013,7 @@ void nonblocking_client_server(logging_context_t const& context, bool agile)
 }
 
 void selected_client_server(logging_context_t const& context,
-                            selector_factory_t const& factory,
+                            io_selector_factory_t const& factory,
                             endpoint_t const& interface)
 {
   char const* first = payload.data();
@@ -1041,13 +1042,14 @@ void selected_client_server(logging_context_t const& context,
   start_io_handler<consumer_t>(*selector,
     context, *client_side, first, last, bufsize);
 
-  run_selector(context, loglevel_t::debug, *selector, std::chrono::minutes(1));
+  run_io_selector(context, loglevel_t::debug, *selector,
+    std::chrono::minutes(1));
   assert(!selector->has_work());
 }
 
 void selected_client_server(logging_context_t const& context)
 {
-  auto factories = available_selector_factories();
+  auto factories = available_io_selector_factories();
   auto interfaces = local_interfaces(any_port);
 
   for(auto const& factory : factories)
@@ -1105,7 +1107,7 @@ void broken_pipe(logging_context_t const& context)
 }
 
 void selector_switch(logging_context_t const& context,
-                     selector_factory_t const& factory,
+                     io_selector_factory_t const& factory,
                      endpoint_t const& interface)
 {
   auto sel1 = factory();
@@ -1153,7 +1155,7 @@ void selector_switch(logging_context_t const& context,
 
 void selector_switch(logging_context_t const& context)
 {
-  auto factories = available_selector_factories();
+  auto factories = available_io_selector_factories();
   auto interfaces = local_interfaces(any_port);
 
   for(auto const& factory : factories)

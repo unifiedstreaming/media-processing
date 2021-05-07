@@ -85,10 +85,10 @@ private:
   int fd_;
 };
 
-struct kqueue_selector_t : selector_t
+struct kqueue_selector_t : io_selector_t
 {
   kqueue_selector_t()
-  : selector_t()
+  : io_selector_t()
   , registrations_()
   , watched_list_(registrations_.add_list())
   , pending_list_(registrations_.add_list())
@@ -250,7 +250,7 @@ private :
 
 } // anonymous
 
-std::unique_ptr<selector_t> create_kqueue_selector()
+std::unique_ptr<io_selector_t> create_kqueue_selector()
 {
   return std::make_unique<kqueue_selector_t>();
 }
