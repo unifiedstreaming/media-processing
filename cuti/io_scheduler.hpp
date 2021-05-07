@@ -21,6 +21,7 @@
 #define CUTI_IO_SCHEDULER_HPP_
 
 #include "callback.hpp"
+#include "cancellation_ticket.hpp"
 #include "linkage.h"
 #include "socket_nifty.hpp"
 
@@ -35,48 +36,13 @@ namespace cuti
  */
 struct CUTI_ABI io_scheduler_t
 {
-  enum class event_t { writable, readable };
+  struct writable_tag_t { };
+  struct readable_tag_t { };
 
-  template<event_t Event>
-  struct cancellation_ticket_t
-  {
-    /*
-     * Constructs an empty cancellation ticket
-     */
-    cancellation_ticket_t() noexcept
-    : id_(-1)
-    { }
-
-    /*
-     * Tells if the ticket is empty.  Scheduling a callback returns a
-     * non-empty cancellation ticket, but even non-empty tickets
-     * become invalid when the callback is invoked.
-     */
-    bool empty() const noexcept
-    { return id_ == -1; }
-
-    /*
-     * Sets the ticket to the empty state.
-     */
-    void clear() noexcept
-    { id_ = -1; }
-
-  private :
-    friend struct io_scheduler_t;
-
-    explicit cancellation_ticket_t(int id) noexcept
-    : id_(id)
-    { }
-
-    int id() const noexcept
-    { return id_; }
-
-  private :
-    int id_;
-  };
-
-  using writable_ticket_t = cancellation_ticket_t<event_t::writable>;
-  using readable_ticket_t = cancellation_ticket_t<event_t::readable>;
+  using writable_ticket_t =
+    cancellation_ticket_t<io_scheduler_t, writable_tag_t>;
+  using readable_ticket_t =
+    cancellation_ticket_t<io_scheduler_t, readable_tag_t>;
 
   io_scheduler_t()
   { }
@@ -130,6 +96,9 @@ struct CUTI_ABI io_scheduler_t
   }
 
   virtual ~io_scheduler_t();
+
+protected :
+  enum class event_t { writable, readable };
 
 private :
   virtual int do_call_when_writable(int fd, callback_t callback) = 0;
