@@ -19,7 +19,7 @@
 
 #include "indexed_heap.hpp"
 
-#include <string>
+#include <vector>
 
 // Enable assert
 #undef NDEBUG
@@ -32,33 +32,34 @@ using namespace cuti;
 
 void maxheap()
 {
-  indexed_heap_t<int, std::string> q;
+  indexed_heap_t<int, int> q;
   assert(q.empty());
 
   std::vector<int> ids;
-  for(int i = 0; i < 15; ++i)
+  for(int prio = 0; prio != 256; ++prio)
   {
-    int id = q.add_element(i + 42, std::to_string(i + 42));
+    int id = q.add_element(prio, prio + 42);
     ids.push_back(id);
     
     assert(!q.empty());
     assert(q.front_element() == id);
-    assert(q.priority(id) == i + 42);
-    assert(q.value(id) == std::to_string(i + 42));
+    assert(q.priority(id) == prio);
+    assert(q.value(id) == prio + 42);
   }
 
+  int prio  = 256;
   while(!ids.empty())
   {
-    int id = ids.back();
-    int i = static_cast<int>(ids.size()) - 1;
-
+    int id = ids.back(); 
+    --prio;
+ 
     assert(!q.empty());
     assert(q.front_element() == id);
-    assert(q.priority(id) == i + 42);
-    assert(q.value(id) == std::to_string(i + 42));
+    assert(q.priority(id) == prio);
+    assert(q.value(id) == prio + 42);
 
-    ids.pop_back();
     q.remove_element(id);
+    ids.pop_back();
   }
 
   assert(q.empty());
@@ -66,34 +67,31 @@ void maxheap()
 
 void minheap()
 {
-  indexed_heap_t<int, std::string, std::greater<int>> q;
+  indexed_heap_t<int, int, std::greater<int>> q;
   assert(q.empty());
 
   std::vector<int> ids;
-  for(int i = 0; i < 15; ++i)
+  for(int prio = 0; prio != 256; ++prio)
   {
-    int id = q.add_element(i + 42, std::to_string(i + 42));
+    int id = q.add_element(prio, prio + 42);
     ids.push_back(id);
     
     assert(!q.empty());
     assert(q.front_element() == ids.front());
-    assert(q.priority(id) == i + 42);
-    assert(q.value(id) == std::to_string(i + 42));
+    assert(q.priority(id) == prio);
+    assert(q.value(id) == prio + 42);
   }
 
-
-  while(!ids.empty())
+  int prio = 0;
+  for(int id : ids)
   {
-    int id = ids.back();
-    int i = static_cast<int>(ids.size()) - 1;
-
     assert(!q.empty());
-    assert(q.front_element() == ids.front());
-    assert(q.priority(id) == i + 42);
-    assert(q.value(id) == std::to_string(i + 42));
+    assert(q.front_element() == id);
+    assert(q.priority(id) == prio);
+    assert(q.value(id) == prio + 42);
 
-    ids.pop_back();
     q.remove_element(id);
+    ++prio;
   }
 
   assert(q.empty());
@@ -101,86 +99,109 @@ void minheap()
 
 void duplicate_prios_maxheap()
 {
-  indexed_heap_t<int, std::string> q;
+  indexed_heap_t<int, int> q;
   assert(q.empty());
 
-  std::vector<int> ids;
-  for(int prio = 0; prio < 15; ++prio)
+  for(int value = 0; value != 256; ++value)
   {
-    for(int value = 42; value < 57; ++value)
-    {
-      int id = q.add_element(prio, std::to_string(value));
-      ids.push_back(id);
-    
-      assert(!q.empty());
-      assert(q.priority(q.front_element()) == prio);
-      assert(q.priority(id) == prio);
-      assert(q.value(id) == std::to_string(value));
-    }
+    int id = q.add_element(value % 16, value);
+    assert(!q.empty());
+    assert(q.priority(id) == value % 16);
+    assert(q.value(id) == value);
   }
 
-  for(int prio = 14; prio >= 0; --prio)
+  int prio = 16;
+  while(prio != 0)
   {
-    for(int value = 56; value >= 42; --value)
+    --prio;
+    for(int count = 0; count != 16; ++count)
     {
-      assert(!ids.empty());
-      int id = ids.back();
-
       assert(!q.empty());
-      assert(q.priority(q.front_element()) == prio);
+      int id = q.front_element();
       assert(q.priority(id) == prio);
-      assert(q.value(id) == std::to_string(value));
-      
-      ids.pop_back();
+      assert(q.value(id) % 16 == prio);
       q.remove_element(id);
     }
   }
 
-  assert(ids.empty());
   assert(q.empty());
-}
-
+}  
+    
 void duplicate_prios_minheap()
 {
-  indexed_heap_t<int, std::string, std::greater<int>> q;
+  indexed_heap_t<int, int, std::greater<int>> q;
   assert(q.empty());
 
-  std::vector<int> ids;
-  for(int prio = 0; prio < 15; ++prio)
+  for(int value = 0; value != 256; ++value)
   {
-    for(int value = 42; value < 57; ++value)
-    {
-      int id = q.add_element(prio, std::to_string(value));
-      ids.push_back(id);
-    
-      assert(!q.empty());
-      assert(q.priority(q.front_element()) == 0);
-      assert(q.priority(id) == prio);
-      assert(q.value(id) == std::to_string(value));
-    }
+    int id = q.add_element(value % 16, value);
+    assert(!q.empty());
+    assert(q.priority(id) == value % 16);
+    assert(q.value(id) == value);
   }
 
-  for(int prio = 14; prio >= 0; --prio)
+  for(int prio = 0; prio != 16; ++prio)
   {
-    for(int value = 56; value >= 42; --value)
+    for(int count = 0; count != 16; ++count)
     {
-      assert(!ids.empty());
-      int id = ids.back();
-
       assert(!q.empty());
-      assert(q.priority(q.front_element()) == 0);
+      int id = q.front_element();
       assert(q.priority(id) == prio);
-      assert(q.value(id) == std::to_string(value));
-      
-      ids.pop_back();
+      assert(q.value(id) % 16 == prio);
       q.remove_element(id);
     }
   }
 
-  assert(ids.empty());
   assert(q.empty());
-}
+}  
+    
+void remove_non_front_ids()
+{
+  indexed_heap_t<int, int, std::greater<int>> q; // minheap
+  assert(q.empty());
 
+  std::vector<int> ids;
+  for(int value = 0; value != 256; ++value)
+  {
+    int id = q.add_element(value % 16, value);
+    assert(!q.empty());
+    assert(q.priority(id) == value % 16);
+    assert(q.value(id) == value);
+
+    ids.push_back(id);
+  }
+
+  // remove half of the elements from the middle of ids
+  while(ids.size() > 128)
+  {
+    auto index = ids.size() / 2;
+    int id = ids[index];
+
+    assert(!q.empty());
+    assert(q.priority(id) == q.value(id) % 16);
+    q.remove_element(id);
+    
+    ids[index] = ids.back();
+    ids.pop_back();
+  }
+
+  // check priority order of remaining elements
+  int prio = 0;
+  for(int i = 0; i != 128; ++i)
+  {
+    assert(!q.empty());
+    int id = q.front_element();
+
+    assert(q.priority(id) >= prio);
+    prio = q.priority(id);
+    assert(prio == q.value(id) % 16);
+
+    q.remove_element(id);
+  }
+    
+  assert(q.empty());
+}  
+    
 template<typename Q>
 void drain_equal_queues(Q& q1, Q& q2)
 {
@@ -291,6 +312,7 @@ int main()
   minheap();
   duplicate_prios_maxheap();
   duplicate_prios_minheap();
+  remove_non_front_ids();
 
   copy_construct();
   move_construct();
