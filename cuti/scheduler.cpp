@@ -17,12 +17,12 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#include "io_scheduler.hpp"
+#include "scheduler.hpp"
 
 namespace cuti
 {
 
-io_scheduler_t::~io_scheduler_t()
+scheduler_t::~scheduler_t()
 { }
 
 } // namespace cuti

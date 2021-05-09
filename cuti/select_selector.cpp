@@ -238,6 +238,26 @@ struct select_selector_t : selector_t
   , pending_list_(registrations_.add_list())
   { }
 
+  int call_when_writable(int fd, callback_t callback) override
+  {
+    return make_ticket(fd, event_t::writable, std::move(callback));
+  }
+
+  void cancel_when_writable(int ticket) noexcept override
+  {
+    remove_registration(ticket);
+  }
+
+  int call_when_readable(int fd, callback_t callback) override
+  {
+    return make_ticket(fd, event_t::readable, std::move(callback));
+  }
+
+  void cancel_when_readable(int ticket) noexcept override
+  {
+    remove_registration(ticket);
+  }
+
   bool has_work() const noexcept override
   {
     return !registrations_.list_empty(watched_list_) ||
@@ -355,26 +375,6 @@ struct select_selector_t : selector_t
   }
 
 private :
-  int do_call_when_writable(int fd, callback_t callback) override
-  {
-    return make_ticket(fd, event_t::writable, std::move(callback));
-  }
-
-  void do_cancel_when_writable(int cancellation_ticket) noexcept override
-  {
-    remove_registration(cancellation_ticket);
-  }
-
-  int do_call_when_readable(int fd, callback_t callback) override
-  {
-    return make_ticket(fd, event_t::readable, std::move(callback));
-  }
-
-  void do_cancel_when_readable(int cancellation_ticket) noexcept override
-  {
-    remove_registration(cancellation_ticket);
-  }
-
   int make_ticket(int fd, event_t event, callback_t callback)
   {
     assert(callback != nullptr);

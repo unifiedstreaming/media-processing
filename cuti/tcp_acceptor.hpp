@@ -21,8 +21,8 @@
 #define CUTI_TCP_ACCEPTOR_HPP_
 
 #include "endpoint.hpp"
-#include "io_scheduler.hpp"
 #include "linkage.h"
+#include "scheduler.hpp"
 #include "socket_nifty.hpp"
 #include "tcp_connection.hpp"
 #include "tcp_socket.hpp"
@@ -62,12 +62,12 @@ struct CUTI_ABI tcp_acceptor_t
   std::unique_ptr<tcp_connection_t> accept();
 
   /*
-   * Event reporting; see io_scheduler.hpp for detailed semantics.  A
+   * Event reporting; see scheduler.hpp for detailed semantics.  A
    * callback can be canceled by calling cancel_callback() directly on
    * the scheduler.
    */
   template<typename Callback>
-  ready_ticket_t call_when_ready(io_scheduler_t& scheduler,
+  ready_ticket_t call_when_ready(scheduler_t& scheduler,
                                  Callback&& callback)
   {
     return socket_.call_when_readable(scheduler,

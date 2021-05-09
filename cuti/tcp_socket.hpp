@@ -21,8 +21,8 @@
 #define CUTI_TCP_SOCKET_HPP_
 
 #include "endpoint.hpp"
-#include "io_scheduler.hpp"
 #include "linkage.h"
+#include "scheduler.hpp"
 #include "socket_nifty.hpp"
 
 #include <memory>
@@ -121,12 +121,12 @@ struct CUTI_ABI tcp_socket_t
   char* read_some(char* first, char const* last);
 
   /*
-   * Event reporting; see io_scheduler.hpp for detailed semantics.  A
+   * Event reporting; see scheduler.hpp for detailed semantics.  A
    * callback can be canceled by calling cancel_callback() directly on
    * the scheduler.
    */
   template<typename Callback>
-  writable_ticket_t call_when_writable(io_scheduler_t& scheduler,
+  writable_ticket_t call_when_writable(scheduler_t& scheduler,
                                        Callback&& callback)
   {
     assert(!this->empty());
@@ -135,7 +135,7 @@ struct CUTI_ABI tcp_socket_t
   }
 
   template<typename Callback>
-  readable_ticket_t call_when_readable(io_scheduler_t& scheduler,
+  readable_ticket_t call_when_readable(scheduler_t& scheduler,
                                        Callback&& callback)
   {
     assert(!this->empty());

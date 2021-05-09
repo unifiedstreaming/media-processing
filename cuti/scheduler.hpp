@@ -17,13 +17,13 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#ifndef CUTI_IO_SCHEDULER_HPP_
-#define CUTI_IO_SCHEDULER_HPP_
+#ifndef CUTI_SCHEDULER_HPP_
+#define CUTI_SCHEDULER_HPP_
 
 #include "callback.hpp"
 #include "linkage.h"
-#include "socket_nifty.hpp"
 
+#include <cassert>
 #include <utility>
 #include <memory>
 
@@ -31,13 +31,19 @@ namespace cuti
 {
 
 /*
- * Abstract I/O event scheduler interface
+ * Abstract event scheduler interface.  The purpose of this interface
+ * is to isolate cuti-based event handlers from the specifics of the
+ * application's event loop(s).  Some implementations of this
+ * interface, like cuti's default scheduler, can be used to write such
+ * a loop; other implementations may serve as an adapter for an
+ * existing event loop.
  */
-struct CUTI_ABI io_scheduler_t
+struct CUTI_ABI scheduler_t
 {
-  enum class event_t { writable, readable };
+  struct writable_tag_t { };
+  struct readable_tag_t { };
 
-  template<event_t Event>
+  template<typename Tag>
   struct cancellation_ticket_t
   {
     /*
@@ -62,7 +68,7 @@ struct CUTI_ABI io_scheduler_t
     { id_ = -1; }
 
   private :
-    friend struct io_scheduler_t;
+    friend struct scheduler_t;
 
     explicit cancellation_ticket_t(int id) noexcept
     : id_(id)
@@ -75,43 +81,47 @@ struct CUTI_ABI io_scheduler_t
     int id_;
   };
 
-  using writable_ticket_t = cancellation_ticket_t<event_t::writable>;
-  using readable_ticket_t = cancellation_ticket_t<event_t::readable>;
+  using writable_ticket_t = cancellation_ticket_t<writable_tag_t>;
+  using readable_ticket_t = cancellation_ticket_t<readable_tag_t>;
 
-  io_scheduler_t()
+  scheduler_t()
   { }
 
-  io_scheduler_t(io_scheduler_t const&) = delete;
-  io_scheduler_t& operator=(io_scheduler_t const&) = delete;
+  scheduler_t(scheduler_t const&) = delete;
+  scheduler_t& operator=(scheduler_t const&) = delete;
 
   /*
    * Schedules a one-time callback for when fd is ready for writing.
    * Returns a cancellation ticket that may be used to cancel the
    * callback before it is invoked.  Call this function again if you
-   * want another callback.
+   * want another callback.  callback must be != nullptr.
    * Please note: when the callback is invoked, the ticket has already
    * lost its purpose; any further use leads to undefined behavior.
    */
   template<typename Callback>
   writable_ticket_t call_when_writable(int fd, Callback&& callback)
   {
+    callback_t callee(std::forward<Callback>(callback));
+    assert(callee != nullptr);
     return writable_ticket_t(this->do_call_when_writable(
-      fd, std::forward<Callback>(callback)));
+      fd, std::move(callee)));
   }
 
   /*
    * Schedules a one-time callback for when fd is ready for reading.
    * Returns a cancellation ticket that may be used to cancel the
    * callback before it is invoked.  Call this function again if you
-   * want another callback.
+   * want another callback.  callback must be != nullptr.
    * Please note: when the callback is invoked, the ticket has already
    * lost its purpose; any further use leads to undefined behavior.
    */
   template<typename Callback>
   readable_ticket_t call_when_readable(int fd, Callback&& callback)
   {
+    callback_t callee(std::forward<Callback>(callback));
+    assert(callee != nullptr);
     return readable_ticket_t(this->do_call_when_readable(
-      fd, std::forward<Callback>(callback)));
+      fd, std::move(callee)));
   }
 
   /*
@@ -129,7 +139,7 @@ struct CUTI_ABI io_scheduler_t
     this->do_cancel_when_readable(ticket.id());
   }
 
-  virtual ~io_scheduler_t();
+  virtual ~scheduler_t();
 
 private :
   virtual int do_call_when_writable(int fd, callback_t callback) = 0;
@@ -138,15 +148,15 @@ private :
   virtual void do_cancel_when_readable(int ticket) noexcept = 0;
 };
 
-using writable_ticket_t = io_scheduler_t::writable_ticket_t;
-using readable_ticket_t = io_scheduler_t::readable_ticket_t;
+using writable_ticket_t = scheduler_t::writable_ticket_t;
+using readable_ticket_t = scheduler_t::readable_ticket_t;
 
 // SSTS: static start takes shared
-template<typename IOHandler, typename... Args>
-auto start_io_handler(io_scheduler_t& scheduler, Args&&... args)
+template<typename EventHandler, typename... Args>
+auto start_event_handler(scheduler_t& scheduler, Args&&... args)
 {
-  auto handler = std::make_shared<IOHandler>(std::forward<Args>(args)...);
-  return IOHandler::start(handler, scheduler);
+  auto handler = std::make_shared<EventHandler>(std::forward<Args>(args)...);
+  return EventHandler::start(handler, scheduler);
 }
 
 } // cuti

@@ -18,6 +18,7 @@
  */
 
 #include "circular_buffer.hpp"
+#include "default_scheduler.hpp"
 #include "endpoint.hpp"
 #include "file_backend.hpp"
 #include "logger.hpp"
@@ -403,7 +404,7 @@ struct logged_tcp_connection_t
   }
 
   template<typename Callback>
-  writable_ticket_t call_when_writable(io_scheduler_t& scheduler,
+  writable_ticket_t call_when_writable(scheduler_t& scheduler,
                                        Callback&& callback)
   {
     if(auto msg = context_.message_at(loglevel_))
@@ -416,7 +417,7 @@ struct logged_tcp_connection_t
   }
 
   template<typename Callback>
-  readable_ticket_t call_when_readable(io_scheduler_t& scheduler,
+  readable_ticket_t call_when_readable(scheduler_t& scheduler,
                                        Callback&& callback)
   {
     if(auto msg = context_.message_at(loglevel_))
@@ -475,7 +476,7 @@ struct producer_t
 
   // SSTS: static start takes shared
   static void start(std::shared_ptr<producer_t> const& self,
-                    io_scheduler_t& scheduler)
+                    scheduler_t& scheduler)
   {
     if(self->writable_ticket_.empty() && self->wants_write())
     {
@@ -522,7 +523,7 @@ private :
 
 private :
   void on_writable(std::shared_ptr<producer_t> const& self,
-                   io_scheduler_t& scheduler)
+                   scheduler_t& scheduler)
   {
     assert(self.get() == this);
 
@@ -569,7 +570,7 @@ struct filter_t
 
   // SSTS: static start takes shared
   static void start(std::shared_ptr<filter_t> const& self,
-                    io_scheduler_t& scheduler)
+                    scheduler_t& scheduler)
   {
     if(self->readable_ticket_.empty() && self->wants_read())
     {
@@ -650,7 +651,7 @@ private :
 
 private :
   void on_readable(std::shared_ptr<filter_t> const& self,
-                   io_scheduler_t& scheduler)
+                   scheduler_t& scheduler)
   {
     assert(self.get() == this);
 
@@ -660,7 +661,7 @@ private :
   }
 
   void on_writable(std::shared_ptr<filter_t> const& self,
-                   io_scheduler_t& scheduler)
+                   scheduler_t& scheduler)
   {
     assert(self.get() == this);
 
@@ -704,7 +705,7 @@ struct consumer_t
 
   // SSTS: static start takes shared
   static void start(std::shared_ptr<consumer_t> const& self,
-                    io_scheduler_t& scheduler)
+                    scheduler_t& scheduler)
   {
     if(self->readable_ticket_.empty() && self->wants_read())
     {
@@ -752,7 +753,7 @@ private :
 
 private :
   void on_readable(std::shared_ptr<consumer_t> const& self,
-                   io_scheduler_t& scheduler)
+                   scheduler_t& scheduler)
   {
     assert(self.get() == this);
 
@@ -914,17 +915,19 @@ void selected_transfer(logging_context_t const& context,
       " bytes to transfer: " << payload.size();
   }
 
-  auto selector = factory();
+  default_scheduler_t scheduler(factory());
 
-  start_io_handler<producer_t>(*selector,
+  start_event_handler<producer_t>(scheduler,
     context, *producer_out, first, last, bufsize);
-  start_io_handler<filter_t>(*selector,
+  start_event_handler<filter_t>(scheduler,
     context, *filter_in, *filter_out, bufsize);
-  start_io_handler<consumer_t>(*selector,
+  start_event_handler<consumer_t>(scheduler,
     context, *consumer_in, first, last, bufsize);
 
-  run_selector(context, loglevel_t::debug, *selector, std::chrono::minutes(1));
-  assert(!selector->has_work());
+  while(scheduler.has_work())
+  {
+    scheduler.wait()();
+  }
 }
 
 void selected_transfer(logging_context_t const& context)
@@ -1032,17 +1035,19 @@ void selected_client_server(logging_context_t const& context,
       " bytes to transfer: " << payload.size();
   }
 
-  auto selector = factory();
+  default_scheduler_t scheduler(factory());
 
-  start_io_handler<producer_t>(*selector,
+  start_event_handler<producer_t>(scheduler,
     context, *client_side, first, last, bufsize);
-  start_io_handler<filter_t>(*selector,
+  start_event_handler<filter_t>(scheduler,
     context, *server_side, *server_side, bufsize);
-  start_io_handler<consumer_t>(*selector,
+  start_event_handler<consumer_t>(scheduler,
     context, *client_side, first, last, bufsize);
 
-  run_selector(context, loglevel_t::debug, *selector, std::chrono::minutes(1));
-  assert(!selector->has_work());
+  while(scheduler.has_work())
+  {
+    scheduler.wait()();
+  }
 }
 
 void selected_client_server(logging_context_t const& context)
@@ -1104,54 +1109,54 @@ void broken_pipe(logging_context_t const& context)
   }
 }
 
-void selector_switch(logging_context_t const& context,
+void scheduler_switch(logging_context_t const& context,
                      selector_factory_t const& factory,
                      endpoint_t const& interface)
 {
-  auto sel1 = factory();
-  auto sel2 = factory();
+  default_scheduler_t sched1(factory());
+  default_scheduler_t sched2(factory());
   auto [conn1, conn2] = make_connected_pair(interface);
 
   if(auto msg = context.message_at(loglevel_t::info))
   {
-    *msg << "selector_switch(): selector: " << factory <<
+    *msg << "scheduler_switch(): selector: " << factory <<
       " conn1: " << *conn1 << " conn2: " << *conn2;
   }
 
-  assert(!sel1->has_work());
-  assert(!sel2->has_work());
+  assert(!sched1.has_work());
+  assert(!sched2.has_work());
 
   readable_ticket_t ticket1;
   writable_ticket_t ticket2;
   assert(ticket1.empty());
   assert(ticket2.empty());
 
-  ticket1 = conn1->call_when_readable(*sel1, [] { });
+  ticket1 = conn1->call_when_readable(sched1, [] { });
   assert(!ticket1.empty());
-  assert(sel1->has_work());
+  assert(sched1.has_work());
 
-  ticket2 = conn2->call_when_writable(*sel1, [] { });
+  ticket2 = conn2->call_when_writable(sched1, [] { });
   assert(!ticket2.empty());
-  assert(sel1->has_work());
+  assert(sched1.has_work());
 
-  sel1->cancel_callback(ticket1);
-  ticket1 = conn1->call_when_readable(*sel2, [] { });
+  sched1.cancel_callback(ticket1);
+  ticket1 = conn1->call_when_readable(sched2, [] { });
   assert(!ticket1.empty());
-  assert(sel1->has_work());
-  assert(sel2->has_work());
+  assert(sched1.has_work());
+  assert(sched2.has_work());
 
-  sel1->cancel_callback(ticket2);
-  ticket2 = conn1->call_when_writable(*sel2, [] { });
+  sched1.cancel_callback(ticket2);
+  ticket2 = conn1->call_when_writable(sched2, [] { });
   assert(!ticket2.empty());
-  assert(!sel1->has_work());
-  assert(sel2->has_work());
+  assert(!sched1.has_work());
+  assert(sched2.has_work());
 
-  sel2->cancel_callback(ticket1);
-  sel2->cancel_callback(ticket2);
-  assert(!sel2->has_work());
+  sched2.cancel_callback(ticket1);
+  sched2.cancel_callback(ticket2);
+  assert(!sched2.has_work());
 }
 
-void selector_switch(logging_context_t const& context)
+void scheduler_switch(logging_context_t const& context)
 {
   auto factories = available_selector_factories();
   auto interfaces = local_interfaces(any_port);
@@ -1160,7 +1165,7 @@ void selector_switch(logging_context_t const& context)
   {
     for(auto const& interface : interfaces)
     {
-      selector_switch(context, factory, interface);
+      scheduler_switch(context, factory, interface);
     }
   }
 }
@@ -1236,7 +1241,7 @@ int throwing_main(int argc, char const* const argv[])
 
   broken_pipe(context);
 
-  selector_switch(context);
+  scheduler_switch(context);
 
   if(auto msg = context.message_at(loglevel_t::info))
   {

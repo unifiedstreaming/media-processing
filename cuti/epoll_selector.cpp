@@ -50,6 +50,26 @@ struct epoll_selector_t : selector_t
   , readable_instance_()
   { }
 
+  int call_when_writable(int fd, callback_t callback) override
+  {
+    return make_ticket(fd, event_t::writable, std::move(callback));
+  }
+
+  void cancel_when_writable(int ticket) noexcept override
+  {
+    cancel_ticket(ticket, writable_instance_.fd_);
+  }
+
+  int call_when_readable(int fd, callback_t callback) override
+  {
+    return make_ticket(fd, event_t::readable, std::move(callback));
+  }
+
+  void cancel_when_readable(int ticket) noexcept override
+  {
+    cancel_ticket(ticket, readable_instance_.fd_);
+  }
+
   bool has_work() const noexcept override
   {
     return !registrations_.list_empty(watched_list_) ||
@@ -136,26 +156,6 @@ private :
 
     int const fd_;
   };
-
-  int do_call_when_writable(int fd, callback_t callback) override
-  {
-    return make_ticket(fd, event_t::writable, std::move(callback));
-  }
-
-  void do_cancel_when_writable(int cancellation_ticket) noexcept override
-  {
-    cancel_ticket(cancellation_ticket, writable_instance_.fd_);
-  }
-
-  int do_call_when_readable(int fd, callback_t callback) override
-  {
-    return make_ticket(fd, event_t::readable, std::move(callback));
-  }
-
-  void do_cancel_when_readable(int cancellation_ticket) noexcept override
-  {
-    cancel_ticket(cancellation_ticket, readable_instance_.fd_);
-  }
 
   int make_ticket(int fd, event_t event, callback_t callback)
   {

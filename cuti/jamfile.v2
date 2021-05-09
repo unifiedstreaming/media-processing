@@ -67,12 +67,12 @@ lib cuti
   callback.cpp
   circular_buffer.cpp
   default_backend.cpp
+  default_scheduler.cpp
   endpoint.cpp
   epoll_selector.cpp
   file_backend.cpp
   fs_utils.cpp
   format.cpp
-  io_scheduler.cpp
   kqueue_selector.cpp
   logger.cpp
   logging_backend.cpp
@@ -82,6 +82,7 @@ lib cuti
   option_walker.cpp
   poll_selector.cpp
   resolver.cpp
+  scheduler.cpp
   scoped_thread.cpp
   select_selector.cpp
   selector.cpp

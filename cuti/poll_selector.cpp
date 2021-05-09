@@ -76,6 +76,26 @@ struct poll_selector_t : selector_t
   , pollfds_()
   { }
 
+  int call_when_writable(int fd, callback_t callback) override
+  {
+    return make_ticket(fd, POLLOUT, std::move(callback));
+  }
+
+  void cancel_when_writable(int ticket) noexcept override
+  {
+    cancel_ticket(ticket);
+  }
+
+  int call_when_readable(int fd, callback_t callback) override
+  {
+    return make_ticket(fd, POLLIN, std::move(callback));
+  }
+
+  void cancel_when_readable(int ticket) noexcept override
+  {
+    cancel_ticket(ticket);
+  }
+
   bool has_work() const noexcept override
   {
     return !callbacks_.list_empty(watched_list_) ||
@@ -132,26 +152,6 @@ struct poll_selector_t : selector_t
   }
 
 private :
-  int do_call_when_writable(int fd, callback_t callback) override
-  {
-    return make_ticket(fd, POLLOUT, std::move(callback));
-  }
-
-  void do_cancel_when_writable(int cancellation_ticket) noexcept override
-  {
-    cancel_ticket(cancellation_ticket);
-  }
-
-  int do_call_when_readable(int fd, callback_t callback) override
-  {
-    return make_ticket(fd, POLLIN, std::move(callback));
-  }
-
-  void do_cancel_when_readable(int cancellation_ticket) noexcept override
-  {
-    cancel_ticket(cancellation_ticket);
-  }
-
   int make_ticket(int fd, int events, callback_t callback)
   {
     assert(fd != -1);

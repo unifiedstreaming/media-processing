@@ -20,9 +20,8 @@
 #ifndef CUTI_SELECTOR_HPP_
 #define CUTI_SELECTOR_HPP_
 
-#include "io_scheduler.hpp"
+#include "callback.hpp"
 #include "linkage.h"
-#include "loglevel.hpp"
 #include "socket_nifty.hpp"
 
 #include <chrono>
@@ -30,12 +29,11 @@
 namespace cuti
 {
 
-struct logging_context_t;
-
 /*
- * Abstract selector interface
+ * Abstract network event selector interface
  */
-struct CUTI_ABI selector_t : io_scheduler_t
+
+struct CUTI_ABI selector_t
 {
   using timeout_t = std::chrono::system_clock::duration;
 
@@ -46,6 +44,32 @@ struct CUTI_ABI selector_t : io_scheduler_t
   selector_t& operator=(selector_t const&) = delete;
 
   /*
+   * Schedules a one-time callback for when fd is ready for writing.
+   * Returns a cancellation ticket that may be passed to
+   * cancel_when_writable().  The ticket remains valid until the
+   * callback is selected.
+   */
+  virtual int call_when_writable(int fd, callback_t callback) = 0;
+
+  /*
+   * Cancels a callback scheduled with call_when_writable.
+   */
+  virtual void cancel_when_writable(int ticket) noexcept = 0;
+
+  /*
+   * Schedules a one-time callback for when fd is ready for reading.
+   * Returns a cancellation ticket that may be passed to
+   * cancel_when_readable().  The ticket remains valid until the
+   * callback is selected.
+   */
+  virtual int call_when_readable(int fd, callback_t callback) = 0;
+
+  /*
+   * Cancels a callback scheduled with call_when_writable.
+   */
+  virtual void cancel_when_readable(int ticket) noexcept = 0;
+
+  /*
    * Returns true if there are any pending callbacks, false otherwise.
    */
   virtual bool has_work() const noexcept = 0;
@@ -54,13 +78,13 @@ struct CUTI_ABI selector_t : io_scheduler_t
    * Waits for no longer than <timeout> for an I/O event to occur,
    * returning either the non-empty callback for the first detected
    * event, or an empty callback if no event was detected yet.
+   *   
+   * Spurious early returns are possible, so please keep in mind that,
+   * in rare cases, this function may return an empty callback before
+   * the timeout is reached.
    *
    * If <timeout> is negative, no timeout is applied; if <timeout> is
    * zero, this function does not block.
-   *
-   * Callers are expected to deal with spurious early returns: please
-   * keep in mind that, in rare cases, this function may return an
-   * empty callback before the timeout is reached.
    *
    * Precondition: this->has_work()
    */
@@ -69,24 +93,9 @@ struct CUTI_ABI selector_t : io_scheduler_t
   virtual ~selector_t();
 
 protected :
+  enum class event_t { writable, readable };
   static int timeout_millis(timeout_t timeout);
 };
-
-/*
- * Keep invoking the callbacks returned from <selector>.select() for
- * no longer than <timeout>.  <timeout> must not be negative; if it is
- * zero, this function invokes at most one callback and does not wait
- * for further events.  Returns early when <selector> runs out of
- * work.
- * Usually, you'll want more than just a (single) selector to
- * drive an event loop; this function mainly exists for testing
- * purposes.
- */
-CUTI_ABI
-void run_selector(logging_context_t const& context,
-                  loglevel_t loglevel,
-                  selector_t& selector,
-                  selector_t::timeout_t timeout);
 
 } // cuti
 

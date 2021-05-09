@@ -19,8 +19,6 @@
 
 #include "selector.hpp"
 
-#include "logging_context.hpp"
-
 namespace cuti
 {
 
@@ -61,65 +59,6 @@ int selector_t::timeout_millis(timeout_t timeout)
   }
 
   return result;
-}
-
-void run_selector(logging_context_t const& context,
-                  loglevel_t loglevel,
-                  selector_t& selector,
-                  selector_t::timeout_t timeout)
-{
-  assert(timeout >= selector_t::timeout_t::zero());
-
-  auto now = std::chrono::system_clock::now();
-  auto const limit = now + timeout;
-
-  do
-  {
-    if(!selector.has_work())
-    {
-      break;
-    }
-
-    timeout = limit - now;
-    if(auto msg = context.message_at(loglevel))
-    {
-      auto milliseconds = std::chrono::duration_cast<
-        std::chrono::milliseconds>(timeout).count();
-      *msg << "run_selector(): awaiting callback for " <<
-        milliseconds << " millisecond(s)...";
-    }
-
-    auto callback = selector.select(timeout);
-    if(callback == nullptr)
-    {
-      if(auto msg = context.message_at(loglevel))
-      {
-        *msg << "run_selector(): got empty callback";
-      }
-    }
-    else
-    {
-      if(auto msg = context.message_at(loglevel))
-      {
-        *msg << "run_selector(): invoking callback";
-      }
-      callback();
-    }
-
-    now = std::chrono::system_clock::now();
-  } while(now < limit);
-
-  if(auto msg = context.message_at(loglevel))
-  {
-    if(selector.has_work())
-    {
-      *msg << "run_selector(): timeout";
-    }
-    else
-    {
-      *msg << "run_selector(): out of work";
-    }
-  }
 }
 
 } // cuti
