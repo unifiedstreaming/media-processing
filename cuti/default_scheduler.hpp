@@ -30,8 +30,6 @@
 namespace cuti
 {
 
-struct selector_t;
-
 /*
  * Cuti's default scheduler implementation, providing has_work(),
  * poll() (for testing purposes) and wait() (for writing an event
