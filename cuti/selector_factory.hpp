@@ -17,11 +17,11 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#ifndef CUTI_IO_SELECTOR_FACTORY_HPP_
-#define CUTI_IO_SELECTOR_FACTORY_HPP_
+#ifndef CUTI_SELECTOR_FACTORY_HPP_
+#define CUTI_SELECTOR_FACTORY_HPP_
 
-#include "io_selector.hpp"
 #include "linkage.h"
+#include "selector.hpp"
 #include "socket_nifty.hpp"
 
 #include <iosfwd>
@@ -31,11 +31,11 @@
 namespace cuti
 {
 
-struct CUTI_ABI io_selector_factory_t
+struct CUTI_ABI selector_factory_t
 {
   template<int N>
-  io_selector_factory_t(char const(&name)[N],
-                        std::unique_ptr<io_selector_t>(&creator)())
+  selector_factory_t(char const(&name)[N],
+                     std::unique_ptr<selector_t>(&creator)())
   : name_(name)
   , creator_(creator)
   { }
@@ -43,20 +43,19 @@ struct CUTI_ABI io_selector_factory_t
   char const* name() const noexcept
   { return name_; }
 
-  std::unique_ptr<io_selector_t> operator()() const
+  std::unique_ptr<selector_t> operator()() const
   { return (*creator_)(); }
 
 private :
   char const* name_;
-  std::unique_ptr<io_selector_t>(*creator_)();
+  std::unique_ptr<selector_t>(*creator_)();
 };
 
 CUTI_ABI
-std::ostream& operator<<(std::ostream& os,
-                         io_selector_factory_t const& factory);
+std::ostream& operator<<(std::ostream& os, selector_factory_t const& factory);
 
 CUTI_ABI
-std::vector<io_selector_factory_t> available_io_selector_factories();
+std::vector<selector_factory_t> available_selector_factories();
 
 } // cuti
 

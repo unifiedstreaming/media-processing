@@ -65,10 +65,10 @@ std::size_t max_pollfds_size()
   return result;
 }
 
-struct poll_selector_t : io_selector_t
+struct poll_selector_t : selector_t
 {
   poll_selector_t()
-  : io_selector_t()
+  : selector_t()
   , callbacks_()
   , watched_list_(callbacks_.add_list())
   , pending_list_(callbacks_.add_list())
@@ -205,7 +205,7 @@ private :
 
 } // anonymous
 
-std::unique_ptr<io_selector_t> create_poll_selector()
+std::unique_ptr<selector_t> create_poll_selector()
 {
   return std::make_unique<poll_selector_t>();
 }

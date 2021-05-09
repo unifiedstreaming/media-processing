@@ -17,8 +17,8 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#ifndef CUTI_IO_SELECTOR_HPP_
-#define CUTI_IO_SELECTOR_HPP_
+#ifndef CUTI_SELECTOR_HPP_
+#define CUTI_SELECTOR_HPP_
 
 #include "io_scheduler.hpp"
 #include "linkage.h"
@@ -33,17 +33,17 @@ namespace cuti
 struct logging_context_t;
 
 /*
- * Abstract io_selector interface
+ * Abstract selector interface
  */
-struct CUTI_ABI io_selector_t : io_scheduler_t
+struct CUTI_ABI selector_t : io_scheduler_t
 {
   using timeout_t = std::chrono::system_clock::duration;
 
-  io_selector_t()
+  selector_t()
   { }
 
-  io_selector_t(io_selector_t const&) = delete;
-  io_selector_t& operator=(io_selector_t const&) = delete;
+  selector_t(selector_t const&) = delete;
+  selector_t& operator=(selector_t const&) = delete;
 
   /*
    * Returns true if there are any pending callbacks, false otherwise.
@@ -66,7 +66,7 @@ struct CUTI_ABI io_selector_t : io_scheduler_t
    */
   virtual callback_t select(timeout_t timeout) = 0;
 
-  virtual ~io_selector_t();
+  virtual ~selector_t();
 
 protected :
   static int timeout_millis(timeout_t timeout);
@@ -83,10 +83,10 @@ protected :
  * purposes.
  */
 CUTI_ABI
-void run_io_selector(logging_context_t const& context,
-                     loglevel_t loglevel,
-                     io_selector_t& selector,
-                     io_selector_t::timeout_t timeout);
+void run_selector(logging_context_t const& context,
+                  loglevel_t loglevel,
+                  selector_t& selector,
+                  selector_t::timeout_t timeout);
 
 } // cuti
 

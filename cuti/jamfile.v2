@@ -73,8 +73,6 @@ lib cuti
   fs_utils.cpp
   format.cpp
   io_scheduler.cpp
-  io_selector.cpp
-  io_selector_factory.cpp
   kqueue_selector.cpp
   logger.cpp
   logging_backend.cpp
@@ -86,6 +84,8 @@ lib cuti
   resolver.cpp
   scoped_thread.cpp
   select_selector.cpp
+  selector.cpp
+  selector_factory.cpp
   socket_nifty.cpp
   streambuf_backend.cpp
   syslog_backend.cpp

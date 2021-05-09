@@ -20,11 +20,11 @@
 #include "tcp_acceptor.hpp"
 
 #include "endpoint.hpp"
-#include "io_selector.hpp"
-#include "io_selector_factory.hpp"
 #include "logging_context.hpp"
 #include "logger.hpp"
 #include "resolver.hpp"
+#include "selector.hpp"
+#include "selector_factory.hpp"
 #include "streambuf_backend.hpp"
 #include "system_error.hpp"
 #include "tcp_connection.hpp"
@@ -358,7 +358,7 @@ void dual_stack(logging_context_t const& context)
 }
 
 void empty_selector(logging_context_t& context,
-                    io_selector_factory_t const& factory)
+                    selector_factory_t const& factory)
 {
   if(auto msg = context.message_at(loglevel))
   {
@@ -366,13 +366,13 @@ void empty_selector(logging_context_t& context,
   }
 
   auto selector = factory();
-  run_io_selector(context, loglevel, *selector, std::chrono::seconds(60));
+  run_selector(context, loglevel, *selector, std::chrono::seconds(60));
   assert(!selector->has_work());
 }
 
 void empty_selector(logging_context_t& context)
 {
-  auto factories = available_io_selector_factories();
+  auto factories = available_selector_factories();
   for(auto const& factory : factories)
   {
     empty_selector(context, factory);
@@ -380,7 +380,7 @@ void empty_selector(logging_context_t& context)
 }
 
 void no_client(logging_context_t& context,
-               io_selector_factory_t const& factory,
+               selector_factory_t const& factory,
                endpoint_t const& interface)
 {
   auto selector = factory();
@@ -392,13 +392,13 @@ void no_client(logging_context_t& context,
       " selector; protector: " << protector;
   }
 
-  run_io_selector(context, loglevel, *selector, std::chrono::seconds(0));
+  run_selector(context, loglevel, *selector, std::chrono::seconds(0));
   assert(selector->has_work());
 }
 
 void no_client(logging_context_t& context)
 {
-  auto factories = available_io_selector_factories();
+  auto factories = available_selector_factories();
   auto interfaces = local_interfaces(any_port);
 
   for(auto const& factory : factories)
@@ -411,7 +411,7 @@ void no_client(logging_context_t& context)
 }
 
 void single_client(logging_context_t& context,
-                   io_selector_factory_t const& factory,
+                   selector_factory_t const& factory,
                    endpoint_t const& interface)
 {
   auto selector = factory();
@@ -423,7 +423,7 @@ void single_client(logging_context_t& context,
       " selector; protector: " << protector;
   }
 
-  run_io_selector(context, loglevel, *selector, std::chrono::seconds(0));
+  run_selector(context, loglevel, *selector, std::chrono::seconds(0));
   assert(selector->has_work());
 
   tcp_connection_t client(protector);
@@ -432,13 +432,13 @@ void single_client(logging_context_t& context,
     *msg << "single_client(): client " << client;
   }
 
-  run_io_selector(context, loglevel, *selector, std::chrono::seconds(60));
+  run_selector(context, loglevel, *selector, std::chrono::seconds(60));
   assert(!selector->has_work());
 }
 
 void single_client(logging_context_t& context)
 {
-  auto factories = available_io_selector_factories();
+  auto factories = available_selector_factories();
   auto interfaces = local_interfaces(any_port);
 
   for(auto const& factory : factories)
@@ -451,7 +451,7 @@ void single_client(logging_context_t& context)
 }
 
 void multiple_clients(logging_context_t& context,
-                      io_selector_factory_t const& factory,
+                      selector_factory_t const& factory,
                       endpoint_t const& interface)
 {
   auto selector = factory();
@@ -463,7 +463,7 @@ void multiple_clients(logging_context_t& context,
       " selector; protector: " << protector;
   }
 
-  run_io_selector(context, loglevel, *selector, std::chrono::seconds(0));
+  run_selector(context, loglevel, *selector, std::chrono::seconds(0));
   assert(selector->has_work());
 
   tcp_connection_t client1(protector);
@@ -474,13 +474,13 @@ void multiple_clients(logging_context_t& context,
       " client2: " << client2;
   }
 
-  run_io_selector(context, loglevel, *selector, std::chrono::seconds(60));
+  run_selector(context, loglevel, *selector, std::chrono::seconds(60));
   assert(!selector->has_work());
 }
 
 void multiple_clients(logging_context_t& context)
 {
-  auto factories = available_io_selector_factories();
+  auto factories = available_selector_factories();
   auto interfaces = local_interfaces(any_port);
 
   for(auto const& factory : factories)
@@ -493,7 +493,7 @@ void multiple_clients(logging_context_t& context)
 }
 
 void multiple_acceptors(logging_context_t& context,
-                        io_selector_factory_t const& factory,
+                        selector_factory_t const& factory,
                         endpoint_t const& interface)
 {
   auto selector = factory();
@@ -509,7 +509,7 @@ void multiple_acceptors(logging_context_t& context,
       " protector2: " << protector2;
   }
 
-  run_io_selector(context, loglevel, *selector, std::chrono::seconds(0));
+  run_selector(context, loglevel, *selector, std::chrono::seconds(0));
   assert(selector->has_work());
 
   tcp_connection_t client1(protector1);
@@ -520,13 +520,13 @@ void multiple_acceptors(logging_context_t& context,
       " client2: " << client2;
   }
 
-  run_io_selector(context, loglevel, *selector, std::chrono::seconds(60));
+  run_selector(context, loglevel, *selector, std::chrono::seconds(60));
   assert(!selector->has_work());
 }
 
 void multiple_acceptors(logging_context_t& context)
 {
-  auto factories = available_io_selector_factories();
+  auto factories = available_selector_factories();
   auto interfaces = local_interfaces(any_port);
 
   for(auto const& factory : factories)
@@ -539,7 +539,7 @@ void multiple_acceptors(logging_context_t& context)
 }
 
 void selector_switch(logging_context_t& context,
-                     io_selector_factory_t const& factory,
+                     selector_factory_t const& factory,
                      endpoint_t const& interface)
 {
   auto selector1 = factory();
@@ -576,7 +576,7 @@ void selector_switch(logging_context_t& context,
 
 void selector_switch(logging_context_t& context)
 {
-  auto factories = available_io_selector_factories();
+  auto factories = available_selector_factories();
   auto interfaces = local_interfaces(any_port);
 
   for(auto const& factory : factories)

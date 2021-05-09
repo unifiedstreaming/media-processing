@@ -17,7 +17,7 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#include "io_selector_factory.hpp"
+#include "selector_factory.hpp"
 
 #include "epoll_selector.hpp"
 #include "kqueue_selector.hpp"
@@ -29,16 +29,15 @@
 namespace cuti
 {
 
-std::ostream& operator<<(std::ostream& os,
-                         io_selector_factory_t const& factory)
+std::ostream& operator<<(std::ostream& os, selector_factory_t const& factory)
 {
   os << factory.name();
   return os;
 }
 
-std::vector<io_selector_factory_t> available_io_selector_factories()
+std::vector<selector_factory_t> available_selector_factories()
 {
-  std::vector<io_selector_factory_t> result;
+  std::vector<selector_factory_t> result;
 
 #if CUTI_HAS_POLL_SELECTOR
   result.emplace_back("poll", create_poll_selector);

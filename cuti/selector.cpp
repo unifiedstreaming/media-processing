@@ -17,17 +17,17 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#include "io_selector.hpp"
+#include "selector.hpp"
 
 #include "logging_context.hpp"
 
 namespace cuti
 {
 
-io_selector_t::~io_selector_t()
+selector_t::~selector_t()
 { }
 
-int io_selector_t::timeout_millis(timeout_t timeout)
+int selector_t::timeout_millis(timeout_t timeout)
 {
   static timeout_t const zero = timeout_t::zero();
   static int const max_millis = 30000;
@@ -63,12 +63,12 @@ int io_selector_t::timeout_millis(timeout_t timeout)
   return result;
 }
 
-void run_io_selector(logging_context_t const& context,
-                     loglevel_t loglevel,
-                     io_selector_t& selector,
-                     io_selector_t::timeout_t timeout)
+void run_selector(logging_context_t const& context,
+                  loglevel_t loglevel,
+                  selector_t& selector,
+                  selector_t::timeout_t timeout)
 {
-  assert(timeout >= io_selector_t::timeout_t::zero());
+  assert(timeout >= selector_t::timeout_t::zero());
 
   auto now = std::chrono::system_clock::now();
   auto const limit = now + timeout;
@@ -85,7 +85,7 @@ void run_io_selector(logging_context_t const& context,
     {
       auto milliseconds = std::chrono::duration_cast<
         std::chrono::milliseconds>(timeout).count();
-      *msg << "run_io_selector(): awaiting callback for " <<
+      *msg << "run_selector(): awaiting callback for " <<
         milliseconds << " millisecond(s)...";
     }
 
@@ -94,14 +94,14 @@ void run_io_selector(logging_context_t const& context,
     {
       if(auto msg = context.message_at(loglevel))
       {
-        *msg << "run_io_selector(): got empty callback";
+        *msg << "run_selector(): got empty callback";
       }
     }
     else
     {
       if(auto msg = context.message_at(loglevel))
       {
-        *msg << "run_io_selector(): invoking callback";
+        *msg << "run_selector(): invoking callback";
       }
       callback();
     }
@@ -113,11 +113,11 @@ void run_io_selector(logging_context_t const& context,
   {
     if(selector.has_work())
     {
-      *msg << "run_io_selector(): timeout";
+      *msg << "run_selector(): timeout";
     }
     else
     {
-      *msg << "run_io_selector(): out of work";
+      *msg << "run_selector(): out of work";
     }
   }
 }

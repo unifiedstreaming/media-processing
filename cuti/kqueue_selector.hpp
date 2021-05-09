@@ -21,7 +21,7 @@
 #define CUTI_KQUEUE_SELECTOR_HPP_
 
 #include "linkage.h"
-#include "io_selector.hpp"
+#include "selector.hpp"
 
 #include <memory>
 
@@ -37,7 +37,7 @@ namespace cuti
 {
 
 CUTI_ABI
-std::unique_ptr<io_selector_t> create_kqueue_selector();
+std::unique_ptr<selector_t> create_kqueue_selector();
 
 } // cuti
 
