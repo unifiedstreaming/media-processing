@@ -65,7 +65,7 @@ struct CUTI_ABI selector_t
   virtual int call_when_readable(int fd, callback_t callback) = 0;
 
   /*
-   * Cancels a callback scheduled with call_when_writable.
+   * Cancels a callback scheduled with call_when_readable.
    */
   virtual void cancel_when_readable(int ticket) noexcept = 0;
 
