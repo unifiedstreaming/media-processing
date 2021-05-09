@@ -22,13 +22,15 @@
 
 #include "linkage.h"
 #include "scheduler.hpp"
-#include "selector.hpp"
+#include "socket_nifty.hpp"
 
 #include <chrono>
 #include <memory>
 
 namespace cuti
 {
+
+struct selector_t;
 
 /*
  * Cuti's default scheduler implementation, providing has_work(),
@@ -54,8 +56,11 @@ struct CUTI_ABI default_scheduler_t : scheduler_t
    * Checks if any of the registered events have occurred, without
    * blocking.  Returns the first event's corresponding callback if an
    * event was detected, and nullptr otherwise.
+   *
    * This function should only be used for testing purposes, to prove
-   * that some event did not yet occur.
+   * that some event did not yet occur.  If you need to poll in
+   * production code, consider writing your own scheduler
+   * implementation that adapts to your event loop.
    *   
    * Precondition: this->has_work().
    */
