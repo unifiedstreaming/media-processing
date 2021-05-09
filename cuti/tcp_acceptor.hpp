@@ -68,7 +68,7 @@ struct CUTI_ABI tcp_acceptor_t
    */
   template<typename Callback>
   ready_ticket_t call_when_ready(scheduler_t& scheduler,
-                                 Callback&& callback)
+                                 Callback&& callback) const
   {
     return socket_.call_when_readable(scheduler,
       std::forward<Callback>(callback));
