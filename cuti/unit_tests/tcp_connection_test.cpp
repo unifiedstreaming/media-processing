@@ -921,13 +921,15 @@ void selected_transfer(logging_context_t const& context,
     context, *producer_out, first, last, bufsize);
   start_event_handler<filter_t>(scheduler,
     context, *filter_in, *filter_out, bufsize);
-  start_event_handler<consumer_t>(scheduler,
+  auto consumer = start_event_handler<consumer_t>(scheduler,
     context, *consumer_in, first, last, bufsize);
 
-  while(scheduler.has_work())
+  while(auto callback = scheduler.wait())
   {
-    scheduler.wait()();
+    callback();
   }
+
+  assert(consumer->done());
 }
 
 void selected_transfer(logging_context_t const& context)
@@ -1041,13 +1043,15 @@ void selected_client_server(logging_context_t const& context,
     context, *client_side, first, last, bufsize);
   start_event_handler<filter_t>(scheduler,
     context, *server_side, *server_side, bufsize);
-  start_event_handler<consumer_t>(scheduler,
+  auto consumer = start_event_handler<consumer_t>(scheduler,
     context, *client_side, first, last, bufsize);
 
-  while(scheduler.has_work())
+  while(auto callback = scheduler.wait())
   {
-    scheduler.wait()();
+    callback();
   }
+
+  assert(consumer->done());
 }
 
 void selected_client_server(logging_context_t const& context)

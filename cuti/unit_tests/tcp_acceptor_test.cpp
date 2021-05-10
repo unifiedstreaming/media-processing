@@ -67,9 +67,14 @@ struct dos_protector_t
     return acceptor_.local_endpoint();
   }
 
+  bool done() const
+  {
+    return count_ <= 0;
+  }
+
   // SSTS: static start takes shared
-  static endpoint_t start(std::shared_ptr<dos_protector_t> const& self,
-                          scheduler_t& scheduler)
+  static void start(std::shared_ptr<dos_protector_t> const& self,
+                    scheduler_t& scheduler)
   {
     if(self->count_ > 0)
     {
@@ -81,7 +86,6 @@ struct dos_protector_t
       self->acceptor_.call_when_ready(scheduler,
         [self, &scheduler] { on_ready(self, scheduler); });
     }
-    return self->local_endpoint();
   }
 
   ~dos_protector_t()
@@ -125,14 +129,6 @@ private :
   tcp_acceptor_t acceptor_;
   int count_;
 };
-
-// SSTS: static start takes shared
-template<typename... Args>
-endpoint_t start_dos_protector(scheduler_t& scheduler, Args&&... args)
-{
-  return start_event_handler<dos_protector_t>(
-    scheduler, std::forward<Args>(args)...);
-}
 
 void blocking_accept(logging_context_t const& context,
                      endpoint_t const& interface)
@@ -358,24 +354,26 @@ void dual_stack(logging_context_t const& context)
   assert(proven);
 }
 
-void empty_selector(logging_context_t& context,
+void empty_scheduler(logging_context_t& context,
                     selector_factory_t const& factory)
 {
   if(auto msg = context.message_at(loglevel))
   {
-    *msg << "empty_selector(): using " << factory << " selector";
+    *msg << "empty_scheduler(): using " << factory << " selector";
   }
 
   default_scheduler_t scheduler(factory());
+
   assert(!scheduler.has_work());
+  assert(scheduler.wait() == nullptr);
 }
 
-void empty_selector(logging_context_t& context)
+void empty_scheduler(logging_context_t& context)
 {
   auto factories = available_selector_factories();
   for(auto const& factory : factories)
   {
-    empty_selector(context, factory);
+    empty_scheduler(context, factory);
   }
 }
 
@@ -384,16 +382,20 @@ void no_client(logging_context_t& context,
                endpoint_t const& interface)
 {
   default_scheduler_t scheduler(factory());
-  endpoint_t protector = start_dos_protector(scheduler, context, interface, 1);
+  assert(!scheduler.has_work());
+
+  auto protector = start_event_handler<dos_protector_t>(
+    scheduler, context, interface, 1);
+  endpoint_t endpoint = protector->local_endpoint();
 
   if(auto msg = context.message_at(loglevel))
   {
     *msg << "no_client(): using " << factory <<
-      " selector; protector: " << protector;
+      " selector; protector: " << endpoint;
   }
 
   assert(scheduler.has_work());
-  assert(scheduler.poll() == nullptr);
+  assert(!protector->done());
 }
 
 void no_client(logging_context_t& context)
@@ -415,27 +417,34 @@ void single_client(logging_context_t& context,
                    endpoint_t const& interface)
 {
   default_scheduler_t scheduler(factory());
-  endpoint_t protector = start_dos_protector(scheduler, context, interface, 1);
+  assert(!scheduler.has_work());
+
+  auto protector = start_event_handler<dos_protector_t>(
+    scheduler, context, interface, 1);
+  endpoint_t endpoint = protector->local_endpoint();
+
+  assert(scheduler.has_work());
+  assert(!protector->done());
 
   if(auto msg = context.message_at(loglevel))
   {
     *msg << "single_client(): using " << factory <<
-      " selector; protector: " << protector;
+      " selector; protector: " << endpoint;
   }
 
-  assert(scheduler.has_work());
-  assert(scheduler.poll() == nullptr);
-
-  tcp_connection_t client(protector);
+  tcp_connection_t client(endpoint);
   if(auto msg = context.message_at(loglevel))
   {
     *msg << "single_client(): client " << client;
   }
 
-  while(scheduler.has_work())
+  while(callback_t callback = scheduler.wait())
   {
-    scheduler.wait()();
+    callback();
   }
+
+  assert(!scheduler.has_work());
+  assert(protector->done());
 }
 
 void single_client(logging_context_t& context)
@@ -457,29 +466,36 @@ void multiple_clients(logging_context_t& context,
                       endpoint_t const& interface)
 {
   default_scheduler_t scheduler(factory());
-  endpoint_t protector = start_dos_protector(scheduler, context, interface, 2);
+  assert(!scheduler.has_work());
+  
+  auto protector = start_event_handler<dos_protector_t>(
+    scheduler, context, interface, 2);
+  endpoint_t endpoint = protector->local_endpoint();
+
+  assert(scheduler.has_work());
+  assert(!protector->done());
 
   if(auto msg = context.message_at(loglevel))
   {
     *msg << "multiple_clients(): using " << factory <<
-      " selector; protector: " << protector;
+      " selector; protector: " << endpoint;
   }
 
-  assert(scheduler.has_work());
-  assert(scheduler.poll() == nullptr);
-
-  tcp_connection_t client1(protector);
-  tcp_connection_t client2(protector);
+  tcp_connection_t client1(endpoint);
+  tcp_connection_t client2(endpoint);
   if(auto msg = context.message_at(loglevel))
   {
     *msg << "multiple_clients(): client1: " << client1 <<
       " client2: " << client2;
   }
 
-  while(scheduler.has_work())
+  while(callback_t callback = scheduler.wait())
   {
-    scheduler.wait()();
+    callback();
   }
+
+  assert(!scheduler.has_work());
+  assert(protector->done());
 }
 
 void multiple_clients(logging_context_t& context)
@@ -501,33 +517,43 @@ void multiple_acceptors(logging_context_t& context,
                         endpoint_t const& interface)
 {
   default_scheduler_t scheduler(factory());
-  endpoint_t protector1 = start_dos_protector(
+  assert(!scheduler.has_work());
+
+  auto protector1 = start_event_handler<dos_protector_t>(
     scheduler, context, interface, 1);
-  endpoint_t protector2 = start_dos_protector(
+  endpoint_t endpoint1 = protector1->local_endpoint();
+
+  auto protector2 = start_event_handler<dos_protector_t>(
     scheduler, context, interface, 1);
+  endpoint_t endpoint2 = protector2->local_endpoint();
+
+  assert(scheduler.has_work());
+  assert(!protector1->done());
+  assert(!protector2->done());
 
   if(auto msg = context.message_at(loglevel))
   {
     *msg << "multiple_acceptors(): using " << factory <<
-      " selector; protector1: " << protector1 <<
-      " protector2: " << protector2;
+      " selector; protector1: " << endpoint1 <<
+      " protector2: " << endpoint2;
   }
 
-  assert(scheduler.has_work());
-  assert(scheduler.poll() == nullptr);
-
-  tcp_connection_t client1(protector1);
-  tcp_connection_t client2(protector2);
+  tcp_connection_t client1(endpoint1);
+  tcp_connection_t client2(endpoint2);
   if(auto msg = context.message_at(loglevel))
   {
     *msg << "multiple_acceptors(): client1: " << client1 <<
       " client2: " << client2;
   }
 
-  while(scheduler.has_work())
+  while(callback_t callback = scheduler.wait())
   {
-    scheduler.wait()();
+    callback();
   }
+
+  assert(!scheduler.has_work());
+  assert(protector1->done());
+  assert(protector2->done());
 }
 
 void multiple_acceptors(logging_context_t& context)
@@ -606,7 +632,7 @@ int throwing_main(int argc, char const* const argv[])
   duplicate_bind(context);
   dual_stack(context);
 
-  empty_selector(context);
+  empty_scheduler(context);
   no_client(context);
   single_client(context);
   multiple_clients(context);

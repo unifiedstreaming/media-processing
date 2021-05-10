@@ -20,27 +20,22 @@
 #ifndef CUTI_DEFAULT_SCHEDULER_HPP_
 #define CUTI_DEFAULT_SCHEDULER_HPP_
 
+#include "indexed_heap.hpp"
 #include "linkage.h"
 #include "scheduler.hpp"
-#include "socket_nifty.hpp"
+#include "selector.hpp"
 
-#include <chrono>
+#include <functional>
 #include <memory>
 
 namespace cuti
 {
 
-struct selector_t;
-
 /*
- * Cuti's default scheduler implementation, providing has_work(),
- * poll() (for testing purposes) and wait() (for writing an event
- * loop).
+ * Cuti's default scheduler implementation.
  */
 struct CUTI_ABI default_scheduler_t : scheduler_t
 {
-  using timeout_t = std::chrono::system_clock::duration;
-
   /*
    * Constructs a default scheduler using the specified selector
    * instance.  <selector> must be != nullptr.
@@ -48,41 +43,28 @@ struct CUTI_ABI default_scheduler_t : scheduler_t
   explicit default_scheduler_t(std::unique_ptr<selector_t> selector);
 
   /*
-   * Returns true if there are any pending callbacks, false otherwise.
+   * Tells if there are any registered events.
    */
-  bool has_work() const noexcept;
+  bool has_work() const noexcept
+  { return !alarms_.empty() || selector_->has_work(); }
 
   /*
-   * Checks if any of the registered events have occurred, without
-   * blocking.  Returns the first event's corresponding callback if an
-   * event was detected, and nullptr otherwise.
-   *
-   * This function should only be used for testing purposes, to prove
-   * that some event did not yet occur.  If you need to poll in
-   * production code, consider writing your own scheduler
-   * implementation that adapts to your event loop.
-   *   
-   * Precondition: this->has_work().
-   */
-  callback_t poll();
-
-  /*
-   * Waits for any of the registered events to occur, and returns the
-   * first event's corresponding callback.
-   *
-   * Precondition: this->has_work().
+   * Waits for any of the registered events to occur and returns the
+   * first event's callback, or nullptr if the scheduler is out of
+   * work.
    */
   callback_t wait();
   
-  ~default_scheduler_t() override;
-
 private :
+  int do_call_at(timepoint_t timepoint, callback_t callback) override;
+  void do_cancel_at(int ticket) noexcept override;
   int do_call_when_writable(int fd, callback_t callback) override;
   void do_cancel_when_writable(int ticket) noexcept override;
   int do_call_when_readable(int fd, callback_t callback) override;
   void do_cancel_when_readable(int ticket) noexcept override;
 
 private :
+  indexed_heap_t<timepoint_t, callback_t, std::less<timepoint_t>> alarms_;
   std::unique_ptr<selector_t> selector_;
 };
 

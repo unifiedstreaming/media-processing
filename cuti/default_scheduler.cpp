@@ -21,38 +21,65 @@
 #include "selector.hpp"
 
 #include <cassert>
+#include <thread>
 #include <utility>
 
 namespace cuti
 {
 
 default_scheduler_t::default_scheduler_t(std::unique_ptr<selector_t> selector)
-: selector_((assert(selector != nullptr), std::move(selector)))
+: alarms_()
+, selector_((assert(selector != nullptr), std::move(selector)))
 { }
-
-bool default_scheduler_t::has_work() const noexcept
-{
-  return selector_->has_work();
-}
-
-callback_t default_scheduler_t::poll()
-{
-  assert(this->has_work());
-  return selector_->select(selector_t::timeout_t::zero());
-}
 
 callback_t default_scheduler_t::wait()
 {
-  assert(this->has_work());
+  callback_t result = nullptr;
 
-  callback_t result;
-  do
+  if(!alarms_.empty())
   {
-    result = selector_->select(selector_t::timeout_t(-1));
-  } while(result == nullptr);
+    int alarm_id = alarms_.front_element();
+    auto limit = alarms_.priority(alarm_id);
+    do
+    {
+      auto now = std::chrono::system_clock::now();
+      if(now >= limit)
+      {
+        result = std::move(alarms_.value(alarm_id));
+	assert(result != nullptr);
+	alarms_.remove_element(alarm_id);
+      }
+      else if(selector_->has_work())
+      {
+        result = selector_->select(limit - now);
+      }
+      else
+      {
+        std::this_thread::sleep_for(limit - now);
+      }
+    } while(result == nullptr);
+  }
+  else if(selector_->has_work())
+  {
+    do
+    {
+      result = selector_->select(timeout_t(-1));
+    } while(result == nullptr);
+  }
+
   return result;
 }
-  
+
+int default_scheduler_t::do_call_at(timepoint_t timepoint, callback_t callback)
+{
+  return alarms_.add_element(timepoint, std::move(callback));
+}
+
+void default_scheduler_t::do_cancel_at(int ticket) noexcept
+{
+  alarms_.remove_element(ticket);
+}
+
 int default_scheduler_t::do_call_when_writable(int fd, callback_t callback)
 {
   return selector_->call_when_writable(fd, std::move(callback));
@@ -72,9 +99,6 @@ void default_scheduler_t::do_cancel_when_readable(int ticket) noexcept
 {
   return selector_->cancel_when_readable(ticket);
 }
-
-default_scheduler_t::~default_scheduler_t()
-{ }
 
 } // cuti
 

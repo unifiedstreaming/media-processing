@@ -24,6 +24,7 @@
 #include "linkage.h"
 
 #include <cassert>
+#include <chrono>
 #include <utility>
 #include <memory>
 
@@ -40,14 +41,26 @@ namespace cuti
  */
 struct CUTI_ABI scheduler_t
 {
+  using timepoint_t = std::chrono::system_clock::time_point;
+  using timeout_t = std::chrono::system_clock::duration;
+
+  struct alarm_tag_t { };
   struct writable_tag_t { };
   struct readable_tag_t { };
 
+  /*
+   * Cancellation tickets may be used to cancel a previously scheduled
+   * callback before it is invoked.
+   *   
+   * Please note: the ticket is only valid until the callback is
+   * invoked.  Any attempt to cancel a callback during or after its
+   * invocation leads to undefined behavior.
+   */
   template<typename Tag>
   struct cancellation_ticket_t
   {
     /*
-     * Constructs an empty cancellation ticket
+     * Constructs an empty cancellation ticket.
      */
     cancellation_ticket_t() noexcept
     : id_(-1)
@@ -55,8 +68,7 @@ struct CUTI_ABI scheduler_t
 
     /*
      * Tells if the ticket is empty.  Scheduling a callback returns a
-     * non-empty cancellation ticket, but even non-empty tickets
-     * become invalid when the callback is invoked.
+     * non-empty cancellation ticket.
      */
     bool empty() const noexcept
     { return id_ == -1; }
@@ -81,6 +93,7 @@ struct CUTI_ABI scheduler_t
     int id_;
   };
 
+  using alarm_ticket_t = cancellation_ticket_t<alarm_tag_t>;
   using writable_ticket_t = cancellation_ticket_t<writable_tag_t>;
   using readable_ticket_t = cancellation_ticket_t<readable_tag_t>;
 
@@ -91,12 +104,37 @@ struct CUTI_ABI scheduler_t
   scheduler_t& operator=(scheduler_t const&) = delete;
 
   /*
-   * Schedules a one-time callback for when fd is ready for writing.
-   * Returns a cancellation ticket that may be used to cancel the
-   * callback before it is invoked.  Call this function again if you
-   * want another callback.  callback must be != nullptr.
-   * Please note: when the callback is invoked, the ticket has already
-   * lost its purpose; any further use leads to undefined behavior.
+   * Schedules a one-time callback at of after <when>.  Returns a
+   * cancellation ticket that is only valid until the callback is
+   * invoked.  Call this function again if you want another callback.
+   */
+  template<typename Callback>
+  alarm_ticket_t call_at(timepoint_t when, Callback&& callback)
+  {
+    callback_t callee(std::forward<Callback>(callback));
+    assert(callee != nullptr);
+    return alarm_ticket_t(this->do_call_at(when, std::move(callee)));
+  }
+    
+  /*
+   * Schedules a one-time callback at of after <timeout> from now.
+   * Returns a cancellation ticket that is only valid until the
+   * callback is invoked.  Call this function again if you want
+   * another callback.
+   */
+  template<typename Callback>
+  alarm_ticket_t call_in(timeout_t timeout, Callback&& callback)
+  {
+    return this->call_at(
+      std::chrono::system_clock::now() + timeout,
+      std::forward<Callback>(callback));
+  }
+    
+  /*
+   * Schedules a one-time callback for when <fd> is ready for writing.
+   * Returns a cancellation ticket that is only valid until the
+   * callback is invoked.  Call this function again if you want
+   * another callback.
    */
   template<typename Callback>
   writable_ticket_t call_when_writable(int fd, Callback&& callback)
@@ -108,12 +146,10 @@ struct CUTI_ABI scheduler_t
   }
 
   /*
-   * Schedules a one-time callback for when fd is ready for reading.
-   * Returns a cancellation ticket that may be used to cancel the
-   * callback before it is invoked.  Call this function again if you
-   * want another callback.  callback must be != nullptr.
-   * Please note: when the callback is invoked, the ticket has already
-   * lost its purpose; any further use leads to undefined behavior.
+   * Schedules a one-time callback for when <fd> is ready for reading.
+   * Returns a cancellation ticket that is only valid until the
+   * callback is invoked.  Call this function again if you want
+   * another callback.
    */
   template<typename Callback>
   readable_ticket_t call_when_readable(int fd, Callback&& callback)
@@ -125,8 +161,14 @@ struct CUTI_ABI scheduler_t
   }
 
   /*
-   * Cancels a callback before the callback is invoked.
+   * Cancels a callback before it is invoked.
    */
+  void cancel_callback(alarm_ticket_t ticket) noexcept
+  {
+    assert(!ticket.empty());
+    this->do_cancel_at(ticket.id());
+  }
+    
   void cancel_callback(writable_ticket_t ticket) noexcept
   {
     assert(!ticket.empty());
@@ -142,6 +184,8 @@ struct CUTI_ABI scheduler_t
   virtual ~scheduler_t();
 
 private :
+  virtual int do_call_at(timepoint_t when, callback_t callback) = 0;
+  virtual void do_cancel_at(int ticket) noexcept = 0;
   virtual int do_call_when_writable(int fd, callback_t callback) = 0;
   virtual void do_cancel_when_writable(int ticket) noexcept = 0;
   virtual int do_call_when_readable(int fd, callback_t callback) = 0;
@@ -153,10 +197,12 @@ using readable_ticket_t = scheduler_t::readable_ticket_t;
 
 // SSTS: static start takes shared
 template<typename EventHandler, typename... Args>
-auto start_event_handler(scheduler_t& scheduler, Args&&... args)
+std::shared_ptr<EventHandler>
+start_event_handler(scheduler_t& scheduler, Args&&... args)
 {
   auto handler = std::make_shared<EventHandler>(std::forward<Args>(args)...);
-  return EventHandler::start(handler, scheduler);
+  EventHandler::start(handler, scheduler);
+  return handler;
 }
 
 } // cuti
