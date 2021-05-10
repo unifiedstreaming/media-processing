@@ -422,6 +422,65 @@ void multiple_acceptors(logging_context_t& context)
   }
 }
 
+void one_idle_acceptor(logging_context_t& context,
+                       selector_factory_t const& factory,
+                       endpoint_t const& interface)
+{
+  default_scheduler_t scheduler(factory());
+  assert(!scheduler.has_work());
+
+  auto protector1 = start_event_handler<dos_protector_t>(
+    scheduler, context, interface, 2);
+  endpoint_t endpoint1 = protector1->local_endpoint();
+
+  auto protector2 = start_event_handler<dos_protector_t>(
+    scheduler, context, interface, 1,
+    std::chrono::milliseconds(1));
+  endpoint_t endpoint2 = protector2->local_endpoint();
+
+  assert(scheduler.has_work());
+  assert(!protector1->done());
+  assert(!protector2->done());
+
+  if(auto msg = context.message_at(loglevel))
+  {
+    *msg << "one_idle_acceptor(): using " << factory <<
+      " selector; protector1: " << endpoint1 <<
+      " protector2: " << endpoint2;
+  }
+
+  tcp_connection_t client1(endpoint1);
+  tcp_connection_t client2(endpoint1);
+  if(auto msg = context.message_at(loglevel))
+  {
+    *msg << "one_idle_acceptor(): client1: " << client1 <<
+      " client2: " << client2;
+  }
+
+  while(callback_t callback = scheduler.wait())
+  {
+    callback();
+  }
+
+  assert(!scheduler.has_work());
+  assert(protector1->done());
+  assert(protector2->timed_out());
+}
+
+void one_idle_acceptor(logging_context_t& context)
+{
+  auto factories = available_selector_factories();
+  auto interfaces = local_interfaces(any_port);
+
+  for(auto const& factory : factories)
+  {
+    for(auto const& interface : interfaces)
+    {
+      one_idle_acceptor(context, factory, interface);
+    }
+  }
+}
+
 void scheduler_switch(logging_context_t& context,
                      selector_factory_t const& factory,
                      endpoint_t const& interface)
@@ -484,6 +543,7 @@ int throwing_main(int argc, char const* const argv[])
   single_client(context);
   multiple_clients(context);
   multiple_acceptors(context);
+  one_idle_acceptor(context);
 
   scheduler_switch(context);
 
