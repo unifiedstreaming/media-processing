@@ -192,6 +192,7 @@ private :
   virtual void do_cancel_when_readable(int ticket) noexcept = 0;
 };
 
+using alarm_ticket_t = scheduler_t::alarm_ticket_t;
 using writable_ticket_t = scheduler_t::writable_ticket_t;
 using readable_ticket_t = scheduler_t::readable_ticket_t;
 

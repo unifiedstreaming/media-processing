@@ -54,10 +54,15 @@ struct dos_protector_t
 {
   dos_protector_t(logging_context_t& context,
                   endpoint_t const& interface,
-                  int count)
+                  int count,
+                  scheduler_t::timeout_t timeout = std::chrono::minutes(1))
   : context_(context)
   , acceptor_(interface)
   , count_(count)
+  , timed_out_(false)
+  , timeout_(timeout)
+  , ready_ticket_()
+  , timeout_ticket_()
   {
     acceptor_.set_nonblocking();
   }
@@ -72,20 +77,16 @@ struct dos_protector_t
     return count_ <= 0;
   }
 
+  bool timed_out() const
+  {
+    return timed_out_;
+  }
+
   // SSTS: static start takes shared
   static void start(std::shared_ptr<dos_protector_t> const& self,
                     scheduler_t& scheduler)
   {
-    if(self->count_ > 0)
-    {
-      if(auto msg = self->context_.message_at(loglevel))
-      {
-        *msg << "dos_protector: " << self->acceptor_ <<
-	   ": requesting on_ready() callback";
-      }
-      self->acceptor_.call_when_ready(scheduler,
-        [self, &scheduler] { on_ready(self, scheduler); });
-    }
+    self->do_start(self, scheduler);
   }
 
   ~dos_protector_t()
@@ -97,37 +98,94 @@ struct dos_protector_t
   }
 
 private :
-  static void on_ready(std::shared_ptr<dos_protector_t> const& self,
-                       scheduler_t& scheduler)
+  void do_start(std::shared_ptr<dos_protector_t> const& self,
+                scheduler_t& scheduler)
   {
-    assert(self->count_ > 0);
+    assert(self.get() == this);
 
-    auto incoming = self->acceptor_.accept();
+    if(!timed_out_ && count_ > 0)
+    {
+      if(auto msg = context_.message_at(loglevel))
+      {
+        *msg << "dos_protector: " << acceptor_ <<
+           ": requesting on_ready() callback";
+      }
+      ready_ticket_ = acceptor_.call_when_ready(scheduler,
+        [self, &scheduler] { self->on_ready(self, scheduler); });
+
+      if(auto msg = context_.message_at(loglevel))
+      {
+        *msg << "dos_protector: " << acceptor_ <<
+           ": requesting on_timeout() callback";
+      }
+      timeout_ticket_ = scheduler.call_in(timeout_, 
+        [self, &scheduler] { self->on_timeout(self, scheduler); });
+    }
+  }
+
+  void on_ready(std::shared_ptr<dos_protector_t> const& self,
+                scheduler_t& scheduler)
+  {
+    assert(self.get() == this);
+    assert(count_ > 0);
+
+    assert(!timeout_ticket_.empty());
+    scheduler.cancel_callback(timeout_ticket_);
+    if(auto msg = context_.message_at(loglevel))
+    {
+      *msg << "dos_protector: " << acceptor_ << ": timeout ticket canceled";
+    }
+
+    auto incoming = acceptor_.accept();
     if(incoming == nullptr)
     {
-      if(auto msg = self->context_.message_at(loglevel))
+      if(auto msg = context_.message_at(loglevel))
       {
-        *msg << "dos_protector: " << self->acceptor_ <<
+        *msg << "dos_protector: " << acceptor_ <<
           ": no incoming connection yet";
       }
     }
     else
     {
-      if(auto msg = self->context_.message_at(loglevel))
+      if(auto msg = context_.message_at(loglevel))
       {
-        *msg << "dos_protector: " << self->acceptor_ <<
+        *msg << "dos_protector: " << acceptor_ <<
           ": killing incoming connection " << *incoming;
       }
-      --self->count_;
+      --count_;
     }
 
-    start(self, scheduler);
+    do_start(self, scheduler);
+  }
+
+  void on_timeout(std::shared_ptr<dos_protector_t> const& self,
+                  scheduler_t& scheduler)
+  {
+    assert(self.get() == this);
+
+    assert(!ready_ticket_.empty());
+    scheduler.cancel_callback(ready_ticket_);
+    if(auto msg = context_.message_at(loglevel))
+    {
+      *msg << "dos_protector: " << acceptor_ << ": ready ticket canceled";
+    }
+
+    if(auto msg = context_.message_at(loglevel))
+    {
+      *msg << "dos_protector: " << acceptor_ << ": timeout reached";
+    }
+
+    timed_out_ = true;
   }
 
 private :
   logging_context_t& context_;
   tcp_acceptor_t acceptor_;
   int count_;
+  bool timed_out_;
+  scheduler_t::timeout_t timeout_;
+  ready_ticket_t ready_ticket_;
+  alarm_ticket_t timeout_ticket_;
 };
 
 void blocking_accept(logging_context_t const& context,
@@ -385,7 +443,8 @@ void no_client(logging_context_t& context,
   assert(!scheduler.has_work());
 
   auto protector = start_event_handler<dos_protector_t>(
-    scheduler, context, interface, 1);
+    scheduler, context, interface, 1,
+    std::chrono::milliseconds(1));
   endpoint_t endpoint = protector->local_endpoint();
 
   if(auto msg = context.message_at(loglevel))
@@ -396,6 +455,14 @@ void no_client(logging_context_t& context,
 
   assert(scheduler.has_work());
   assert(!protector->done());
+
+  while(callback_t callback = scheduler.wait())
+  {
+    callback();
+  }
+
+  assert(!scheduler.has_work());
+  assert(protector->timed_out());
 }
 
 void no_client(logging_context_t& context)
