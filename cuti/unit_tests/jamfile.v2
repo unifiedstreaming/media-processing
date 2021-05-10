@@ -34,6 +34,11 @@ unit-test circular_buffer_test
   ..//cuti
 ;
 
+unit-test default_scheduler_test
+: default_scheduler_test.cpp
+  ..//cuti
+;
+
 unit-test fs_utils_test
 : fs_utils_test.cpp
   ..//cuti
