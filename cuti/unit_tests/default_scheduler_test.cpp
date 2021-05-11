@@ -26,7 +26,6 @@
 #include "selector.hpp"
 #include "selector_factory.hpp"
 #include "streambuf_backend.hpp"
-#include "system_error.hpp"
 #include "tcp_acceptor.hpp"
 #include "tcp_connection.hpp"
 
@@ -100,7 +99,6 @@ private :
                 scheduler_t& scheduler)
   {
     assert(self.get() == this);
-
     assert(ready_ticket_.empty());
     assert(timeout_ticket_.empty());
 
@@ -207,7 +205,6 @@ void empty_scheduler(logging_context_t& context,
 
   default_scheduler_t scheduler(factory());
 
-  assert(!scheduler.has_work());
   assert(scheduler.wait() == nullptr);
 }
 
@@ -225,7 +222,6 @@ void no_client(logging_context_t& context,
                endpoint_t const& interface)
 {
   default_scheduler_t scheduler(factory());
-  assert(!scheduler.has_work());
 
   auto protector = start_event_handler<dos_protector_t>(
     scheduler, context, interface, 1,
@@ -238,15 +234,13 @@ void no_client(logging_context_t& context,
       " selector; protector: " << endpoint;
   }
 
-  assert(scheduler.has_work());
-  assert(!protector->done());
+  assert(!protector->timed_out());
 
   while(callback_t callback = scheduler.wait())
   {
     callback();
   }
 
-  assert(!scheduler.has_work());
   assert(protector->timed_out());
 }
 
@@ -269,13 +263,11 @@ void single_client(logging_context_t& context,
                    endpoint_t const& interface)
 {
   default_scheduler_t scheduler(factory());
-  assert(!scheduler.has_work());
 
   auto protector = start_event_handler<dos_protector_t>(
     scheduler, context, interface, 1);
   endpoint_t endpoint = protector->local_endpoint();
 
-  assert(scheduler.has_work());
   assert(!protector->done());
 
   if(auto msg = context.message_at(loglevel))
@@ -295,7 +287,6 @@ void single_client(logging_context_t& context,
     callback();
   }
 
-  assert(!scheduler.has_work());
   assert(protector->done());
 }
 
@@ -318,13 +309,11 @@ void multiple_clients(logging_context_t& context,
                       endpoint_t const& interface)
 {
   default_scheduler_t scheduler(factory());
-  assert(!scheduler.has_work());
   
   auto protector = start_event_handler<dos_protector_t>(
     scheduler, context, interface, 2);
   endpoint_t endpoint = protector->local_endpoint();
 
-  assert(scheduler.has_work());
   assert(!protector->done());
 
   if(auto msg = context.message_at(loglevel))
@@ -346,7 +335,6 @@ void multiple_clients(logging_context_t& context,
     callback();
   }
 
-  assert(!scheduler.has_work());
   assert(protector->done());
 }
 
@@ -369,7 +357,6 @@ void multiple_acceptors(logging_context_t& context,
                         endpoint_t const& interface)
 {
   default_scheduler_t scheduler(factory());
-  assert(!scheduler.has_work());
 
   auto protector1 = start_event_handler<dos_protector_t>(
     scheduler, context, interface, 1);
@@ -379,7 +366,6 @@ void multiple_acceptors(logging_context_t& context,
     scheduler, context, interface, 1);
   endpoint_t endpoint2 = protector2->local_endpoint();
 
-  assert(scheduler.has_work());
   assert(!protector1->done());
   assert(!protector2->done());
 
@@ -403,7 +389,6 @@ void multiple_acceptors(logging_context_t& context,
     callback();
   }
 
-  assert(!scheduler.has_work());
   assert(protector1->done());
   assert(protector2->done());
 }
@@ -427,7 +412,6 @@ void one_idle_acceptor(logging_context_t& context,
                        endpoint_t const& interface)
 {
   default_scheduler_t scheduler(factory());
-  assert(!scheduler.has_work());
 
   auto protector1 = start_event_handler<dos_protector_t>(
     scheduler, context, interface, 2);
@@ -438,9 +422,8 @@ void one_idle_acceptor(logging_context_t& context,
     std::chrono::milliseconds(1));
   endpoint_t endpoint2 = protector2->local_endpoint();
 
-  assert(scheduler.has_work());
   assert(!protector1->done());
-  assert(!protector2->done());
+  assert(!protector2->timed_out());
 
   if(auto msg = context.message_at(loglevel))
   {
@@ -462,7 +445,6 @@ void one_idle_acceptor(logging_context_t& context,
     callback();
   }
 
-  assert(!scheduler.has_work());
   assert(protector1->done());
   assert(protector2->timed_out());
 }
@@ -487,34 +469,45 @@ void scheduler_switch(logging_context_t& context,
 {
   default_scheduler_t scheduler1(factory());
   default_scheduler_t scheduler2(factory());
+
   tcp_acceptor_t acceptor(interface);
   acceptor.set_nonblocking();
+
+  // put pressure on the acceptor
+  tcp_connection_t client(acceptor.local_endpoint());
 
   if(auto msg = context.message_at(loglevel))
   {
     *msg << "scheduler_switch(): using " << factory <<
-      " selector; acceptor: " << acceptor;
+      " selector; acceptor: " << acceptor <<
+      " client: " << client;
   }
 
-  assert(!scheduler1.has_work());
-  assert(!scheduler2.has_work());
+  assert(scheduler1.wait() == nullptr);
+  assert(scheduler2.wait() == nullptr);
 
   ready_ticket_t ticket = acceptor.call_when_ready(scheduler1, [] { });
   assert(!ticket.empty());
 
-  assert(scheduler1.has_work());
-  assert(!scheduler2.has_work());
+  assert(scheduler1.wait() != nullptr);
+  ticket = acceptor.call_when_ready(scheduler1, [] { }); 
+  assert(!ticket.empty());
+
+  assert(scheduler2.wait() == nullptr);
 
   scheduler1.cancel_callback(ticket);
   ticket = acceptor.call_when_ready(scheduler2, [] { });
   assert(!ticket.empty());
 
-  assert(!scheduler1.has_work());
-  assert(scheduler2.has_work());
+  assert(scheduler1.wait() == nullptr);
+ 
+  assert(scheduler2.wait() != nullptr);
+  ticket = acceptor.call_when_ready(scheduler2, [] { });
+  assert(!ticket.empty());
 
   scheduler2.cancel_callback(ticket);
-  assert(!scheduler1.has_work());
-  assert(!scheduler2.has_work());
+  assert(scheduler1.wait() == nullptr);
+  assert(scheduler2.wait() == nullptr);
 }
 
 void scheduler_switch(logging_context_t& context)

@@ -33,6 +33,7 @@
 #include "system_error.hpp"
 
 #include <algorithm>
+#include <cstring>
 #include <exception>
 #include <iostream>
 #include <limits>
@@ -1119,45 +1120,78 @@ void scheduler_switch(logging_context_t const& context,
 {
   default_scheduler_t sched1(factory());
   default_scheduler_t sched2(factory());
-  auto [conn1, conn2] = make_connected_pair(interface);
+  auto [client, server] = make_connected_pair(interface);
+
+  // put some pressure on the server
+  char const msg[] = "Hello server!";
+  char const* next = client->write_some(msg, msg + std::strlen(msg));
+  assert(next != msg);
+  assert(next != nullptr);
 
   if(auto msg = context.message_at(loglevel_t::info))
   {
     *msg << "scheduler_switch(): selector: " << factory <<
-      " conn1: " << *conn1 << " conn2: " << *conn2;
+      " client: " << *client << " server: " << *server;
   }
 
-  assert(!sched1.has_work());
-  assert(!sched2.has_work());
+  assert(sched1.wait() == nullptr);
+  assert(sched2.wait() == nullptr);
 
-  readable_ticket_t ticket1;
-  writable_ticket_t ticket2;
-  assert(ticket1.empty());
-  assert(ticket2.empty());
+  writable_ticket_t writable;
+  assert(writable.empty());
+  readable_ticket_t readable;
+  assert(readable.empty());
 
-  ticket1 = conn1->call_when_readable(sched1, [] { });
-  assert(!ticket1.empty());
-  assert(sched1.has_work());
+  writable = client->call_when_writable(sched1, [] { });
+  assert(!writable.empty());
 
-  ticket2 = conn2->call_when_writable(sched1, [] { });
-  assert(!ticket2.empty());
-  assert(sched1.has_work());
+  readable = server->call_when_readable(sched1, [] { });
+  assert(!readable.empty());
 
-  sched1.cancel_callback(ticket1);
-  ticket1 = conn1->call_when_readable(sched2, [] { });
-  assert(!ticket1.empty());
-  assert(sched1.has_work());
-  assert(sched2.has_work());
+  assert(sched1.wait() != nullptr);
+  assert(sched1.wait() != nullptr);
+  assert(sched1.wait() == nullptr);
+  assert(sched2.wait() == nullptr);
 
-  sched1.cancel_callback(ticket2);
-  ticket2 = conn1->call_when_writable(sched2, [] { });
-  assert(!ticket2.empty());
-  assert(!sched1.has_work());
-  assert(sched2.has_work());
+  writable = client->call_when_writable(sched1, [] { });
+  assert(!writable.empty());
 
-  sched2.cancel_callback(ticket1);
-  sched2.cancel_callback(ticket2);
-  assert(!sched2.has_work());
+  readable = server->call_when_readable(sched1, [] { });
+  assert(!readable.empty());
+
+  sched1.cancel_callback(writable);
+  sched1.cancel_callback(readable);
+
+  writable = client->call_when_writable(sched2, [] { });
+  assert(!writable.empty());
+
+  readable = server->call_when_readable(sched2, [] { });
+  assert(!readable.empty());
+
+  assert(sched1.wait() == nullptr);
+  assert(sched2.wait() != nullptr);
+  assert(sched2.wait() != nullptr);
+  assert(sched2.wait() == nullptr);
+
+  writable = client->call_when_writable(sched2, [] { });
+  assert(!writable.empty());
+
+  readable = server->call_when_readable(sched2, [] { });
+  assert(!readable.empty());
+
+  sched2.cancel_callback(writable);
+  sched2.cancel_callback(readable);
+
+  writable = client->call_when_writable(sched1, [] { });
+  assert(!writable.empty());
+
+  readable = server->call_when_readable(sched1, [] { });
+  assert(!readable.empty());
+
+  assert(sched1.wait() != nullptr);
+  assert(sched1.wait() != nullptr);
+  assert(sched1.wait() == nullptr);
+  assert(sched2.wait() == nullptr);
 }
 
 void scheduler_switch(logging_context_t const& context)

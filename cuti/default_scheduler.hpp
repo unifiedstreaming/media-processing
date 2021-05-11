@@ -43,12 +43,6 @@ struct CUTI_ABI default_scheduler_t : scheduler_t
   explicit default_scheduler_t(std::unique_ptr<selector_t> selector);
 
   /*
-   * Tells if there are any registered events.
-   */
-  bool has_work() const noexcept
-  { return !alarms_.empty() || selector_->has_work(); }
-
-  /*
    * Waits for any of the registered events to occur and returns the
    * first event's callback, or nullptr if the scheduler is out of
    * work.
