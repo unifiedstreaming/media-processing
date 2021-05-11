@@ -19,6 +19,7 @@
 
 #include "default_scheduler.hpp"
 
+#include "chrono_types.hpp"
 #include "endpoint.hpp"
 #include "logging_context.hpp"
 #include "logger.hpp"
@@ -52,7 +53,7 @@ struct dos_protector_t
   dos_protector_t(logging_context_t& context,
                   endpoint_t const& interface,
                   int count,
-                  scheduler_t::timeout_t timeout = std::chrono::minutes(1))
+                  duration_t timeout = minutes_t(1))
   : context_(context)
   , acceptor_(interface)
   , count_(count)
@@ -190,7 +191,7 @@ private :
   tcp_acceptor_t acceptor_;
   int count_;
   bool timed_out_;
-  scheduler_t::timeout_t timeout_;
+  duration_t timeout_;
   ready_ticket_t ready_ticket_;
   alarm_ticket_t timeout_ticket_;
 };
@@ -224,8 +225,7 @@ void no_client(logging_context_t& context,
   default_scheduler_t scheduler(factory());
 
   auto protector = start_event_handler<dos_protector_t>(
-    scheduler, context, interface, 1,
-    std::chrono::milliseconds(1));
+    scheduler, context, interface, 1, milliseconds_t(1));
   endpoint_t endpoint = protector->local_endpoint();
 
   if(auto msg = context.message_at(loglevel))
@@ -418,8 +418,7 @@ void one_idle_acceptor(logging_context_t& context,
   endpoint_t endpoint1 = protector1->local_endpoint();
 
   auto protector2 = start_event_handler<dos_protector_t>(
-    scheduler, context, interface, 1,
-    std::chrono::milliseconds(1));
+    scheduler, context, interface, 1, milliseconds_t(1));
   endpoint_t endpoint2 = protector2->local_endpoint();
 
   assert(!protector1->done());

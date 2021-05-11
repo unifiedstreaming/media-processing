@@ -17,6 +17,7 @@
  * <http://www.gnu.org/licenses/>.
  */
 
+#include "chrono_types.hpp"
 #include "file_backend.hpp"
 #include "logger.hpp"
 #include "option_walker.hpp"
@@ -202,7 +203,7 @@ int throwing_main(int argc, char const* const argv[])
 
     if(options.delay_ != 0)
     {
-      std::this_thread::sleep_for(std::chrono::milliseconds(options.delay_));
+      std::this_thread::sleep_for(cuti::milliseconds_t(options.delay_));
     }
   }
 

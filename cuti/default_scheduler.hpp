@@ -50,7 +50,7 @@ struct CUTI_ABI default_scheduler_t : scheduler_t
   callback_t wait();
   
 private :
-  int do_call_at(timepoint_t timepoint, callback_t callback) override;
+  int do_call_at(time_point_t time_point, callback_t callback) override;
   void do_cancel_at(int ticket) noexcept override;
   int do_call_when_writable(int fd, callback_t callback) override;
   void do_cancel_when_writable(int ticket) noexcept override;
@@ -58,7 +58,7 @@ private :
   void do_cancel_when_readable(int ticket) noexcept override;
 
 private :
-  indexed_heap_t<timepoint_t, callback_t, std::less<timepoint_t>> alarms_;
+  indexed_heap_t<time_point_t, callback_t, std::less<time_point_t>> alarms_;
   std::unique_ptr<selector_t> selector_;
 };
 

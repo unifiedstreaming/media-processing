@@ -19,6 +19,7 @@
 
 #include "tcp_acceptor.hpp"
 
+#include "chrono_types.hpp"
 #include "endpoint.hpp"
 #include "logging_context.hpp"
 #include "logger.hpp"
@@ -107,7 +108,7 @@ void nonblocking_accept(logging_context_t const& context,
   {
     if(pause != 0)
     {
-      std::this_thread::sleep_for(std::chrono::milliseconds(pause));
+      std::this_thread::sleep_for(milliseconds_t(pause));
     }
     pause = pause * 2 + 1;
 

@@ -42,7 +42,7 @@ callback_t default_scheduler_t::wait()
     auto limit = alarms_.priority(alarm_id);
     do
     {
-      auto now = std::chrono::system_clock::now();
+      auto now = clock_t::now();
       if(now >= limit)
       {
         result = std::move(alarms_.value(alarm_id));
@@ -63,16 +63,17 @@ callback_t default_scheduler_t::wait()
   {
     do
     {
-      result = selector_->select(timeout_t(-1));
+      result = selector_->select(duration_t(-1));
     } while(result == nullptr);
   }
 
   return result;
 }
 
-int default_scheduler_t::do_call_at(timepoint_t timepoint, callback_t callback)
+int default_scheduler_t::do_call_at(
+  time_point_t time_point, callback_t callback)
 {
-  return alarms_.add_element(timepoint, std::move(callback));
+  return alarms_.add_element(time_point, std::move(callback));
 }
 
 void default_scheduler_t::do_cancel_at(int ticket) noexcept

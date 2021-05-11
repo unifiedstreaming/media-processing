@@ -21,9 +21,9 @@
 #define CUTI_LOGGER_HPP_
 
 #include "linkage.h"
+#include "chrono_types.hpp"
 #include "loglevel.hpp"
 
-#include <chrono>
 #include <cstring>
 #include <memory>
 #include <mutex>
@@ -62,7 +62,7 @@ private :
   std::mutex mutex_;
   std::unique_ptr<logging_backend_t> backend_;
   unsigned int n_failures_;
-  std::chrono::system_clock::time_point first_failure_time_;
+  time_point_t first_failure_time_;
   std::string first_failure_reason_;
 };
 

@@ -60,7 +60,7 @@ void logger_t::report(loglevel_t level,
       membuf_t buf;
 
       format_string(buf, "Logging failed at ");
-      format_timepoint(buf, first_failure_time_);
+      format_time_point(buf, first_failure_time_);
       format_string(buf, ": ");
       format_string(buf, first_failure_reason_.c_str());
       format_string(buf, " - ");
@@ -90,7 +90,7 @@ void logger_t::report(loglevel_t level,
     if(n_failures_ == 0)
     {
       // enter failure mode
-      first_failure_time_ = std::chrono::system_clock::now();
+      first_failure_time_ = clock_t::now();
       first_failure_reason_ = ex.what();
     }
     if(n_failures_ != max_failures)

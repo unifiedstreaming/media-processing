@@ -264,7 +264,7 @@ struct select_selector_t : selector_t
            !registrations_.list_empty(pending_list_);
   }
 
-  callback_t select(timeout_t timeout) override
+  callback_t select(duration_t timeout) override
   {
     assert(this->has_work());
 
@@ -303,7 +303,7 @@ struct select_selector_t : selector_t
 
       struct timeval tv;
       struct timeval* ptv = nullptr;
-      if(timeout >= timeout_t::zero())
+      if(timeout >= duration_t::zero())
       {
         int millis = timeout_millis(timeout);
         assert(millis >= 0);

@@ -76,7 +76,7 @@ struct epoll_selector_t : selector_t
            !registrations_.list_empty(pending_list_);
   }
 
-  callback_t select(timeout_t timeout) override
+  callback_t select(duration_t timeout) override
   {
     assert(this->has_work());
 

@@ -21,10 +21,9 @@
 #define CUTI_SELECTOR_HPP_
 
 #include "callback.hpp"
+#include "chrono_types.hpp"
 #include "linkage.h"
 #include "socket_nifty.hpp"
-
-#include <chrono>
 
 namespace cuti
 {
@@ -32,11 +31,8 @@ namespace cuti
 /*
  * Abstract network event selector interface
  */
-
 struct CUTI_ABI selector_t
 {
-  using timeout_t = std::chrono::system_clock::duration;
-
   selector_t()
   { }
 
@@ -88,13 +84,13 @@ struct CUTI_ABI selector_t
    *
    * Precondition: this->has_work()
    */
-  virtual callback_t select(timeout_t timeout) = 0;
+  virtual callback_t select(duration_t timeout) = 0;
 
   virtual ~selector_t();
 
 protected :
   enum class event_t { writable, readable };
-  static int timeout_millis(timeout_t timeout);
+  static int timeout_millis(duration_t timeout);
 };
 
 } // cuti

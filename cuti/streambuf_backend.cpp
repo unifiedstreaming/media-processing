@@ -41,9 +41,9 @@ void streambuf_backend_t::report(loglevel_t level,
     return;
   }
 
-  auto now = std::chrono::system_clock::now();
+  auto now = clock_t::now();
 
-  format_timepoint(*sb_, now);
+  format_time_point(*sb_, now);
   sb_->sputc(' ');
   format_loglevel(*sb_, level);
   sb_->sputc(' ');

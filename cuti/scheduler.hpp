@@ -21,10 +21,10 @@
 #define CUTI_SCHEDULER_HPP_
 
 #include "callback.hpp"
+#include "chrono_types.hpp"
 #include "linkage.h"
 
 #include <cassert>
-#include <chrono>
 #include <utility>
 #include <memory>
 
@@ -41,9 +41,6 @@ namespace cuti
  */
 struct CUTI_ABI scheduler_t
 {
-  using timepoint_t = std::chrono::system_clock::time_point;
-  using timeout_t = std::chrono::system_clock::duration;
-
   struct alarm_tag_t { };
   struct writable_tag_t { };
   struct readable_tag_t { };
@@ -109,7 +106,7 @@ struct CUTI_ABI scheduler_t
    * invoked.  Call this function again if you want another callback.
    */
   template<typename Callback>
-  alarm_ticket_t call_at(timepoint_t when, Callback&& callback)
+  alarm_ticket_t call_at(time_point_t when, Callback&& callback)
   {
     callback_t callee(std::forward<Callback>(callback));
     assert(callee != nullptr);
@@ -123,11 +120,10 @@ struct CUTI_ABI scheduler_t
    * another callback.
    */
   template<typename Callback>
-  alarm_ticket_t call_in(timeout_t timeout, Callback&& callback)
+  alarm_ticket_t call_in(duration_t timeout, Callback&& callback)
   {
     return this->call_at(
-      std::chrono::system_clock::now() + timeout,
-      std::forward<Callback>(callback));
+      clock_t::now() + timeout, std::forward<Callback>(callback));
   }
     
   /*
@@ -184,7 +180,7 @@ struct CUTI_ABI scheduler_t
   virtual ~scheduler_t();
 
 private :
-  virtual int do_call_at(timepoint_t when, callback_t callback) = 0;
+  virtual int do_call_at(time_point_t when, callback_t callback) = 0;
   virtual void do_cancel_at(int ticket) noexcept = 0;
   virtual int do_call_when_writable(int fd, callback_t callback) = 0;
   virtual void do_cancel_when_writable(int ticket) noexcept = 0;

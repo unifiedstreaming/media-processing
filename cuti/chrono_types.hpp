@@ -17,47 +17,26 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#include "selector.hpp"
+#ifndef CUTI_CHRONO_TYPES_HPP_
+#define CUTI_CHRONO_TYPES_HPP_
+
+#include <chrono>
 
 namespace cuti
 {
 
-selector_t::~selector_t()
-{ }
+/*
+ * Convenience aliases for some chrono types.
+ */
+using clock_t = std::chrono::system_clock;
+using duration_t = std::chrono::system_clock::duration;
+using milliseconds_t = std::chrono::milliseconds;
+using minutes_t = std::chrono::minutes;
+using seconds_t = std::chrono::seconds;
+using time_point_t = std::chrono::system_clock::time_point;
 
-int selector_t::timeout_millis(duration_t timeout)
-{
-  static duration_t const zero = duration_t::zero();
-  static int const max_millis = 30000;
+using std::chrono::duration_cast;
 
-  int result;
+} // namespace cuti
 
-  if(timeout < zero)
-  {
-    result = -1;
-  }
-  else if(timeout == zero)
-  {
-    result = 0;
-  }
-  else // timeout > zero
-  {
-    auto count = duration_cast<milliseconds_t>(timeout).count();
-    if(count < 1)
-    {
-      result = 1; // prevent spinloop
-    }
-    else if(count < max_millis)
-    {
-      result = static_cast<int>(count);
-    }
-    else
-    {
-      result = max_millis;
-    }
-  }
-
-  return result;
-}
-
-} // cuti
+#endif
