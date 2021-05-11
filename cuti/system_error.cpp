@@ -35,11 +35,6 @@ int last_system_error()
   return GetLastError();
 }
 
-bool is_wouldblock(int error)
-{
-  return error == WSAEWOULDBLOCK;
-}
-
 std::string system_error_string(int error)
 {
   static const int bufsize = 256;
@@ -73,11 +68,6 @@ namespace cuti
 int last_system_error()
 {
   return errno;
-}
-
-bool is_wouldblock(int error)
-{
-  return error == EAGAIN || error == EWOULDBLOCK;
 }
 
 std::string system_error_string(int error)

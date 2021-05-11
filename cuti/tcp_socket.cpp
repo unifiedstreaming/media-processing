@@ -216,6 +216,15 @@ void set_initial_connection_flags(int fd)
 #endif
 }
 
+bool is_wouldblock(int error)
+{
+#ifdef _WIN32
+  return error == WSAEWOULDBLOCK;
+#else
+  return error == EAGAIN || error == EWOULDBLOCK;
+#endif
+}
+
 } // anonymous
 
 tcp_socket_t::tcp_socket_t(int family)
