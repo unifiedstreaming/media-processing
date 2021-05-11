@@ -63,8 +63,8 @@ struct CUTI_ABI tcp_acceptor_t
 
   /*
    * Event reporting; see scheduler.hpp for detailed semantics.  A
-   * callback can be canceled by calling cancel_callback() directly on
-   * the scheduler.
+   * callback can be canceled by calling cancel() directly on the
+   * scheduler.
    */
   template<typename Callback>
   ready_ticket_t call_when_ready(scheduler_t& scheduler,

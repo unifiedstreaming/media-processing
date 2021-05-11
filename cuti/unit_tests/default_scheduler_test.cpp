@@ -132,7 +132,7 @@ private :
     ready_ticket_.clear();
 
     assert(!timeout_ticket_.empty());
-    scheduler.cancel_callback(timeout_ticket_);
+    scheduler.cancel(timeout_ticket_);
     timeout_ticket_.clear();
     
     if(auto msg = context_.message_at(loglevel))
@@ -170,7 +170,7 @@ private :
     timeout_ticket_.clear();
 
     assert(!ready_ticket_.empty());
-    scheduler.cancel_callback(ready_ticket_);
+    scheduler.cancel(ready_ticket_);
     ready_ticket_.clear();
 
     if(auto msg = context_.message_at(loglevel))
@@ -494,7 +494,7 @@ void scheduler_switch(logging_context_t& context,
 
   assert(scheduler2.wait() == nullptr);
 
-  scheduler1.cancel_callback(ticket);
+  scheduler1.cancel(ticket);
   ticket = acceptor.call_when_ready(scheduler2, [] { });
   assert(!ticket.empty());
 
@@ -504,7 +504,7 @@ void scheduler_switch(logging_context_t& context,
   ticket = acceptor.call_when_ready(scheduler2, [] { });
   assert(!ticket.empty());
 
-  scheduler2.cancel_callback(ticket);
+  scheduler2.cancel(ticket);
   assert(scheduler1.wait() == nullptr);
   assert(scheduler2.wait() == nullptr);
 }

@@ -1159,8 +1159,8 @@ void scheduler_switch(logging_context_t const& context,
   readable = server->call_when_readable(sched1, [] { });
   assert(!readable.empty());
 
-  sched1.cancel_callback(writable);
-  sched1.cancel_callback(readable);
+  sched1.cancel(writable);
+  sched1.cancel(readable);
 
   writable = client->call_when_writable(sched2, [] { });
   assert(!writable.empty());
@@ -1179,8 +1179,8 @@ void scheduler_switch(logging_context_t const& context,
   readable = server->call_when_readable(sched2, [] { });
   assert(!readable.empty());
 
-  sched2.cancel_callback(writable);
-  sched2.cancel_callback(readable);
+  sched2.cancel(writable);
+  sched2.cancel(readable);
 
   writable = client->call_when_writable(sched1, [] { });
   assert(!writable.empty());

@@ -122,8 +122,8 @@ struct CUTI_ABI tcp_socket_t
 
   /*
    * Event reporting; see scheduler.hpp for detailed semantics.  A
-   * callback can be canceled by calling cancel_callback() directly on
-   * the scheduler.
+   * callback can be canceled by calling cancel() directly on the
+   * scheduler.
    */
   template<typename Callback>
   writable_ticket_t call_when_writable(scheduler_t& scheduler,
