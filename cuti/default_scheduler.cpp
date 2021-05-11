@@ -70,13 +70,13 @@ callback_t default_scheduler_t::wait()
   return result;
 }
 
-int default_scheduler_t::do_call_at(
+int default_scheduler_t::do_call_alarm(
   time_point_t time_point, callback_t callback)
 {
   return alarms_.add_element(time_point, std::move(callback));
 }
 
-void default_scheduler_t::do_cancel_at(int ticket) noexcept
+void default_scheduler_t::do_cancel_alarm(int ticket) noexcept
 {
   alarms_.remove_element(ticket);
 }

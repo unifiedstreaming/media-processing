@@ -109,11 +109,11 @@ struct CUTI_ABI scheduler_t
    * Call this function again if you want another callback.
    */
   template<typename Callback>
-  alarm_ticket_t call_at(time_point_t when, Callback&& callback)
+  alarm_ticket_t call_alarm(time_point_t when, Callback&& callback)
   {
     callback_t callee(std::forward<Callback>(callback));
     assert(callee != nullptr);
-    return alarm_ticket_t(this->do_call_at(when, std::move(callee)));
+    return alarm_ticket_t(this->do_call_alarm(when, std::move(callee)));
   }
     
   /*
@@ -123,9 +123,9 @@ struct CUTI_ABI scheduler_t
    * Call this function again if you want another callback.
    */
   template<typename Callback>
-  alarm_ticket_t call_in(duration_t timeout, Callback&& callback)
+  alarm_ticket_t call_alarm(duration_t timeout, Callback&& callback)
   {
-    return this->call_at(
+    return this->call_alarm(
       clock_t::now() + timeout, std::forward<Callback>(callback));
   }
     
@@ -165,7 +165,7 @@ struct CUTI_ABI scheduler_t
   void cancel_callback(alarm_ticket_t ticket) noexcept
   {
     assert(!ticket.empty());
-    this->do_cancel_at(ticket.id());
+    this->do_cancel_alarm(ticket.id());
   }
     
   void cancel_callback(writable_ticket_t ticket) noexcept
@@ -183,8 +183,8 @@ struct CUTI_ABI scheduler_t
   virtual ~scheduler_t();
 
 private :
-  virtual int do_call_at(time_point_t when, callback_t callback) = 0;
-  virtual void do_cancel_at(int ticket) noexcept = 0;
+  virtual int do_call_alarm(time_point_t when, callback_t callback) = 0;
+  virtual void do_cancel_alarm(int ticket) noexcept = 0;
   virtual int do_call_when_writable(int fd, callback_t callback) = 0;
   virtual void do_cancel_when_writable(int ticket) noexcept = 0;
   virtual int do_call_when_readable(int fd, callback_t callback) = 0;

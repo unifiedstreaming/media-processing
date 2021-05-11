@@ -50,8 +50,8 @@ struct CUTI_ABI default_scheduler_t : scheduler_t
   callback_t wait();
   
 private :
-  int do_call_at(time_point_t time_point, callback_t callback) override;
-  void do_cancel_at(int ticket) noexcept override;
+  int do_call_alarm(time_point_t time_point, callback_t callback) override;
+  void do_cancel_alarm(int ticket) noexcept override;
   int do_call_when_writable(int fd, callback_t callback) override;
   void do_cancel_when_writable(int ticket) noexcept override;
   int do_call_when_readable(int fd, callback_t callback) override;

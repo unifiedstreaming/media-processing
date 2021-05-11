@@ -118,7 +118,7 @@ private :
         *msg << "dos_protector: " << acceptor_ <<
            ": requesting timeout callback";
       }
-      timeout_ticket_ = scheduler.call_in(timeout_, 
+      timeout_ticket_ = scheduler.call_alarm(timeout_, 
         [self, &scheduler] { self->on_timeout(self, scheduler); });
     }
   }
