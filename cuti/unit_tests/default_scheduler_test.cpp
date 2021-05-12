@@ -193,8 +193,8 @@ private :
   int count_;
   bool timed_out_;
   duration_t timeout_;
-  ready_ticket_t ready_ticket_;
-  alarm_ticket_t timeout_ticket_;
+  cancellation_ticket_t ready_ticket_;
+  cancellation_ticket_t timeout_ticket_;
 };
 
 void empty_scheduler(logging_context_t& context,
@@ -486,7 +486,7 @@ void scheduler_switch(logging_context_t& context,
   assert(scheduler1.wait() == nullptr);
   assert(scheduler2.wait() == nullptr);
 
-  ready_ticket_t ticket = acceptor.call_when_ready(scheduler1, [] { });
+  cancellation_ticket_t ticket = acceptor.call_when_ready(scheduler1, [] { });
   assert(!ticket.empty());
 
   assert(scheduler1.wait() != nullptr);

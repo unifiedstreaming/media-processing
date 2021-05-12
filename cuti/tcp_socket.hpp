@@ -127,8 +127,8 @@ struct CUTI_ABI tcp_socket_t
    * scheduler.
    */
   template<typename Callback>
-  writable_ticket_t call_when_writable(scheduler_t& scheduler,
-                                       Callback&& callback) const
+  cancellation_ticket_t call_when_writable(scheduler_t& scheduler,
+                                           Callback&& callback) const
   {
     assert(!this->empty());
     return scheduler.call_when_writable(fd_,
@@ -136,8 +136,8 @@ struct CUTI_ABI tcp_socket_t
   }
 
   template<typename Callback>
-  readable_ticket_t call_when_readable(scheduler_t& scheduler,
-                                       Callback&& callback) const
+  cancellation_ticket_t call_when_readable(scheduler_t& scheduler,
+                                           Callback&& callback) const
   {
     assert(!this->empty());
     return scheduler.call_when_readable(fd_,

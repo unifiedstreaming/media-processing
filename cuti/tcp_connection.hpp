@@ -78,16 +78,16 @@ struct CUTI_ABI tcp_connection_t
    * scheduler.
    */
   template<typename Callback>
-  writable_ticket_t call_when_writable(scheduler_t& scheduler,
-                                       Callback&& callback) const
+  cancellation_ticket_t call_when_writable(scheduler_t& scheduler,
+                                           Callback&& callback) const
   {
     return socket_.call_when_writable(scheduler,
       std::forward<Callback>(callback));
   }
 
   template<typename Callback>
-  readable_ticket_t call_when_readable(scheduler_t& scheduler,
-                                       Callback&& callback) const
+  cancellation_ticket_t call_when_readable(scheduler_t& scheduler,
+                                           Callback&& callback) const
   {
     return socket_.call_when_readable(scheduler,
       std::forward<Callback>(callback));

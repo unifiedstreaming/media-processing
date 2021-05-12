@@ -34,8 +34,6 @@
 namespace cuti
 {
 
-using ready_ticket_t = readable_ticket_t;
-
 struct CUTI_ABI tcp_acceptor_t
 {
   explicit tcp_acceptor_t(endpoint_t const& endpoint);
@@ -80,8 +78,8 @@ struct CUTI_ABI tcp_acceptor_t
    * scheduler.
    */
   template<typename Callback>
-  ready_ticket_t call_when_ready(scheduler_t& scheduler,
-                                 Callback&& callback) const
+  cancellation_ticket_t call_when_ready(scheduler_t& scheduler,
+                                        Callback&& callback) const
   {
     return socket_.call_when_readable(scheduler,
       std::forward<Callback>(callback));

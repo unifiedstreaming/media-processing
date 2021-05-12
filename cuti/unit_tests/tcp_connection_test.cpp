@@ -405,8 +405,8 @@ struct logged_tcp_connection_t
   }
 
   template<typename Callback>
-  writable_ticket_t call_when_writable(scheduler_t& scheduler,
-                                       Callback&& callback)
+  cancellation_ticket_t call_when_writable(scheduler_t& scheduler,
+                                           Callback&& callback)
   {
     if(auto msg = context_.message_at(loglevel_))
     {
@@ -418,8 +418,8 @@ struct logged_tcp_connection_t
   }
 
   template<typename Callback>
-  readable_ticket_t call_when_readable(scheduler_t& scheduler,
-                                       Callback&& callback)
+  cancellation_ticket_t call_when_readable(scheduler_t& scheduler,
+                                           Callback&& callback)
   {
     if(auto msg = context_.message_at(loglevel_))
     {
@@ -539,7 +539,7 @@ private :
   char const* first_;
   char const* const last_;
   bool eof_sent_;
-  writable_ticket_t writable_ticket_;
+  cancellation_ticket_t writable_ticket_;
 };
 
 /*
@@ -677,8 +677,8 @@ private :
   circular_buffer_t buffer_;
   bool eof_seen_;
   bool eof_sent_;
-  readable_ticket_t readable_ticket_;
-  writable_ticket_t writable_ticket_;
+  cancellation_ticket_t readable_ticket_;
+  cancellation_ticket_t writable_ticket_;
 };
 
 /*
@@ -769,7 +769,7 @@ private :
   char const* first_;
   char const* const last_;
   bool eof_seen_;
-  readable_ticket_t readable_ticket_;
+  cancellation_ticket_t readable_ticket_;
 };
 
 template<typename T>
@@ -1137,9 +1137,9 @@ void scheduler_switch(logging_context_t const& context,
   assert(sched1.wait() == nullptr);
   assert(sched2.wait() == nullptr);
 
-  writable_ticket_t writable;
+  cancellation_ticket_t writable;
   assert(writable.empty());
-  readable_ticket_t readable;
+  cancellation_ticket_t readable;
   assert(readable.empty());
 
   writable = client->call_when_writable(sched1, [] { });

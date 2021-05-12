@@ -33,10 +33,6 @@ namespace cuti
 
 struct scheduler_t;
 
-struct alarm_tag_t { };
-struct writable_tag_t { };
-struct readable_tag_t { };
-
 /*
  * Cancellation tickets are used to cancel a previously scheduled
  * callback before it is invoked.
@@ -45,14 +41,14 @@ struct readable_tag_t { };
  * is selected.  Any attempt to cancel a callback during or after its
  * invocation leads to undefined behavior.
  */
-template<typename Tag>
 struct cancellation_ticket_t
 {
   /*
    * Constructs an empty cancellation ticket.
    */
   cancellation_ticket_t() noexcept
-  : id_(-1)
+  : type_(type_t::empty)
+  , id_(-1)
   { }
 
   /*
@@ -60,31 +56,34 @@ struct cancellation_ticket_t
    * non-empty cancellation ticket.
    */
   bool empty() const noexcept
-  { return id_ == -1; }
+  { return type_ == type_t::empty; }
 
   /*
    * Sets the ticket to the empty state.
    */
   void clear() noexcept
-  { id_ = -1; }
+  { *this = cancellation_ticket_t(); }
 
 private :
   friend struct scheduler_t;
 
-  explicit cancellation_ticket_t(int id) noexcept
-  : id_(id)
+  enum class type_t { empty, alarm, writable, readable };
+
+  explicit cancellation_ticket_t(type_t type, int id) noexcept
+  : type_(type)
+  , id_(id)
   { }
+
+  type_t type() const noexcept
+  { return type_; }
 
   int id() const noexcept
   { return id_; }
 
 private :
+  type_t type_;
   int id_;
 };
-
-using alarm_ticket_t = cancellation_ticket_t<alarm_tag_t>;
-using writable_ticket_t = cancellation_ticket_t<writable_tag_t>;
-using readable_ticket_t = cancellation_ticket_t<readable_tag_t>;
 
 /*
  * Abstract event scheduler interface.  The purpose of this interface
@@ -109,11 +108,13 @@ struct CUTI_ABI scheduler_t
    * Call this function again if you want another callback.
    */
   template<typename Callback>
-  alarm_ticket_t call_alarm(time_point_t when, Callback&& callback)
+  cancellation_ticket_t call_alarm(time_point_t when, Callback&& callback)
   {
     callback_t callee(std::forward<Callback>(callback));
     assert(callee != nullptr);
-    return alarm_ticket_t(this->do_call_alarm(when, std::move(callee)));
+    return cancellation_ticket_t(
+      cancellation_ticket_t::type_t::alarm,
+      this->do_call_alarm(when, std::move(callee)));
   }
     
   /*
@@ -123,7 +124,7 @@ struct CUTI_ABI scheduler_t
    * Call this function again if you want another callback.
    */
   template<typename Callback>
-  alarm_ticket_t call_alarm(duration_t timeout, Callback&& callback)
+  cancellation_ticket_t call_alarm(duration_t timeout, Callback&& callback)
   {
     return this->call_alarm(
       clock_t::now() + timeout, std::forward<Callback>(callback));
@@ -136,12 +137,13 @@ struct CUTI_ABI scheduler_t
    * Call this function again if you want another callback.
    */
   template<typename Callback>
-  writable_ticket_t call_when_writable(int fd, Callback&& callback)
+  cancellation_ticket_t call_when_writable(int fd, Callback&& callback)
   {
     callback_t callee(std::forward<Callback>(callback));
     assert(callee != nullptr);
-    return writable_ticket_t(this->do_call_when_writable(
-      fd, std::move(callee)));
+    return cancellation_ticket_t(
+      cancellation_ticket_t::type_t::writable,
+      this->do_call_when_writable(fd, std::move(callee)));
   }
 
   /*
@@ -151,35 +153,39 @@ struct CUTI_ABI scheduler_t
    * Call this function again if you want another callback.
    */
   template<typename Callback>
-  readable_ticket_t call_when_readable(int fd, Callback&& callback)
+  cancellation_ticket_t call_when_readable(int fd, Callback&& callback)
   {
     callback_t callee(std::forward<Callback>(callback));
     assert(callee != nullptr);
-    return readable_ticket_t(this->do_call_when_readable(
-      fd, std::move(callee)));
+    return cancellation_ticket_t(
+      cancellation_ticket_t::type_t::readable,
+      this->do_call_when_readable(fd, std::move(callee)));
   }
 
   /*
    * Cancels a callback before it is invoked.
    */
-  void cancel(alarm_ticket_t ticket) noexcept
+  void cancel(cancellation_ticket_t ticket) noexcept
   {
     assert(!ticket.empty());
-    this->do_cancel_alarm(ticket.id());
+
+    switch(ticket.type())
+    {
+    case cancellation_ticket_t::type_t::alarm :
+      this->do_cancel_alarm(ticket.id());
+      break;
+    case cancellation_ticket_t::type_t::writable :
+      this->do_cancel_when_writable(ticket.id());
+      break;
+    case cancellation_ticket_t::type_t::readable :
+      this->do_cancel_when_readable(ticket.id());
+      break;
+    default :
+      assert(!"expected ticket type");
+      break;
+    }
   }
     
-  void cancel(writable_ticket_t ticket) noexcept
-  {
-    assert(!ticket.empty());
-    this->do_cancel_when_writable(ticket.id());
-  }
-
-  void cancel(readable_ticket_t ticket) noexcept
-  {
-    assert(!ticket.empty());
-    this->do_cancel_when_readable(ticket.id());
-  }
-
   virtual ~scheduler_t();
 
 private :
