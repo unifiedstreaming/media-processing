@@ -89,23 +89,23 @@ struct list_arena_t
   list_arena_t& operator=(list_arena_t const& rhs)
   {
     list_arena_t tmp(rhs);
-    this->do_swap(tmp);
+    this->swap(tmp);
     return *this;
   }
 
   list_arena_t& operator=(list_arena_t&& rhs) noexcept
   {
     list_arena_t tmp(std::move(rhs));
-    this->do_swap(tmp);
+    this->swap(tmp);
     return *this;
   }
 
-  void do_swap(list_arena_t& other) noexcept
+  void swap(list_arena_t& that) noexcept
   {
     using std::swap;
 
-    swap(nodes_, other.nodes_);
-    swap(free_top_, other.free_top_);
+    swap(this->nodes_, that.nodes_);
+    swap(this->free_top_, that.free_top_);
   }
 
   /*
@@ -364,7 +364,7 @@ private :
 template<typename T>
 void swap(list_arena_t<T>& a1, list_arena_t<T>& a2) noexcept
 {
-  a1.do_swap(a2);
+  a1.swap(a2);
 }
 
 } // cuti
