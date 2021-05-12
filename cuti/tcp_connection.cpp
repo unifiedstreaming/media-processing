@@ -21,6 +21,7 @@
 
 #include "tcp_acceptor.hpp"
 #include "resolver.hpp"
+#include "system_error.hpp"
 
 #include <cassert>
 #include <iostream>
@@ -87,6 +88,13 @@ make_connected_pair(endpoint_t const& interface)
   result.first.reset(new tcp_connection_t(acceptor.local_endpoint()));
   result.second = acceptor.accept();
 
+  if(result.second == nullptr)
+  {
+    int cause = acceptor.last_accept_error();
+    assert(cause != 0);
+    throw system_exception_t("make_connected_pair(): accept() error", cause);
+  }
+    
   return result;
 }
 

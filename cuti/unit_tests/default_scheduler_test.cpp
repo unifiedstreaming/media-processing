@@ -143,6 +143,7 @@ private :
     auto incoming = acceptor_.accept();
     if(incoming == nullptr)
     {
+      assert(acceptor_.last_accept_error() == 0);
       if(auto msg = context_.message_at(loglevel))
       {
         *msg << "dos_protector: " << acceptor_ <<

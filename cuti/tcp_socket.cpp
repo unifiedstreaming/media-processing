@@ -225,6 +225,38 @@ bool is_wouldblock(int error)
 #endif
 }
 
+bool is_fatal_accept_error(int error)
+{
+  if(is_wouldblock(error))
+  {
+    return false;
+  }
+
+  switch(error)
+  {
+  case 0 :
+#ifdef _WIN32
+  case WSACONNRESET :
+#else // POSIX
+  case ECONNABORTED :
+  case EINTR :
+#ifdef __linux__ // not POSIX-compliant here; see linux accept(2) man page
+  case ENETDOWN :
+  case EPROTO :
+  case ENOPROTOOPT :
+  case EHOSTDOWN :
+  case ENONET :
+  case EHOSTUNREACH :
+  case EOPNOTSUPP :
+  case ENETUNREACH :
+#endif // __linux__
+#endif // POSIX
+    return false;
+  default :
+    return true;
+  }
+}
+
 } // anonymous
 
 tcp_socket_t::tcp_socket_t(int family)
@@ -350,34 +382,40 @@ void tcp_socket_t::set_nonblocking()
   cuti::set_nonblocking(fd_, true);
 }
 
-tcp_socket_t tcp_socket_t::accept()
+int tcp_socket_t::accept(tcp_socket_t& accepted)
 {
   assert(!empty());
 
-  tcp_socket_t result;
+  int result = 0;
+  tcp_socket_t tmp_socket;
 
 #if defined(SOCK_CLOEXEC)
-  result.fd_ = to_fd(::accept4(fd_, nullptr, nullptr, SOCK_CLOEXEC));
+  tmp_socket.fd_ = to_fd(::accept4(fd_, nullptr, nullptr, SOCK_CLOEXEC));
 #else
-  result.fd_ = to_fd(::accept(fd_, nullptr, nullptr));
+  tmp_socket.fd_ = to_fd(::accept(fd_, nullptr, nullptr));
 #endif
 
-  if(result.fd_ == -1)
+  if(tmp_socket.fd_ == -1)
   {
     int cause = last_system_error();
-    if(is_wouldblock(cause))
+    if(!is_wouldblock(cause))
     {
-      return result;
+      if(is_fatal_accept_error(cause))
+      {
+        throw system_exception_t("accept() failure", cause);
+      }
+      result = cause;
     }
-    throw system_exception_t("accept() failure", cause);
+  }
+  else
+  {
+#if !defined(_WIN32) && !defined(SOCK_CLOEXEC)
+    set_cloexec(tmp_socket.fd_, true);
+#endif
+    set_initial_connection_flags(tmp_socket.fd_);
   }
 
-#if !defined(_WIN32) && !defined(SOCK_CLOEXEC)
-  set_cloexec(result.fd_, true);
-#endif
-
-  set_initial_connection_flags(result.fd_);
-
+  tmp_socket.swap(accepted);
   return result;
 }
 

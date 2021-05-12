@@ -51,27 +51,22 @@ struct CUTI_ABI tcp_socket_t
 
   tcp_socket_t(tcp_socket_t&& rhs) noexcept
   : fd_(rhs.fd_)
-  {
-    rhs.fd_ = -1;
-  }
+  { rhs.fd_ = -1; }
 
   tcp_socket_t& operator=(tcp_socket_t&& rhs) noexcept
   {
     tcp_socket_t tmp(std::move(rhs));
-    this->do_swap(tmp);
+    this->swap(tmp);
     return *this;
   }
 
   bool empty() const noexcept
-  {
-    return fd_ == -1;
-  }
+  { return fd_ == -1; }
 
-  void do_swap(tcp_socket_t& other) noexcept
+  void swap(tcp_socket_t& that) noexcept
   {
     using std::swap;
-
-    swap(fd_, other.fd_);
+    swap(this->fd_, that.fd_);
   }
 
   ~tcp_socket_t()
@@ -93,19 +88,25 @@ struct CUTI_ABI tcp_socket_t
   endpoint_t remote_endpoint() const;
 
   /*
-   * I/O functions
+   * In blocking mode, which is the default, I/O functions wait
+   * until they can be completed.
+   *
+   * In non-blocking mode, I/O functions always return immediately;
+   * please see the descriptions of accept(), write_some() and
+   * read_some().
    */
-  // In blocking mode, which is the default, I/O functions wait
-  // until they can be completed.
   void set_blocking();
-
-  // In non-blocking mode, I/O functions return some special
-  // value if they cannot be completed immediately.
   void set_nonblocking();
 
-  // Returns an accepted socket.
-  // In non-blocking mode, an empty socket may be returned.
-  tcp_socket_t accept();
+  /*
+   * Sets <accepted> to an accepted socket.  If the call would block
+   * (non-blocking mode only), or if the incoming connection broke
+   * before the call to accept(), <accepted> is set to an empty
+   * socket_t.  Returns 0 on success, or a system error code if the
+   * incoming connection is broken.  Please note that refusing to
+   * block is not considered an error.
+   */
+  int accept(tcp_socket_t& accepted);
 
   // Returns a pointer to the next byte to write.
   // In non-blocking mode, nullptr may be returned.
@@ -154,10 +155,10 @@ private :
   int fd_;
 };
 
-inline
-void swap(tcp_socket_t& s1, tcp_socket_t& s2) noexcept
+CUTI_ABI
+inline void swap(tcp_socket_t& s1, tcp_socket_t& s2) noexcept
 {
-  s1.do_swap(s2);
+  s1.swap(s2);
 }
 
 } // cuti
