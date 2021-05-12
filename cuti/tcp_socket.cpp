@@ -236,7 +236,7 @@ bool is_fatal_accept_error(int error)
   {
   case 0 :
 #ifdef _WIN32
-  case WSACONNRESET :
+  case WSAECONNRESET :
 #else // POSIX
   case ECONNABORTED :
   case EINTR :
