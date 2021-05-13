@@ -22,6 +22,7 @@
 #include "system_error.hpp"
 
 #include <algorithm>
+#include <array>
 #include <cassert>
 #include <ostream>
 #include <utility>
@@ -75,6 +76,59 @@ void visit_sockaddr(sockaddr const& addr,
     assert(!"expected address family");
     break;
   }
+}
+
+bool sockaddr_equals(sockaddr_in const& lhs, sockaddr_in const& rhs) noexcept
+{
+  return lhs.sin_port == rhs.sin_port &&
+         lhs.sin_addr.s_addr == rhs.sin_addr.s_addr;
+}
+
+bool sockaddr_equals(sockaddr_in6 const& lhs, sockaddr_in6 const& rhs) noexcept
+{
+  return lhs.sin6_port == rhs.sin6_port &&
+         std::equal(std::begin(lhs.sin6_addr.s6_addr),
+                    std::end(lhs.sin6_addr.s6_addr),
+                    std::begin(rhs.sin6_addr.s6_addr));
+}
+
+bool sockaddr_equals(sockaddr_in const& lhs, sockaddr const& rhs) noexcept
+{
+  bool result;
+
+  auto on_ipv4 =
+    [&](sockaddr_in const& rhs) { result = sockaddr_equals(lhs, rhs); };
+  auto on_ipv6 =
+    [&](sockaddr_in6 const&) { result = false; };
+  visit_sockaddr(rhs, on_ipv4, on_ipv6);
+
+  return result;
+}
+
+bool sockaddr_equals(sockaddr_in6 const& lhs, sockaddr const& rhs) noexcept
+{
+  bool result;
+
+  auto on_ipv4 =
+    [&](sockaddr_in const&) { result = false; };
+  auto on_ipv6 =
+    [&](sockaddr_in6 const& rhs) { result = sockaddr_equals(lhs, rhs); };
+  visit_sockaddr(rhs, on_ipv4, on_ipv6);
+
+  return result;
+}
+
+bool sockaddr_equals(sockaddr const& lhs, sockaddr const& rhs) noexcept
+{
+  bool result;
+
+  auto on_ipv4 =
+    [&](sockaddr_in const& lhs) { result = sockaddr_equals(lhs, rhs); };
+  auto on_ipv6 =
+    [&](sockaddr_in6 const& lhs) { result = sockaddr_equals(lhs, rhs); };
+  visit_sockaddr(lhs, on_ipv4, on_ipv6);
+
+  return result;
 }
 
 } // anonymous
@@ -154,6 +208,20 @@ unsigned int endpoint_t::port() const
   visit_sockaddr(*addr_, on_ipv4, on_ipv6);
 
   return result;
+}
+
+bool endpoint_t::equals(endpoint_t const& that) const noexcept
+{
+  if(this->addr_ == that.addr_)
+  {
+    return true;
+  }
+  if(this->addr_ == nullptr || that.addr_ == nullptr)
+  {
+    return false;
+  }
+
+  return sockaddr_equals(*this->addr_, *that.addr_);
 }
 
 endpoint_t::endpoint_t(std::shared_ptr<sockaddr const> addr)

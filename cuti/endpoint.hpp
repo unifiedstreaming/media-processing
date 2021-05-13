@@ -53,6 +53,8 @@ struct CUTI_ABI endpoint_t
   std::string ip_address() const;
   unsigned int port() const;
 
+  bool equals(endpoint_t const& that) const noexcept;
+
 private :
   friend struct resolver_t;
   friend struct tcp_socket_t;
@@ -63,6 +65,14 @@ private :
 private :
   std::shared_ptr<sockaddr const> addr_;
 };
+
+CUTI_ABI
+inline bool operator==(endpoint_t const& lhs, endpoint_t const& rhs) noexcept
+{ return lhs.equals(rhs); }
+
+CUTI_ABI
+inline bool operator!=(endpoint_t const& lhs, endpoint_t const& rhs) noexcept
+{ return !(lhs == rhs); }
 
 CUTI_ABI
 std::ostream& operator<<(std::ostream& os, endpoint_t const& endpoint);
