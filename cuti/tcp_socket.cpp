@@ -225,121 +225,36 @@ bool is_wouldblock(int error)
 #endif
 }
 
-bool is_fatal_accept_error(int error)
+bool is_fatal_socket_error(int error)
 {
-  if(is_wouldblock(error))
-  {
-    return false;
-  }
-
   switch(error)
   {
-  case 0 :
 #ifdef _WIN32
-  case WSAECONNRESET :
+  case WSAEACCES :
+  case WSAEFAULT :
+  case WSAEINPROGRESS :
+  case WSAEINVAL :
+  case WSAEINTR :
+  case WSAEMFILE :
+  case WSAEMSGSIZE :
+  case WSAENOBUFS :
+  case WSAENETDOWN :
+  case WSAENOTSOCK :
+  case WSANOTINITIALISED :
 #else // POSIX
-  case ECONNABORTED :
-  case EINTR :
-#ifdef __linux__ // not POSIX-compliant here; see linux accept(2) man page
-  case ENETDOWN :
-  case EPROTO :
-  case ENOPROTOOPT :
-  case EHOSTDOWN :
-  case ENONET :
-  case EHOSTUNREACH :
-  case EOPNOTSUPP :
-  case ENETUNREACH :
-#endif // __linux__
-#ifdef __APPLE__
-  case EPROTOTYPE :
-#endif // __APPLE__
-#endif // POSIX
-    return false;
-  default :
+  case EACCES :
+  case EBADF :
+  case EFAULT :
+  case EINVAL :
+  case EMFILE :
+  case ENFILE :
+  case ENOBUFS :
+  case ENOMEM :
+  case ENOTSOCK :
+#endif
     return true;
-  }
-}
-
-bool is_fatal_send_error(int error)
-{
-  if(is_wouldblock(error))
-  {
-    return false;
-  }
-
-  switch(error)
-  {
-  case 0 :
-#ifdef _WIN32
-  case WSAECONNABORTED :
-  case WSAECONNRESET :
-  case WSAEHOSTUNREACH :
-  case WSAENETRESET :
-  case WSAETIMEDOUT :
-#else // POSIX, with some extra topping form the FreeBSD man page
-  case ECONNREFUSED :
-  case ECONNRESET :
-  case EHOSTDOWN :
-  case EHOSTUNREACH :
-  case ENETDOWN :
-  case EPIPE :
-#ifdef __APPLE__
-  case EPROTOTYPE :
-#endif // __APPLE__
-#endif // POSIX
-    return false;
   default :
-    return true;
-  }
-}
-
-bool is_fatal_shutdown_error(int error)
-{
-  switch(error)
-  {
-  case 0 :
-#ifdef _WIN32
-  case WSAECONNABORTED :
-  case WSAECONNRESET :
-  case WSAENOTCONN :
-#else // POSIX
-  case ENOTCONN :
-#ifdef __APPLE__
-  case EPROTOTYPE :
-#endif // __APPLE__
-#endif // POSIX
     return false;
-  default :
-    return true;
-  }
-}
-  
-bool is_fatal_recv_error(int error)
-{
-  if(is_wouldblock(error))
-  {
-    return false;
-  }
-
-  switch(error)
-  {
-  case 0 :
-#ifdef _WIN32
-  case WSAECONNABORTED :
-  case WSAECONNRESET :
-  case WSAENETRESET :
-  case WSAETIMEDOUT :
-#else // POSIX, with some extra topping form the Linux man page
-  case ECONNREFUSED :
-  case ECONNRESET :
-  case ETIMEDOUT :
-#ifdef __APPLE__
-  case EPROTOTYPE :
-#endif // __APPLE__
-#endif // POSIX
-    return false;
-  default :
-    return true;
   }
 }
   
@@ -486,7 +401,7 @@ int tcp_socket_t::accept(tcp_socket_t& accepted)
     int cause = last_system_error();
     if(!is_wouldblock(cause))
     {
-      if(is_fatal_accept_error(cause))
+      if(is_fatal_socket_error(cause))
       {
         throw system_exception_t("accept() failure", cause);
       }
@@ -532,7 +447,7 @@ int tcp_socket_t::write_some(
     {
       next = nullptr;
     }
-    else if(is_fatal_send_error(cause))
+    else if(is_fatal_socket_error(cause))
     {
       throw system_exception_t("send() failure", cause);
     }
@@ -562,7 +477,7 @@ int tcp_socket_t::close_write_end()
   if(r == -1)
   {
     int cause = last_system_error();
-    if(is_fatal_shutdown_error(cause))
+    if(is_fatal_socket_error(cause))
     {
       throw system_exception_t("shutdown() failure", cause);
     }
@@ -593,7 +508,7 @@ int tcp_socket_t::read_some(char* first, char const* last, char*& next)
     {
       next = nullptr;
     }
-    else if(is_fatal_recv_error(cause))
+    else if(is_fatal_socket_error(cause))
     {
       throw system_exception_t("recv() failure()", cause);
     }
