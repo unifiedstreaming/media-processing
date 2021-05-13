@@ -250,6 +250,9 @@ bool is_fatal_accept_error(int error)
   case EOPNOTSUPP :
   case ENETUNREACH :
 #endif // __linux__
+#ifdef __APPLE__
+  case EPROTOTYPE :
+#endif // __APPLE__
 #endif // POSIX
     return false;
   default :
@@ -280,13 +283,16 @@ bool is_fatal_send_error(int error)
   case EHOSTUNREACH :
   case ENETDOWN :
   case EPIPE :
-#endif
+#ifdef __APPLE__
+  case EPROTOTYPE :
+#endif // __APPLE__
+#endif // POSIX
     return false;
   default :
     return true;
   }
 }
-  
+
 bool is_fatal_shutdown_error(int error)
 {
   switch(error)
@@ -298,7 +304,10 @@ bool is_fatal_shutdown_error(int error)
   case WSAENOTCONN :
 #else // POSIX
   case ENOTCONN :
-#endif
+#ifdef __APPLE__
+  case EPROTOTYPE :
+#endif // __APPLE__
+#endif // POSIX
     return false;
   default :
     return true;
@@ -324,7 +333,10 @@ bool is_fatal_recv_error(int error)
   case ECONNREFUSED :
   case ECONNRESET :
   case ETIMEDOUT :
-#endif
+#ifdef __APPLE__
+  case EPROTOTYPE :
+#endif // __APPLE__
+#endif // POSIX
     return false;
   default :
     return true;
