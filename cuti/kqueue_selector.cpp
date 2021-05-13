@@ -222,6 +222,8 @@ private :
       int count = kqueue_.remove(registration.fd_,
         registration.event_ == event_t::writable ? EVFILT_WRITE : EVFILT_READ,
         reinterpret_cast<void*>(ticket));
+
+      static_cast<void>(count);
       assert(count == 0);
     }
 
