@@ -94,12 +94,12 @@ bool sockaddr_equals(sockaddr_in6 const& lhs, sockaddr_in6 const& rhs) noexcept
 
 bool sockaddr_equals(sockaddr_in const& lhs, sockaddr const& rhs) noexcept
 {
-  bool result;
+  bool result = false;
 
   auto on_ipv4 = [&](sockaddr_in const& rhs)
     { result = sockaddr_equals(lhs, rhs); };
   auto on_ipv6 = [&](sockaddr_in6 const&)
-    { result = false; };
+    { };
   visit_sockaddr(rhs, on_ipv4, on_ipv6);
 
   return result;
@@ -107,10 +107,10 @@ bool sockaddr_equals(sockaddr_in const& lhs, sockaddr const& rhs) noexcept
 
 bool sockaddr_equals(sockaddr_in6 const& lhs, sockaddr const& rhs) noexcept
 {
-  bool result;
+  bool result = false;
 
   auto on_ipv4 = [&](sockaddr_in const&)
-    { result = false; };
+    { };
   auto on_ipv6 = [&](sockaddr_in6 const& rhs)
     { result = sockaddr_equals(lhs, rhs); };
   visit_sockaddr(rhs, on_ipv4, on_ipv6);
@@ -120,7 +120,7 @@ bool sockaddr_equals(sockaddr_in6 const& lhs, sockaddr const& rhs) noexcept
 
 bool sockaddr_equals(sockaddr const& lhs, sockaddr const& rhs) noexcept
 {
-  bool result;
+  bool result = false;
 
   auto on_ipv4 = [&](sockaddr_in const& lhs)
     { result = sockaddr_equals(lhs, rhs); };
