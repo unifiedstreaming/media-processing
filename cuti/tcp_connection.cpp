@@ -137,15 +137,27 @@ make_connected_pair(endpoint_t const& interface)
 
   tcp_acceptor_t acceptor(interface);
   result.first.reset(new tcp_connection_t(acceptor.local_endpoint()));
-  result.second = acceptor.accept();
+  auto const& first_local_endpoint = result.first->local_endpoint();
 
-  if(result.second == nullptr)
+  do
   {
-    int cause = acceptor.last_accept_error();
-    assert(cause != 0);
-    throw system_exception_t("make_connected_pair(): accept() error", cause);
-  }
-    
+    result.second = acceptor.accept();
+    if(result.second != nullptr)
+    {
+      auto const& second_remote_endpoint = result.second->remote_endpoint();
+      if(second_remote_endpoint.address_family() !=
+           first_local_endpoint.address_family() ||
+         second_remote_endpoint.ip_address() !=
+           first_local_endpoint.ip_address() ||
+         second_remote_endpoint.port() !=
+           first_local_endpoint.port())
+      {
+        // intruder accepted; disconnect
+        result.second.reset();
+      }
+    }
+  } while(result.second == nullptr);
+
   return result;
 }
 
