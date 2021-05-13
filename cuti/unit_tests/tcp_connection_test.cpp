@@ -1088,21 +1088,15 @@ void broken_pipe(logging_context_t const& context,
 
   consumer_in.reset();
   producer_t producer(context, *producer_out, first, last, bufsize);
+  run_to_completion(producer);
 
-  bool caught = false;
-  try
+  int error = producer_out->last_write_error();
+  assert(error != 0);
+  if(auto msg = context.message_at(loglevel_t::debug))
   {
-    run_to_completion(producer);
+    *msg << "broken_pipe(): got expected write error " <<
+      error << " (" << system_error_string(error) << ")";
   }
-  catch(system_exception_t const& ex)
-  {
-    if(auto msg = context.message_at(loglevel_t::debug))
-    {
-      *msg << "broken_pipe(): caught expected exception: " << ex.what();
-    }
-    caught = true;
-  }
-  assert(caught);
 }
 
 void broken_pipe(logging_context_t const& context)

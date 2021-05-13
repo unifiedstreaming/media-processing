@@ -90,36 +90,51 @@ struct CUTI_ABI tcp_socket_t
   /*
    * In blocking mode, which is the default, I/O functions wait
    * until they can be completed.
-   *
-   * In non-blocking mode, I/O functions always return immediately;
-   * please see the descriptions of accept(), write_some() and
-   * read_some().
+   * In non-blocking mode, I/O functions return immediately; please
+   * see the descriptions of accept(), write_some() and read_some().
    */
   void set_blocking();
   void set_nonblocking();
 
   /*
-   * Sets <accepted> to an accepted socket.  If the call would block
-   * (non-blocking mode only), or if the incoming connection broke
-   * before the call to accept(), <accepted> is set to an empty
-   * socket_t.  Returns 0 on success, or a system error code if the
-   * incoming connection is broken.  Please note that refusing to
-   * block is not considered an error.
+   * Tries to set <accepted> to an incoming connection socket.
+   * If *this is in non-blocking mode and the call would block, or if
+   * the incoming connection broke before it was accepted, <accepted>
+   * is set to the empty state.
+   * Returns 0 on success, or a system error code if the incoming
+   * connection was broken.  Please note that refusing to block is
+   * not an error.
    */
   int accept(tcp_socket_t& accepted);
 
-  // Returns a pointer to the next byte to write.
-  // In non-blocking mode, nullptr may be returned.
-  char const* write_some(char const* first, char const* last);
+  /*
+   * Tries to write the bytes in range [first, last>, setting next to
+   * the next byte to write.  In non-blocking mode, next is set to
+   * nullptr if the call would block.
+   * Returns 0 on success; if the connection is broken, next is set to
+   * last and a system error code is returned.  Please note that
+   * refusing to block is not an error.
+   */
+  int write_some(char const* first, char const* last, char const*& next);
 
-  // Closes the writing side of the connection, while leaving the
-  // reading side open. This will eventually result in an EOF at the
-  // peer.
-  void close_write_end();
+  /*
+   * Closes the writing side of the connection, while leaving the
+   * reading side open.  This should eventually result in an EOF at
+   * the peer.
+   * Returns 0 on success; if the connection is broken, a system error
+   * code is returned.
+   */
+  int close_write_end();
 
-  // Returns a pointer to the next byte to read; first on EOF.
-  // In non-blocking mode, nullptr may be returned.
-  char* read_some(char* first, char const* last);
+  /*
+   * Tries to read the bytes in range [first, last>, setting next to
+   * the next byte to read, or first on EOF.  In non-blocking mode,
+   * next is set to nullptr if the call would block.
+   * Returns 0 on success; if the connection is broken, next is set to
+   * first and a system error code is returned.  Please note that
+   * hitting EOF or refusing to block is not an error.
+   */
+  int read_some(char* first, char const* last, char*& next);
 
   /*
    * Event reporting; see scheduler.hpp for detailed semantics.  A

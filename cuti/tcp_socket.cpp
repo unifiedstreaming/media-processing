@@ -257,6 +257,80 @@ bool is_fatal_accept_error(int error)
   }
 }
 
+bool is_fatal_send_error(int error)
+{
+  if(is_wouldblock(error))
+  {
+    return false;
+  }
+
+  switch(error)
+  {
+  case 0 :
+#ifdef _WIN32
+  case WSAECONNABORTED :
+  case WSAECONNRESET :
+  case WSAEHOSTUNREACH :
+  case WSAENETRESET :
+  case WSAETIMEDOUT :
+#else // POSIX, with some extra topping form the FreeBSD man page
+  case ECONNREFUSED :
+  case ECONNRESET :
+  case EHOSTDOWN :
+  case EHOSTUNREACH :
+  case ENETDOWN :
+  case EPIPE :
+#endif
+    return false;
+  default :
+    return true;
+  }
+}
+  
+bool is_fatal_shutdown_error(int error)
+{
+  switch(error)
+  {
+  case 0 :
+#ifdef _WIN32
+  case WSAECONNABORTED :
+  case WSAECONNRESET :
+  case WSAENOTCONN :
+#else // POSIX
+  case ENOTCONN :
+#endif
+    return false;
+  default :
+    return true;
+  }
+}
+  
+bool is_fatal_recv_error(int error)
+{
+  if(is_wouldblock(error))
+  {
+    return false;
+  }
+
+  switch(error)
+  {
+  case 0 :
+#ifdef _WIN32
+  case WSAECONNABORTED :
+  case WSAECONNRESET :
+  case WSAENETRESET :
+  case WSAETIMEDOUT :
+#else // POSIX, with some extra topping form the Linux man page
+  case ECONNREFUSED :
+  case ECONNRESET :
+  case ETIMEDOUT :
+#endif
+    return false;
+  default :
+    return true;
+  }
+}
+  
 } // anonymous
 
 tcp_socket_t::tcp_socket_t(int family)
@@ -419,10 +493,11 @@ int tcp_socket_t::accept(tcp_socket_t& accepted)
   return result;
 }
 
-char const* tcp_socket_t::write_some(char const* first, char const* last)
+int tcp_socket_t::write_some(
+  char const* first, char const* last, char const*& next)
 {
   assert(!empty());
-  assert(first <= last);
+  assert(first < last);
 
   int count = std::numeric_limits<int>::max();
   if(count > last - first)
@@ -430,27 +505,43 @@ char const* tcp_socket_t::write_some(char const* first, char const* last)
     count = static_cast<int>(last - first);
   }
 
+  int result = 0;
+
 #if defined(SO_NOSIGPIPE) || !defined(MSG_NOSIGNAL)
-  auto r = ::send(fd_, first, count, 0);
+  auto n = ::send(fd_, first, count, 0);
 #else
-  auto r = ::send(fd_, first, count, MSG_NOSIGNAL);
+  auto n = ::send(fd_, first, count, MSG_NOSIGNAL);
 #endif
 
-  if(r == -1)
+  if(n == -1)
   {
     int cause = last_system_error();
     if(is_wouldblock(cause))
     {
-      return nullptr;
+      next = nullptr;
     }
-    throw system_exception_t("send() failure", cause);
+    else if(is_fatal_send_error(cause))
+    {
+      throw system_exception_t("send() failure", cause);
+    }
+    else
+    {
+      result = cause;
+      next = last;
+    }
+  }
+  else
+  {
+    next = first + n;
   }
 
-  return first + r;
+  return result;
 }
 
-void tcp_socket_t::close_write_end()
+int tcp_socket_t::close_write_end()
 {
+  int result = 0;
+
 #ifdef _WIN32
   int r = ::shutdown(fd_, SD_SEND);
 #else
@@ -459,14 +550,20 @@ void tcp_socket_t::close_write_end()
   if(r == -1)
   {
     int cause = last_system_error();
-    throw system_exception_t("shutdown() failure", cause);
+    if(is_fatal_shutdown_error(cause))
+    {
+      throw system_exception_t("shutdown() failure", cause);
+    }
+    result = cause;
   }
+
+  return result;
 }
 
-char* tcp_socket_t::read_some(char* first, char const* last)
+int tcp_socket_t::read_some(char* first, char const* last, char*& next)
 {
   assert(!empty());
-  assert(first <= last);
+  assert(first < last);
 
   int count = std::numeric_limits<int>::max();
   if(count > last - first)
@@ -474,19 +571,32 @@ char* tcp_socket_t::read_some(char* first, char const* last)
     count = static_cast<int>(last - first);
   }
 
-  auto r = ::recv(fd_, first, count, 0);
+  auto result = 0;
+  auto n = ::recv(fd_, first, count, 0);
 
-  if(r == -1)
+  if(n == -1)
   {
     int cause = last_system_error();
     if(is_wouldblock(cause))
     {
-      return nullptr;
+      next = nullptr;
     }
-    throw system_exception_t("recv() failure()", cause);
+    else if(is_fatal_recv_error(cause))
+    {
+      throw system_exception_t("recv() failure()", cause);
+    }
+    else
+    {
+      result = cause;
+      next = first;
+    }
+  }
+  else
+  {
+     next = first + n;
   }
 
-  return first + r;
+  return result;
 }
 
 void tcp_socket_t::close_fd(int fd) noexcept

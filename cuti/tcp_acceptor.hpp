@@ -47,27 +47,27 @@ struct CUTI_ABI tcp_acceptor_t
   /*
    * In blocking mode, which is the default, I/O functions wait
    * until they can be completed.
-   *
-   * In non-blocking mode, I/O functions always return immediately;
-   * please see the descriptions of accept(), write_some() and
-   * read_some().
+   * In non-blocking mode, I/O functions return immediately; please
+   * see the description of accept().
    */
   void set_blocking();
   void set_nonblocking();
 
   /*
-   * Returns an accepted connection.  If the call would block
-   * (non-blocking mode only), or if the incoming connection broke
-   * before the call to accept(), nullptr is returned.  Use
-   * last_accept_error() if you need to determine the cause of a
-   * nullptr return.
+   * Tries to accept an incoming connnection to *this, returning
+   * a pointer to the accepted connection.
+   * If *this is in non-blocking mode and the call would block, or if
+   * the incoming connection broke before it was accepted, nullptr is
+   * returned.
+   * Use last_accept_error() if you need to determine the cause of a
+   * nullptr return value.
    */ 
   std::unique_ptr<tcp_connection_t> accept();
 
   /*
    * Returns the system error code of the last non-throwing call to
    * accept(), or 0 if there was no error.  Please note that refusing
-   * to block is not considered an error.
+   * to block is not an error.
    */
   int last_accept_error() const noexcept
   { return last_accept_error_; }

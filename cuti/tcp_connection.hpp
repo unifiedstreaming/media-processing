@@ -49,28 +49,57 @@ struct CUTI_ABI tcp_connection_t
   { return remote_endpoint_; }
 
   /*
-   * I/O functions
+   * In blocking mode, which is the default, I/O functions wait
+   * until they can be completed.
+   * In non-blocking mode, I/O functions return immediately; please
+   * see the descriptions write_some() and read_some().
    */
-  // In blocking mode, which is the default, I/O functions wait
-  // until they can be completed.
   void set_blocking();
-
-  // In non-blocking mode, I/O functions return some special
-  // value if they cannot be completed immediately.
   void set_nonblocking();
 
-  // Returns a pointer to the next byte to write.
-  // In non-blocking mode, nullptr may be returned.
+  /*
+   * Tries to write the bytes in range [first, last>, returning a
+   * pointer to the next byte to write, which is last if all bytes
+   * were written.  In non-blocking mode, nullptr is returned if the
+   * call would block.
+   * If the connection is broken, last is returned.  Use
+   * last_write_error() if you need to determine why last was
+   * returned.
+   */
   char const* write_some(char const* first, char const* last);
 
-  // Closes the writing side of the connection, while leaving the
-  // reading side open. This will eventually result in an EOF at the
-  // peer.
+  /*
+   * Closes the writing side of the connection, while leaving the
+   * reading side open.  This should eventually result in an EOF at
+   * the peer.
+   */
   void close_write_end();
 
-  // Returns a pointer to the next byte to read; first on EOF.
-  // In non-blocking mode, nullptr may be returned.
+  /*
+   * Returns the system error code of the last non-throwing call to
+   * write_some() or close_write_end(), or 0 if there was no error.
+   * Please note that refusing to block is not an error.
+   */
+  int last_write_error() const noexcept
+  { return last_write_error_; }
+
+  /*
+   * Tries to read the bytes in range [first, last>, returning a
+   * pointer to the next byte to read, or first on EOF.  In
+   * non-blocking mode, nullptr is returned if the call would block.
+   * If the connection is broken, first is returned.  Use
+   * last_read_error() if you need to determine why first was
+   * returned.
+   */
   char* read_some(char* first, char const* last);
+
+  /*
+   * Returns the system error code of the last non-throwing call to
+   * read_some(), or 0 if there was no error.  Please note that
+   * hitting EOF or refusing to block is not an error.
+   */
+  int last_read_error() const noexcept
+  { return last_read_error_; }
 
   /*
    * Event reporting; see scheduler.hpp for detailed semantics.  A
@@ -81,6 +110,11 @@ struct CUTI_ABI tcp_connection_t
   cancellation_ticket_t call_when_writable(scheduler_t& scheduler,
                                            Callback&& callback) const
   {
+    if(writing_done_)
+    {
+      return scheduler.call_alarm(duration_t::zero(),
+        std::forward<Callback>(callback));
+    }
     return socket_.call_when_writable(scheduler,
       std::forward<Callback>(callback));
   }
@@ -89,6 +123,11 @@ struct CUTI_ABI tcp_connection_t
   cancellation_ticket_t call_when_readable(scheduler_t& scheduler,
                                            Callback&& callback) const
   {
+    if(reading_done_)
+    {
+      return scheduler.call_alarm(duration_t::zero(),
+        std::forward<Callback>(callback));
+    }
     return socket_.call_when_readable(scheduler,
       std::forward<Callback>(callback));
   }
@@ -101,6 +140,10 @@ private :
   tcp_socket_t socket_;
   endpoint_t local_endpoint_;
   endpoint_t remote_endpoint_;
+  int last_write_error_;
+  bool writing_done_;
+  int last_read_error_;
+  bool reading_done_;
 };
 
 CUTI_ABI std::ostream& operator<<(std::ostream& os,
