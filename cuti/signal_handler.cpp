@@ -33,7 +33,7 @@
 #endif
 
 // enable assertions here, even in release mode
-#undef NEBUG
+#undef NDEBUG
 #include <cassert>
 
 namespace cuti
