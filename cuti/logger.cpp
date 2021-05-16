@@ -90,7 +90,7 @@ void logger_t::report(loglevel_t level,
     if(n_failures_ == 0)
     {
       // enter failure mode
-      first_failure_time_ = clock_t::now();
+      first_failure_time_ = cuti_clock_t::now();
       first_failure_reason_ = ex.what();
     }
     if(n_failures_ != max_failures)

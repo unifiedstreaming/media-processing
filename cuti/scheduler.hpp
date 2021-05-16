@@ -126,7 +126,7 @@ struct CUTI_ABI scheduler_t
   cancellation_ticket_t call_alarm(duration_t timeout, Callback&& callback)
   {
     return this->call_alarm(
-      clock_t::now() + timeout, std::forward<Callback>(callback));
+      cuti_clock_t::now() + timeout, std::forward<Callback>(callback));
   }
     
   /*

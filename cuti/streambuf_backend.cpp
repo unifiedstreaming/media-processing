@@ -41,7 +41,7 @@ void streambuf_backend_t::report(loglevel_t level,
     return;
   }
 
-  auto now = clock_t::now();
+  auto now = cuti_clock_t::now();
 
   format_time_point(*sb_, now);
   sb_->sputc(' ');

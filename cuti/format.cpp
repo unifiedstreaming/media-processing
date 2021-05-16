@@ -91,7 +91,7 @@ void format_loglevel(std::streambuf& target, loglevel_t level)
 
 void format_time_point(std::streambuf& target, time_point_t tp)
 {
-  auto duration = tp - clock_t::from_time_t(0);
+  auto duration = tp - cuti_clock_t::from_time_t(0);
   time_t secs = duration_cast<seconds_t>(duration).count();
   unsigned int msecs = duration_cast<milliseconds_t>(duration).count() % 1000;
 

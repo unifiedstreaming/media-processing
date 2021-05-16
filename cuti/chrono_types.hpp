@@ -28,12 +28,12 @@ namespace cuti
 /*
  * Convenience aliases for some chrono types.
  */
-using clock_t = std::chrono::system_clock;
-using duration_t = std::chrono::system_clock::duration;
+using cuti_clock_t = std::chrono::system_clock;
+using duration_t = cuti_clock_t::duration;
 using milliseconds_t = std::chrono::milliseconds;
 using minutes_t = std::chrono::minutes;
 using seconds_t = std::chrono::seconds;
-using time_point_t = std::chrono::system_clock::time_point;
+using time_point_t = cuti_clock_t::time_point;
 
 using std::chrono::duration_cast;
 

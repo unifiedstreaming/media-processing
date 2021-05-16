@@ -42,7 +42,7 @@ callback_t default_scheduler_t::wait()
     auto limit = alarms_.priority(alarm_id);
     do
     {
-      auto now = clock_t::now();
+      auto now = cuti_clock_t::now();
       if(now >= limit)
       {
         result = std::move(alarms_.value(alarm_id));

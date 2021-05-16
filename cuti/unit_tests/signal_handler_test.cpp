@@ -169,12 +169,12 @@ int interactive_ignore()
   signal_handler_t handler(SIGINT, nullptr);
   std::cout << "Ignoring SIGINT: 10 seconds to hit ^C..." << std::endl;
 
-  auto now = cuti::clock_t::now();
+  auto now = cuti_clock_t::now();
   auto limit = now + seconds_t(10);
   do
   {
     std::this_thread::sleep_for(limit - now);
-    now = cuti::clock_t::now();
+    now = cuti_clock_t::now();
   }
   while(now < limit);
 
