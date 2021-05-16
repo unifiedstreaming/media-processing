@@ -59,7 +59,9 @@ void automated_tests()
 
 void trap(int sig1, int sig2)
 {
-  auto [sender, receiver ] = make_connected_pair();
+  std::unique_ptr<tcp_connection_t> sender;
+  std::unique_ptr<tcp_connection_t> receiver;
+  std::tie(sender, receiver) = make_connected_pair();
   sender->set_nonblocking();
 
   auto send_sig1 = [&]
