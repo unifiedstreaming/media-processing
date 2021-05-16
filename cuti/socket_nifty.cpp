@@ -19,9 +19,11 @@
 
 #include "socket_nifty.hpp"
 
+#include "signal_handler.hpp"
 #include "tcp_socket.hpp"
 
 #include <cstring>
+#include <memory>
 
 // Unconditionally enable asserts here
 #undef NDEBUG
@@ -59,25 +61,17 @@ struct socket_initializer_t
 
 #else // POSIX
 
-#include <signal.h>
-
 namespace cuti
 {
 
 struct socket_initializer_t
 {
   socket_initializer_t()
-  : ignore_sigpipe_(!tcp_socket_t::stops_sigpipe())
+  : sigpipe_handler_()
   {
-    if(ignore_sigpipe_)
+    if(!tcp_socket_t::stops_sigpipe())
     {
-      // tcp_socket_t can't stop SIGPIPE; ignore it process-wide
-      struct sigaction new_action;
-      std::memset(&new_action, '\0', sizeof new_action);
-      new_action.sa_handler = SIG_IGN;
-
-      int r = ::sigaction(SIGPIPE, &new_action, &saved_action_);
-      assert(r != -1);
+      sigpipe_handler_.reset(new signal_handler_t(SIGPIPE, nullptr));
     }
   }
 
@@ -85,16 +79,10 @@ struct socket_initializer_t
   socket_initializer_t& operator=(socket_initializer_t const&) = delete;
 
   ~socket_initializer_t()
-  {
-    if(ignore_sigpipe_)
-    {
-      ::sigaction(SIGPIPE, &saved_action_, nullptr);
-    }
-  }
+  { }
 
 private :
-  bool const ignore_sigpipe_;
-  struct sigaction saved_action_;
+  std::unique_ptr<signal_handler_t> sigpipe_handler_;
 };
 
 } // cuti
