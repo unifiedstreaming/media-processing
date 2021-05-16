@@ -74,6 +74,11 @@ unit-test scoped_guard_test
   ..//cuti
 ;
 
+unit-test signal_handler_test
+: signal_handler_test.cpp
+  ..//cuti
+;
+
 unit-test socket_nifty_test
 : socket_nifty_test.cpp
   ..//cuti
