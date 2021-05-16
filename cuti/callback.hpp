@@ -45,6 +45,11 @@ struct CUTI_ABI callback_t
   : impl_(nullptr)
   { }
 
+  template<typename F>
+  callback_t(F* f)
+  : impl_(f != nullptr ? std::make_shared<impl_instance_t<F*>>(f) : nullptr)
+  { }
+
   template<typename F, typename = std::enable_if_t<
     !std::is_convertible_v<std::decay_t<F>*, callback_t const*>>>
   callback_t(F&& f)
@@ -63,6 +68,13 @@ struct CUTI_ABI callback_t
   callback_t& operator=(std::nullptr_t) noexcept
   {
     impl_ = nullptr;
+    return *this;
+  }
+
+  template<typename F>
+  callback_t& operator=(F* f)
+  {
+    impl_ = f != nullptr ? std::make_shared<impl_instance_t<F*>>(f) : nullptr;
     return *this;
   }
 

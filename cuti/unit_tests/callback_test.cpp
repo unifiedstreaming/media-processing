@@ -105,6 +105,31 @@ void function_callback()
   assert(function_called);
 }
 
+void function_ptr_callback()
+{
+  void (*f)(void) = nullptr;
+  callback_t cb1(f);
+  assert(cb1 == nullptr);
+
+  f = function;
+  callback_t cb2(f);
+  assert(cb2 != nullptr);
+  function_called = false;
+  cb2();
+  assert(function_called);
+
+  f = nullptr;
+  cb1 = f;
+  assert(cb1 == nullptr);
+  
+  f = function;
+  cb2 = f;
+  assert(cb2 != nullptr);
+  function_called = false;
+  cb2();
+  assert(function_called);
+}  
+  
 void functor_callback()
 {
   bool called = false;
@@ -184,6 +209,7 @@ int main()
 {
   empty_callback();
   function_callback();
+  function_ptr_callback();
   functor_callback();
   lambda_callback();
 
