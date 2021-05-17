@@ -116,10 +116,20 @@ void ignore(int sig1, int sig2)
   kill(getpid(), sig2);
 }
 
+void nested(int sig1, int sig2)
+{
+  signal_handler_t handler1(sig1, []{ });
+  signal_handler_t handler2(sig2, []{ });
+  trap(sig1, sig2);
+  ignore(sig1, sig2);
+}
+  
+
 void automated_tests()
 {
   trap(SIGINT, SIGTERM);
   ignore(SIGINT, SIGTERM);
+  nested(SIGINT, SIGTERM);
 }
   
 #endif // POSIX
@@ -171,9 +181,16 @@ int interactive_trap()
   return 0;
 }
   
-int interactive_ignore()
+int interactive_trap_then_ignore()
 {
   signal_handler_t handler(SIGINT, nullptr);
+
+  int r = interactive_trap();
+  if(r != 0)
+  {
+    return r;
+  }
+
   std::cout << "Ignoring SIGINT: 10 seconds to hit ^C..." << std::endl;
 
   default_scheduler_t scheduler;
@@ -194,8 +211,7 @@ int interactive_ignore()
 int manual_tests()
 {
   int errors = 0;
-  errors += interactive_trap();
-  errors += interactive_ignore();
+  errors += interactive_trap_then_ignore();
   return errors ? 1 : 0;
 }
 

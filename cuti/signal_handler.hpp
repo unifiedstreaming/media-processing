@@ -32,29 +32,35 @@ namespace cuti
 /*
  * signal_handler_t sets up a signal handler that calls a
  * user-provided callback when the OS reports some specific signal.
- * If the callback is specified as nullptr, the signal is ignored.
+ * The usual platform-specific signal handler restrictions apply.
  *
- * At any time, for each signal, at most one instance of
- * signal_handler_t may be alive.  The callbacks for different
- * signals do not race against each other; other than that, the
- * usual platform-specific signal handler restrictions apply.
+ * Constructing or destroying a signal_handler_t while multiple
+ * threads are running invokes undefined behavior.  Establish your
+ * signal handlers before any threads are started, and only restore
+ * them after these threads have been joined.
  *
  * Some signals may not be supported; on Windows, only SIGINT is
  * supported.
+ *
+ * Please note: for each signal, the lifetimes of the signal
+ * handlers are assumed to nest; the signal handler constructed last
+ * must be destroyed first.
  */
 struct CUTI_ABI signal_handler_t
 {
   struct impl_t;
 
+  /*
+   * Sets the signal handler for <sig>.  If <callback> is nullptr,
+   * the signal is effectively ignored.
+   */
   signal_handler_t(int sig, callback_t callback);
 
-  signal_handler_t(signal_handler_t const&)
-    = delete;
-  signal_handler_t& operator=(signal_handler_t const&)
-    = delete;
+  signal_handler_t(signal_handler_t const&) = delete;
+  signal_handler_t& operator=(signal_handler_t const&) = delete;
 
   /*
-   * Restores any previously established signal handler.
+   * Restores any previously established signal handling for <sig>.
    */
   ~signal_handler_t();
   
