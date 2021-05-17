@@ -26,6 +26,12 @@
 #undef NDEBUG
 #include <cassert>
 
+#ifdef __clang__
+// Clang needlessly complains about the two self-moves below, but these are
+// intended, so silence the warning.
+#pragma clang diagnostic ignored "-Wself-move"
+#endif
+
 namespace // anonymous
 {
 
