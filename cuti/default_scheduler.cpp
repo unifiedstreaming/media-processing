@@ -27,9 +27,13 @@
 namespace cuti
 {
 
-default_scheduler_t::default_scheduler_t(std::unique_ptr<selector_t> selector)
+default_scheduler_t::default_scheduler_t()
+: default_scheduler_t(available_selector_factories().front())
+{ }
+
+default_scheduler_t::default_scheduler_t(selector_factory_t const& factory)
 : alarms_()
-, selector_((assert(selector != nullptr), std::move(selector)))
+, selector_(factory())
 { }
 
 callback_t default_scheduler_t::wait()

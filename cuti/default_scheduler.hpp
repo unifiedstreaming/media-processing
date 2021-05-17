@@ -24,6 +24,7 @@
 #include "linkage.h"
 #include "scheduler.hpp"
 #include "selector.hpp"
+#include "selector_factory.hpp"
 
 #include <functional>
 #include <memory>
@@ -37,10 +38,16 @@ namespace cuti
 struct CUTI_ABI default_scheduler_t : scheduler_t
 {
   /*
-   * Constructs a default scheduler using the specified selector
-   * instance.  <selector> must be != nullptr.
+   * Constructs a default scheduler using the first of the available
+   * selector factories.
    */
-  explicit default_scheduler_t(std::unique_ptr<selector_t> selector);
+  default_scheduler_t();
+
+  /*
+   * Constructs a default scheduler using the specified selector
+   * factory.
+   */
+  explicit default_scheduler_t(selector_factory_t const& factory);
 
   /*
    * Waits for any of the registered events to occur and returns the

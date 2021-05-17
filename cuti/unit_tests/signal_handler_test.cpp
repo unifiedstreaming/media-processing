@@ -137,8 +137,7 @@ int interactive_trap()
   signal_handler_t handler(SIGINT, send_sigint);
   std::cout << "Trapping SIGINT: 10 seconds to hit ^C..." << std::endl;
 
-  default_scheduler_t scheduler(available_selector_factories().front()());
-
+  default_scheduler_t scheduler;
   bool timeout = false;
   scheduler.call_alarm(seconds_t(10), [&] { timeout = true; });
   bool readable = false;
@@ -146,7 +145,9 @@ int interactive_trap()
 
   while(!timeout && !readable)
   {
-    scheduler.wait()();
+    callback_t callback = scheduler.wait();
+    assert(callback != nullptr);
+    callback();
   }
 
   if(timeout)
@@ -169,14 +170,16 @@ int interactive_ignore()
   signal_handler_t handler(SIGINT, nullptr);
   std::cout << "Ignoring SIGINT: 10 seconds to hit ^C..." << std::endl;
 
-  auto now = cuti_clock_t::now();
-  auto limit = now + seconds_t(10);
-  do
+  default_scheduler_t scheduler;
+
+  bool timeout = false;
+  scheduler.call_alarm(seconds_t(10), [&] { timeout = true; });
+  while(!timeout)
   {
-    std::this_thread::sleep_for(limit - now);
-    now = cuti_clock_t::now();
+    callback_t callback = scheduler.wait();
+    assert(callback != nullptr);
+    callback();
   }
-  while(now < limit);
 
   std::cout << "Ignoring SIGINT: timeout; succeeded" << std::endl;
   return 0;

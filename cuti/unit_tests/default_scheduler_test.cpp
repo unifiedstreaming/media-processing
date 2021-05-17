@@ -205,7 +205,7 @@ void empty_scheduler(logging_context_t& context,
     *msg << "empty_scheduler(): using " << factory << " selector";
   }
 
-  default_scheduler_t scheduler(factory());
+  default_scheduler_t scheduler(factory);
 
   assert(scheduler.wait() == nullptr);
 }
@@ -223,7 +223,7 @@ void no_client(logging_context_t& context,
                selector_factory_t const& factory,
                endpoint_t const& interface)
 {
-  default_scheduler_t scheduler(factory());
+  default_scheduler_t scheduler(factory);
 
   auto protector = start_event_handler<dos_protector_t>(
     scheduler, context, interface, 1, milliseconds_t(1));
@@ -263,7 +263,7 @@ void single_client(logging_context_t& context,
                    selector_factory_t const& factory,
                    endpoint_t const& interface)
 {
-  default_scheduler_t scheduler(factory());
+  default_scheduler_t scheduler(factory);
 
   auto protector = start_event_handler<dos_protector_t>(
     scheduler, context, interface, 1);
@@ -309,7 +309,7 @@ void multiple_clients(logging_context_t& context,
                       selector_factory_t const& factory,
                       endpoint_t const& interface)
 {
-  default_scheduler_t scheduler(factory());
+  default_scheduler_t scheduler(factory);
   
   auto protector = start_event_handler<dos_protector_t>(
     scheduler, context, interface, 2);
@@ -357,7 +357,7 @@ void multiple_acceptors(logging_context_t& context,
                         selector_factory_t const& factory,
                         endpoint_t const& interface)
 {
-  default_scheduler_t scheduler(factory());
+  default_scheduler_t scheduler(factory);
 
   auto protector1 = start_event_handler<dos_protector_t>(
     scheduler, context, interface, 1);
@@ -412,7 +412,7 @@ void one_idle_acceptor(logging_context_t& context,
                        selector_factory_t const& factory,
                        endpoint_t const& interface)
 {
-  default_scheduler_t scheduler(factory());
+  default_scheduler_t scheduler(factory);
 
   auto protector1 = start_event_handler<dos_protector_t>(
     scheduler, context, interface, 2);
@@ -467,8 +467,8 @@ void scheduler_switch(logging_context_t& context,
                      selector_factory_t const& factory,
                      endpoint_t const& interface)
 {
-  default_scheduler_t scheduler1(factory());
-  default_scheduler_t scheduler2(factory());
+  default_scheduler_t scheduler1(factory);
+  default_scheduler_t scheduler2(factory);
 
   tcp_acceptor_t acceptor(interface);
   acceptor.set_nonblocking();
