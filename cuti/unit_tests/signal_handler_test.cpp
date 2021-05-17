@@ -157,7 +157,8 @@ int interactive_trap()
   }
 
   char buf[1];
-  assert(receiver->read_some(buf, buf +1) == buf + 1);
+  char *next = receiver->read_some(buf, buf + 1);
+  assert(next == buf + 1);
   assert(buf[0] == SIGINT);
 
   std::cout << "Trapping SIGINT: got SIGINT; succeeded" << std::endl;
