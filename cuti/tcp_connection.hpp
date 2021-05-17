@@ -72,7 +72,7 @@ struct CUTI_ABI tcp_connection_t
    * reading side open.  This should eventually result in an EOF at
    * the peer.
    * Returns 0 on success; if the connection is broken, a system error
-   * code is returned.
+   * code might be returned.
    */
   int close_write_end();
 
