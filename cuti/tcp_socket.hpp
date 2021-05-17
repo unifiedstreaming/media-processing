@@ -91,7 +91,7 @@ struct CUTI_ABI tcp_socket_t
    * In blocking mode, which is the default, I/O functions wait
    * until they can be completed.
    * In non-blocking mode, I/O functions return immediately; please
-   * see the descriptions of accept(), write_some() and read_some().
+   * see the descriptions of accept(), write() and read().
    */
   void set_blocking();
   void set_nonblocking();
@@ -115,7 +115,7 @@ struct CUTI_ABI tcp_socket_t
    * last and a system error code is returned.  Please note that
    * refusing to block is not an error.
    */
-  int write_some(char const* first, char const* last, char const*& next);
+  int write(char const* first, char const* last, char const*& next);
 
   /*
    * Closes the writing side of the connection, while leaving the
@@ -134,7 +134,7 @@ struct CUTI_ABI tcp_socket_t
    * first and a system error code is returned.  Please note that
    * hitting EOF or refusing to block is not an error.
    */
-  int read_some(char* first, char const* last, char*& next);
+  int read(char* first, char const* last, char*& next);
 
   /*
    * Event reporting; see scheduler.hpp for detailed semantics.  A

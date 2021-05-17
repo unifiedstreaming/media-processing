@@ -339,7 +339,7 @@ struct logged_tcp_connection_t
   logged_tcp_connection_t(logged_tcp_connection_t const&) = delete;
   logged_tcp_connection_t& operator=(logged_tcp_connection_t const&) = delete;
 
-  char const* write_some(char const* first, char const* last)
+  int write(char const* first, char const* last, char const*& next)
   {
     if(auto msg = context_.message_at(loglevel_))
     {
@@ -347,34 +347,53 @@ struct logged_tcp_connection_t
         ": trying to send " << last - first << " byte(s)";
     }
 
-    char const* result = conn_.write_some(first, last);
+    int result = conn_.write(first, last, next);
+    if(result != 0)
+    {
+      if(auto msg = context_.message_at(loglevel_))
+      {
+        *msg << prefix_ << conn_ << ": reported system error: " <<
+          system_error_string(result);
+      }
+    }
 
     if(auto msg = context_.message_at(loglevel_))
     {
-      if(result == nullptr)
+      if(next == nullptr)
       {
         *msg << prefix_ << conn_ << ": can't send yet";
       }
       else
       {
         *msg << prefix_ << conn_ <<
-          ": sent " << result - first << " byte(s)";
+          ": sent " << next - first << " byte(s)";
       }
     }
 
     return result;
   }
 
-  void close_write_end()
+  int close_write_end()
   {
     if(auto msg = context_.message_at(loglevel_))
     {
       *msg << prefix_ << conn_ << ": sending EOF";
     }
-    conn_.close_write_end();
+
+    int result = conn_.close_write_end();
+    if(result != 0)
+    {
+      if(auto msg = context_.message_at(loglevel_))
+      {
+        *msg << prefix_ << conn_ << ": reported system error: " <<
+          system_error_string(result);
+      }
+    }
+
+    return result;
   }
 
-  char* read_some(char* first, char const* last)
+  int read(char* first, char const* last, char*& next)
   {
     if(auto msg = context_.message_at(loglevel_))
     {
@@ -382,22 +401,30 @@ struct logged_tcp_connection_t
         ": trying to receive " << last - first << " byte(s)";
     }
 
-    char* result = conn_.read_some(first, last);
+    int result = conn_.read(first, last, next);
+    if(result != 0)
+    {
+      if(auto msg = context_.message_at(loglevel_))
+      {
+        *msg << prefix_ << conn_ << ": reported system error: " <<
+          system_error_string(result);
+      }
+    }
 
     if(auto msg = context_.message_at(loglevel_))
     {
-      if(result == nullptr)
+      if(next == nullptr)
       {
         *msg << prefix_ << conn_ << ": nothing to receive yet";
       }
-      else if(result == first)
+      else if(next == first)
       {
         *msg << prefix_ << conn_ << ": received EOF";
       }
       else
       {
         *msg << prefix_ << conn_ <<
-          ": received " << result - first << " byte(s)";
+          ": received " << next - first << " byte(s)";
       }
     }
 
@@ -510,7 +537,8 @@ private :
       limit = first_ + bufsize_;
     }
 
-    char const* next = out_.write_some(first_, limit);
+    char const* next;
+    out_.write(first_, limit, next);
     if(next == nullptr)
     {
       return false;
@@ -602,7 +630,8 @@ private :
       return false;
     }
 
-    char* next = in_.read_some(buffer_.begin_slack(), buffer_.end_slack());
+    char* next;
+    in_.read(buffer_.begin_slack(), buffer_.end_slack(), next);
     if(next == nullptr)
     {
       return false;
@@ -627,8 +656,8 @@ private :
   {
     if(buffer_.has_data())
     {
-      char const* next =
-        out_.write_some(buffer_.begin_data(), buffer_.end_data());
+      char const* next;
+        out_.write(buffer_.begin_data(), buffer_.end_data(), next);
       if(next == nullptr)
       {
         return false;
@@ -727,7 +756,8 @@ private :
     }
 
     assert(buffer_.has_slack());
-    char* next = in_.read_some(buffer_.begin_slack(), buffer_.end_slack());
+    char* next;
+    in_.read(buffer_.begin_slack(), buffer_.end_slack(), next);
     if(next == nullptr)
     {
       return false;
@@ -1089,14 +1119,6 @@ void broken_pipe(logging_context_t const& context,
   consumer_in.reset();
   producer_t producer(context, *producer_out, first, last, bufsize);
   run_to_completion(producer);
-
-  int error = producer_out->last_write_error();
-  assert(error != 0);
-  if(auto msg = context.message_at(loglevel_t::debug))
-  {
-    *msg << "broken_pipe(): got expected write error " <<
-      error << " (" << system_error_string(error) << ")";
-  }
 }
 
 void broken_pipe(logging_context_t const& context)
@@ -1118,7 +1140,8 @@ void scheduler_switch(logging_context_t const& context,
 
   // put some pressure on the server
   char const msg[] = "Hello server!";
-  char const* next = client->write_some(msg, msg + std::strlen(msg));
+  char const* next;
+  client->write(msg, msg + std::strlen(msg), next);
   assert(next != msg);
   assert(next != nullptr);
 

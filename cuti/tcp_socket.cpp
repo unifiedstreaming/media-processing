@@ -420,8 +420,7 @@ int tcp_socket_t::accept(tcp_socket_t& accepted)
   return result;
 }
 
-int tcp_socket_t::write_some(
-  char const* first, char const* last, char const*& next)
+int tcp_socket_t::write(char const* first, char const* last, char const*& next)
 {
   assert(!empty());
   assert(first < last);
@@ -487,7 +486,7 @@ int tcp_socket_t::close_write_end()
   return result;
 }
 
-int tcp_socket_t::read_some(char* first, char const* last, char*& next)
+int tcp_socket_t::read(char* first, char const* last, char*& next)
 {
   assert(!empty());
   assert(first < last);

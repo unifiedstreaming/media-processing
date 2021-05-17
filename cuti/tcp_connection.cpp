@@ -40,10 +40,6 @@ tcp_connection_t::tcp_connection_t(endpoint_t const& peer)
 : socket_(peer.address_family())
 , local_endpoint_()
 , remote_endpoint_()
-, last_write_error_(0)
-, writing_done_(false)
-, last_read_error_(0)
-, reading_done_(false)
 {
   socket_.connect(peer);
   local_endpoint_ = socket_.local_endpoint();
@@ -54,10 +50,6 @@ tcp_connection_t::tcp_connection_t(tcp_socket_t&& socket)
 : socket_((assert(!socket.empty()), std::move(socket)))
 , local_endpoint_(socket_.local_endpoint())
 , remote_endpoint_(socket_.remote_endpoint())
-, last_write_error_(0)
-, writing_done_(false)
-, last_read_error_(0)
-, reading_done_(false)
 { }
 
 void tcp_connection_t::set_blocking()
@@ -70,56 +62,20 @@ void tcp_connection_t::set_nonblocking()
   socket_.set_nonblocking();
 }
 
-char const* tcp_connection_t::write_some(char const* first, char const* last)
+int tcp_connection_t::write(
+  char const* first, char const* last, char const*& next)
 {
-  char const* result;
-
-  if(writing_done_)
-  {
-    result = last;
-    if(last_write_error_ == 0)
-    {
-      // write end was closed
-#ifdef _WIN32
-      last_write_error_ = WSAESHUTDOWN;
-#else
-      last_write_error_ = EPIPE;
-#endif
-    }
-  }
-  else
-  {
-    last_write_error_ = socket_.write_some(first, last, result);
-    writing_done_ = last_write_error_ != 0;
-  }
-
-  return result;
+  return socket_.write(first, last, next);
 }
 
-void tcp_connection_t::close_write_end()
+int tcp_connection_t::close_write_end()
 {
-  if(!writing_done_)
-  {
-    last_write_error_ = socket_.close_write_end();
-    writing_done_ = true;
-  }
+  return socket_.close_write_end();
 }
 
-char* tcp_connection_t::read_some(char* first, char const* last)
+int tcp_connection_t::read(char* first, char const* last, char*& next)
 {
-  char* result;
-
-  if(reading_done_)
-  {
-    result = first;
-  }
-  else
-  {
-    last_read_error_ = socket_.read_some(first, last, result);
-    reading_done_ = result == first;
-  }
-
-  return result;
+  return socket_.read(first, last, next);
 }
 
 std::ostream& operator<<(std::ostream& os, tcp_connection_t const& connection)

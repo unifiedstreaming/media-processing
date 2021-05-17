@@ -68,7 +68,8 @@ void trap(int sig1, int sig2)
   {
     char buf[1];
     buf[0] = static_cast<char>(sig1);
-    sender->write_some(buf, buf + 1);
+    char const* next;
+    sender->write(buf, buf + 1, next);
   };
   signal_handler_t handler1(sig1, send_sig1);
     
@@ -76,7 +77,8 @@ void trap(int sig1, int sig2)
   {
     char buf[1];
     buf[0] = static_cast<char>(sig2);
-    sender->write_some(buf, buf + 1);
+    char const* next;
+    sender->write(buf, buf + 1, next);
   };
   signal_handler_t handler2(sig2, send_sig2);
 
@@ -88,7 +90,8 @@ void trap(int sig1, int sig2)
   for(int i = 0; i != 2; ++i)
   {
     char buf[1];
-    char* next = receiver->read_some(buf, buf + 1);
+    char* next;
+    receiver->read(buf, buf + 1, next);
     assert(next == buf + 1);
     if(buf[0] == sig1)
     {
@@ -132,7 +135,8 @@ int interactive_trap()
   {
     char buf[1];
     buf[0] = static_cast<char>(SIGINT);
-    sender->write_some(buf, buf + 1);
+    char const* next;
+    sender->write(buf, buf + 1, next);
   };
   signal_handler_t handler(SIGINT, send_sigint);
   std::cout << "Trapping SIGINT: 10 seconds to hit ^C..." << std::endl;
@@ -157,7 +161,8 @@ int interactive_trap()
   }
 
   char buf[1];
-  char *next = receiver->read_some(buf, buf + 1);
+  char *next;
+  receiver->read(buf, buf + 1, next);
   assert(next == buf + 1);
   assert(buf[0] == SIGINT);
 
