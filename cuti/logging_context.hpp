@@ -24,6 +24,7 @@
 #include "logger.hpp"
 #include "membuf.hpp"
 
+#include <atomic>
 #include <memory>
 #include <ostream>
 
@@ -47,24 +48,33 @@ private :
 
 struct CUTI_ABI logging_context_t
 {
-  logging_context_t(logger_t& logger, loglevel_t level)
+  logging_context_t(logger_t& logger, loglevel_t level) noexcept
   : logger_(logger)
   , level_(level)
   { }
 
-  std::unique_ptr<log_message_t> message_at(loglevel_t level) const
+  loglevel_t level() const noexcept
+  { return level_.load(std::memory_order_acquire); }
+
+  void level(loglevel_t level) noexcept
+  { level_.store(level, std::memory_order_release); }
+
+  std::unique_ptr<log_message_t> message_at(loglevel_t at_level) const
   {
     std::unique_ptr<log_message_t> result = nullptr;
-    if(level_ >= level)
+
+    auto curr_level = this->level();
+    if(curr_level >= at_level)
     {
-      result.reset(new log_message_t(logger_, level));
+      result.reset(new log_message_t(logger_, curr_level));
     }
+
     return result;
   }
 
 private :
   logger_t& logger_;
-  loglevel_t level_;
+  std::atomic<loglevel_t> level_;
 };
 
 } // cuti
