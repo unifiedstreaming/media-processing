@@ -140,10 +140,11 @@ private :
       *msg << "dos_protector: " << acceptor_ << ": timeout ticket canceled";
     }
 
-    auto incoming = acceptor_.accept();
+    std::unique_ptr<tcp_connection_t> incoming;
+    int r = acceptor_.accept(incoming);
+    assert(r == 0);
     if(incoming == nullptr)
     {
-      assert(acceptor_.last_accept_error() == 0);
       if(auto msg = context_.message_at(loglevel))
       {
         *msg << "dos_protector: " << acceptor_ <<

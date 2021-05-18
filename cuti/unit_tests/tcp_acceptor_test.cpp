@@ -59,7 +59,9 @@ void blocking_accept(logging_context_t const& context,
     *msg << "client side: " << client;
   }
 
-  auto server = acceptor.accept();
+  std::unique_ptr<tcp_connection_t> server;
+  int r = acceptor.accept(server);
+  assert(r == 0);
   assert(server != nullptr);
   if(auto msg = context.message_at(loglevel))
   {
@@ -89,7 +91,9 @@ void nonblocking_accept(logging_context_t const& context,
   }
   acceptor.set_nonblocking();
 
-  auto server = acceptor.accept();
+  std::unique_ptr<tcp_connection_t> server;
+  int r = acceptor.accept(server);
+  assert(r == 0);
   assert(server == nullptr);
   if(auto msg = context.message_at(loglevel))
   {
@@ -117,7 +121,8 @@ void nonblocking_accept(logging_context_t const& context,
       *msg << acceptor << ": accept(): attempt# " << attempt + 1;
     }
 
-    server = acceptor.accept();
+    r = acceptor.accept(server);
+    assert(r == 0);
   }
 
   if(auto msg = context.message_at(loglevel))

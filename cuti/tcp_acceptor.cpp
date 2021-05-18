@@ -29,7 +29,6 @@ namespace cuti
 tcp_acceptor_t::tcp_acceptor_t(endpoint_t const& endpoint)
 : socket_(endpoint.address_family())
 , local_endpoint_()
-, last_accept_error_(0)
 {
   socket_.bind(endpoint);
   socket_.listen();
@@ -46,16 +45,18 @@ void tcp_acceptor_t::set_nonblocking()
   socket_.set_nonblocking();
 }
 
-std::unique_ptr<tcp_connection_t> tcp_acceptor_t::accept()
+int tcp_acceptor_t::accept(std::unique_ptr<tcp_connection_t>& accepted)
 {
-  std::unique_ptr<tcp_connection_t> result = nullptr;
+  tcp_socket_t incoming;
+  int result = socket_.accept(incoming);
 
-  tcp_socket_t accepted;
-  last_accept_error_ = socket_.accept(accepted);
-
-  if(!accepted.empty())
+  if(incoming.empty())
   {
-    result.reset(new tcp_connection_t(std::move(accepted)));
+    accepted.reset();
+  }
+  else
+  {
+    accepted.reset(new tcp_connection_t(std::move(incoming)));
   }
 
   return result;

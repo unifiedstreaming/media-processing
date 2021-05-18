@@ -54,23 +54,15 @@ struct CUTI_ABI tcp_acceptor_t
   void set_nonblocking();
 
   /*
-   * Tries to accept an incoming connnection to *this, returning
-   * a pointer to the accepted connection.
+   * Tries to set <accepted> to an incoming connection.
    * If *this is in non-blocking mode and the call would block, or if
-   * the incoming connection broke before it was accepted, nullptr is
-   * returned.
-   * Use last_accept_error() if you need to determine the cause of a
-   * nullptr return value.
-   */ 
-  std::unique_ptr<tcp_connection_t> accept();
-
-  /*
-   * Returns the system error code of the last non-throwing call to
-   * accept(), or 0 if there was no error.  Please note that refusing
-   * to block is not an error.
+   * the incoming connection broke before it was accepted, <accepted>
+   * is set to nullptr.
+   * Returns 0 on success, or a system error code if the incoming
+   * connection was broken.  Please note that refusing to block is
+   * not an error.
    */
-  int last_accept_error() const noexcept
-  { return last_accept_error_; }
+  int accept(std::unique_ptr<tcp_connection_t>& accepted);
 
   /*
    * Event reporting; see scheduler.hpp for detailed semantics.  A
@@ -88,7 +80,6 @@ struct CUTI_ABI tcp_acceptor_t
 private :
   tcp_socket_t socket_;
   endpoint_t local_endpoint_;
-  int last_accept_error_;
 };
 
 CUTI_ABI std::ostream& operator<<(std::ostream& os,

@@ -97,7 +97,7 @@ make_connected_pair(endpoint_t const& interface)
 
   do
   {
-    result.second = acceptor.accept();
+    acceptor.accept(result.second);
     if(result.second != nullptr &&
        result.second->remote_endpoint() != expected_remote)
     {
