@@ -66,7 +66,7 @@ struct CUTI_ABI logging_context_t
     auto curr_level = this->level();
     if(curr_level >= at_level)
     {
-      result.reset(new log_message_t(logger_, curr_level));
+      result.reset(new log_message_t(logger_, at_level));
     }
 
     return result;
