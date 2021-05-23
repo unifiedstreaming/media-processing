@@ -26,6 +26,8 @@
 #include "logging_context.hpp"
 #include "tcp_connection.hpp"
 
+#include <string>
+
 namespace cuti
 {
 
@@ -67,11 +69,11 @@ struct CUTI_ABI service_config_t
   
   /*
    * Creates the logging backend to be used by the service.  If this
-   * function returns nullptr, run_service() supplies an appropriate
+   * function returns nullptr, run_service() supplies a suitable
    * logging backend.
    */
-  virtual std::unique_ptr<logging_backend_t> create_logging_backend()
-    const = 0;
+  virtual std::unique_ptr<logging_backend_t>
+  create_logging_backend() const = 0;
 
   /*
    * Creates the actual service application object.
@@ -82,10 +84,9 @@ struct CUTI_ABI service_config_t
    * If this function returns nullptr, run_service() returns
    * immediately.
    */
-  virtual std::unique_ptr<service_t> create_service(
-    logging_context_t& logging_context,
-    tcp_connection_t& control_connection
-  ) const = 0;
+  virtual std::unique_ptr<service_t>
+  create_service(logging_context_t& logging_context,
+                 tcp_connection_t& control_connection) const = 0;
 
   virtual ~service_config_t();
 };
@@ -102,23 +103,29 @@ struct CUTI_ABI service_config_reader_t
 
   /*
    * Creates a service configuration by parsing the command line,
-   * reporting errors by throwing an appropriate std::exception.  Must
-   * return a non-nullptr.
+   * reporting errors by throwing an appropriate std::exception.
+   * Must return a non-nullptr.
    */
-  virtual std::unique_ptr<service_config_t> read_config(
-    int argc, char const* const argv[]) const = 0;
+  virtual std::unique_ptr<service_config_t>
+  read_config(int argc, char const* const argv[]) const = 0;
 
   virtual ~service_config_reader_t();
 };
 
 /*
  * Reads the service configuration, creates the service object, and
- * and runs it.  The return value can be used as the program's
- * exit code.
+ * and runs it.  Assumes the program will exit soon after returning
+ * from this call.
  */
 CUTI_ABI
-int run_service(service_config_reader_t const& config_reader,
-                int argc, char const* argv[]);
+void run_service(service_config_reader_t const& config_reader,
+                 int argc, char const* const argv[]);
+
+/*
+ * Returns the default service name used for the system log.
+ */
+CUTI_ABI
+std::string default_service_name(char const *argv0);
 
 } // cuti
 
