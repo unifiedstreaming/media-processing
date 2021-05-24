@@ -313,11 +313,6 @@ void create_and_run_service(logger_t& logger,
                             service_config_t const& config,
                             tcp_connection_t& control_connection)
 {
-  if(auto backend = config.create_logging_backend())
-  {
-    logger.set_backend(std::move(backend));
-  }
-
   logging_context_t context(logger, default_loglevel);
   if(auto service = config.create_service(context, control_connection))
   {
@@ -376,15 +371,19 @@ void service_main(DWORD dwNumServiceArgs, LPSTR* lpServiceArgVectors)
   logger_t logger(argv[0]);
   logger.set_backend(std::make_unique<syslog_backend_t>(
     default_service_name(argv[0]).c_str()));
-  logging_context_t context(logger, default_loglevel);
 
+  logging_context_t context(logger, default_loglevel);
   try
   {
-    status_reporter_t status_reporter;
-
     auto config = config_reader.read_config(argc, argv);
     assert(config != nullptr);
 
+    if(auto backend = config->create_logging_backend())
+    {
+      logger.set_backend(std::move(backend));
+    }
+
+    status_reporter_t status_reporter;
     create_and_run_service(
       logger, *config, control_connection, status_reporter);
   }
@@ -405,15 +404,22 @@ void run_from_console(service_config_reader_t const& config_reader,
   auto config = config_reader.read_config(argc, argv);
   assert(config != nullptr);
 
-  auto on_sigint = [&] { send_signal(control_sender, SIGINT); };
-  signal_handler_t sigint_handler(SIGINT, on_sigint);
-
   logger_t logger(argv[0]);
-  logger.set_backend(std::make_unique<streambuf_backend_t>(std::cerr));
-  logging_context_t context(logger, default_loglevel);
+  if(auto backend = config->create_logging_backend())
+  {
+    logger.set_backend(std::move(backend));
+  }
+  else
+  {
+    logger.set_backend(std::make_unique<streambuf_backend_t>(std::cerr));
+  }
 
+  logging_context_t context(logger, default_loglevel);
   try
   {
+    auto on_sigint = [&] { send_signal(control_sender, SIGINT); };
+    signal_handler_t sigint_handler(SIGINT, on_sigint);
+
     create_and_run_service(logger, *config, control_receiver);
   }
   catch(std::exception const& ex)
@@ -609,7 +615,11 @@ void run_service(service_config_reader_t const& config_reader,
   assert(config != nullptr);
 
   logger_t logger(argv[0]);
-  if(config->run_as_daemon())
+  if(auto backend = config->create_logging_backend())
+  {
+    logger.set_backend(std::move(backend));
+  }
+  else if(config->run_as_daemon())
   {
     logger.set_backend(std::make_unique<syslog_backend_t>(
       default_service_name(argv[0]).c_str()));
