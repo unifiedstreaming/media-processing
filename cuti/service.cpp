@@ -381,6 +381,8 @@ void service_main(DWORD dwNumServiceArgs, LPSTR* lpServiceArgVectors)
   logging_context_t context(logger, default_loglevel);
   try
   {
+    status_reporter_t status_reporter;
+
     auto config = config_reader.read_config(argc, argv);
     assert(config != nullptr);
 
@@ -389,7 +391,6 @@ void service_main(DWORD dwNumServiceArgs, LPSTR* lpServiceArgVectors)
       logger.set_backend(std::move(backend));
     }
 
-    status_reporter_t status_reporter;
     create_and_run_service(
       logger, *config, control_connection, status_reporter);
   }
