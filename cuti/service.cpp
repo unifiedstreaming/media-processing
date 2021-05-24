@@ -325,8 +325,14 @@ void create_and_run_service(logger_t& logger,
                             tcp_connection_t& control_connection,
                             status_reporter_t& status_reporter)
 {
+  logging_context_t context(logger, default_loglevel);
+  auto service = config.create_service(context, control_connection);
+
   running_state_t running_state(status_reporter);
-  create_and_run_service(logger, config, control_connection);
+  if(service !=  nullptr)
+  {
+    service->run();
+  }
   running_state.set_success();
 }  
   
