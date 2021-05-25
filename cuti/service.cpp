@@ -225,7 +225,7 @@ void service_main(DWORD dwNumServiceArgs, LPSTR* lpServiceArgVectors)
     *service_main_args.config_reader_;
   
   assert(service_main_args.control_receiver_ != nullptr);
-  tcp_connection_t& control_connection =
+  tcp_connection_t& control_receiver =
     *service_main_args.control_receiver_;
 
   /*
@@ -249,7 +249,7 @@ void service_main(DWORD dwNumServiceArgs, LPSTR* lpServiceArgVectors)
       logger.set_backend(std::move(backend));
     }
 
-    auto service = config->create_service(context, control_connection);
+    auto service = config->create_service(context, control_receiver);
 
     running_state_t running_state(status_reporter);
     if(service !=  nullptr)
