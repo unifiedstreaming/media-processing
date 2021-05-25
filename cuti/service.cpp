@@ -63,7 +63,12 @@ void send_signal(tcp_connection_t& control_sender, int sig)
   control_sender.write(buf, buf + 1, next);
 }
                  
+} // anonymous
+
 #ifdef _WIN32
+
+namespace // anonymous
+{
 
 struct service_main_args_t
 {
@@ -164,7 +169,186 @@ private :
   SERVICE_STATUS_HANDLE handle_;
 };
 
+struct running_state_t
+{
+  explicit running_state_t(status_reporter_t& reporter)
+  : exit_code_(1)
+  , reporter_(reporter)
+  {
+    reporter_.report_running();
+  }
+
+  running_state_t(running_state_t const&) = delete;
+  running_state_t& operator=(running_state_t const&) = delete;
+
+  void set_success() noexcept
+  {
+    exit_code_ = 0;
+  }
+
+  ~running_state_t()
+  {
+    reporter_.report_stopping(exit_code_);
+  }
+    
+private :
+  int exit_code_;
+  status_reporter_t& reporter_;
+};
+
+void service_main(DWORD dwNumServiceArgs, LPSTR* lpServiceArgVectors)
+{
+  std::vector<char const*> args;
+
+  // Pick up arguments from service_main_args
+  assert(service_main_args.argc_ > 0);
+  assert(service_main_args.argv_ != nullptr);
+  for(int i = 0; i < service_main_args.argc_; ++i)
+  {
+    assert(service_main_args.argv_[i] != nullptr);
+    args.push_back(service_main_args.argv_[i]);
+  }
+
+  // Pick up additional arguments from lpServiceArgVectors
+  for(DWORD i = 1; i < dwNumServiceArgs; ++i)
+  {
+    assert(lpServiceArgVectors != nullptr);
+    assert(lpServiceArgVectors[i] != nullptr);
+    args.push_back(lpServiceArgVectors[i]);
+  }
+
+  int argc = static_cast<int>(args.size());
+  char const* const* argv = args.data();
+  
+  assert(service_main_args.config_reader_ != nullptr);
+  service_config_reader_t const& config_reader =
+    *service_main_args.config_reader_;
+  
+  assert(service_main_args.control_receiver_ != nullptr);
+  tcp_connection_t& control_connection =
+    *service_main_args.control_receiver_;
+
+  /*
+   * To be able to report configuration errors, we enable a
+   * default-configured logger before parsing the command line.
+   */
+  logger_t logger(argv[0]);
+  logger.set_backend(std::make_unique<syslog_backend_t>(
+    default_service_name(argv[0]).c_str()));
+
+  logging_context_t context(logger, default_loglevel);
+  try
+  {
+    status_reporter_t status_reporter;
+
+    auto config = config_reader.read_config(argc, argv);
+    assert(config != nullptr);
+
+    if(auto backend = config->create_logging_backend())
+    {
+      logger.set_backend(std::move(backend));
+    }
+
+    auto service = config->create_service(context, control_connection);
+
+    running_state_t running_state(status_reporter);
+    if(service !=  nullptr)
+    {
+      service->run();
+    }
+    running_state.set_success();
+  }
+  catch(std::exception const& ex)
+  {
+    if(auto msg = context.message_at(loglevel_t::error))
+    {
+      *msg << "exception: " << ex.what();
+    }
+  }
+}
+
+void run_from_console(service_config_reader_t const& config_reader,
+                      int argc, char const* const argv[],
+                      tcp_connection_t& control_sender,
+                      tcp_connection_t& control_receiver)
+{
+  auto config = config_reader.read_config(argc, argv);
+  assert(config != nullptr);
+
+  logger_t logger(argv[0]);
+  if(auto backend = config->create_logging_backend())
+  {
+    logger.set_backend(std::move(backend));
+  }
+  else
+  {
+    logger.set_backend(std::make_unique<streambuf_backend_t>(std::cerr));
+  }
+
+  logging_context_t context(logger, default_loglevel);
+  try
+  {
+    auto on_sigint = [&] { send_signal(control_sender, SIGINT); };
+    signal_handler_t sigint_handler(SIGINT, on_sigint);
+
+    if(auto service = config->create_service(context, control_receiver))
+    {
+      service->run();
+    }
+  }
+  catch(std::exception const& ex)
+  {
+    if(auto msg = context.message_at(loglevel_t::error))
+    {
+      *msg << "exception: " << ex.what();
+    }
+    throw;
+  }
+}
+
+} // anonymous
+
+void run_service(service_config_reader_t const& config_reader,
+                 int argc, char const* const argv[])
+{
+  std::unique_ptr<tcp_connection_t> control_sender;
+  std::unique_ptr<tcp_connection_t> control_receiver;
+  std::tie(control_sender, control_receiver) = make_connected_pair();
+  control_sender->set_nonblocking();
+
+  // Initialize args for service_main
+  service_main_args.argc_ = argc;
+  service_main_args.argv_ = argv;
+  service_main_args.config_reader_ = &config_reader;
+  service_main_args.control_sender_ = control_sender.get();
+  service_main_args.control_receiver_ = control_receiver.get();
+
+  static constexpr SERVICE_TABLE_ENTRY service_table[] = {
+    { "", service_main },
+    { nullptr, nullptr }
+  };
+
+  // Try to run as a service
+  if(StartServiceCtrlDispatcher(service_table))
+  {
+    // service_main() does all the work and returns here; done
+  }
+  else
+  {
+    int cause = last_system_error();
+    if(cause != ERROR_FAILED_SERVICE_CONTROLLER_CONNECT)
+    {
+      throw system_exception_t("StartServiceCtrlDispatcher() failure", cause);
+    }
+    run_from_console(config_reader, argc, argv,
+      *control_sender, *control_receiver);
+  }
+}
+  
 #else // POSIX
+
+namespace // anonymous
+{
 
 struct pipe_t
 {
@@ -252,196 +436,7 @@ private :
   int fds_[2];
 };
 
-struct status_reporter_t
-{
-  explicit status_reporter_t(pipe_t& pipe)
-  : pipe_(pipe)
-  { }
-
-  status_reporter_t(status_reporter_t const&) = delete;
-  status_reporter_t& operator=(status_reporter_t const&) = delete;
-  
-  void report_running()
-  {
-    char buf[1];
-    buf[0] = '\0';
-    char const* next;
-    pipe_.write(buf, buf + 1, next);
-    pipe_.close_write_end();
-  }
-
-  void report_stopping(int exit_code) noexcept
-  { }
-
-  ~status_reporter_t()
-  { }
-
-private :
-  pipe_t& pipe_;
-};
-
-#endif // POSIX
-
-struct running_state_t
-{
-  explicit running_state_t(status_reporter_t& reporter)
-  : exit_code_(1)
-  , reporter_(reporter)
-  {
-    reporter_.report_running();
-  }
-
-  running_state_t(running_state_t const&) = delete;
-  running_state_t& operator=(running_state_t const&) = delete;
-
-  void set_success() noexcept
-  {
-    exit_code_ = 0;
-  }
-
-  ~running_state_t()
-  {
-    reporter_.report_stopping(exit_code_);
-  }
-    
-private :
-  int exit_code_;
-  status_reporter_t& reporter_;
-};
-
-void create_and_run_service(logger_t& logger,
-                            service_config_t const& config,
-                            tcp_connection_t& control_connection)
-{
-  logging_context_t context(logger, default_loglevel);
-  if(auto service = config.create_service(context, control_connection))
-  {
-    service->run();
-  }
-}
-
-void create_and_run_service(logger_t& logger,
-                            service_config_t const& config,
-                            tcp_connection_t& control_connection,
-                            status_reporter_t& status_reporter)
-{
-  logging_context_t context(logger, default_loglevel);
-  auto service = config.create_service(context, control_connection);
-
-  running_state_t running_state(status_reporter);
-  if(service !=  nullptr)
-  {
-    service->run();
-  }
-  running_state.set_success();
-}  
-  
-#ifdef _WIN32
-
-void service_main(DWORD dwNumServiceArgs, LPSTR* lpServiceArgVectors)
-{
-  std::vector<char const*> args;
-
-  // Pick up arguments from service_main_args
-  assert(service_main_args.argc_ > 0);
-  assert(service_main_args.argv_ != nullptr);
-  for(int i = 0; i < service_main_args.argc_; ++i)
-  {
-    assert(service_main_args.argv_[i] != nullptr);
-    args.push_back(service_main_args.argv_[i]);
-  }
-
-  // Pick up additional arguments from lpServiceArgVectors
-  for(DWORD i = 1; i < dwNumServiceArgs; ++i)
-  {
-    assert(lpServiceArgVectors != nullptr);
-    assert(lpServiceArgVectors[i] != nullptr);
-    args.push_back(lpServiceArgVectors[i]);
-  }
-
-  int argc = static_cast<int>(args.size());
-  char const* const* argv = args.data();
-  
-  assert(service_main_args.config_reader_ != nullptr);
-  service_config_reader_t const& config_reader =
-    *service_main_args.config_reader_;
-  
-  assert(service_main_args.control_receiver_ != nullptr);
-  tcp_connection_t& control_connection =
-    *service_main_args.control_receiver_;
-
-  /*
-   * To be able to report configuration errors, we enable a
-   * default-configured logger before parsing the command line.
-   */
-  logger_t logger(argv[0]);
-  logger.set_backend(std::make_unique<syslog_backend_t>(
-    default_service_name(argv[0]).c_str()));
-
-  logging_context_t context(logger, default_loglevel);
-  try
-  {
-    status_reporter_t status_reporter;
-
-    auto config = config_reader.read_config(argc, argv);
-    assert(config != nullptr);
-
-    if(auto backend = config->create_logging_backend())
-    {
-      logger.set_backend(std::move(backend));
-    }
-
-    create_and_run_service(
-      logger, *config, control_connection, status_reporter);
-  }
-  catch(std::exception const& ex)
-  {
-    if(auto msg = context.message_at(loglevel_t::error))
-    {
-      *msg << "exception: " << ex.what();
-    }
-  }
-}
-
-void run_from_console(service_config_reader_t const& config_reader,
-                      int argc, char const* const argv[],
-                      tcp_connection_t& control_sender,
-                      tcp_connection_t& control_receiver)
-{
-  auto config = config_reader.read_config(argc, argv);
-  assert(config != nullptr);
-
-  logger_t logger(argv[0]);
-  if(auto backend = config->create_logging_backend())
-  {
-    logger.set_backend(std::move(backend));
-  }
-  else
-  {
-    logger.set_backend(std::make_unique<streambuf_backend_t>(std::cerr));
-  }
-
-  logging_context_t context(logger, default_loglevel);
-  try
-  {
-    auto on_sigint = [&] { send_signal(control_sender, SIGINT); };
-    signal_handler_t sigint_handler(SIGINT, on_sigint);
-
-    create_and_run_service(logger, *config, control_receiver);
-  }
-  catch(std::exception const& ex)
-  {
-    if(auto msg = context.message_at(loglevel_t::error))
-    {
-      *msg << "exception: " << ex.what();
-    }
-    throw;
-  }
-}
-    
-#else // POSIX
-
-void run_as_daemon(logger_t& logger, service_config_t const& config)
+void run_as_daemon(logging_context_t& context, service_config_t const& config)
 {
   pipe_t to_grandparent;
 
@@ -502,8 +497,19 @@ void run_as_daemon(logger_t& logger, service_config_t const& config)
       auto on_sigterm = [&] { send_signal(*control_sender, SIGTERM); };
       signal_handler_t sigterm_handler(SIGTERM, on_sigterm);
   
-      status_reporter_t reporter(to_grandparent);
-      create_and_run_service(logger, config, *control_receiver, reporter);
+      auto service = config.create_service(context, *control_receiver);
+
+      // confirm successful initialization
+      char buf[1];
+      buf[0] = '\0';
+      char const* next;
+      to_grandparent.write(buf, buf + 1, next);
+      to_grandparent.close_write_end();
+
+      if(service != nullptr)
+      {
+        service->run();
+      }
     }
 
     return;
@@ -557,7 +563,8 @@ void run_as_daemon(logger_t& logger, service_config_t const& config)
   }
 }
 
-void run_in_foreground(logger_t& logger, service_config_t const& config)
+void run_in_foreground(logging_context_t& context,
+                       service_config_t const& config)
 {
   std::unique_ptr<tcp_connection_t> control_sender;
   std::unique_ptr<tcp_connection_t> control_receiver;
@@ -567,53 +574,13 @@ void run_in_foreground(logger_t& logger, service_config_t const& config)
   auto on_sigint = [&] { send_signal(*control_sender, SIGINT); };
   signal_handler_t sigint_handler(SIGINT, on_sigint);
   
-  create_and_run_service(logger, config, *control_receiver);
+  if(auto service = config.create_service(context, *control_receiver))
+  {
+    service->run();
+  }
 }
   
-#endif // POSIX
-
 } // anonymous
-
-#ifdef _WIN32
-
-void run_service(service_config_reader_t const& config_reader,
-                 int argc, char const* const argv[])
-{
-  std::unique_ptr<tcp_connection_t> control_sender;
-  std::unique_ptr<tcp_connection_t> control_receiver;
-  std::tie(control_sender, control_receiver) = make_connected_pair();
-  control_sender->set_nonblocking();
-
-  // Initialize args for service_main
-  service_main_args.argc_ = argc;
-  service_main_args.argv_ = argv;
-  service_main_args.config_reader_ = &config_reader;
-  service_main_args.control_sender_ = control_sender.get();
-  service_main_args.control_receiver_ = control_receiver.get();
-
-  static constexpr SERVICE_TABLE_ENTRY service_table[] = {
-    { "", service_main },
-    { nullptr, nullptr }
-  };
-
-  // Try to run as a service
-  if(StartServiceCtrlDispatcher(service_table))
-  {
-    // service_main() does all the work and returns here; done
-  }
-  else
-  {
-    int cause = last_system_error();
-    if(cause != ERROR_FAILED_SERVICE_CONTROLLER_CONNECT)
-    {
-      throw system_exception_t("StartServiceCtrlDispatcher() failure", cause);
-    }
-    run_from_console(config_reader, argc, argv,
-      *control_sender, *control_receiver);
-  }
-}
-  
-#else // POSIX
 
 void run_service(service_config_reader_t const& config_reader,
                  int argc, char const* const argv[])
@@ -641,11 +608,11 @@ void run_service(service_config_reader_t const& config_reader,
   {
     if(config->run_as_daemon())
     {
-      run_as_daemon(logger, *config);
+      run_as_daemon(context, *config);
     }
     else
     {
-      run_in_foreground(logger, *config);
+      run_in_foreground(context, *config);
     }
   }
   catch(std::exception const& ex)
