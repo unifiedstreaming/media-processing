@@ -18,6 +18,8 @@
  */
 
 #include "service.hpp"
+
+#include "scoped_guard.hpp"
 #include "signal_handler.hpp"
 #include "streambuf_backend.hpp"
 #include "syslog_backend.hpp"
@@ -424,78 +426,32 @@ private :
   int fds_[2];
 };
 
-void run_as_daemon(logging_context_t& context, service_config_t const& config)
+void redirect_standard_fds()
 {
-  confirmation_pipe_t confirmation_pipe;
-
-  auto child = ::fork();
-  if(child == -1)
+  int dev_null = ::open("/dev/null", O_RDWR);
+  if(dev_null == -1)
   {
     int cause = last_system_error();
-    throw system_exception_t("fork() failure", cause);
+    throw system_exception_t("can't open /dev/null", cause);
   }
-
-  if(child == 0)
-  {
-    if(::setsid() == -1)
-    {
-      int cause = last_system_error();
-      throw system_exception_t("setsid() failure", cause);
-    }
-
-    auto grandchild = ::fork();
-    if(grandchild == -1)
-    {
-      int cause = last_system_error();
-      throw system_exception_t("fork() failure", cause);
-    }
-
-    if(grandchild == 0)
-    {
-      // in grandchild
-      
-      // redirect standard fds
-      int dev_null = ::open("/dev/null", O_RDWR);
-      if(dev_null == -1)
-      {
-        int cause = last_system_error();
-        throw system_exception_t("can't open /dev/null", cause);
-      }
-      
-      assert(dev_null > 2);
-      for(int fd = 0; fd <= 2; ++fd)
-      {
-        int r = ::dup2(dev_null, fd);
-        if(r == -1)
-        {
-          int cause = last_system_error();
-          throw system_exception_t("dup2() failure", cause);
-        }
-      }
-      ::close(dev_null);
-
-      std::unique_ptr<tcp_connection_t> control_sender;
-      std::unique_ptr<tcp_connection_t> control_receiver;
-      std::tie(control_sender, control_receiver) = make_connected_pair();
-      control_sender->set_nonblocking();
-
-      auto on_sigterm = [&] { send_signal(*control_sender, SIGTERM); };
-      signal_handler_t sigterm_handler(SIGTERM, on_sigterm);
+  assert(dev_null > 2);
+  auto dev_null_guard = make_scoped_guard([&] { ::close(dev_null); });
   
-      auto service = config.create_service(context, *control_receiver);
-      confirmation_pipe.confirm();
-      if(service != nullptr)
-      {
-        service->run();
-      }
+  for(int fd = 0; fd <= 2; ++fd)
+  {
+    int r = ::dup2(dev_null, fd);
+    if(r == -1)
+    {
+      int cause = last_system_error();
+      throw system_exception_t("dup2() failure", cause);
     }
-
-    return;
   }
+}
 
-  // await child
+void await_child(pid_t pid)
+{
   int status;
-  auto wait_r = ::waitpid(child, &status, 0);
+  auto wait_r = ::waitpid(pid, &status, 0);
   while(wait_r == -1 || WIFSTOPPED(status))
   {
     if(wait_r == -1)
@@ -506,7 +462,7 @@ void run_as_daemon(logging_context_t& context, service_config_t const& config)
         throw system_exception_t("waitpid() failure", cause);
       }
     }
-    wait_r = ::waitpid(child, &status, 0);
+    wait_r = ::waitpid(pid, &status, 0);
   }
         
   // check child's exit status
@@ -525,9 +481,62 @@ void run_as_daemon(logging_context_t& context, service_config_t const& config)
     builder << "run_service(): child reported exit code " << exit_code;
     builder.explode();
   }
+}
 
-  confirmation_pipe.await();
-        
+void run_as_daemon(logging_context_t& context, service_config_t const& config)
+{
+  confirmation_pipe_t confirmation_pipe;
+
+  auto child = ::fork();
+  if(child == -1)
+  {
+    int cause = last_system_error();
+    throw system_exception_t("fork() failure", cause);
+  }
+
+  if(child == 0)
+  {
+    // in child
+    if(::setsid() == -1)
+    {
+      int cause = last_system_error();
+      throw system_exception_t("setsid() failure", cause);
+    }
+
+    auto grandchild = ::fork();
+    if(grandchild == -1)
+    {
+      int cause = last_system_error();
+      throw system_exception_t("fork() failure", cause);
+    }
+
+    if(grandchild == 0)
+    {
+      // in grandchild
+      redirect_standard_fds();
+
+      std::unique_ptr<tcp_connection_t> control_sender;
+      std::unique_ptr<tcp_connection_t> control_receiver;
+      std::tie(control_sender, control_receiver) = make_connected_pair();
+      control_sender->set_nonblocking();
+
+      auto on_sigterm = [&] { send_signal(*control_sender, SIGTERM); };
+      signal_handler_t sigterm_handler(SIGTERM, on_sigterm);
+  
+      auto service = config.create_service(context, *control_receiver);
+      confirmation_pipe.confirm();
+      if(service != nullptr)
+      {
+        service->run();
+      }
+    }
+  }
+  else
+  {
+    // in parent
+    await_child(child);
+    confirmation_pipe.await();
+  }
 }
 
 void run_in_foreground(logging_context_t& context,
