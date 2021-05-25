@@ -170,7 +170,7 @@ private :
       "run as daemon" << std::endl;
 #endif
     os << "  --logfile <name>         " <<
-      "sets logfile name" << std::endl;
+      "log to file <name>" << std::endl;
     os << "  --loglevel <level>       " <<
       "sets loglevel (default: " << 
       cuti::loglevel_string(default_loglevel) << ')' << std::endl;
