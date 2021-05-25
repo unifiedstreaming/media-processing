@@ -23,6 +23,7 @@
 #include "linkage.h"
 #include "logging_backend.hpp"
 
+#include <string>
 #include <memory>
 
 namespace cuti
@@ -30,7 +31,7 @@ namespace cuti
 
 struct CUTI_ABI syslog_backend_t : logging_backend_t
 {
-  explicit syslog_backend_t(char const* source_name);
+  explicit syslog_backend_t(std::string const& source_name);
 
   void report(loglevel_t level,
               char const* begin_msg, char const* end_msg) override;

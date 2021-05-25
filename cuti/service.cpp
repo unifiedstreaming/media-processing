@@ -234,7 +234,7 @@ void service_main(DWORD dwNumServiceArgs, LPSTR* lpServiceArgVectors)
    */
   logger_t logger(argv[0]);
   logger.set_backend(std::make_unique<syslog_backend_t>(
-    default_service_name(argv[0]).c_str()));
+    default_syslog_name(argv[0]).c_str()));
 
   logging_context_t context(logger, default_loglevel);
   try
@@ -596,7 +596,7 @@ void run_service(service_config_reader_t const& config_reader,
   else if(config->run_as_daemon())
   {
     logger.set_backend(std::make_unique<syslog_backend_t>(
-      default_service_name(argv[0]).c_str()));
+      default_syslog_name(argv[0]).c_str()));
   }
   else
   {
@@ -645,7 +645,7 @@ service_config_reader_t::service_config_reader_t()
 service_config_reader_t::~service_config_reader_t()
 { }
 
-std::string default_service_name(char const* argv0)
+std::string default_syslog_name(char const* argv0)
 {
   char const* last_segment = argv0;
   char const* last_dot = nullptr;

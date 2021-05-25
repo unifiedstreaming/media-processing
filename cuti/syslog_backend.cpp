@@ -32,8 +32,8 @@ namespace cuti
 
 struct syslog_backend_t::impl_t
 {
-  explicit impl_t(char const* source_name)
-  : handle_(RegisterEventSource(nullptr, source_name))
+  explicit impl_t(std::string const& source_name)
+  : handle_(RegisterEventSource(nullptr, source_name.c_str()))
   {
     if(handle_ == nullptr)
     {
@@ -92,7 +92,7 @@ namespace cuti
 
 struct syslog_backend_t::impl_t
 {
-  explicit impl_t(char const* source_name)
+  explicit impl_t(std::string const& source_name)
   : source_name_(source_name)
   {
     openlog(source_name_.c_str(), 0, 0);
@@ -135,7 +135,7 @@ private :
 namespace cuti
 {
 
-syslog_backend_t::syslog_backend_t(char const* source_name)
+syslog_backend_t::syslog_backend_t(std::string const& source_name)
 : impl_(new impl_t(source_name))
 { }
 

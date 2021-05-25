@@ -85,17 +85,16 @@ private :
 struct x264_encoding_service_config_t : cuti::service_config_t
 {
   x264_encoding_service_config_t(int argc, char const* const argv[])
-  :
+  : argv0_((assert(argc > 0), argv[0])) 
 #ifndef _WIN32
-    daemon_(false)
-  ,
+  , daemon_(false)
 #endif
-    logfile_()
+  , logfile_()
   , loglevel_(default_loglevel)
   , rotation_depth_(cuti::file_backend_t::default_rotation_depth_)
-  , service_name_(cuti::default_service_name(argv[0]))
   , size_limit_(cuti::file_backend_t::no_size_limit_)
   , syslog_(false)
+  , syslog_name_("")
   {
     cuti::option_walker_t walker(argc, argv);
     while(!walker.done())
@@ -107,10 +106,9 @@ struct x264_encoding_service_config_t : cuti::service_config_t
         !walker.match("--logfile", logfile_) &&
         !walker.match("--loglevel", loglevel_) &&
         !walker.match("--rotation-depth", rotation_depth_) &&
-        !walker.match("--service-name", service_name_) &&
         !walker.match("--size-limit", size_limit_) &&
-        !walker.match("--syslog", syslog_)
-        )
+        !walker.match("--syslog", syslog_) &&
+        !walker.match("--syslog-name", syslog_name_))
       {
         break;
       }
@@ -119,7 +117,7 @@ struct x264_encoding_service_config_t : cuti::service_config_t
     if(!walker.done() || walker.next_index() != argc)
     {
       cuti::exception_builder_t<std::runtime_error> builder;
-      print_usage(builder, argv[0]);
+      print_usage(builder);
       builder.explode();
     }
   }
@@ -132,19 +130,24 @@ struct x264_encoding_service_config_t : cuti::service_config_t
   std::unique_ptr<cuti::logging_backend_t>
   create_logging_backend() const override
   {
+    std::unique_ptr<cuti::logging_backend_t> result = nullptr;
+
     if(!logfile_.empty())
     {
-      return std::make_unique<cuti::file_backend_t>(logfile_,
-        size_limit_, rotation_depth_);
+      result = std::make_unique<cuti::file_backend_t>(
+        logfile_, size_limit_, rotation_depth_);
     }
-
-    if(syslog_)
+    else if(!syslog_name_.empty())
     {
-      return std::make_unique<cuti::syslog_backend_t>(
-        service_name_.c_str());
+      result = std::make_unique<cuti::syslog_backend_t>(syslog_name_);
+    }
+    else if(syslog_)
+    {
+      result = std::make_unique<cuti::syslog_backend_t>(
+        cuti::default_syslog_name(argv0_));
     }
 
-    return nullptr;
+    return result;
   }
 
   std::unique_ptr<cuti::service_t>
@@ -157,10 +160,10 @@ struct x264_encoding_service_config_t : cuti::service_config_t
   }
 
 private :
-  static void print_usage(std::ostream& os, char const *argv0)
+  void print_usage(std::ostream& os)
   {
     os << std::endl;
-    os << "usage: " << argv0 << " [<option> ...]" << std::endl;
+    os << "usage: " << argv0_ << " [<option> ...]" << std::endl;
     os << "options are:" << std::endl;
 #ifndef _WIN32
     os << "  --daemon                 " <<
@@ -174,13 +177,13 @@ private :
     os << "  --rotation-depth <depth> " << 
       "sets logfile rotation depth (default: " <<
       default_rotation_depth << ')' << std::endl;
-    os << "  --service-name <name>    " <<
-      "sets service name for system log (default: " <<
-      cuti::default_service_name(argv0) << ')' << std::endl;
     os << "  --size-limit <limit>     " <<
       "sets logfile size limit (default: none)" << std::endl;
     os << "  --syslog                 " <<
-      "log to system log" << std::endl;
+      "log to system log as " << cuti::default_syslog_name(argv0_) <<
+      std::endl;
+    os << "  --syslog-name <name>     " <<
+      "log to system log as <name>" << std::endl;
 
     os << std::endl;
     os << gplv2_notice();
@@ -192,15 +195,16 @@ private :
   static constexpr unsigned int default_rotation_depth =
     cuti::file_backend_t::default_rotation_depth_;
 
+  std::string argv0_;
 #ifndef _WIN32
   cuti::flag_t daemon_;
 #endif
   std::string logfile_;
   cuti::loglevel_t loglevel_;
   unsigned int rotation_depth_;
-  std::string service_name_;
   unsigned int size_limit_;
   cuti::flag_t syslog_;  
+  std::string syslog_name_;
 };
 
 struct x264_encoding_service_config_reader_t : cuti::service_config_reader_t
