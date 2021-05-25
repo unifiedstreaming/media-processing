@@ -350,9 +350,9 @@ void run_service(service_config_reader_t const& config_reader,
 namespace // anonymous
 {
 
-struct pipe_t
+struct confirmation_pipe_t
 {
-  pipe_t()
+  confirmation_pipe_t()
   {
     if(::pipe(fds_) == -1)
     {
@@ -361,74 +361,62 @@ struct pipe_t
     }
   }
 
-  pipe_t(pipe_t const&) = delete;
-  pipe_t operator=(pipe_t const&) = delete;
+  confirmation_pipe_t(confirmation_pipe_t const&) = delete;
+  confirmation_pipe_t operator=(confirmation_pipe_t const&) = delete;
 
-  void write(char const* first, char const* last, char const*& next)
+  void confirm()
   {
-    assert(fds_[1] != -1);
-    assert(first < last);
-
-    int count = std::numeric_limits<int>::max();
-    if(count > last - first)
+    close_read_end();
+    
+    char buf[1];
+    buf[0] = '\0';
+    int r = ::write(fds_[1], &buf, 1);
+    if(r != 1)
     {
-      count = static_cast<int>(last - first);
+      throw system_exception_t("confirmation pipe write error");
     }
 
-    auto r = ::write(fds_[1], first, count);
-    if(r == -1)
+    close_write_end();
+  }
+
+  void await()
+  {
+    close_write_end();
+
+    char buf[1];
+    int r = ::read(fds_[0], &buf, 1);
+    if(r != 1)
     {
-      int cause = last_system_error();
-      throw system_exception_t("can't write to pipe", cause);
+      throw system_exception_t(
+        "service failed to initialize; please check the system log "
+        "or the service's log files");
     }
 
-    next = first + r;
+    close_read_end();
+  }
+    
+  ~confirmation_pipe_t()
+  {
+    close_write_end();
+    close_read_end();
+  }
+
+private :
+  void close_read_end()
+  {
+    if(fds_[0] != -1)
+    {
+      ::close(fds_[0]);
+      fds_[0] = -1;
+    }
   }
 
   void close_write_end()
   {
-    assert(fds_[1] != -1);
-    ::close(fds_[1]);
-    fds_[1] = -1;
-  }
-
-  void read(char* first, char const* last, char*& next)
-  {
-    assert(fds_[0] != -1);
-    assert(first < last);
-    
-    int count = std::numeric_limits<int>::max();
-    if(count > last - first)
-    {
-      count = static_cast<int>(last - first);
-    }
-
-    auto r = ::read(fds_[0], first, count);
-    if(r == -1)
-    {
-      int cause = last_system_error();
-      throw system_exception_t("can't read from pipe", cause);
-    }
-
-    next = first + r;
-  }
-
-  void close_read_end()
-  {
-    assert(fds_[0] != -1);
-    ::close(fds_[0]);
-    fds_[0] = -1;
-  }
-
-  ~pipe_t()
-  {
     if(fds_[1] != -1)
     {
       ::close(fds_[1]);
-    }
-    if(fds_[0] != -1)
-    {
-      ::close(fds_[0]);
+      fds_[1] = -1;
     }
   }
 
@@ -438,7 +426,7 @@ private :
 
 void run_as_daemon(logging_context_t& context, service_config_t const& config)
 {
-  pipe_t to_grandparent;
+  confirmation_pipe_t confirmation_pipe;
 
   auto child = ::fork();
   if(child == -1)
@@ -449,9 +437,6 @@ void run_as_daemon(logging_context_t& context, service_config_t const& config)
 
   if(child == 0)
   {
-    // in child
-    to_grandparent.close_read_end();
-
     if(::setsid() == -1)
     {
       int cause = last_system_error();
@@ -498,14 +483,7 @@ void run_as_daemon(logging_context_t& context, service_config_t const& config)
       signal_handler_t sigterm_handler(SIGTERM, on_sigterm);
   
       auto service = config.create_service(context, *control_receiver);
-
-      // confirm successful initialization
-      char buf[1];
-      buf[0] = '\0';
-      char const* next;
-      to_grandparent.write(buf, buf + 1, next);
-      to_grandparent.close_write_end();
-
+      confirmation_pipe.confirm();
       if(service != nullptr)
       {
         service->run();
@@ -515,9 +493,6 @@ void run_as_daemon(logging_context_t& context, service_config_t const& config)
     return;
   }
 
-  // in grandparent
-  to_grandparent.close_write_end();
-  
   // await child
   int status;
   auto wait_r = ::waitpid(child, &status, 0);
@@ -550,17 +525,9 @@ void run_as_daemon(logging_context_t& context, service_config_t const& config)
     builder << "run_service(): child reported exit code " << exit_code;
     builder.explode();
   }
+
+  confirmation_pipe.await();
         
-  // await grandchild's confirmation
-  char buf[1];
-  char* next;
-  to_grandparent.read(buf, buf + 1, next);
-  if(next != buf + 1)
-  {
-    throw system_exception_t(
-      "service failed to initialize; please check the system log "
-      "or the service's log files");
-  }
 }
 
 void run_in_foreground(logging_context_t& context,
