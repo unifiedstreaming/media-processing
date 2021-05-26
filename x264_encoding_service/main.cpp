@@ -89,6 +89,7 @@ struct x264_encoding_service_config_t : cuti::service_config_t
 #ifndef _WIN32
   , daemon_(false)
 #endif
+  , dry_run_(false)
   , logfile_()
   , loglevel_(default_loglevel)
   , rotation_depth_(cuti::file_backend_t::default_rotation_depth_)
@@ -103,6 +104,7 @@ struct x264_encoding_service_config_t : cuti::service_config_t
 #ifndef _WIN32
         !walker.match("--daemon", daemon_) &&
 #endif
+        !walker.match("--dry-run", dry_run_) &&
         !walker.match("--logfile", logfile_) &&
         !walker.match("--loglevel", loglevel_) &&
         !walker.match("--rotation-depth", rotation_depth_) &&
@@ -155,8 +157,14 @@ struct x264_encoding_service_config_t : cuti::service_config_t
                  cuti::tcp_connection_t& control_connection) const override
   {
     context.level(loglevel_);
-    return std::make_unique<x264_encoding_service_t>(
-      context, control_connection);
+
+    std::unique_ptr<cuti::service_t> result;
+    if(!dry_run_)
+    {
+      result =  std::make_unique<x264_encoding_service_t>(
+        context, control_connection);
+    }
+    return result;
   }
 
 private :
@@ -169,6 +177,8 @@ private :
     os << "  --daemon                 " <<
       "run as daemon" << std::endl;
 #endif
+    os << "  --dry-run                " <<
+      "configure service, but do not run it" << std::endl;
     os << "  --logfile <name>         " <<
       "log to file <name>" << std::endl;
     os << "  --loglevel <level>       " <<
@@ -199,6 +209,7 @@ private :
 #ifndef _WIN32
   cuti::flag_t daemon_;
 #endif
+  cuti::flag_t dry_run_;
   std::string logfile_;
   cuti::loglevel_t loglevel_;
   unsigned int rotation_depth_;
