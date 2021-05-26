@@ -113,9 +113,14 @@ void control_handler(DWORD control)
 {
   assert(service_main_args.control_sender_ != nullptr);
 
-  if(control == SERVICE_CONTROL_STOP)
+  switch(control)
   {
+  case SERVICE_CONTROL_STOP :
+  case SERVICE_CONTROL_SHUTDOWN :
     send_signal(*service_main_args.control_sender_, SIGTERM);
+    break;
+  default :
+    break;
   }
 }
 
@@ -153,7 +158,8 @@ struct status_reporter_t
     std::memset(&status, '\0', sizeof status);
     status.dwServiceType = SERVICE_WIN32_OWN_PROCESS;
     status.dwCurrentState = SERVICE_RUNNING;
-    status.dwControlsAccepted = SERVICE_ACCEPT_STOP;
+    status.dwControlsAccepted =
+      SERVICE_ACCEPT_STOP | SERVICE_ACCEPT_SHUTDOWN;
 
     if(!SetServiceStatus(handle_, &status))
     {
