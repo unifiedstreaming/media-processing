@@ -43,6 +43,18 @@ private :
   std::unique_ptr<impl_t> impl_;
 };
 
+/*
+ * Returns the default service name used for the system log.
+ */
+CUTI_ABI
+std::string default_syslog_name(char const *argv0);
+
+CUTI_ABI
+inline std::string default_syslog_name(std::string const& argv0)
+{
+  return default_syslog_name(argv0.c_str());
+}
+
 } // namespace cuti
 
 #endif

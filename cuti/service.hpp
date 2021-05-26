@@ -121,18 +121,6 @@ CUTI_ABI
 void run_service(service_config_reader_t const& config_reader,
                  int argc, char const* const argv[]);
 
-/*
- * Returns the default service name used for the system log.
- */
-CUTI_ABI
-std::string default_syslog_name(char const *argv0);
-
-CUTI_ABI
-inline std::string default_syslog_name(std::string const& argv0)
-{
-  return default_syslog_name(argv0.c_str());
-}
-
 } // cuti
 
 #endif

@@ -602,38 +602,4 @@ service_config_reader_t::service_config_reader_t()
 service_config_reader_t::~service_config_reader_t()
 { }
 
-std::string default_syslog_name(char const* argv0)
-{
-  char const* last_segment = argv0;
-  char const* last_dot = nullptr;
-
-  char const *p;
-  for(p = argv0; *p != '\0'; ++p)
-  {
-    switch(*p)
-    {
-    case '/' :
-#ifdef _WIN32
-    case ':' :
-    case '\\' :
-#endif
-      last_segment = p + 1;
-      last_dot = nullptr;
-      break;
-    case '.' :
-      last_dot = p;
-      break;
-    default :
-      break;
-    }
-  }
-
-  if(last_dot == nullptr)
-  {
-    last_dot = p;
-  }
-
-  return std::string(last_segment, last_dot);
-}
-
 } // cuti
