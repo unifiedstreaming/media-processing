@@ -245,7 +245,10 @@ file_backend_t::file_backend_t(std::string const& filename,
 , size_limit_(size_limit)
 , rotation_depth_(rotation_depth)
 , rotate_reported_(false)
-{ }
+{
+  // throw if the logfile cannot be opened, closing it immediately
+  auto test_access = std::make_unique<log_handle_t>(filename_.c_str());
+}
 
 void file_backend_t::report(loglevel_t level,
                             char const* begin_msg, char const* end_msg)
@@ -257,7 +260,7 @@ void file_backend_t::report(loglevel_t level,
 std::unique_ptr<file_backend_t::log_handle_t>
 file_backend_t::open_log_handle()
 {
-  std::unique_ptr<log_handle_t> result(new log_handle_t(filename_.c_str()));
+  auto result = std::make_unique<log_handle_t>(filename_.c_str());
   if(size_limit_ != 0 && result->filesize() >= size_limit_)
   {
     /*
@@ -276,7 +279,7 @@ file_backend_t::open_log_handle()
     rotate(filename_, rotation_depth_);
     rotate_reported_ = false;
 
-    result.reset(new log_handle_t(filename_.c_str()));
+    result = std::make_unique<log_handle_t>(filename_.c_str());
   }
 
   return result;

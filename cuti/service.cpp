@@ -74,13 +74,10 @@ void run_attended(tcp_connection_t& control_sender,
   signal_handler_t sigint_handler(SIGINT, on_sigint);
 
   logger_t logger(argv0);
+  logger.set_backend(std::make_unique<streambuf_backend_t>(std::cerr));
   if(auto backend = config.create_logging_backend())
   {
     logger.set_backend(std::move(backend));
-  }
-  else
-  {
-    logger.set_backend(std::make_unique<streambuf_backend_t>(std::cerr));
   }
 
   logging_context_t context(logger, default_loglevel);
@@ -511,14 +508,11 @@ void run_as_daemon(service_config_t const& config, char const* argv0)
       signal_handler_t sigterm_handler(SIGTERM, on_sigterm);
 
       logger_t logger(argv0);
+      logger.set_backend(std::make_unique<syslog_backend_t>(
+        default_syslog_name(argv0)));
       if(auto backend = config.create_logging_backend())
       {
         logger.set_backend(std::move(backend));
-      }
-      else
-      {
-        logger.set_backend(std::make_unique<syslog_backend_t>(
-          default_syslog_name(argv0)));
       }
 
       logging_context_t context(logger, default_loglevel);
