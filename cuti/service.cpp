@@ -65,6 +65,31 @@ void send_signal(tcp_connection_t& control_sender, int sig)
   control_sender.write(buf, buf + 1, next);
 }
                  
+void run_attended(tcp_connection_t& control_sender,
+                  tcp_connection_t& control_receiver,
+                  service_config_t const& config,
+                  char const* argv0)
+{
+  auto on_sigint = [&] { send_signal(control_sender, SIGINT); };
+  signal_handler_t sigint_handler(SIGINT, on_sigint);
+
+  logger_t logger(argv0);
+  if(auto backend = config.create_logging_backend())
+  {
+    logger.set_backend(std::move(backend));
+  }
+  else
+  {
+    logger.set_backend(std::make_unique<streambuf_backend_t>(std::cerr));
+  }
+
+  logging_context_t context(logger, default_loglevel);
+  if(auto service = config.create_service(context, control_receiver))
+  {
+    service->run();
+  }
+}
+
 } // anonymous
 
 #ifdef _WIN32
@@ -269,50 +294,13 @@ void service_main(DWORD dwNumServiceArgs, LPSTR* lpServiceArgVectors)
   }
 }
 
-void run_from_console(service_config_reader_t const& config_reader,
-                      int argc, char const* const argv[],
-                      tcp_connection_t& control_sender,
-                      tcp_connection_t& control_receiver)
-{
-  auto config = config_reader.read_config(argc, argv);
-  assert(config != nullptr);
-
-  logger_t logger(argv[0]);
-  if(auto backend = config->create_logging_backend())
-  {
-    logger.set_backend(std::move(backend));
-  }
-  else
-  {
-    logger.set_backend(std::make_unique<streambuf_backend_t>(std::cerr));
-  }
-
-  logging_context_t context(logger, default_loglevel);
-  try
-  {
-    auto on_sigint = [&] { send_signal(control_sender, SIGINT); };
-    signal_handler_t sigint_handler(SIGINT, on_sigint);
-
-    if(auto service = config->create_service(context, control_receiver))
-    {
-      service->run();
-    }
-  }
-  catch(std::exception const& ex)
-  {
-    if(auto msg = context.message_at(loglevel_t::error))
-    {
-      *msg << "exception: " << ex.what();
-    }
-    throw;
-  }
-}
-
 } // anonymous
 
 void run_service(service_config_reader_t const& config_reader,
                  int argc, char const* const argv[])
 {
+  assert(argc > 0);
+
   std::unique_ptr<tcp_connection_t> control_sender;
   std::unique_ptr<tcp_connection_t> control_receiver;
   std::tie(control_sender, control_receiver) = make_connected_pair();
@@ -342,8 +330,11 @@ void run_service(service_config_reader_t const& config_reader,
     {
       throw system_exception_t("StartServiceCtrlDispatcher() failure", cause);
     }
-    run_from_console(config_reader, argc, argv,
-      *control_sender, *control_receiver);
+
+    auto config = config_reader.read_config(argc, argv);
+    assert(config != nullptr);
+
+    run_attended(*control_sender, *control_receiver, *config, argv[0]);
   }
 }
   
@@ -389,9 +380,7 @@ struct confirmation_pipe_t
     int r = ::read(fds_[0], &buf, 1);
     if(r != 1)
     {
-      throw system_exception_t(
-        "service failed to initialize; please check the system log "
-        "or the service's log files");
+      throw system_exception_t("service failed to initialize");
     }
 
     close_read_end();
@@ -483,7 +472,7 @@ void await_child(pid_t pid)
   }
 }
 
-void run_as_daemon(logging_context_t& context, service_config_t const& config)
+void run_as_daemon(service_config_t const& config, char const* argv0)
 {
   confirmation_pipe_t confirmation_pipe;
 
@@ -513,8 +502,6 @@ void run_as_daemon(logging_context_t& context, service_config_t const& config)
     if(grandchild == 0)
     {
       // in grandchild
-      redirect_standard_fds();
-
       std::unique_ptr<tcp_connection_t> control_sender;
       std::unique_ptr<tcp_connection_t> control_receiver;
       std::tie(control_sender, control_receiver) = make_connected_pair();
@@ -522,12 +509,38 @@ void run_as_daemon(logging_context_t& context, service_config_t const& config)
 
       auto on_sigterm = [&] { send_signal(*control_sender, SIGTERM); };
       signal_handler_t sigterm_handler(SIGTERM, on_sigterm);
-  
-      auto service = config.create_service(context, *control_receiver);
-      confirmation_pipe.confirm();
-      if(service != nullptr)
+
+      logger_t logger(argv0);
+      if(auto backend = config.create_logging_backend())
       {
-        service->run();
+        logger.set_backend(std::move(backend));
+      }
+      else
+      {
+        logger.set_backend(std::make_unique<syslog_backend_t>(
+          default_syslog_name(argv0)));
+      }
+
+      logging_context_t context(logger, default_loglevel);
+      auto service = config.create_service(context, *control_receiver);
+
+      redirect_standard_fds();
+
+      try
+      {
+        confirmation_pipe.confirm();
+        if(service != nullptr)
+        {
+          service->run();
+        }
+      }
+      catch(std::exception const& ex)
+      {
+        if(auto msg = context.message_at(loglevel_t::error))
+        {
+          *msg << "exception: " << ex.what();
+        }
+        throw;
       }
     }
   }
@@ -539,21 +552,14 @@ void run_as_daemon(logging_context_t& context, service_config_t const& config)
   }
 }
 
-void run_in_foreground(logging_context_t& context,
-                       service_config_t const& config)
+void run_in_foreground(service_config_t const& config, char const* argv0)
 {
   std::unique_ptr<tcp_connection_t> control_sender;
   std::unique_ptr<tcp_connection_t> control_receiver;
   std::tie(control_sender, control_receiver) = make_connected_pair();
   control_sender->set_nonblocking();
 
-  auto on_sigint = [&] { send_signal(*control_sender, SIGINT); };
-  signal_handler_t sigint_handler(SIGINT, on_sigint);
-  
-  if(auto service = config.create_service(context, *control_receiver))
-  {
-    service->run();
-  }
+  run_attended(*control_sender, *control_receiver, config, argv0);
 }
   
 } // anonymous
@@ -561,43 +567,18 @@ void run_in_foreground(logging_context_t& context,
 void run_service(service_config_reader_t const& config_reader,
                  int argc, char const* const argv[])
 {
+  assert(argc > 0);
+
   auto config = config_reader.read_config(argc, argv);
   assert(config != nullptr);
 
-  logger_t logger(argv[0]);
-  if(auto backend = config->create_logging_backend())
+  if(config->run_as_daemon())
   {
-    logger.set_backend(std::move(backend));
-  }
-  else if(config->run_as_daemon())
-  {
-    logger.set_backend(std::make_unique<syslog_backend_t>(
-      default_syslog_name(argv[0]).c_str()));
+    run_as_daemon(*config, argv[0]);
   }
   else
   {
-    logger.set_backend(std::make_unique<streambuf_backend_t>(std::cerr));
-  }
-
-  logging_context_t context(logger, default_loglevel);
-  try
-  {
-    if(config->run_as_daemon())
-    {
-      run_as_daemon(context, *config);
-    }
-    else
-    {
-      run_in_foreground(context, *config);
-    }
-  }
-  catch(std::exception const& ex)
-  {
-    if(auto msg = context.message_at(loglevel_t::error))
-    {
-      *msg << "exception: " << ex.what();
-    }
-    throw;
+    run_in_foreground(*config, argv[0]);
   }
 }
   
