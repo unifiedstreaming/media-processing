@@ -32,8 +32,12 @@ namespace cuti
 {
 
 logger_t::logger_t(char const* argv0)
+: logger_t(std::make_unique<default_backend_t>(argv0))
+{ }
+
+logger_t::logger_t(std::unique_ptr<logging_backend_t> backend)
 : mutex_()
-, backend_(new default_backend_t(argv0))
+, backend_(std::move(backend))
 , n_failures_(0)
 , first_failure_time_()
 , first_failure_reason_()

@@ -1272,14 +1272,10 @@ int throwing_main(int argc, char const* const argv[])
     return 1;
   }
 
-  logger_t logger(argv[0]);
+  logger_t logger(std::make_unique<streambuf_backend_t>(std::cerr));
   if(!options.logfile_.empty())
   {
     logger.set_backend(std::make_unique<file_backend_t>(options.logfile_));
-  }
-  else
-  {
-    logger.set_backend(std::make_unique<streambuf_backend_t>(std::cerr));
   }
 
   logging_context_t context(logger, options.loglevel_);

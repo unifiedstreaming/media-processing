@@ -134,9 +134,8 @@ void test_single_threaded(char const* argv0)
 {
   const unsigned int n_events = 100;
 
-  cuti::logger_t logger(argv0);
   std::stringstream strm;
-  logger.set_backend(std::make_unique<cuti::streambuf_backend_t>(strm));
+  cuti::logger_t logger(std::make_unique<cuti::streambuf_backend_t>(strm));
   log_away(logger, n_events, 0);
   std::string s = strm.str();
 
@@ -157,9 +156,8 @@ void test_multi_threaded(char const* argv0)
   const unsigned int n_threads = 10;
   const unsigned int n_events = 100;
 
-  cuti::logger_t logger(argv0);
   std::stringstream strm;
-  logger.set_backend(std::make_unique<cuti::streambuf_backend_t>(strm));
+  cuti::logger_t logger(std::make_unique<cuti::streambuf_backend_t>(strm));
 
   thundering_herd_fence_t fence(n_threads);
   {

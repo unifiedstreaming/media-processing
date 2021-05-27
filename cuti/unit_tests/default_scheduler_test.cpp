@@ -527,8 +527,7 @@ void scheduler_switch(logging_context_t& context)
 
 int throwing_main(int argc, char const* const argv[])
 {
-  logger_t logger(argv[0]);
-  logger.set_backend(std::make_unique<cuti::streambuf_backend_t>(std::cerr));
+  logger_t logger(std::make_unique<cuti::streambuf_backend_t>(std::cerr));
   logging_context_t context(
     logger, argc == 1 ? loglevel_t::error : loglevel_t::info);
 

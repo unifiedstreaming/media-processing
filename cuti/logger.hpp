@@ -37,6 +37,7 @@ struct logging_backend_t;
 struct CUTI_ABI logger_t
 {
   explicit logger_t(char const* argv0);
+  explicit logger_t(std::unique_ptr<logging_backend_t> backend);
 
   logger_t(logger_t const&) = delete;
   logger_t& operator=(logger_t const&) = delete;
