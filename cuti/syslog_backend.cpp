@@ -95,7 +95,7 @@ struct syslog_backend_t::impl_t
   explicit impl_t(std::string const& source_name)
   : source_name_(source_name)
   {
-    openlog(source_name_.c_str(), 0, 0);
+    openlog(source_name_.c_str(), 0, LOG_USER);
   }
 
   impl_t(impl_t const&) = delete;
