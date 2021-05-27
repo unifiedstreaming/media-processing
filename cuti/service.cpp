@@ -28,7 +28,6 @@
 #include <cassert>
 #include <exception>
 #include <iostream>
-#include <limits>
 #include <memory>
 #include <utility>
 
@@ -57,20 +56,40 @@ namespace // anonymous
 
 constexpr auto default_loglevel = loglevel_t::warning;
 
-void send_signal(tcp_connection_t& control_sender, int sig)
+struct control_pair_t
+{
+  control_pair_t()
+  : connections_(make_connected_pair())
+  { connections_.first->set_nonblocking(); }
+
+  control_pair_t(control_pair_t const&) = delete;
+  control_pair_t& operator=(control_pair_t const&) = delete;
+  
+  tcp_connection_t& sender()
+  { return *connections_.first; }
+  
+  tcp_connection_t& receiver()
+  { return *connections_.second; }
+  
+private :
+  std::pair<std::unique_ptr<tcp_connection_t>,
+            std::unique_ptr<tcp_connection_t>>
+  connections_;
+};
+
+void send_signal(control_pair_t& control_pair, int sig)
 {
   char buf[1];
   buf[0] = static_cast<char>(sig);
   char const* next;
-  control_sender.write(buf, buf + 1, next);
+  control_pair.sender().write(buf, buf + 1, next);
 }
                  
-void run_attended(tcp_connection_t& control_sender,
-                  tcp_connection_t& control_receiver,
+void run_attended(control_pair_t& control_pair,
                   service_config_t const& config,
                   char const* argv0)
 {
-  auto on_sigint = [&] { send_signal(control_sender, SIGINT); };
+  auto on_sigint = [&] { send_signal(control_pair, SIGINT); };
   signal_handler_t sigint_handler(SIGINT, on_sigint);
 
   logger_t logger(argv0);
@@ -81,7 +100,7 @@ void run_attended(tcp_connection_t& control_sender,
   }
 
   logging_context_t context(logger, default_loglevel);
-  if(auto service = config.create_service(context, control_receiver))
+  if(auto service = config.create_service(context, control_pair.receiver()))
   {
     service->run();
   }
@@ -99,8 +118,7 @@ struct service_main_args_t
   int argc_;
   char const* const* argv_;
   service_config_reader_t const* config_reader_;
-  tcp_connection_t* control_sender_;
-  tcp_connection_t* control_receiver_;
+  control_pair_t* control_pair_;
 };
 
 /*
@@ -111,13 +129,13 @@ service_main_args_t service_main_args;
 
 void control_handler(DWORD control)
 {
-  assert(service_main_args.control_sender_ != nullptr);
+  assert(service_main_args.control_pair_ != nullptr);
 
   switch(control)
   {
   case SERVICE_CONTROL_STOP :
   case SERVICE_CONTROL_SHUTDOWN :
-    send_signal(*service_main_args.control_sender_, SIGTERM);
+    send_signal(*service_main_args.control_pair_, SIGTERM);
     break;
   default :
     break;
@@ -254,9 +272,8 @@ void service_main(DWORD dwNumServiceArgs, LPSTR* lpServiceArgVectors)
   service_config_reader_t const& config_reader =
     *service_main_args.config_reader_;
   
-  assert(service_main_args.control_receiver_ != nullptr);
-  tcp_connection_t& control_receiver =
-    *service_main_args.control_receiver_;
+  assert(service_main_args.control_pair_ != nullptr);
+  control_pair_t& control_pair = *service_main_args.control_pair_;
 
   /*
    * To be able to report configuration errors, we enable a
@@ -279,7 +296,7 @@ void service_main(DWORD dwNumServiceArgs, LPSTR* lpServiceArgVectors)
       logger.set_backend(std::move(backend));
     }
 
-    auto service = config->create_service(context, control_receiver);
+    auto service = config->create_service(context, control_pair.receiver());
 
     running_state_t running_state(status_reporter);
     if(service !=  nullptr)
@@ -304,17 +321,13 @@ void run_service(service_config_reader_t const& config_reader,
 {
   assert(argc > 0);
 
-  std::unique_ptr<tcp_connection_t> control_sender;
-  std::unique_ptr<tcp_connection_t> control_receiver;
-  std::tie(control_sender, control_receiver) = make_connected_pair();
-  control_sender->set_nonblocking();
+  control_pair_t control_pair;
 
   // Initialize args for service_main
   service_main_args.argc_ = argc;
   service_main_args.argv_ = argv;
   service_main_args.config_reader_ = &config_reader;
-  service_main_args.control_sender_ = control_sender.get();
-  service_main_args.control_receiver_ = control_receiver.get();
+  service_main_args.control_pair_ = &control_pair;
 
   static constexpr SERVICE_TABLE_ENTRY service_table[] = {
     { "", service_main },
@@ -324,7 +337,7 @@ void run_service(service_config_reader_t const& config_reader,
   // Try to run as a service
   if(StartServiceCtrlDispatcher(service_table))
   {
-    // service_main() does all the work and returns here; done
+    // StartServiceCtrlDispatcher() runs service_main(); done
   }
   else
   {
@@ -337,7 +350,7 @@ void run_service(service_config_reader_t const& config_reader,
     auto config = config_reader.read_config(argc, argv);
     assert(config != nullptr);
 
-    run_attended(*control_sender, *control_receiver, *config, argv[0]);
+    run_attended(control_pair, *config, argv[0]);
   }
 }
   
@@ -505,12 +518,9 @@ void run_as_daemon(service_config_t const& config, char const* argv0)
     if(grandchild == 0)
     {
       // in grandchild
-      std::unique_ptr<tcp_connection_t> control_sender;
-      std::unique_ptr<tcp_connection_t> control_receiver;
-      std::tie(control_sender, control_receiver) = make_connected_pair();
-      control_sender->set_nonblocking();
+      control_pair_t control_pair;
 
-      auto on_sigterm = [&] { send_signal(*control_sender, SIGTERM); };
+      auto on_sigterm = [&] { send_signal(control_pair, SIGTERM); };
       signal_handler_t sigterm_handler(SIGTERM, on_sigterm);
 
       logger_t logger(argv0);
@@ -522,7 +532,7 @@ void run_as_daemon(service_config_t const& config, char const* argv0)
       }
 
       logging_context_t context(logger, default_loglevel);
-      auto service = config.create_service(context, *control_receiver);
+      auto service = config.create_service(context, control_pair.receiver());
 
       redirect_standard_fds();
 
@@ -554,12 +564,8 @@ void run_as_daemon(service_config_t const& config, char const* argv0)
 
 void run_in_foreground(service_config_t const& config, char const* argv0)
 {
-  std::unique_ptr<tcp_connection_t> control_sender;
-  std::unique_ptr<tcp_connection_t> control_receiver;
-  std::tie(control_sender, control_receiver) = make_connected_pair();
-  control_sender->set_nonblocking();
-
-  run_attended(*control_sender, *control_receiver, config, argv0);
+  control_pair_t control_pair;
+  run_attended(control_pair, config, argv0);
 }
   
 } // anonymous
