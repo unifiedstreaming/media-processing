@@ -112,13 +112,17 @@ struct x264_encoding_service_config_t : cuti::service_config_t
         !walker.match("--syslog", syslog_) &&
         !walker.match("--syslog-name", syslog_name_))
       {
-        break;
+        cuti::exception_builder_t<std::runtime_error> builder;
+	builder << "unknown option" << std::endl << std::endl;
+        print_usage(builder);
+        builder.explode();
       }
     }
 
-    if(!walker.done() || walker.next_index() != argc)
+    if(walker.next_index() != argc)
     {
       cuti::exception_builder_t<std::runtime_error> builder;
+      builder << "unexpected argument" << std::endl << std::endl;
       print_usage(builder);
       builder.explode();
     }
@@ -170,7 +174,9 @@ struct x264_encoding_service_config_t : cuti::service_config_t
 private :
   void print_usage(std::ostream& os)
   {
-    os << std::endl;
+    os << "Copyright (C) 2021 CodeShop B.V." << std::endl;
+    os << gplv2_notice() << std::endl << std::endl;
+
     os << "usage: " << argv0_ << " [<option> ...]" << std::endl;
     os << "options are:" << std::endl;
 #ifndef _WIN32
@@ -178,7 +184,7 @@ private :
       "run as daemon" << std::endl;
 #endif
     os << "  --dry-run                " <<
-      "configure service, but do not run it" << std::endl;
+      "initialize the service, but do not run it" << std::endl;
     os << "  --logfile <name>         " <<
       "log to file <name>" << std::endl;
     os << "  --loglevel <level>       " <<
@@ -194,9 +200,6 @@ private :
       std::endl;
     os << "  --syslog-name <name>     " <<
       "log to system log as <name>" << std::endl;
-
-    os << std::endl;
-    os << gplv2_notice();
   }
 
 private :
