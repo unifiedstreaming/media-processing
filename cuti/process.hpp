@@ -17,8 +17,8 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#ifndef CUTI_FS_UTILS_HPP_
-#define CUTI_FS_UTILS_HPP_
+#ifndef CUTI_PROCESS_HPP_
+#define CUTI_PROCESS_HPP_
 
 #include "linkage.h"
 
@@ -27,14 +27,29 @@
 namespace cuti
 {
 
-// Returns 0 on success, and a system error code on failure
-CUTI_ABI int try_delete(char const* name) noexcept;
+CUTI_ABI
+int current_process_id() noexcept;
 
-CUTI_ABI void rename_if_exists(char const* old_name, char const* new_name);
-CUTI_ABI void delete_if_exists(char const* name);
+/*
+ * PID file holder class; requires that the file does not exist at
+ * creation time and attempts to delete the file when destroyed.
+ */
+struct CUTI_ABI pidfile_t
+{
+  explicit pidfile_t(char const* path);
+  pidfile_t(char const* path, int pid);
 
-CUTI_ABI std::string current_directory();
-CUTI_ABI std::string absolute_path(char const* path);
+  pidfile_t(pidfile_t const&);
+  pidfile_t& operator=(pidfile_t const&);
+  
+  std::string const& effective_filename() const noexcept
+  { return path_; }
+
+  ~pidfile_t();
+
+private :
+  std::string const path_;
+};
 
 } // cuti
 

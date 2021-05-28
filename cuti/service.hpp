@@ -24,8 +24,10 @@
 
 #include "logging_backend.hpp"
 #include "logging_context.hpp"
+#include "process.hpp"
 #include "tcp_connection.hpp"
 
+#include <memory>
 #include <string>
 
 namespace cuti
@@ -66,7 +68,7 @@ struct CUTI_ABI service_config_t
    */
   virtual bool run_as_daemon() const = 0;
 #endif
-  
+
   /*
    * Creates the logging backend to be used by the service.  If this
    * function returns nullptr, run_service() supplies a suitable
@@ -75,6 +77,12 @@ struct CUTI_ABI service_config_t
   virtual std::unique_ptr<logging_backend_t>
   create_logging_backend() const = 0;
 
+  /*
+   * Returns a PID file holder for the service, or nullptr if no
+   * PID file is required.
+   */
+  virtual std::unique_ptr<pidfile_t> create_pidfile() const = 0;
+  
   /*
    * Creates the actual service application object.
    * The service should log via <logging_context>.

@@ -92,6 +92,7 @@ struct x264_encoding_service_config_t : cuti::service_config_t
   , dry_run_(false)
   , logfile_()
   , loglevel_(default_loglevel)
+  , pidfile_()
   , rotation_depth_(cuti::file_backend_t::default_rotation_depth_)
   , size_limit_(cuti::file_backend_t::no_size_limit_)
   , syslog_(false)
@@ -107,13 +108,14 @@ struct x264_encoding_service_config_t : cuti::service_config_t
         !walker.match("--dry-run", dry_run_) &&
         !walker.match("--logfile", logfile_) &&
         !walker.match("--loglevel", loglevel_) &&
+        !walker.match("--pidfile", pidfile_) &&
         !walker.match("--rotation-depth", rotation_depth_) &&
         !walker.match("--size-limit", size_limit_) &&
         !walker.match("--syslog", syslog_) &&
         !walker.match("--syslog-name", syslog_name_))
       {
         cuti::exception_builder_t<std::runtime_error> builder;
-	builder << "unknown option" << std::endl << std::endl;
+        builder << "unknown option" << std::endl << std::endl;
         print_usage(builder);
         builder.explode();
       }
@@ -130,7 +132,9 @@ struct x264_encoding_service_config_t : cuti::service_config_t
 
 #ifndef _WIN32
   bool run_as_daemon() const override
-  { return bool(daemon_); }
+  {
+    return bool(daemon_);
+  }
 #endif
 
   std::unique_ptr<cuti::logging_backend_t>
@@ -156,16 +160,28 @@ struct x264_encoding_service_config_t : cuti::service_config_t
     return result;
   }
 
+  std::unique_ptr<cuti::pidfile_t> create_pidfile() const override
+  {
+    std::unique_ptr<cuti::pidfile_t> result = nullptr;
+
+    if(!pidfile_.empty())
+    {
+      result = std::make_unique<cuti::pidfile_t>(pidfile_.c_str());
+    }
+
+    return result;
+  }
+
   std::unique_ptr<cuti::service_t>
   create_service(cuti::logging_context_t& context,
                  cuti::tcp_connection_t& control_connection) const override
   {
     context.level(loglevel_);
 
-    std::unique_ptr<cuti::service_t> result;
+    std::unique_ptr<cuti::service_t> result = nullptr;
     if(!dry_run_)
     {
-      result =  std::make_unique<x264_encoding_service_t>(
+      result = std::make_unique<x264_encoding_service_t>(
         context, control_connection);
     }
     return result;
@@ -185,11 +201,13 @@ private :
 #endif
     os << "  --dry-run                " <<
       "initialize the service, but do not run it" << std::endl;
-    os << "  --logfile <name>         " <<
-      "log to file <name>" << std::endl;
+    os << "  --logfile <path>         " <<
+      "log to file <path>" << std::endl;
     os << "  --loglevel <level>       " <<
       "sets loglevel (default: " << 
       cuti::loglevel_string(default_loglevel) << ')' << std::endl;
+    os << "  --pidfile <path>         " <<
+      "create PID file <path> (default: none)" << std::endl;
     os << "  --rotation-depth <depth> " << 
       "sets logfile rotation depth (default: " <<
       default_rotation_depth << ')' << std::endl;
@@ -215,6 +233,7 @@ private :
   cuti::flag_t dry_run_;
   std::string logfile_;
   cuti::loglevel_t loglevel_;
+  std::string pidfile_;
   unsigned int rotation_depth_;
   unsigned int size_limit_;
   cuti::flag_t syslog_;  

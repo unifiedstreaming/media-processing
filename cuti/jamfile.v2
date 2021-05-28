@@ -81,6 +81,7 @@ lib cuti
   membuf.cpp
   option_walker.cpp
   poll_selector.cpp
+  process.cpp
   resolver.cpp
   scheduler.cpp
   scoped_thread.cpp

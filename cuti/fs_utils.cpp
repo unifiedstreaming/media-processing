@@ -31,6 +31,11 @@
 namespace cuti
 {
 
+int try_delete(char const* name) noexcept
+{
+  return DeleteFile(name) ? 0 : last_system_error();
+}
+
 void rename_if_exists(char const* old_name, char const* new_name)
 {
   BOOL result = MoveFile(old_name, new_name);
@@ -48,16 +53,12 @@ void rename_if_exists(char const* old_name, char const* new_name)
 
 void delete_if_exists(char const* name)
 {
-  BOOL result = DeleteFile(name);
-  if(!result)
+  int error = try_delete(name);
+  if(error != 0 && error != ERROR_FILE_NOT_FOUND)
   {
-    int cause = last_system_error();
-    if(cause != ERROR_FILE_NOT_FOUND)
-    {
-      system_exception_builder_t builder;
-      builder << "Can't delete file " << name;
-      builder.explode(cause);
-    }
+    system_exception_builder_t builder;
+    builder << "Can't delete file " << name;
+    builder.explode(error);
   }
 }
 
@@ -120,6 +121,11 @@ std::string absolute_path(char const* path)
 namespace cuti
 {
 
+int try_delete(char const* name) noexcept
+{
+  return ::remove(name) != -1 ? 0 : last_system_error();
+}
+
 void rename_if_exists(char const* old_name, char const* new_name)
 {
   int r = ::rename(old_name, new_name);
@@ -137,16 +143,12 @@ void rename_if_exists(char const* old_name, char const* new_name)
 
 void delete_if_exists(char const* name)
 {
-  int r = ::remove(name);
-  if(r == -1)
+  int error = try_delete(name);
+  if(error != 0 && error != ENOENT)
   {
-    int cause = last_system_error();
-    if(cause != ENOENT)
-    {
-      system_exception_builder_t builder;
-      builder << "Can't delete file " << name;
-      builder.explode(cause);
-    }
+    system_exception_builder_t builder;
+    builder << "Can't delete file " << name;
+    builder.explode(error);
   }
 }
 
