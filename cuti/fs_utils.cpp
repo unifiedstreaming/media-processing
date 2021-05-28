@@ -21,15 +21,153 @@
 #include "system_error.hpp"
 
 #include <cassert>
+#include <limits>
 #include <string>
+#include <utility>
 #include <vector>
 
 #ifdef _WIN32
 
 #include <windows.h>
 
+#else // POSIX
+
+#include <errno.h>
+#include <fcntl.h>
+#include <stdio.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
+
+#ifndef O_CLOEXEC
+#define O_CLOEXEC 0
+#endif
+
+#endif // POSIX
+
 namespace cuti
 {
+
+#ifdef _WIN32
+
+namespace // anoymous
+{
+
+struct text_output_file_impl_t : text_output_file_t
+{
+  text_output_file_impl_t(std::string path, HANDLE (*opener)(char const *))
+  : text_output_file_t()
+  , path_(std::move(path))
+  , handle_(opener(path_.c_str()))
+  {
+    if(handle_ == INVALID_HANDLE_VALUE)
+    {
+      int cause = last_system_error();
+      system_exception_builder_t builder;
+      builder <<  "Failed to open file " << path_;
+      builder.explode(cause);
+    }
+  }
+
+  std::size_t size() const noexcept override
+  {
+    LARGE_INTEGER size;
+    BOOL result = GetFileSizeEx(handle_, &size);
+    if(!result)
+    {
+      return 0;
+    }
+    return static_cast<std::size_t>(size.QuadPart);
+  }
+
+  void write(char const* first, char const* last) override
+  {
+    char const* newline = std::find(first, last, '\n');
+    while(newline != last)
+    {
+      static char const crlf[2] = { '\r', '\n' };
+
+      if(newline == first)
+      {
+        this->do_write(crlf, crlf + sizeof crlf);
+      }
+      else if(*(newline - 1) != '\r')
+      {
+        this->do_write(first, newline);
+        this->do_write(crlf, crlf + sizeof crlf);
+      }
+      else
+      {
+        this->do_write(first, newline + 1);
+      }
+
+      first = newline + 1;
+      newline = std::find(first, last, '\n');
+    }
+
+    this->do_write(first, last);
+  }
+
+  ~text_output_file_impl_t() override
+  {
+    CloseHandle(handle_);
+  }
+
+private :
+  void do_write(char const* first, char const* last)
+  {
+    while(first != last)
+    {
+      std::size_t to_write = last - first;
+      static size_t const max = std::numeric_limits<DWORD>::max();
+      if(to_write > max)
+      {
+        to_write = max;
+      }
+
+      DWORD written;
+      BOOL result = WriteFile(handle_, first, static_cast<DWORD>(to_write),
+                              &written, nullptr);
+      if(!result)
+      {
+        int cause = last_system_error();
+        system_exception_builder_t builder;
+        builder <<  "Error writing to file " << path_;
+        builder.explode(cause);
+      }
+
+      first += written;
+    }
+  }
+
+private :
+  std::string path_;
+  HANDLE handle_;
+};
+
+HANDLE open_logfile_handle(char const* path)
+{
+  return CreateFile(path,
+                    FILE_APPEND_DATA,
+                    FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+                    nullptr,
+                    OPEN_ALWAYS,
+                    FILE_ATTRIBUTE_NORMAL,
+                    nullptr);
+}
+
+HANDLE open_pidfile_handle(char const *path)
+{
+  return CreateFile(path,
+                    GENERIC_WRITE,
+                    0,
+                    nullptr,
+                    CREATE_NEW,
+                    FILE_ATTRIBUTE_NORMAL,
+                    nullptr);
+}
+
+} // anonymous
 
 int try_delete(char const* name) noexcept
 {
@@ -110,16 +248,74 @@ std::string absolute_path(char const* path)
   return std::string(buffer.data(), buffer.data() + length);
 }
 
-} // cuti
-
 #else // POSIX
 
-#include <errno.h>
-#include <stdio.h>
-#include <unistd.h>
-
-namespace cuti
+namespace // anonymous
 {
+
+struct text_output_file_impl_t : text_output_file_t
+{
+  text_output_file_impl_t(std::string path, int (*opener)(char const*))
+  : text_output_file_t()
+  , path_(std::move(path))
+  , fd_(opener(path_.c_str()))
+  {
+    if(fd_ == -1)
+    {
+      int cause = last_system_error();
+      system_exception_builder_t builder;
+      builder << "Failed to open file " << path_;
+      builder.explode(cause);
+    }
+  }
+
+  std::size_t size() const noexcept override
+  {
+    struct stat statbuf;
+    if(::fstat(fd_, &statbuf) == -1 || (statbuf.st_mode & S_IFMT) != S_IFREG)
+    {
+      return 0;
+    }
+    return statbuf.st_size;
+  }
+
+  void write(char const* first, char const* last) override
+  {
+    while(first != last)
+    {
+      auto result = ::write(fd_, first, last - first);
+      if(result == -1)
+      {
+        int cause = last_system_error();
+        system_exception_builder_t builder;
+        builder <<  "Error writing to file " << path_;
+        builder.explode(cause);
+      }
+      first += result;
+    }
+  }
+
+  ~text_output_file_impl_t() override
+  {
+    ::close(fd_);
+  }
+
+private :
+  std::string path_;
+  int fd_;
+};
+
+int open_logfile_handle(char const* path)
+{
+  return ::open(path, O_CREAT | O_WRONLY | O_APPEND | O_CLOEXEC, 0666);
+}
+
+int open_pidfile_handle(char const *path)
+{
+  return ::open(path, O_CREAT | O_EXCL | O_WRONLY | O_CLOEXEC, 0444);
+}
+
+} // anonymous
 
 int try_delete(char const* name) noexcept
 {
@@ -240,6 +436,24 @@ std::string absolute_path(char const* path)
   return result;
 }
 
-} // cuti
-
 #endif // POSIX
+
+text_output_file_t::text_output_file_t()
+{ }
+
+text_output_file_t::~text_output_file_t()
+{ }
+
+std::unique_ptr<text_output_file_t> create_logfile(std::string path)
+{
+  return std::make_unique<text_output_file_impl_t>(
+    std::move(path), open_logfile_handle);
+}
+
+std::unique_ptr<text_output_file_t> create_pidfile(std::string path)
+{
+  return std::make_unique<text_output_file_impl_t>(
+    std::move(path), open_pidfile_handle);
+}
+
+} // cuti

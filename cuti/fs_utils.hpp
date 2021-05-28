@@ -22,10 +22,31 @@
 
 #include "linkage.h"
 
+#include <cstddef>
+#include <memory>
 #include <string>
 
 namespace cuti
 {
+
+struct CUTI_ABI text_output_file_t
+{
+  text_output_file_t();
+
+  text_output_file_t(text_output_file_t const&) = delete;
+  text_output_file_t& operator=(text_output_file_t const&) = delete;
+
+  virtual std::size_t size() const noexcept = 0;
+  virtual void write(char const* first, char const* last) = 0;
+
+  virtual ~text_output_file_t();
+};
+
+CUTI_ABI
+std::unique_ptr<text_output_file_t> create_logfile(std::string path);
+
+CUTI_ABI
+std::unique_ptr<text_output_file_t> create_pidfile(std::string path);
 
 // Returns 0 on success, and a system error code on failure
 CUTI_ABI int try_delete(char const* name) noexcept;

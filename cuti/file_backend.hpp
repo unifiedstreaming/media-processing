@@ -29,6 +29,8 @@
 namespace cuti
 {
 
+struct text_output_file_t;
+
 /*
  * Logs to a named file.  Supports optional rotation-based purging
  * based on a file size limit and a count (rotation_depth) of old log
@@ -39,8 +41,6 @@ namespace cuti
  */
 struct CUTI_ABI file_backend_t : logging_backend_t
 {
-  struct log_handle_t;
-
   static constexpr unsigned int no_size_limit = 0;
   static constexpr unsigned int default_rotation_depth = 9;
 
@@ -58,7 +58,7 @@ struct CUTI_ABI file_backend_t : logging_backend_t
               char const* begin_msg, char const* end_msg) override;
 
 private :
-  std::unique_ptr<log_handle_t> open_log_handle();
+  std::unique_ptr<text_output_file_t> open_log_handle();
 
 private :
   std::string const filename_;
