@@ -93,8 +93,8 @@ struct x264_encoding_service_config_t : cuti::service_config_t
   , logfile_()
   , loglevel_(default_loglevel)
   , pidfile_()
-  , rotation_depth_(cuti::file_backend_t::default_rotation_depth_)
-  , size_limit_(cuti::file_backend_t::no_size_limit_)
+  , rotation_depth_(cuti::file_backend_t::default_rotation_depth)
+  , size_limit_(cuti::file_backend_t::no_size_limit)
   , syslog_(false)
   , syslog_name_("")
   {
@@ -210,7 +210,7 @@ private :
       "create PID file <path> (default: none)" << std::endl;
     os << "  --rotation-depth <depth> " << 
       "sets logfile rotation depth (default: " <<
-      default_rotation_depth << ')' << std::endl;
+      cuti::file_backend_t::default_rotation_depth << ')' << std::endl;
     os << "  --size-limit <limit>     " <<
       "sets logfile size limit (default: none)" << std::endl;
     os << "  --syslog                 " <<
@@ -223,8 +223,6 @@ private :
 private :
   static constexpr cuti::loglevel_t default_loglevel = 
     cuti::loglevel_t::warning;
-  static constexpr unsigned int default_rotation_depth =
-    cuti::file_backend_t::default_rotation_depth_;
 
   std::string argv0_;
 #ifndef _WIN32

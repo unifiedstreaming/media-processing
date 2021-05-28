@@ -41,13 +41,13 @@ struct CUTI_ABI file_backend_t : logging_backend_t
 {
   struct log_handle_t;
 
-  static const unsigned int no_size_limit_ = 0;
-  static const unsigned int default_rotation_depth_ = 9;
+  static constexpr unsigned int no_size_limit = 0;
+  static constexpr unsigned int default_rotation_depth = 9;
 
   explicit file_backend_t(
     std::string const& filename,
-    unsigned int size_limit = no_size_limit_,
-    unsigned int rotation_depth = default_rotation_depth_);
+    unsigned int size_limit = no_size_limit,
+    unsigned int rotation_depth = default_rotation_depth);
 
   std::string const& effective_filename() const
   {
