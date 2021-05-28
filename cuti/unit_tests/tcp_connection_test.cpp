@@ -1325,7 +1325,7 @@ int main(int argc, char* argv[])
   }
   catch(std::exception const& ex)
   {
-    std::cerr << argv[0] << ": exception: " << ex.what() << std::endl;
+    std::cerr << argv[0] << ": " << ex.what() << std::endl;
   }
 
   return r;
