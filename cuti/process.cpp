@@ -56,21 +56,15 @@ pidfile_t::pidfile_t(char const* path, int pid)
 {
   auto contents = std::to_string(pid) + '\n';
 
-  bool delete_file = false;
+  auto handle = create_pidfile(path_);
   auto file_guard = make_scoped_guard([&]
   {
-    if(delete_file)
-    {
-      try_delete(path_.c_str());
-    }
+    handle.reset();
+    try_delete(path_.c_str());
   });
   
-  {
-    auto handle = create_pidfile(path);
-    delete_file = true;
-    handle->write(contents.data(), contents.data() + contents.size());
-    delete_file = false;
-  }
+  handle->write(contents.data(), contents.data() + contents.size());
+  file_guard.dismiss();
 }
 
 pidfile_t::~pidfile_t()
