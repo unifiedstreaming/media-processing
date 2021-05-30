@@ -66,6 +66,7 @@ lib cuti
 :
   callback.cpp
   circular_buffer.cpp
+  config_lexer.cpp
   default_backend.cpp
   default_scheduler.cpp
   endpoint.cpp
