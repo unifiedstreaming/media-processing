@@ -18,9 +18,9 @@
  */
 
 #include "config_lexer.hpp"
+#include "viewbuf.hpp"
 
 #include <exception>
-#include <sstream>
 #include <string>
 
 // Enable assert()
@@ -35,8 +35,8 @@ using namespace cuti;
 void whitespace()
 {
   std::string input = " \n\t\n\r\n";
-  std::stringstream stream(input);
-  config_lexer_t lexer("input", *stream.rdbuf());
+  viewbuf_t buf(input.data(), input.data() + input.size());
+  config_lexer_t lexer("input", buf);
 
   assert(lexer.at_eof());
   assert(lexer.current_line() == 4);
@@ -45,8 +45,8 @@ void whitespace()
 void comment()
 {
   std::string input = "#Comment\n";
-  std::stringstream stream(input);
-  config_lexer_t lexer("comment", *stream.rdbuf());
+  viewbuf_t buf(input.data(), input.data() + input.size());
+  config_lexer_t lexer("input", buf);
 
   assert(lexer.at_eof());
   assert(lexer.current_line() == 2);
@@ -55,8 +55,8 @@ void comment()
 void whitespace_and_comments()
 {
   std::string input = " \n\t#Comment\n\r\n#Comment\ntoken#Comment\n";
-  std::stringstream stream(input);
-  config_lexer_t lexer("input", *stream.rdbuf());
+  viewbuf_t buf(input.data(), input.data() + input.size());
+  config_lexer_t lexer("input", buf);
 
   assert(!lexer.at_eof());
   assert(lexer.current_line() == 5);
@@ -70,8 +70,8 @@ void whitespace_and_comments()
 void multiple_tokens_on_separate_lines()
 {
   std::string input = "one\ntwo\nthree\n";
-  std::stringstream stream(input);
-  config_lexer_t lexer("input", *stream.rdbuf());
+  viewbuf_t buf(input.data(), input.data() + input.size());
+  config_lexer_t lexer("input", buf);
 
   assert(!lexer.at_eof());
   assert(lexer.current_line() == 1);
@@ -95,8 +95,8 @@ void multiple_tokens_on_separate_lines()
 void multiple_tokens_on_single_line()
 {
   std::string input = "one\ttwo\rthree four";
-  std::stringstream stream(input);
-  config_lexer_t lexer("input", *stream.rdbuf());
+  viewbuf_t buf(input.data(), input.data() + input.size());
+  config_lexer_t lexer("input", buf);
 
   assert(!lexer.at_eof());
   assert(lexer.current_line() == 1);
@@ -125,8 +125,8 @@ void multiple_tokens_on_single_line()
 void single_quoted_string_literal()
 {
   std::string input = "\'C:\\Program Files\\Unified Streaming\'\n";
-  std::stringstream stream(input);
-  config_lexer_t lexer("input", *stream.rdbuf());
+  viewbuf_t buf(input.data(), input.data() + input.size());
+  config_lexer_t lexer("input", buf);
 
   assert(!lexer.at_eof());
   assert(lexer.current_line() == 1);
@@ -140,8 +140,8 @@ void single_quoted_string_literal()
 void double_quote_in_single_quotes()
 {
   std::string input = "\'\"Wowza Wowza Wowza!\"\'\n";
-  std::stringstream stream(input);
-  config_lexer_t lexer("input", *stream.rdbuf());
+  viewbuf_t buf(input.data(), input.data() + input.size());
+  config_lexer_t lexer("input", buf);
 
   assert(!lexer.at_eof());
   assert(lexer.current_line() == 1);
@@ -155,12 +155,12 @@ void double_quote_in_single_quotes()
 void missing_single_quote()
 {
   std::string input = "\'C:\\Program Files\\Unified Streaming\n";
-  std::stringstream stream(input);
+  viewbuf_t buf(input.data(), input.data() + input.size());
 
   bool caught = false;
   try
   {
-    config_lexer_t lexer("input", *stream.rdbuf());
+    config_lexer_t lexer("input", buf);
   }
   catch(std::exception const&)
   {
@@ -172,8 +172,8 @@ void missing_single_quote()
 void double_quoted_string_literal()
 {
   std::string input = "\"C:\\Program Files\\Unified Streaming\"\n";
-  std::stringstream stream(input);
-  config_lexer_t lexer("input", *stream.rdbuf());
+  viewbuf_t buf(input.data(), input.data() + input.size());
+  config_lexer_t lexer("input", buf);
 
   assert(!lexer.at_eof());
   assert(lexer.current_line() == 1);
@@ -187,8 +187,8 @@ void double_quoted_string_literal()
 void single_quote_in_double_quotes()
 {
   std::string input = "\"John O\'Mill\"\n";
-  std::stringstream stream(input);
-  config_lexer_t lexer("input", *stream.rdbuf());
+  viewbuf_t buf(input.data(), input.data() + input.size());
+  config_lexer_t lexer("input", buf);
 
   assert(!lexer.at_eof());
   assert(lexer.current_line() == 1);
@@ -202,12 +202,12 @@ void single_quote_in_double_quotes()
 void missing_double_quote()
 {
   std::string input = "\"C:\\Program Files\\Unified Streaming\n";
-  std::stringstream stream(input);
+  viewbuf_t buf(input.data(), input.data() + input.size());
 
   bool caught = false;
   try
   {
-    config_lexer_t lexer("input", *stream.rdbuf());
+    config_lexer_t lexer("input", buf);
   }
   catch(std::exception const&)
   {
@@ -219,8 +219,8 @@ void missing_double_quote()
 void backslash_escapes()
 {
   std::string input = "\\t\\n\\r\\ \\\"\\#\\\'\\\\\n";
-  std::stringstream stream(input);
-  config_lexer_t lexer("input", *stream.rdbuf());
+  viewbuf_t buf(input.data(), input.data() + input.size());
+  config_lexer_t lexer("input", buf);
 
   assert(!lexer.at_eof());
   assert(lexer.current_line() == 1);
@@ -234,12 +234,12 @@ void backslash_escapes()
 void unknown_escape()
 {
   std::string input = "\\z";
-  std::stringstream stream(input);
+  viewbuf_t buf(input.data(), input.data() + input.size());
 
   bool caught = false;
   try
   {
-    config_lexer_t lexer("input", *stream.rdbuf());
+    config_lexer_t lexer("input", buf);
   }
   catch(std::exception const&)
   {
@@ -251,8 +251,8 @@ void unknown_escape()
 void token_concatenation()
 {
   std::string input = "\"In and out of\"\\ quotes\n";
-  std::stringstream stream(input);
-  config_lexer_t lexer("input", *stream.rdbuf());
+  viewbuf_t buf(input.data(), input.data() + input.size());
+  config_lexer_t lexer("input", buf);
 
   assert(!lexer.at_eof());
   assert(lexer.current_line() == 1);

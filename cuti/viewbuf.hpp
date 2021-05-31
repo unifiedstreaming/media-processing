@@ -17,8 +17,8 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#ifndef CUTI_MEMBUF_HPP_
-#define CUTI_MEMBUF_HPP_
+#ifndef CUTI_VIEWBUF_HPP_
+#define CUTI_VIEWBUF_HPP_
 
 #include "linkage.h"
 
@@ -28,35 +28,19 @@ namespace cuti
 {
 
 /*
- * An output stream buffer that generates a character array.
+ * An input stream buffer that reads from a character array.
  */
-struct CUTI_ABI membuf_t : std::streambuf
+struct CUTI_ABI viewbuf_t : std::streambuf
 {
-  membuf_t();
+  viewbuf_t(char const* begin, char const* end);
 
-  membuf_t(membuf_t const&) = delete;
-  membuf_t& operator=(membuf_t const&) = delete;
-
-  char const* begin() const
-  {
-    return buf_;
-  }
-
-  char const* end() const
-  {
-    return this->pptr();
-  }
-
-  ~membuf_t() override;
+  viewbuf_t(viewbuf_t const&) = delete;
+  viewbuf_t& operator=(viewbuf_t const&) = delete;
 
 protected :
-  int_type overflow(int_type c) override;
-
-private :
-  char inline_buf_[256];
-  char* buf_;
+  int_type underflow() override;
 };
 
-} // namespace cuti
+} // cuti
 
 #endif

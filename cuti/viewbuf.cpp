@@ -17,46 +17,26 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#ifndef CUTI_MEMBUF_HPP_
-#define CUTI_MEMBUF_HPP_
-
-#include "linkage.h"
-
-#include <streambuf>
+#include "viewbuf.hpp"
 
 namespace cuti
 {
 
-/*
- * An output stream buffer that generates a character array.
- */
-struct CUTI_ABI membuf_t : std::streambuf
+viewbuf_t::viewbuf_t(char const* begin, char const* end)
+: std::streambuf()
 {
-  membuf_t();
+  // This is a read-only streambuf with inherited pbackfail(),
+  // so casting away const is OK.
+  this->setg(const_cast<char*>(begin), const_cast<char*>(begin),
+             const_cast<char*>(end));
+}
 
-  membuf_t(membuf_t const&) = delete;
-  membuf_t& operator=(membuf_t const&) = delete;
+viewbuf_t::int_type viewbuf_t::underflow()
+{
+  auto gptr = this->gptr();
+  return gptr == this->egptr() ?
+         traits_type::eof() :
+         traits_type::to_int_type(*gptr);
+}
 
-  char const* begin() const
-  {
-    return buf_;
-  }
-
-  char const* end() const
-  {
-    return this->pptr();
-  }
-
-  ~membuf_t() override;
-
-protected :
-  int_type overflow(int_type c) override;
-
-private :
-  char inline_buf_[256];
-  char* buf_;
-};
-
-} // namespace cuti
-
-#endif
+} // cuti
