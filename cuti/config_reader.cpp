@@ -126,7 +126,7 @@ void config_reader_t::advance()
     {
     case '\"' :
     case '\'' :
-      // quoted string subtoken
+      // quoted string subargument
       {
         int c2 = sb_.snextc();
         while(c2 != c)
@@ -162,7 +162,7 @@ void config_reader_t::advance()
       break;
 
     case '\\' :
-      // backslash escape subtoken
+      // backslash escape subargument
       c = sb_.snextc();
       switch(c)
       {
@@ -205,7 +205,7 @@ void config_reader_t::advance()
       break;
 
     default :
-      // character literal subtoken
+      // character literal subargument
       argument_.push_back(static_cast<char>(c));
       break;
     }
