@@ -34,17 +34,22 @@ namespace cuti
 
 /*
  * Convert the string value <in> for an option called <name> to a
- * value of the type of <out>. parse_optval() throws an exception with
- * a descriptive error message if the conversion fails.
+ * value of the type of <out>. parse_optval() throws something derived
+ * from std::exception with a descriptive error message if the
+ * conversion fails.
+ *
  * parse_optval() is a customization point: users may provide further
- * overloads, found by ADL, for other types of <out>.
+ * overloads, found by ADL, for other types of <out>. If the
+ * conversion fails, the exception message string should include the
+ * result of <reader>.current_origin() to pinpoint the origin of the
+ * error.
  */
-CUTI_ABI void parse_optval(char const* name, char const* in,
-                           int& out);
-CUTI_ABI void parse_optval(char const* name, char const* in,
-                           unsigned int& out);
-CUTI_ABI void parse_optval(char const* name, char const* in,
-                           std::string& out);
+CUTI_ABI void parse_optval(char const* name, args_reader_t const& reader,
+                           char const* in, int& out);
+CUTI_ABI void parse_optval(char const* name, args_reader_t const& reader,
+                           char const* in, unsigned int& out);
+CUTI_ABI void parse_optval(char const* name, args_reader_t const& reader,
+                           char const* in, std::string& out);
 
 /*
  * Our option walker
@@ -103,7 +108,7 @@ struct CUTI_ABI option_walker_t
     if(result)
     {
       assert(in != nullptr);
-      parse_optval(name, in, value);
+      parse_optval(name, reader_, in, value);
       reader_.advance();
       on_next_argument();
     }

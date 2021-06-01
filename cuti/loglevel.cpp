@@ -19,7 +19,7 @@
 
 #include "loglevel.hpp"
 
-#include "exception_builder.hpp"
+#include "system_error.hpp"
 
 #include <cstring>
 #include <stdexcept>
@@ -40,7 +40,8 @@ char const* loglevel_string(loglevel_t level)
   return "<invalid log level>";
 }
 
-void parse_optval(char const* name, char const* in, loglevel_t& out)
+void parse_optval(char const* name, args_reader_t const& reader,
+                  char const* in, loglevel_t& out)
 {
   if(std::strcmp(in, "error") == 0)
   {
@@ -60,9 +61,10 @@ void parse_optval(char const* name, char const* in, loglevel_t& out)
   }
   else
   {
-    exception_builder_t<std::runtime_error> builder;
-    builder << "unexpected value '" << in << "' for option " << name <<
-      "; valid values are 'error', 'warning', 'info' and 'debug'";
+    system_exception_builder_t builder;
+    builder << reader.current_origin() <<
+      ": unexpected value '" << in << "' for option '" << name <<
+      "'; valid values are 'error', 'warning', 'info' and 'debug'";
     builder.explode();
   }
 }

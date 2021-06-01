@@ -72,8 +72,8 @@ char const* match_prefix(char const* arg, char const* prefix)
   return arg;
 }
 
-unsigned int parse_unsigned(char const* name, char const* value,
-                            unsigned int max)
+unsigned int parse_unsigned(char const* name, args_reader_t const& reader,
+                            char const* value, unsigned int max)
 {
   unsigned int result = 0;
 
@@ -81,16 +81,18 @@ unsigned int parse_unsigned(char const* name, char const* value,
   {
     if(*value < '0' || *value > '9')
     {
-      exception_builder_t<std::runtime_error> builder;
-      builder << "digit expected in option value for " << name;
+      system_exception_builder_t builder;
+      builder << reader.current_origin() <<
+        ": digit expected in option value for '" << name << "'";
       builder.explode();
     }
 
     unsigned int digit = *value - '0';
     if(result > max / 10 || digit > max - 10 * result)
     {
-      exception_builder_t<std::runtime_error> builder;
-      builder << "overflow in option value for " << name;
+      system_exception_builder_t builder;
+      builder << reader.current_origin() <<
+        ": overflow in option value for '" << name << "'";
       builder.explode();
     }
 
@@ -105,13 +107,15 @@ unsigned int parse_unsigned(char const* name, char const* value,
 
 } // anonymous
 
-void parse_optval(char const* name, char const* in, int& out)
+void parse_optval(char const* name, args_reader_t const& reader,
+                  char const* in, int& out)
 {
   static unsigned int const max = std::numeric_limits<int>::max();
 
   if(*in == '-')
   {
-    unsigned int unsigned_value = parse_unsigned(name, in + 1, max + 1);
+    unsigned int unsigned_value =
+      parse_unsigned(name, reader, in + 1, max + 1);
     --unsigned_value;
 
     int signed_value = unsigned_value;
@@ -122,17 +126,19 @@ void parse_optval(char const* name, char const* in, int& out)
   }
   else
   {
-    out = parse_unsigned(name, in, max);
+    out = parse_unsigned(name, reader, in, max);
   }
 }
 
-void parse_optval(char const* name, char const* in, unsigned int& out)
+void parse_optval(char const* name, args_reader_t const& reader,
+                  char const* in, unsigned int& out)
 {
   static unsigned int const max = std::numeric_limits<unsigned int>::max();
-  out = parse_unsigned(name, in, max);
+  out = parse_unsigned(name, reader, in, max);
 }
 
-void parse_optval(char const*, char const* in, std::string& out)
+void parse_optval(char const*, args_reader_t const&,
+                  char const* in, std::string& out)
 {
   out = in;
 }

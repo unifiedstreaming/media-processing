@@ -20,6 +20,7 @@
 #ifndef CUTI_LOGLEVEL_HPP_
 #define CUTI_LOGLEVEL_HPP_
 
+#include "args_reader.hpp"
 #include "linkage.h"
 
 namespace cuti
@@ -32,7 +33,8 @@ char const *loglevel_string(loglevel_t level);
 
 // Enable option value parsing for loglevel_t
 CUTI_ABI
-void parse_optval(char const* name, char const* in, loglevel_t& out);
+void parse_optval(char const* name, args_reader_t const& reader,
+                  char const* in, loglevel_t& out);
 
 } // cuti
 
