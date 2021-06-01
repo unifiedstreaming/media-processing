@@ -18,6 +18,7 @@
  */
 
 #include "cmdline_reader.hpp"
+#include "config_reader.hpp"
 #include "exception_builder.hpp"
 #include "file_backend.hpp"
 #include "logger.hpp"
@@ -25,6 +26,7 @@
 #include "service.hpp"
 #include "syslog_backend.hpp"
 
+#include <fstream>
 #include <iostream>
 #include <memory>
 #include <stdexcept>
@@ -33,10 +35,12 @@
 namespace // anonymous
 {
 
-char const* gplv2_notice()
+char const* copyright_notice()
 {
   return
-R"(This program is free software. It comes with ABSOLUTELY NO WARRANTY
+R"(Copyright (C) 2021 CodeShop B.V.
+
+This program is free software. It comes with ABSOLUTELY NO WARRANTY
 and is licensed to you under the terms of version 2 of the GNU General
 Public License as published by the Free Software Foundation. Under
 certain conditions, you may modify and/or redistribute this program;
@@ -86,7 +90,8 @@ private :
 struct x264_encoding_service_config_t : cuti::service_config_t
 {
   x264_encoding_service_config_t(int argc, char const* const argv[])
-  : argv0_((assert(argc > 0), argv[0])) 
+  : argv0_((assert(argc > 0), argv[0]))
+  , config_()
 #ifndef _WIN32
   , daemon_(false)
 #endif
@@ -99,40 +104,21 @@ struct x264_encoding_service_config_t : cuti::service_config_t
   , syslog_(false)
   , syslog_name_("")
   {
-    cuti::cmdline_reader_t reader(argc, argv);
-    cuti::option_walker_t walker(reader);
-    while(!walker.done())
+    cuti::cmdline_reader_t cmdline_reader(argc, argv);
+    read_options(cmdline_reader);
+
+    if(!config_.empty())
     {
-      if(
-#ifndef _WIN32
-        !walker.match("--daemon", daemon_) &&
-#endif
-        !walker.match("--dry-run", dry_run_) &&
-        !walker.match("--logfile", logfile_) &&
-        !walker.match("--loglevel", loglevel_) &&
-        !walker.match("--pidfile", pidfile_) &&
-        !walker.match("--rotation-depth", rotation_depth_) &&
-        !walker.match("--size-limit", size_limit_) &&
-        !walker.match("--syslog", syslog_) &&
-        !walker.match("--syslog-name", syslog_name_))
+      std::ifstream ifs(config_);
+      if(!ifs)
       {
         cuti::exception_builder_t<std::runtime_error> builder;
-        builder << reader.current_origin() <<
-	  ": unknown option \'" << reader.current_argument() << "\'" <<
-	  std::endl << std::endl;
-        print_usage(builder);
+        builder << "Can't open config file '" << config_ << "'";
         builder.explode();
       }
-    }
-
-    if(!reader.at_end())
-    {
-      cuti::exception_builder_t<std::runtime_error> builder;
-      builder << reader.current_origin() <<
-        ": unexpected argument \'" << reader.current_argument() << "\'" <<
-	std::endl << std::endl;
-      print_usage(builder);
-      builder.explode();
+        
+      cuti::config_reader_t config_reader(config_, *ifs.rdbuf());
+      read_options(config_reader);
     }
   }
 
@@ -194,13 +180,51 @@ struct x264_encoding_service_config_t : cuti::service_config_t
   }
 
 private :
+  void read_options(cuti::args_reader_t& reader)
+  {
+    cuti::option_walker_t walker(reader);
+    while(!walker.done())
+    {
+      if(
+        !walker.match("--config", config_) &&
+#ifndef _WIN32
+        !walker.match("--daemon", daemon_) &&
+#endif
+        !walker.match("--dry-run", dry_run_) &&
+        !walker.match("--logfile", logfile_) &&
+        !walker.match("--loglevel", loglevel_) &&
+        !walker.match("--pidfile", pidfile_) &&
+        !walker.match("--rotation-depth", rotation_depth_) &&
+        !walker.match("--size-limit", size_limit_) &&
+        !walker.match("--syslog", syslog_) &&
+        !walker.match("--syslog-name", syslog_name_))
+      {
+        cuti::exception_builder_t<std::runtime_error> builder;
+        print_usage(builder);
+        builder << reader.current_origin() <<
+          ": unknown option \'" << reader.current_argument() << "\'";
+        builder.explode();
+      }
+    }
+
+    if(!reader.at_end())
+    {
+      cuti::exception_builder_t<std::runtime_error> builder;
+      print_usage(builder);
+      builder << reader.current_origin() <<
+        ": unexpected argument \'" << reader.current_argument() << "\'";
+      builder.explode();
+    }
+  }
+
   void print_usage(std::ostream& os)
   {
-    os << "Copyright (C) 2021 CodeShop B.V." << std::endl;
-    os << gplv2_notice() << std::endl << std::endl;
-
+    os << std::endl;
+    os << copyright_notice() << std::endl << std::endl;
     os << "usage: " << argv0_ << " [<option> ...]" << std::endl;
     os << "options are:" << std::endl;
+    os << "  --config <path>          " <<
+      "read additional options from file <path>" << std::endl;
 #ifndef _WIN32
     os << "  --daemon                 " <<
       "run as daemon" << std::endl;
@@ -224,6 +248,7 @@ private :
       std::endl;
     os << "  --syslog-name <name>     " <<
       "log to system log as <name>" << std::endl;
+    os << std::endl;
   }
 
 private :
@@ -231,6 +256,8 @@ private :
     cuti::loglevel_t::warning;
 
   std::string argv0_;
+
+  std::string config_;
 #ifndef _WIN32
   cuti::flag_t daemon_;
 #endif
