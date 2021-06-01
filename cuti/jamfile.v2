@@ -64,8 +64,10 @@ rule cuti-dll-name ( name : type ? : properties * )
 
 lib cuti
 :
+  args_reader.cpp
   callback.cpp
   circular_buffer.cpp
+  cmdline_reader.cpp
   config_lexer.cpp
   default_backend.cpp
   default_scheduler.cpp

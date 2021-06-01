@@ -19,7 +19,7 @@
 
 #include "option_walker.hpp"
 
-#include "exception_builder.hpp"
+#include "system_error.hpp"
 
 #include <cassert>
 #include <limits>
@@ -45,31 +45,31 @@ bool is_long_option(char const* name)
     name[2] != '\0';
 }
 
-char const* match_prefix(char const* elem, char const* prefix)
+char const* match_prefix(char const* arg, char const* prefix)
 {
   while(*prefix == '-')
   {
-    if(*elem != '-')
+    if(*arg != '-')
     {
       return nullptr;
     }
-    ++elem;
+    ++arg;
     ++prefix;
   }
 
   while(*prefix != '\0')
   {
-    if(*prefix != *elem &&
-       !(*prefix == '-' && *elem == '_') &&
-       !(*prefix == '_' && *elem == '-'))
+    if(*prefix != *arg &&
+       !(*prefix == '-' && *arg == '_') &&
+       !(*prefix == '_' && *arg == '-'))
     {
       return nullptr;
     }
-    ++elem;
+    ++arg;
     ++prefix;
   }
 
-  return elem;
+  return arg;
 }
 
 unsigned int parse_unsigned(char const* name, char const* value,
@@ -137,14 +137,12 @@ void parse_optval(char const*, char const* in, std::string& out)
   out = in;
 }
 
-option_walker_t::option_walker_t(int argc, char const* const argv[])
-: argc_(argc)
-, argv_(argv)
-, idx_(argc_ < 1 ? argc_ : 1)
+option_walker_t::option_walker_t(args_reader_t& reader)
+: reader_(reader)
 , done_(false)
 , short_option_ptr_(nullptr)
 {
-  on_next_element();
+  on_next_argument();
 }
 
 bool option_walker_t::match(const char *name, flag_t& value)
@@ -163,28 +161,29 @@ bool option_walker_t::match(const char *name, flag_t& value)
       ++short_option_ptr_;
       if(*short_option_ptr_ == '\0')
       {
-        ++idx_;
-        on_next_element();
+        reader_.advance();
+        on_next_argument();
       }
     }
   }
   else if(is_long_option(name))
   {
-    char const* suffix = match_prefix(argv_[idx_], name);
+    char const* suffix = match_prefix(reader_.current_argument(), name);
     if(suffix != nullptr && *suffix == '\0')
     {
       value = true;
       result = true;
 
-      ++idx_;
-      on_next_element();
+      reader_.advance();
+      on_next_argument();
     }
   }
 
   return result;
 }
 
-bool option_walker_t::do_match(char const* name, char const*& value)
+bool option_walker_t::value_option_matches(char const* name,
+                                           char const*& value)
 {
   assert(!done_);
 
@@ -192,25 +191,27 @@ bool option_walker_t::do_match(char const* name, char const*& value)
 
   if(is_short_option(name) || is_long_option(name))
   {
-    char const* suffix = match_prefix(argv_[idx_], name);
+    char const* suffix = match_prefix(reader_.current_argument(), name);
     if(suffix != nullptr)
     {
       if(*suffix == '=')
       {
         value = suffix + 1;
         result = true;
-
-        ++idx_;
-        on_next_element();
       }
-      else if(*suffix == '\0' && idx_ + 1 != argc_)
+      else if(*suffix == '\0')
       {
-        ++idx_;
-        value = argv_[idx_];
-        result = true;
+        reader_.advance();
+        if(reader_.at_end())
+        {
+          system_exception_builder_t builder;
+          builder << reader_.current_origin() << ": option \'" <<
+            name << "\' requires a value";
+          builder.explode();
+        }
 
-        ++idx_;
-        on_next_element();
+        value = reader_.current_argument();
+        result = true;
       }
     }
   }
@@ -218,33 +219,33 @@ bool option_walker_t::do_match(char const* name, char const*& value)
   return result;
 }
 
-void option_walker_t::on_next_element()
+void option_walker_t::on_next_argument()
 {
   short_option_ptr_ = nullptr;
 
-  if(idx_ == argc_)
+  if(reader_.at_end())
   {
-    // out of elements
+    // out of arguments
     done_ = true;
   }
   else
   {
-    char const* elem = argv_[idx_];
-    if(elem[0] != '-' || elem[1] == '\0')
+    char const* arg = reader_.current_argument();
+    if(arg[0] != '-' || arg[1] == '\0')
     {
       // not an option
       done_ = true;
     }
-    else if(elem[1] != '-')
+    else if(arg[1] != '-')
     {
       // short option(s) found
-      short_option_ptr_ = &elem[1];
+      short_option_ptr_ = &arg[1];
     }
-    else if(elem[2] == '\0')
+    else if(arg[2] == '\0')
     {
       // end of options marker
-      ++idx_;
       done_ = true;
+      reader_.advance();
     }
     else
     {

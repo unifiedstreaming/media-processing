@@ -17,6 +17,7 @@
  * <http://www.gnu.org/licenses/>.
  */
 
+#include "cmdline_reader.hpp"
 #include "exception_builder.hpp"
 #include "file_backend.hpp"
 #include "logger.hpp"
@@ -98,7 +99,8 @@ struct x264_encoding_service_config_t : cuti::service_config_t
   , syslog_(false)
   , syslog_name_("")
   {
-    cuti::option_walker_t walker(argc, argv);
+    cuti::cmdline_reader_t reader(argc, argv);
+    cuti::option_walker_t walker(reader);
     while(!walker.done())
     {
       if(
@@ -115,16 +117,20 @@ struct x264_encoding_service_config_t : cuti::service_config_t
         !walker.match("--syslog-name", syslog_name_))
       {
         cuti::exception_builder_t<std::runtime_error> builder;
-        builder << "unknown option" << std::endl << std::endl;
+        builder << reader.current_origin() <<
+	  ": unknown option \'" << reader.current_argument() << "\'" <<
+	  std::endl << std::endl;
         print_usage(builder);
         builder.explode();
       }
     }
 
-    if(walker.next_index() != argc)
+    if(!reader.at_end())
     {
       cuti::exception_builder_t<std::runtime_error> builder;
-      builder << "unexpected argument" << std::endl << std::endl;
+      builder << reader.current_origin() <<
+        ": unexpected argument \'" << reader.current_argument() << "\'" <<
+	std::endl << std::endl;
       print_usage(builder);
       builder.explode();
     }

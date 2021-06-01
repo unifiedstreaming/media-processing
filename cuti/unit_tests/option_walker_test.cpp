@@ -17,6 +17,7 @@
  * <http://www.gnu.org/licenses/>.
  */
 
+#include "cmdline_reader.hpp"
 #include "option_walker.hpp"
 #include "logger.hpp"
 
@@ -31,23 +32,27 @@
 namespace // anonymous
 {
 
+using namespace cuti;
+
 void no_options_no_args()
 {
   char const* argv[] = { "command" };
   int argc = sizeof argv / sizeof argv[0];
-  cuti::option_walker_t walker(argc, argv);
+  cmdline_reader_t reader(argc, argv);
+  option_walker_t walker(reader);
 
   assert(walker.done());
-  assert(walker.next_index() == 1);
+  assert(reader.at_end());
 }
 
 void matching_flag()
 {
   char const* argv[] = { "command", "--flag" };
   int argc = sizeof argv / sizeof argv[0];
-  cuti::option_walker_t walker(argc, argv);
+  cmdline_reader_t reader(argc, argv);
+  option_walker_t walker(reader);
 
-  cuti::flag_t flag = false;
+  flag_t flag = false;
 
   while(!walker.done())
   {
@@ -59,16 +64,17 @@ void matching_flag()
 
   assert(walker.done());
   assert(flag);
-  assert(walker.next_index() == 2);
+  assert(reader.at_end());
 }
 
 void non_matching_flag()
 {
   char const* argv[] = { "command", "--notflag" };
   int argc = sizeof argv / sizeof argv[0];
-  cuti::option_walker_t walker(argc, argv);
+  cmdline_reader_t reader(argc, argv);
+  option_walker_t walker(reader);
 
-  cuti::flag_t flag = false;
+  flag_t flag = false;
 
   while(!walker.done())
   {
@@ -86,9 +92,10 @@ void underscore_matches_hyphen()
 {
   char const* argv[] = { "command", "--flag_option" };
   int argc = sizeof argv / sizeof argv[0];
-  cuti::option_walker_t walker(argc, argv);
+  cmdline_reader_t reader(argc, argv);
+  option_walker_t walker(reader);
 
-  cuti::flag_t flag = false;
+  flag_t flag = false;
 
   while(!walker.done())
   {
@@ -100,16 +107,17 @@ void underscore_matches_hyphen()
 
   assert(walker.done());
   assert(flag);
-  assert(walker.next_index() == 2);
+  assert(reader.at_end());
 }
 
 void hyphen_matches_underscore()
 {
   char const* argv[] = { "command", "--flag-option" };
   int argc = sizeof argv / sizeof argv[0];
-  cuti::option_walker_t walker(argc, argv);
+  cmdline_reader_t reader(argc, argv);
+  option_walker_t walker(reader);
 
-  cuti::flag_t flag = false;
+  flag_t flag = false;
 
   while(!walker.done())
   {
@@ -121,17 +129,18 @@ void hyphen_matches_underscore()
 
   assert(walker.done());
   assert(flag);
-  assert(walker.next_index() == 2);
+  assert(reader.at_end());
 }
 
 void multiple_flags()
 {
   char const* argv[] = { "command", "--flag1", "--flag2" };
   int argc = sizeof argv / sizeof argv[0];
-  cuti::option_walker_t walker(argc, argv);
+  cmdline_reader_t reader(argc, argv);
+  option_walker_t walker(reader);
 
-  cuti::flag_t flag1 = false;
-  cuti::flag_t flag2 = false;
+  flag_t flag1 = false;
+  flag_t flag2 = false;
 
   while(!walker.done())
   {
@@ -145,14 +154,15 @@ void multiple_flags()
   assert(walker.done());
   assert(flag1);
   assert(flag2);
-  assert(walker.next_index() == 3);
+  assert(reader.at_end());
 }
 
 void value_assign()
 {
   char const* argv[] = { "command", "--option=value" };
   int argc = sizeof argv / sizeof argv[0];
-  cuti::option_walker_t walker(argc, argv);
+  cmdline_reader_t reader(argc, argv);
+  option_walker_t walker(reader);
 
   std::string option;
 
@@ -166,14 +176,15 @@ void value_assign()
 
   assert(walker.done());
   assert(option == "value");
-  assert(walker.next_index() == 2);
+  assert(reader.at_end());
 }
 
 void value_separate()
 {
   char const* argv[] = { "command", "--option", "value" };
   int argc = sizeof argv / sizeof argv[0];
-  cuti::option_walker_t walker(argc, argv);
+  cmdline_reader_t reader(argc, argv);
+  option_walker_t walker(reader);
 
   std::string option;
 
@@ -187,27 +198,36 @@ void value_separate()
 
   assert(walker.done());
   assert(option == "value");
-  assert(walker.next_index() == 3);
+  assert(reader.at_end());
 }
 
 void missing_value()
 {
   char const* argv[] = { "command", "--option" } ;
   int argc = sizeof argv / sizeof argv[0];
-  cuti::option_walker_t walker(argc, argv);
+  cmdline_reader_t reader(argc, argv);
+  option_walker_t walker(reader);
 
-  std::string option;
-
-  while(!walker.done())
+  bool caught = false;
+  try
   {
-    if(!walker.match("--option", option))
+    std::string option;
+
+    while(!walker.done())
     {
-      break;
+      if(!walker.match("--option", option))
+      {
+        break;
+      }
     }
   }
+  catch(std::exception const& /* ex */)
+  {
+    // std::cout << ex.what();
+    caught = true;
+  }
 
-  assert(!walker.done());
-  assert(option.empty());
+  assert(caught);
 }
 
 void two_values()
@@ -216,7 +236,8 @@ void two_values()
                          "--option1", "value1",
                          "--option2", "value2" };
   int argc = sizeof argv / sizeof argv[0];
-  cuti::option_walker_t walker(argc, argv);
+  cmdline_reader_t reader(argc, argv);
+  option_walker_t walker(reader);
 
   std::string option1;
   std::string option2;
@@ -233,46 +254,53 @@ void two_values()
   assert(walker.done());
   assert(option1 == "value1");
   assert(option2 == "value2");
-  assert(walker.next_index() == 5);
+  assert(reader.at_end());
 }
 
 void single_arg()
 {
   char const* argv[] = { "command", "arg" };
   int argc = sizeof argv / sizeof argv[0];
-  cuti::option_walker_t walker(argc, argv);
+  cmdline_reader_t reader(argc, argv);
+  option_walker_t walker(reader);
 
   assert(walker.done());
-  assert(walker.next_index() == 1);
+  assert(!reader.at_end());
+  assert(std::strcmp(reader.current_argument(), "arg") == 0);
 }
 
 void multiple_args()
 {
   char const* argv[] = { "command", "arg1", "arg2" };
   int argc = sizeof argv / sizeof argv[0];
-  cuti::option_walker_t walker(argc, argv);
+  cmdline_reader_t reader(argc, argv);
+  option_walker_t walker(reader);
 
   assert(walker.done());
-  assert(walker.next_index() == 1);
+  assert(!reader.at_end());
+  assert(std::strcmp(reader.current_argument(), "arg1") == 0);
 }
 
 void hyphens_at_start()
 {
   char const* argv[] = { "command", "--", "--arg" };
   int argc = sizeof argv / sizeof argv[0];
-  cuti::option_walker_t walker(argc, argv);
+  cmdline_reader_t reader(argc, argv);
+  option_walker_t walker(reader);
 
   assert(walker.done());
-  assert(walker.next_index() == 2);
+  assert(!reader.at_end());
+  assert(std::strcmp(reader.current_argument(), "--arg") == 0);
 }
 
 void hyphens_in_middle()
 {
   char const* argv[] = { "command", "--flag", "--", "--arg" };
   int argc = sizeof argv / sizeof argv[0];
-  cuti::option_walker_t walker(argc, argv);
+  cmdline_reader_t reader(argc, argv);
+  option_walker_t walker(reader);
 
-  cuti::flag_t flag = false;
+  flag_t flag = false;
 
   while(!walker.done())
   {
@@ -284,17 +312,19 @@ void hyphens_in_middle()
 
   assert(walker.done());
   assert(flag);
-  assert(walker.next_index() == 3);
+  assert(!reader.at_end());
+  assert(std::strcmp(reader.current_argument(), "--arg") == 0);
 }
 
 void hyphens_at_end()
 {
   char const* argv[] = { "command", "--flag1", "--flag2", "--" };
   int argc = sizeof argv / sizeof argv[0];
-  cuti::option_walker_t walker(argc, argv);
+  cmdline_reader_t reader(argc, argv);
+  option_walker_t walker(reader);
 
-  cuti::flag_t flag1 = false;
-  cuti::flag_t flag2 = false;
+  flag_t flag1 = false;
+  flag_t flag2 = false;
 
   while(!walker.done())
   {
@@ -308,16 +338,17 @@ void hyphens_at_end()
   assert(walker.done());
   assert(flag1);
   assert(flag2);
-  assert(walker.next_index() == 4);
+  assert(reader.at_end());
 }
 
 void single_short_flag()
 {
   char const* argv[] = { "command", "-f" };
   int argc = sizeof argv / sizeof argv[0];
-  cuti::option_walker_t walker(argc, argv);
+  cmdline_reader_t reader(argc, argv);
+  option_walker_t walker(reader);
 
-  cuti::flag_t flag = false;
+  flag_t flag = false;
 
   while(!walker.done())
   {
@@ -329,17 +360,18 @@ void single_short_flag()
 
   assert(walker.done());
   assert(flag);
-  assert(walker.next_index() == 2);
+  assert(reader.at_end());
 }
 
 void multiple_short_flags()
 {
   char const* argv[] = { "command", "-f", "-g" };
   int argc = sizeof argv / sizeof argv[0];
-  cuti::option_walker_t walker(argc, argv);
+  cmdline_reader_t reader(argc, argv);
+  option_walker_t walker(reader);
 
-  cuti::flag_t fflag = false;
-  cuti::flag_t gflag = false;
+  flag_t fflag = false;
+  flag_t gflag = false;
 
   while(!walker.done())
   {
@@ -353,17 +385,18 @@ void multiple_short_flags()
   assert(walker.done());
   assert(fflag);
   assert(gflag);
-  assert(walker.next_index() == 3);
+  assert(reader.at_end());
 }
 
 void abbreviated_flags()
 {
   char const* argv[] = { "command", "-fg" };
   int argc = sizeof argv / sizeof argv[0];
-  cuti::option_walker_t walker(argc, argv);
+  cmdline_reader_t reader(argc, argv);
+  option_walker_t walker(reader);
 
-  cuti::flag_t fflag = false;
-  cuti::flag_t gflag = false;
+  flag_t fflag = false;
+  flag_t gflag = false;
 
   while(!walker.done())
   {
@@ -377,14 +410,15 @@ void abbreviated_flags()
   assert(walker.done());
   assert(fflag);
   assert(gflag);
-  assert(walker.next_index() == 2);
+  assert(reader.at_end());
 }
 
 void short_value()
 {
   char const* argv[] = { "command", "-o", "value" };
   int argc = sizeof argv / sizeof argv[0];
-  cuti::option_walker_t walker(argc, argv);
+  cmdline_reader_t reader(argc, argv);
+  option_walker_t walker(reader);
 
   std::string option;
 
@@ -398,16 +432,17 @@ void short_value()
 
   assert(walker.done());
   assert(option == "value");
-  assert(walker.next_index() == 3);
+  assert(reader.at_end());
 }
 
 void value_in_abbreviation()
 {
   char const* argv[] = { "command", "-fo", "value" };
   int argc = sizeof argv / sizeof argv[0];
-  cuti::option_walker_t walker(argc, argv);
+  cmdline_reader_t reader(argc, argv);
+  option_walker_t walker(reader);
 
-  cuti::flag_t flag;
+  flag_t flag;
   std::string option;
 
   while(!walker.done())
@@ -428,7 +463,8 @@ void short_value_assign()
 {
   char const* argv[] = { "command", "-o=value" };
   int argc = sizeof argv / sizeof argv[0];
-  cuti::option_walker_t walker(argc, argv);
+  cmdline_reader_t reader(argc, argv);
+  option_walker_t walker(reader);
 
   std::string option;
 
@@ -441,34 +477,44 @@ void short_value_assign()
   }
 
   assert(option == "value");
-  assert(walker.next_index() == 2);
+  assert(reader.at_end());
 }
 
 void missing_short_value()
 {
   char const* argv[] = { "command", "-o" };
   int argc = sizeof argv / sizeof argv[0];
-  cuti::option_walker_t walker(argc, argv);
+  cmdline_reader_t reader(argc, argv);
+  option_walker_t walker(reader);
 
-  std::string option;
-
-  while(!walker.done())
+  bool caught = false;
+  try
   {
-    if(!walker.match("-o", option))
+    std::string option;
+
+    while(!walker.done())
     {
-      break;
+      if(!walker.match("-o", option))
+      {
+        break;
+      }
     }
   }
+  catch(std::exception const& /* ex */)
+  {
+    // std::cout << ex.what();
+    caught = true;
+  }
 
-  assert(!walker.done());
-  assert(option.empty());
+  assert(caught);
 }
 
 void int_option()
 {
   char const* argv[] = { "command", "--number", "42" };
   int argc = sizeof argv / sizeof argv[0];
-  cuti::option_walker_t walker(argc, argv);
+  cmdline_reader_t reader(argc, argv);
+  option_walker_t walker(reader);
 
   int number = 0;
 
@@ -482,14 +528,15 @@ void int_option()
 
   assert(walker.done());
   assert(number == 42);
-  assert(walker.next_index() == 3);
+  assert(reader.at_end());
 }
 
 void negative_int_option()
 {
   char const* argv[] = { "command", "--number", "-42" };
   int argc = sizeof argv / sizeof argv[0];
-  cuti::option_walker_t walker(argc, argv);
+  cmdline_reader_t reader(argc, argv);
+  option_walker_t walker(reader);
 
   int number = 0;
 
@@ -503,7 +550,7 @@ void negative_int_option()
 
   assert(walker.done());
   assert(number == -42);
-  assert(walker.next_index() == 3);
+  assert(reader.at_end());
 }
 
 void int_option_overflow()
@@ -513,7 +560,8 @@ void int_option_overflow()
 
   char const* argv[] = { "command", "--number", too_much.c_str() };
   int argc = sizeof argv / sizeof argv[0];
-  cuti::option_walker_t walker(argc, argv);
+  cmdline_reader_t reader(argc, argv);
+  option_walker_t walker(reader);
 
   bool caught = false;
   try
@@ -536,7 +584,8 @@ void int_option_underflow()
 
   char const* argv[] = { "command", "--number", too_little.c_str() };
   int argc = sizeof argv / sizeof argv[0];
-  cuti::option_walker_t walker(argc, argv);
+  cmdline_reader_t reader(argc, argv);
+  option_walker_t walker(reader);
 
   bool caught = false;
   try
@@ -559,7 +608,8 @@ void unsigned_int_option()
 
   char const* argv[] = { "command", "--number", value_string.c_str() };
   int argc = sizeof argv / sizeof argv[0];
-  cuti::option_walker_t walker(argc, argv);
+  cmdline_reader_t reader(argc, argv);
+  option_walker_t walker(reader);
 
   unsigned int number = 0;
 
@@ -573,16 +623,17 @@ void unsigned_int_option()
 
   assert(walker.done());
   assert(number == value);
-  assert(walker.next_index() == 3);
+  assert(reader.at_end());
 }
 
 void additional_type()
 {
   char const* argv[] = { "command", "--loglevel", "info" };
   int argc = sizeof argv / sizeof argv[0];
-  cuti::option_walker_t walker(argc, argv);
+  cmdline_reader_t reader(argc, argv);
+  option_walker_t walker(reader);
 
-  cuti::loglevel_t level = cuti::loglevel_t::error;
+  loglevel_t level = loglevel_t::error;
 
   while(!walker.done())
   {
@@ -593,20 +644,21 @@ void additional_type()
   }
 
   assert(walker.done());
-  assert(level == cuti::loglevel_t::info);
-  assert(walker.next_index() == 3);
+  assert(level == loglevel_t::info);
+  assert(reader.at_end());
 }
 
 void bad_value_for_additional_type()
 {
   char const* argv[] = { "command", "--loglevel", "unknown" };
   int argc = sizeof argv / sizeof argv[0];
-  cuti::option_walker_t walker(argc, argv);
+  cmdline_reader_t reader(argc, argv);
+  option_walker_t walker(reader);
 
   bool caught = false;
   try
   {
-    cuti::loglevel_t level;
+    loglevel_t level;
     walker.match("--loglevel", level);
   }
   catch(std::exception const& /* ex */)
@@ -621,9 +673,10 @@ void repeated_flag_option()
 {
   char const* argv[] = { "command", "-vvv" };
   int argc = sizeof argv / sizeof argv[0];
-  cuti::option_walker_t walker(argc, argv);
+  cmdline_reader_t reader(argc, argv);
+  option_walker_t walker(reader);
 
-  std::vector<cuti::flag_t> flags;
+  std::vector<flag_t> flags;
   while(!walker.done())
   {
     if(!walker.match("-v", flags))
@@ -653,7 +706,8 @@ void repeated_value_option()
   char const* argv[] =
     { "command", "--file=file1", "--file=file2", "--file=file3" };
   int argc = sizeof argv / sizeof argv[0];
-  cuti::option_walker_t walker(argc, argv);
+  cmdline_reader_t reader(argc, argv);
+  option_walker_t walker(reader);
 
   std::vector<std::string> files;
   while(!walker.done())

@@ -18,6 +18,7 @@
  */
 
 #include "circular_buffer.hpp"
+#include "cmdline_reader.hpp"
 #include "default_scheduler.hpp"
 #include "endpoint.hpp"
 #include "file_backend.hpp"
@@ -1273,10 +1274,11 @@ void read_options(options_t& options, option_walker_t& walker)
 int throwing_main(int argc, char const* const argv[])
 {
   options_t options;
-  option_walker_t walker(argc, argv);
+  cmdline_reader_t reader(argc, argv);
+  option_walker_t walker(reader);
 
   read_options(options, walker);
-  if(!walker.done() || walker.next_index() != argc)
+  if(!walker.done() || !reader.at_end())
   {
     print_usage(std::cerr, argv[0]);
     return 1;

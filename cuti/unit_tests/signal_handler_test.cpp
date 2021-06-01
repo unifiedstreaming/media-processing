@@ -20,6 +20,7 @@
 #include "signal_handler.hpp"
 
 #include "chrono_types.hpp"
+#include "cmdline_reader.hpp"
 #include "default_scheduler.hpp"
 #include "option_walker.hpp"
 #include "selector_factory.hpp"
@@ -229,7 +230,8 @@ void usage(char const* argv0)
 int main(int argc, char *argv[])
 {
   cuti::flag_t manual = false;
-  cuti::option_walker_t walker(argc, argv);
+  cmdline_reader_t reader(argc, argv);
+  cuti::option_walker_t walker(reader);
   while(!walker.done())
   {
     if(!walker.match("--manual", manual))
@@ -237,7 +239,7 @@ int main(int argc, char *argv[])
       break;
     }
   }
-  if(!walker.done() || walker.next_index() != argc)
+  if(!walker.done() || !reader.at_end())
   {
     usage(argv[0]);
     return 1;

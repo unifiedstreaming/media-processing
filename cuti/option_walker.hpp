@@ -20,6 +20,7 @@
 #ifndef CUTI_OPTION_WALKER_HPP_
 #define CUTI_OPTION_WALKER_HPP_
 
+#include "args_reader.hpp"
 #include "flag.hpp"
 #include "linkage.h"
 
@@ -50,7 +51,7 @@ CUTI_ABI void parse_optval(char const* name, char const* in,
  */
 struct CUTI_ABI option_walker_t
 {
-  option_walker_t(int argc, char const* const argv[]);
+  explicit option_walker_t(args_reader_t& reader);
 
   /*
    * Tells if all options have been matched.
@@ -62,7 +63,7 @@ struct CUTI_ABI option_walker_t
 
   /*
    * Tries to match the option <name> against the current command line
-   * option. On a match, the option value is stored in <value>, the
+   * argument. On a match, the option value is stored in <value>, the
    * walker moves on to the potentially next option, and true is
    * returned. If <name> does not match, <value> is left unchanged,
    * the walker stays at the current option, and false is returned.
@@ -98,36 +99,23 @@ struct CUTI_ABI option_walker_t
   bool match(char const* name, T& value)
   {
     char const* in = nullptr;
-    bool result = this->do_match(name, in);
+    bool result = this->value_option_matches(name, in);
     if(result)
     {
       assert(in != nullptr);
       parse_optval(name, in, value);
+      reader_.advance();
+      on_next_argument();
     }
     return result;
   }
 
-  /*
-   * Returns the index of the first non-option element in the argv
-   * array passed to the constructor, or argc if there are no
-   * non-option elements.
-   *
-   * Precondition: done().
-   */
-  int next_index() const
-  {
-    assert(done_);
-    return idx_;
-  }
+private :
+  bool value_option_matches(char const* name, char const*& value);
+  void on_next_argument();
 
 private :
-  bool do_match(char const* name, char const*& value);
-  void on_next_element();
-
-private :
-  int argc_;
-  char const* const* argv_;
-  int idx_;
+  args_reader_t& reader_;
   bool done_;
   char const* short_option_ptr_;
 };
