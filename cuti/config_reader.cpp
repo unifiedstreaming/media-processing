@@ -17,7 +17,7 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#include "config_lexer.hpp"
+#include "config_reader.hpp"
 #include "system_error.hpp"
 
 #include <utility>
@@ -44,25 +44,42 @@ bool is_space(int c)
 
 } // anonymous
 
-config_lexer_t::config_lexer_t(std::string origin, std::streambuf& sb)
-: origin_(std::move(origin))
+config_reader_t::config_reader_t(std::string origin_prefix,
+                                 std::streambuf& sb)
+: origin_prefix_(std::move(origin_prefix))
 , sb_(sb)
 , line_(1)
-, at_eof_(false)
-, token_()
+, at_end_(false)
+, argument_()
 {
   this->advance();
 }
 
-void config_lexer_t::advance()
+bool config_reader_t::at_end() const
 {
+  return at_end_;
+}
+
+char const* config_reader_t::current_argument() const
+{
+  assert(!this->at_end());
+  return argument_.c_str();
+}
+
+std::string config_reader_t::current_origin() const
+{
+  return origin_prefix_ + '(' + std::to_string(line_) + ')';
+}
+
+void config_reader_t::advance()
+{
+  assert(!this->at_end());
+
   /*
    * See 'Lexical structure' in the header file.
    */
   using traits_type = std::streambuf::traits_type;
   static auto constexpr eof = traits_type::eof();
-
-  assert(!this->at_eof());
 
   int c = sb_.sgetc();
 
@@ -92,17 +109,17 @@ void config_lexer_t::advance()
     }
   }
 
-  // clear current token
-  token_.clear();
+  // clear current argument
+  argument_.clear();
 
   // check for eof
   if(c == eof)
   {
-    at_eof_ = true;
+    at_end_ = true;
     return;
   }
 
-  // collect next token
+  // collect next argument
   while(!is_space(c) && c != '#' && c != eof)
   {
     switch(c)
@@ -120,8 +137,8 @@ void config_lexer_t::advance()
           case eof :
             {
               system_exception_builder_t builder;
-              builder << origin_ << '(' << line_ <<
-                "): unexpected end of line in quoted string";
+              builder << this->current_origin() << 
+                ": unexpected end of line in quoted string";
               builder.explode();
             }
             break;
@@ -129,8 +146,8 @@ void config_lexer_t::advance()
           case '\r' :
             {
               system_exception_builder_t builder;
-              builder << origin_ << '(' << line_ <<
-                "): illegal character in quoted string";
+              builder << this->current_origin() << 
+                ": illegal character in quoted string";
               builder.explode();
             }
             break;
@@ -138,7 +155,7 @@ void config_lexer_t::advance()
             break;
           }
 
-          token_.push_back(static_cast<char>(c2));
+          argument_.push_back(static_cast<char>(c2));
           c2 = sb_.snextc();  
         }
       }
@@ -169,27 +186,27 @@ void config_lexer_t::advance()
       case eof :
         {
           system_exception_builder_t builder;
-          builder << origin_ << '(' << line_ <<
-            "): unexpected end of line in backslash escape";
+          builder << this->current_origin() << 
+            ": unexpected end of line in backslash escape";
           builder.explode();
         }
         break;
       default :
         {
           system_exception_builder_t builder;
-          builder << origin_ << '(' << line_ <<
-            "): unknown backslash escape";
+          builder << this->current_origin() << 
+            ": unknown backslash escape";
           builder.explode();
         }
         break;
       }
 
-      token_.push_back(static_cast<char>(c));
+      argument_.push_back(static_cast<char>(c));
       break;
 
     default :
       // character literal subtoken
-      token_.push_back(static_cast<char>(c));
+      argument_.push_back(static_cast<char>(c));
       break;
     }
 

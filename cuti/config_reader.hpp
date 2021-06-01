@@ -17,9 +17,10 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#ifndef CUTI_CONFIG_LEXER_HPP_
-#define CUTI_CONFIG_LEXER_HPP_
+#ifndef CUTI_CONFIG_READER_HPP_
+#define CUTI_CONFIG_READER_HPP_
 
+#include "args_reader.hpp"
 #include "linkage.h"
 
 #include <cassert>
@@ -30,14 +31,12 @@ namespace cuti
 {
 
 /*
- * Lexical analyzer for convenience configuration files.  This class
- * yields string tokens intended for building a command line vector
- * with (additional) arguments read from a configuration file.
+ * Configuration file program argument reader.
  *
  * Lexical structure
  * =================
  *
- * A configuration file is a sequence of zero or more tokens,
+ * A configuration file is a sequence of zero or more arguments,
  * separated by whitespace and comments.
  *
  * Whitespace is a sequence of one or more space, tab, newline or
@@ -46,10 +45,10 @@ namespace cuti
  * A comment is a hash character followed by all the characters on the
  * line it is on.
  *
- * A token is the concatenation of one or more subtokens.
+ * An argument is the concatenation of one or more subarguments.
  *
- * A subtoken is either a quoted string, a backslash escape sequence,
- * or a character literal.
+ * A subargument is either a quoted string, a backslash escape
+ * sequence, or a character literal.
  *
  * Quoted strings
  * --------------
@@ -83,62 +82,21 @@ namespace cuti
  * Any other character is treated as a character literal representing
  * itself.
  */
-struct CUTI_ABI config_lexer_t
+struct CUTI_ABI config_reader_t : args_reader_t
 {
-  config_lexer_t(std::string origin, std::streambuf& sb);
+  config_reader_t(std::string origin_prefix, std::streambuf& sb);
 
-  config_lexer_t(config_lexer_t const&) = delete;
-  config_lexer_t& operator=(config_lexer_t const&) = delete;
-
-  /*
-   * Returns the origin as passed to the constructor.  This string
-   * value, along with the current line number, is used to construct
-   * error messages.
-   */
-  std::string const& origin() const noexcept
-  {
-    return origin_;
-  }
-
-  /*
-   * Returns true when all tokens have been reported.
-   */
-  bool at_eof() const noexcept
-  {
-    return at_eof_;
-  }
-
-  /*
-   * Returns the current line number.  
-   */
-  int current_line() const noexcept
-  {
-    return line_;
-  }
-
-  /*
-   * Returns the current token; in principle, the empty string is a
-   * valid token value.
-   * PRE: !at_eof()
-   */
-  std::string const& current_token() const noexcept
-  {
-    assert(!this->at_eof());
-    return token_;
-  }
-
-  /*
-   * Advances to the next token.
-   * PRE: !at_eof()
-   */
-  void advance();
+  bool at_end() const override;
+  char const* current_argument() const override;
+  std::string current_origin() const override;
+  void advance() override;  
 
 private :
-  std::string const origin_;
+  std::string const origin_prefix_;
   std::streambuf& sb_;
   int line_;
-  bool at_eof_;
-  std::string token_;
+  bool at_end_;
+  std::string argument_;
 };
 
 } // cuti
