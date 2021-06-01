@@ -200,9 +200,10 @@ private :
         !walker.match("--syslog-name", syslog_name_))
       {
         cuti::exception_builder_t<std::runtime_error> builder;
-        print_usage(builder);
         builder << reader.current_origin() <<
-          ": unknown option \'" << reader.current_argument() << "\'";
+          ": unknown option \'" << reader.current_argument() << "\'" <<
+	  std::endl;
+        print_usage(builder);
         builder.explode();
       }
     }
@@ -210,9 +211,10 @@ private :
     if(!reader.at_end())
     {
       cuti::exception_builder_t<std::runtime_error> builder;
-      print_usage(builder);
       builder << reader.current_origin() <<
-        ": unexpected argument \'" << reader.current_argument() << "\'";
+        ": unexpected argument \'" << reader.current_argument() << "\'" <<
+	std::endl;
+      print_usage(builder);
       builder.explode();
     }
   }
@@ -220,7 +222,6 @@ private :
   void print_usage(std::ostream& os)
   {
     os << std::endl;
-    os << copyright_notice() << std::endl << std::endl;
     os << "usage: " << argv0_ << " [<option> ...]" << std::endl;
     os << "options are:" << std::endl;
     os << "  --config <path>          " <<
@@ -249,6 +250,7 @@ private :
     os << "  --syslog-name <name>     " <<
       "log to system log as <name>" << std::endl;
     os << std::endl;
+    os << copyright_notice() << std::endl;
   }
 
 private :
