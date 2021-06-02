@@ -223,6 +223,18 @@ std::string current_directory()
   return std::string(buffer.data(), buffer.data() + length);
 }
 
+void change_directory(char const* path)
+{
+  BOOL r = SetCurrentDirectory(path);
+  if(!r)
+  {
+    int cause = last_system_error();
+    system_exception_builder_t builder;
+    builder << "Can't change directory to '" << path << "'";
+    builder.explode(cause);
+  }
+}
+  
 std::string absolute_path(char const* path)
 {
   std::vector<char> buffer(256);
@@ -366,6 +378,18 @@ std::string current_directory()
   return result;
 }
 
+void change_directory(char const* path)
+{
+  int r = ::chdir(path);
+  if(r == -1)
+  {
+    int cause = last_system_error();
+    system_exception_builder_t builder;
+    builder << "Can't change directory to '" << path << "'";
+    builder.explode(cause);
+  }
+}
+  
 std::string absolute_path(char const* path)
 {
   std::string result;

@@ -55,6 +55,8 @@ CUTI_ABI void rename_if_exists(char const* old_name, char const* new_name);
 CUTI_ABI void delete_if_exists(char const* name);
 
 CUTI_ABI std::string current_directory();
+CUTI_ABI void change_directory(char const* name);
+
 CUTI_ABI std::string absolute_path(char const* path);
 
 } // cuti

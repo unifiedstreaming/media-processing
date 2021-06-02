@@ -31,25 +31,38 @@
 namespace // anonymous
 {
 
+using namespace cuti;
+
 void test_current_directory()
 {
-  std::string dir = cuti::current_directory();
+  std::string dir = current_directory();
 #if PRINT
   std::cout << "current directory: " << dir << std::endl;
 #endif
 
-  std::string abs = cuti::absolute_path(dir.c_str());
+  std::string abs = absolute_path(dir.c_str());
   assert(dir == abs);
+}
+
+void test_change_directory()
+{
+  std::string dir = current_directory();
+
+  change_directory(".");
+  assert(current_directory() == dir);
+
+  change_directory(dir.c_str());
+  assert(current_directory() == dir);
 }
 
 void test_absolute_path(char const* path)
 {
-  std::string abs1 = cuti::absolute_path(path);
+  std::string abs1 = absolute_path(path);
 #if PRINT
   std::cout << path << " -> " << abs1 << std::endl;
 #endif
 
-  std::string abs2 = cuti::absolute_path(abs1.c_str());
+  std::string abs2 = absolute_path(abs1.c_str());
   assert(abs1 == abs2);
 }
 
@@ -58,6 +71,8 @@ void test_absolute_path(char const* path)
 int main()
 {
   test_current_directory();
+
+  test_change_directory();
 
   test_absolute_path("simple");
   test_absolute_path("in/subdir");
