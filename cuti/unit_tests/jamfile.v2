@@ -69,6 +69,11 @@ unit-test option_walker_test
   ..//cuti
 ;
 
+unit-test process_test
+: process_test.cpp
+  ..//cuti
+;
+
 unit-test resolver_test
 : resolver_test.cpp
   ..//cuti

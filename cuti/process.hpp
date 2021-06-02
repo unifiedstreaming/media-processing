@@ -82,6 +82,60 @@ private :
   int value_;
 };
 
+struct CUTI_ABI user_id_t
+{
+  user_id_t() noexcept
+  : value_(0)
+  { }
+
+  explicit user_id_t(unsigned int value) noexcept
+  : value_(value)
+  { }
+
+  unsigned int value() const noexcept
+  { return value_; }
+
+  /*
+   * Sets the effective user id of the current process to *this.
+   */
+  void apply() const;
+
+  /*
+   * Returns the current process's effective user id.
+   */
+  static user_id_t current() noexcept;
+
+private :
+  unsigned int value_;
+};
+
+struct CUTI_ABI group_id_t
+{
+  group_id_t() noexcept
+  : value_(0)
+  { }
+
+  explicit group_id_t(unsigned int value) noexcept
+  : value_(value)
+  { }
+
+  unsigned int value() const noexcept
+  { return value_; }
+
+  /*
+   * Sets the effective user id of the current process to *this.
+   */
+  void apply() const;
+
+  /*
+   * Returns the current process's effective group id.
+   */
+  static group_id_t current() noexcept;
+
+private :
+  unsigned int value_;
+};
+
 // Enable option value parsing for umask_t
 CUTI_ABI
 void parse_optval(char const* name, args_reader_t const& reader,

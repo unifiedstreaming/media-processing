@@ -55,6 +55,42 @@ umask_t umask_t::apply() const
   return umask_t(prev_umask);
 }
 
+void user_id_t::apply() const
+{
+  int r = ::seteuid(this->value());
+  if(r == -1)
+  {
+    int cause = last_system_error();
+    system_exception_builder_t builder;
+    builder << "Can't set effective user id to " << this->value();
+    builder.explode(cause);
+  }
+}
+
+user_id_t user_id_t::current() noexcept
+{
+  auto value = ::geteuid();
+  return user_id_t(value);
+}
+  
+void group_id_t::apply() const
+{
+  int r = ::setegid(this->value());
+  if(r == -1)
+  {
+    int cause = last_system_error();
+    system_exception_builder_t builder;
+    builder << "Can't set effective group id to " << this->value();
+    builder.explode(cause);
+  }
+}
+
+group_id_t group_id_t::current() noexcept
+{
+  auto value = ::getegid();
+  return group_id_t(value);
+}
+  
 void parse_optval(char const* name, args_reader_t const& reader,
                   char const* in, umask_t& out)
 {
