@@ -25,6 +25,7 @@
 #include "linkage.h"
 
 #include <cassert>
+#include <optional>
 #include <string>
 #include <utility>
 #include <vector>
@@ -67,7 +68,7 @@ struct CUTI_ABI option_walker_t
   }
 
   /*
-   * Tries to match the option <name> against the current command line
+   * Tries to match the option <name> against the current reader
    * argument. On a match, the option value is stored in <value>, the
    * walker moves on to the potentially next option, and true is
    * returned. If <name> does not match, <value> is left unchanged,
@@ -79,6 +80,10 @@ struct CUTI_ABI option_walker_t
    * specified on the command line by calling one of the
    * parse_optval() overloads.
    *
+   * If <value> is a std::optional<T>, then on a match, the optional's
+   * 'inner' value is set.  This helps if no obvious default value is
+   * available for T.
+   *
    * If <value> is a std::vector<T>, then on a match, a single value
    * of type T is appended to the vector.  This gives meaningful results
    * for repeated command line options.
@@ -86,6 +91,19 @@ struct CUTI_ABI option_walker_t
    * Precondition: !done().
    */
   bool match(char const* name, flag_t& value);
+
+  template<typename T>
+  bool match(char const* name, std::optional<T>& value)
+  {
+    T inner_value;
+    if(!this->match(name, inner_value))
+    {
+      return false;
+    }
+
+    value = inner_value;
+    return true;
+  }
 
   template<typename T>
   bool match(char const* name, std::vector<T>& value)

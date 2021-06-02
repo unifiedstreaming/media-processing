@@ -725,6 +725,28 @@ void repeated_value_option()
   assert(files[2] == "file3");
 }
 
+void optional_option()
+{
+  char const* argv[] =
+    { "command", "--number=42" };
+  int argc = sizeof argv / sizeof argv[0];
+  cmdline_reader_t reader(argc, argv);
+  option_walker_t walker(reader);
+
+  std::optional<int> opt_number = std::nullopt;
+  while(!walker.done())
+  {
+    if(!walker.match("--number", opt_number))
+    {
+      break;
+    }
+  }
+
+  assert(walker.done());
+  assert(opt_number != std::nullopt);
+  assert(*opt_number == 42);
+}
+  
 } // anonymous
 
 int main()
@@ -764,6 +786,7 @@ int main()
 
   repeated_flag_option();
   repeated_value_option();
+  optional_option();
 
   return 0;
 }
