@@ -19,12 +19,16 @@
 
 #include "process.hpp"
 
+#include "args_reader.hpp"
 #include "fs_utils.hpp"
 #include "scoped_guard.hpp"
+#include "system_error.hpp"
 
 #ifdef _WIN32
 #include <windows.h>
 #else
+#include <sys/types.h>
+#include <sys/stat.h>
 #include <unistd.h>
 #endif
 
@@ -43,6 +47,47 @@ int current_process_id() noexcept
 int current_process_id() noexcept
 {
   return getpid();
+}
+
+umask_t umask_t::apply() const
+{
+  auto prev_umask = ::umask(this->value());
+  return umask_t(prev_umask);
+}
+
+void parse_optval(char const* name, args_reader_t const& reader,
+                  char const* in, umask_t& out)
+{
+  int value = 0;
+  char max_digit = '0';
+  do
+  {
+    if(*in < '0' || *in > max_digit)
+    {
+      system_exception_builder_t builder;
+      builder << reader.current_origin() <<
+        ": value for option '" << name <<
+        "' must consist of octal digits and start with a '0'";
+      builder.explode();
+    }
+
+    int dval = *in - '0';
+    if(value > umask_t::maximum / 8 || dval > umask_t::maximum - value * 8)
+    {
+      system_exception_builder_t builder;
+      builder << reader.current_origin() <<
+        ": overflow in value for option '" << name << "'";
+      builder.explode();
+    }
+
+    value *= 8;
+    value += dval;
+    max_digit = '7';
+
+    ++in;
+  } while(*in != '\0');
+
+  out = umask_t(value);
 }
 
 #endif // POSIX

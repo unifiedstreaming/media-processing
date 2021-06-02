@@ -23,6 +23,7 @@
 #include "file_backend.hpp"
 #include "logger.hpp"
 #include "option_walker.hpp"
+#include "process.hpp"
 #include "service.hpp"
 #include "syslog_backend.hpp"
 
@@ -104,6 +105,9 @@ struct x264_encoding_service_config_t : cuti::service_config_t
   , size_limit_(cuti::file_backend_t::no_size_limit)
   , syslog_(false)
   , syslog_name_("")
+#ifndef _WIN32
+  , umask_()
+#endif
   {
     cuti::cmdline_reader_t cmdline_reader(argc, argv);
     read_options(cmdline_reader);
@@ -123,11 +127,18 @@ struct x264_encoding_service_config_t : cuti::service_config_t
     }
   }
 
-#ifndef _WIN32
+#ifndef _WIN32 // POSIX-only
+
   bool run_as_daemon() const override
   {
     return bool(daemon_);
   }
+
+  std::optional<cuti::umask_t> const& umask() const override
+  {
+    return umask_;
+  }
+
 #endif
 
   char const* directory() const override
@@ -192,24 +203,28 @@ private :
     while(!walker.done())
     {
       if(
-        !walker.match("--config", config_) &&
+           !walker.match("--config", config_)
 #ifndef _WIN32
-        !walker.match("--daemon", daemon_) &&
+        && !walker.match("--daemon", daemon_)
 #endif
-        !walker.match("--directory", directory_) &&
-        !walker.match("--dry-run", dry_run_) &&
-        !walker.match("--logfile", logfile_) &&
-        !walker.match("--loglevel", loglevel_) &&
-        !walker.match("--pidfile", pidfile_) &&
-        !walker.match("--rotation-depth", rotation_depth_) &&
-        !walker.match("--size-limit", size_limit_) &&
-        !walker.match("--syslog", syslog_) &&
-        !walker.match("--syslog-name", syslog_name_))
+        && !walker.match("--directory", directory_)
+        && !walker.match("--dry-run", dry_run_)
+        && !walker.match("--logfile", logfile_)
+        && !walker.match("--loglevel", loglevel_)
+        && !walker.match("--pidfile", pidfile_)
+        && !walker.match("--rotation-depth", rotation_depth_)
+        && !walker.match("--size-limit", size_limit_)
+        && !walker.match("--syslog", syslog_)
+        && !walker.match("--syslog-name", syslog_name_)
+#ifndef _WIN32
+        && !walker.match("--umask", umask_)
+#endif
+      )
       {
         cuti::exception_builder_t<std::runtime_error> builder;
         builder << reader.current_origin() <<
           ": unknown option \'" << reader.current_argument() << "\'" <<
-	  std::endl;
+          std::endl;
         print_usage(builder);
         builder.explode();
       }
@@ -220,7 +235,7 @@ private :
       cuti::exception_builder_t<std::runtime_error> builder;
       builder << reader.current_origin() <<
         ": unexpected argument \'" << reader.current_argument() << "\'" <<
-	std::endl;
+        std::endl;
       print_usage(builder);
       builder.explode();
     }
@@ -258,6 +273,10 @@ private :
       std::endl;
     os << "  --syslog-name <name>     " <<
       "log to system log as <name>" << std::endl;
+#ifndef _WIN32
+    os << "  --umask <mask>           " <<
+      "set umask (default: no change)" << std::endl;
+#endif
     os << std::endl;
     os << copyright_notice() << std::endl;
   }
@@ -281,6 +300,9 @@ private :
   unsigned int size_limit_;
   cuti::flag_t syslog_;  
   std::string syslog_name_;
+#ifndef _WIN32
+  std::optional<cuti::umask_t> umask_;
+#endif
 };
 
 struct x264_encoding_service_config_reader_t : cuti::service_config_reader_t

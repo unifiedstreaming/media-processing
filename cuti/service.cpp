@@ -93,6 +93,13 @@ void run_attended(control_pair_t& control_pair,
   auto on_sigint = [&] { send_signal(control_pair, SIGINT); };
   signal_handler_t sigint_handler(SIGINT, on_sigint);
 
+#ifndef _WIN32
+  if(auto umask = config.umask())
+  {
+    umask->apply();
+  }
+#endif
+
   logger_t logger(std::make_unique<streambuf_backend_t>(std::cerr));
   if(auto backend = config.create_logging_backend())
   {
@@ -537,6 +544,11 @@ void run_as_daemon(service_config_t const& config, char const* argv0)
       auto on_sigterm = [&] { send_signal(control_pair, SIGTERM); };
       signal_handler_t sigterm_handler(SIGTERM, on_sigterm);
 
+      if(auto umask = config.umask())
+      {
+        umask->apply();
+      }
+      
       logger_t logger(std::make_unique<syslog_backend_t>(
         default_syslog_name(argv0)));
       if(auto backend = config.create_logging_backend())

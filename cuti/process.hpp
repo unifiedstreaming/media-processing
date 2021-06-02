@@ -22,10 +22,13 @@
 
 #include "linkage.h"
 
+#include <cassert>
 #include <string>
 
 namespace cuti
 {
+
+struct args_reader_t;
 
 CUTI_ABI
 int current_process_id() noexcept;
@@ -50,6 +53,41 @@ struct CUTI_ABI pidfile_t
 private :
   std::string const path_;
 };
+
+#ifndef _WIN32 // POSIX
+
+struct CUTI_ABI umask_t
+{
+  static int constexpr minimum = 0;
+  static int constexpr maximum = 0777;
+
+  umask_t() noexcept
+  : value_(0)
+  { }
+
+  explicit umask_t(int value) noexcept
+  : value_((assert(value >= minimum), assert(value <= maximum), value))
+  { }
+
+  int value() const noexcept
+  { return value_; }
+
+  /*
+   * Applies *this to the current process, returning the process'
+   * previous umask.
+   */
+  umask_t apply() const;
+
+private :
+  int value_;
+};
+
+// Enable option value parsing for umask_t
+CUTI_ABI
+void parse_optval(char const* name, args_reader_t const& reader,
+                  char const* in, umask_t& out);
+
+#endif // POSIX
 
 } // cuti
 

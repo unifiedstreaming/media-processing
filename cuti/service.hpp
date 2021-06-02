@@ -28,6 +28,7 @@
 #include "tcp_connection.hpp"
 
 #include <memory>
+#include <optional>
 #include <string>
 
 namespace cuti
@@ -61,13 +62,20 @@ struct CUTI_ABI service_config_t
   service_config_t(service_config_t const&) = delete;
   service_config_t& operator=(service_config_t const&) = delete;
 
-#ifndef _WIN32
+#ifndef _WIN32 // POSIX-only requirements
+
   /*
-   * Tells if the service must be run as a daemon.  Only needed for
-   * POSIX systems.
+   * Tells if the service must be run as a daemon.
    */
   virtual bool run_as_daemon() const = 0;
-#endif
+
+  /*
+   * Returns the umask for the service or std::nullopt if no change is
+   * needed.
+   */
+  virtual std::optional<umask_t> const& umask() const = 0;
+
+#endif // POSIX only
 
   /*
    * Returns the directory the service should change to, or nullptr
