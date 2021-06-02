@@ -19,6 +19,7 @@
 
 #include "service.hpp"
 
+#include "fs_utils.hpp"
 #include "scoped_guard.hpp"
 #include "signal_handler.hpp"
 #include "streambuf_backend.hpp"
@@ -91,12 +92,18 @@ void run_attended(control_pair_t& control_pair,
 {
   auto on_sigint = [&] { send_signal(control_pair, SIGINT); };
   signal_handler_t sigint_handler(SIGINT, on_sigint);
-  auto pidfile = config.create_pidfile();
 
   logger_t logger(std::make_unique<streambuf_backend_t>(std::cerr));
   if(auto backend = config.create_logging_backend())
   {
     logger.set_backend(std::move(backend));
+  }
+
+  auto pidfile = config.create_pidfile();
+
+  if(auto dir = config.directory())
+  {
+    cuti::change_directory(dir);
   }
 
   logging_context_t context(logger, default_loglevel);
@@ -290,12 +297,19 @@ void service_main(DWORD dwNumServiceArgs, LPSTR* lpServiceArgVectors)
     auto config = config_reader.read_config(argc, argv);
     assert(config != nullptr);
 
+    // Set up final logger ASAP
     if(auto backend = config->create_logging_backend())
     {
       logger.set_backend(std::move(backend));
     }
 
     auto pidfile = config->create_pidfile();
+
+    if(auto dir = config->directory())
+    {
+      cuti::change_directory(dir);
+    }
+
     auto service = config->create_service(context, control_pair.receiver());
 
     running_state_t running_state(status_reporter);
@@ -522,13 +536,19 @@ void run_as_daemon(service_config_t const& config, char const* argv0)
 
       auto on_sigterm = [&] { send_signal(control_pair, SIGTERM); };
       signal_handler_t sigterm_handler(SIGTERM, on_sigterm);
-      auto pidfile = config.create_pidfile();
 
       logger_t logger(std::make_unique<syslog_backend_t>(
         default_syslog_name(argv0)));
       if(auto backend = config.create_logging_backend())
       {
         logger.set_backend(std::move(backend));
+      }
+
+      auto pidfile = config.create_pidfile();
+
+      if(auto dir = config.directory())
+      {
+        cuti::change_directory(dir);
       }
 
       logging_context_t context(logger, default_loglevel);

@@ -95,6 +95,7 @@ struct x264_encoding_service_config_t : cuti::service_config_t
 #ifndef _WIN32
   , daemon_(false)
 #endif
+  , directory_()
   , dry_run_(false)
   , logfile_()
   , loglevel_(default_loglevel)
@@ -128,6 +129,11 @@ struct x264_encoding_service_config_t : cuti::service_config_t
     return bool(daemon_);
   }
 #endif
+
+  char const* directory() const override
+  {
+    return directory_.empty() ? nullptr : directory_.c_str();
+  }
 
   std::unique_ptr<cuti::logging_backend_t>
   create_logging_backend() const override
@@ -190,6 +196,7 @@ private :
 #ifndef _WIN32
         !walker.match("--daemon", daemon_) &&
 #endif
+        !walker.match("--directory", directory_) &&
         !walker.match("--dry-run", dry_run_) &&
         !walker.match("--logfile", logfile_) &&
         !walker.match("--loglevel", loglevel_) &&
@@ -230,6 +237,8 @@ private :
     os << "  --daemon                 " <<
       "run as daemon" << std::endl;
 #endif
+    os << "  --directory <path>       " <<
+      "change directory to <path> (default: no change)" << std::endl;
     os << "  --dry-run                " <<
       "initialize the service, but do not run it" << std::endl;
     os << "  --logfile <path>         " <<
@@ -263,6 +272,7 @@ private :
 #ifndef _WIN32
   cuti::flag_t daemon_;
 #endif
+  std::string directory_;
   cuti::flag_t dry_run_;
   std::string logfile_;
   cuti::loglevel_t loglevel_;

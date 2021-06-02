@@ -70,6 +70,12 @@ struct CUTI_ABI service_config_t
 #endif
 
   /*
+   * Returns the directory the service should change to, or nullptr
+   * for no change.
+   */
+  virtual char const* directory() const = 0;
+
+  /*
    * Creates the logging backend to be used by the service.  If this
    * function returns nullptr, run_service() supplies a suitable
    * logging backend.
