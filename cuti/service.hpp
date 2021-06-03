@@ -28,7 +28,6 @@
 #include "tcp_connection.hpp"
 
 #include <memory>
-#include <optional>
 #include <string>
 
 namespace cuti
@@ -70,10 +69,10 @@ struct CUTI_ABI service_config_t
   virtual bool run_as_daemon() const = 0;
 
   /*
-   * Returns the umask for the service or std::nullopt if no change is
-   * needed.
+   * Returns the umask for the service or nullptr if no change is
+   * required.
    */
-  virtual std::optional<umask_t> const& umask() const = 0;
+  virtual umask_t const* umask() const = 0;
 
 #endif // POSIX only
 

@@ -134,9 +134,9 @@ struct x264_encoding_service_config_t : cuti::service_config_t
     return bool(daemon_);
   }
 
-  std::optional<cuti::umask_t> const& umask() const override
+  cuti::umask_t const* umask() const override
   {
-    return umask_;
+    return umask_ ? &(*umask_) : nullptr;
   }
 
 #endif
