@@ -272,7 +272,7 @@ void dual_stack(logging_context_t const& context)
   assert(proven);
 }
 
-int throwing_main(int argc, char const* const argv[])
+void run_tests(int argc, char const* const*)
 {
   logger_t logger(std::make_unique<cuti::streambuf_backend_t>(std::cerr));
   logging_context_t context(
@@ -282,24 +282,21 @@ int throwing_main(int argc, char const* const argv[])
   nonblocking_accept(context);
   duplicate_bind(context);
   dual_stack(context);
-
-  return 0;
 }
 
 } // anonymous
 
 int main(int argc, char* argv[])
 {
-  int r = 1;
-
   try
   {
-    r = throwing_main(argc, argv);
+    run_tests(argc, argv);
   }
   catch(std::exception const& ex)
   {
-    std::cerr << argv[0] << ": " << ex.what() << std::endl;
+    std::cerr << argv[0] << ": exception: " << ex.what() << std::endl;
+    throw;
   }
 
-  return r;
+  return 0;
 }

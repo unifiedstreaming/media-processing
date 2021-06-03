@@ -20,6 +20,8 @@
 #include "circular_buffer.hpp"
 
 #include <algorithm>
+#include <exception>
+#include <iostream>
 #include <utility>
 
 // Enable assert()
@@ -261,9 +263,7 @@ void enlarge_slack()
   check_buffer(std::move(buffer), "1");
 }
 
-} // anonymous
-
-int main()
+void run_tests(int, char const* const*)
 {
   default_buffer();
   zero_capacity_buffer();
@@ -279,6 +279,21 @@ int main()
   reserve_to_capacity();
   shrink_to_fit();
   enlarge_slack();
+}
+
+} // anonymous
+
+int main(int argc, char* argv[])
+{
+  try
+  {
+    run_tests(argc, argv);
+  }
+  catch(std::exception const& ex)
+  {
+    std::cerr << argv[0] << ": exception: " << ex.what() << std::endl;
+    throw;
+  }
 
   return 0;
 }

@@ -19,6 +19,8 @@
 
 #include "list_arena.hpp"
 
+#include <exception>
+#include <iostream>
 #include <initializer_list>
 #include <utility>
 
@@ -239,9 +241,7 @@ void ctors_and_dtors()
   assert(counted_t::count == 0);
 }
 
-} // anonymous
-
-int main()
+void run_tests(int, char const* const*)
 {
   empty_list();
   single_element();
@@ -249,6 +249,21 @@ int main()
   multiple_lists();
   list_reversal();
   ctors_and_dtors();
+}
+
+} // anonymous
+
+int main(int argc, char* argv[])
+{
+  try
+  {
+    run_tests(argc, argv);
+  }
+  catch(std::exception const& ex)
+  {
+    std::cerr << argv[0] << ": exception: " << ex.what() << std::endl;
+    throw;
+  }
 
   return 0;
 }

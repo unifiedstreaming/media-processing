@@ -1271,7 +1271,7 @@ void read_options(options_t& options, option_walker_t& walker)
   }
 }
 
-int throwing_main(int argc, char const* const argv[])
+int run_tests(int argc, char const* const* argv)
 {
   options_t options;
   cmdline_reader_t reader(argc, argv);
@@ -1320,14 +1320,15 @@ int throwing_main(int argc, char const* const argv[])
 int main(int argc, char* argv[])
 {
   int r = 1;
-
+  
   try
   {
-    r = throwing_main(argc, argv);
+    r = run_tests(argc, argv);
   }
   catch(std::exception const& ex)
   {
-    std::cerr << argv[0] << ": " << ex.what() << std::endl;
+    std::cerr << argv[0] << ": exception: " << ex.what() << std::endl;
+    throw;
   }
 
   return r;

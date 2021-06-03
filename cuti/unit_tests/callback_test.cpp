@@ -19,6 +19,8 @@
 
 #include "callback.hpp"
 
+#include <exception>
+#include <iostream>
 #include <utility>
 #include <type_traits>
 
@@ -203,9 +205,7 @@ void swapped()
   assert(cb2 != nullptr);
 }
 
-} // anonymous
-
-int main()
+void run_tests(int, char const* const*)
 {
   empty_callback();
   function_callback();
@@ -218,7 +218,21 @@ int main()
   copy_assign();
   move_assign();
   swapped();
+}  
+
+} // anonymous
+
+int main(int argc, char* argv[])
+{
+  try
+  {
+    run_tests(argc, argv);
+  }
+  catch(std::exception const& ex)
+  {
+    std::cerr << argv[0] << ": exception: " << ex.what() << std::endl;
+    throw;
+  }
 
   return 0;
 }
-

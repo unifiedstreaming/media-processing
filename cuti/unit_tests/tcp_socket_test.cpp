@@ -20,6 +20,8 @@
 #include "tcp_socket.hpp"
 #include "resolver.hpp"
 
+#include <exception>
+#include <iostream>
 #include <utility>
 
 // Enable assert()
@@ -75,11 +77,25 @@ void socket_state()
   }
 }
 
-} // anonymous
-
-int main()
+void run_tests(int, char const* const*)
 {
   socket_state();
+}
+
+} // anonymous
+
+int main(int argc, char* argv[])
+{
+  try
+  {
+    run_tests(argc, argv);
+  }
+  catch(std::exception const& ex)
+  {
+    std::cerr << argv[0] << ": exception: " << ex.what() << std::endl;
+    throw;
+  }
 
   return 0;
 }
+

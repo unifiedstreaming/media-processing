@@ -19,6 +19,8 @@
 
 #include "indexed_heap.hpp"
 
+#include <exception>
+#include <iostream>
 #include <vector>
 
 // Enable assert
@@ -304,9 +306,7 @@ void swap()
   drain_equal_queues(q2, q3);
 }
 
-} // anonymous
-
-int main()
+void run_tests(int, char const* const*)
 {
   maxheap();
   minheap();
@@ -319,6 +319,21 @@ int main()
   copy_assign();
   move_assign();
   swap();
+}
+
+} // anonymous
+
+int main(int argc, char* argv[])
+{
+  try
+  {
+    run_tests(argc, argv);
+  }
+  catch(std::exception const& ex)
+  {
+    std::cerr << argv[0] << ": exception: " << ex.what() << std::endl;
+    throw;
+  }
 
   return 0;
 }

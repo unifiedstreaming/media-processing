@@ -23,6 +23,7 @@
 #include <cstring>
 
 #include <condition_variable>
+#include <exception>
 #include <iostream>
 #include <memory>
 #include <mutex>
@@ -193,12 +194,25 @@ void test_multi_threaded(char const* argv0)
   assert(count_newlines(s) == 4 * n_events * n_threads);
 }
 
-} // anonymous
-
-int main(int, char *argv[])
+void run_tests(int, char const* const* argv)
 {
   test_single_threaded(argv[0]);
   test_multi_threaded(argv[0]);
+}
+
+} // anonymous
+
+int main(int argc, char* argv[])
+{
+  try
+  {
+    run_tests(argc, argv);
+  }
+  catch(std::exception const& ex)
+  {
+    std::cerr << argv[0] << ": exception: " << ex.what() << std::endl;
+    throw;
+  }
 
   return 0;
 }

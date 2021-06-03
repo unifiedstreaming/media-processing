@@ -22,6 +22,7 @@
 #include "process.hpp"
 
 #include <exception>
+#include <iostream>
 
 // enable assert()
 #undef NDEBUG
@@ -194,9 +195,7 @@ void failing_group_lookup()
   
 #endif // POSIX
 
-} // anonymous
-
-int main()
+void run_tests(int, char const* const*)
 {
 #ifndef _WIN32 // POSIX
 
@@ -215,6 +214,21 @@ int main()
   failing_group_lookup();
 
 #endif // POSIX
+}
+
+} // anonymous
+
+int main(int argc, char* argv[])
+{
+  try
+  {
+    run_tests(argc, argv);
+  }
+  catch(std::exception const& ex)
+  {
+    std::cerr << argv[0] << ": exception: " << ex.what() << std::endl;
+    throw;
+  }
 
   return 0;
 }

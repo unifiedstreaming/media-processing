@@ -26,6 +26,7 @@
 #include "selector_factory.hpp"
 #include "tcp_connection.hpp"
 
+#include <exception>
 #include <iostream>
 #include <thread>
 
@@ -224,10 +225,7 @@ void usage(char const* argv0)
   std::cerr << "      (no automated tests on Windows)" << std::endl;
 }
 
-
-} // anonymous
-
-int main(int argc, char *argv[])
+int run_tests(int argc, char *argv[])
 {
   cuti::flag_t manual = false;
   cmdline_reader_t reader(argc, argv);
@@ -257,3 +255,21 @@ int main(int argc, char *argv[])
   return result;
 }
 
+} // anonymous
+
+int main(int argc, char* argv[])
+{
+  int r = 1;
+
+  try
+  {
+    r = run_tests(argc, argv);
+  }
+  catch(std::exception const& ex)
+  {
+    std::cerr << argv[0] << ": exception: " << ex.what() << std::endl;
+    throw;
+  }
+
+  return r;
+}

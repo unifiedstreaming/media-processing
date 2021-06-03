@@ -22,6 +22,7 @@
 #include "logger.hpp"
 
 #include <cstring>
+#include <exception>
 #include <iostream>
 #include <limits>
 
@@ -747,9 +748,7 @@ void optional_option()
   assert(*opt_number == 42);
 }
   
-} // anonymous
-
-int main()
+void run_tests(int, char const* const*)
 {
   no_options_no_args();
   matching_flag();
@@ -787,6 +786,21 @@ int main()
   repeated_flag_option();
   repeated_value_option();
   optional_option();
+}
+
+} // anonymous
+
+int main(int argc, char* argv[])
+{
+  try
+  {
+    run_tests(argc, argv);
+  }
+  catch(std::exception const& ex)
+  {
+    std::cerr << argv[0] << ": exception: " << ex.what() << std::endl;
+    throw;
+  }
 
   return 0;
 }

@@ -20,6 +20,7 @@
 #include "resolver.hpp"
 #include "system_error.hpp"
 
+#include <exception>
 #include <iostream>
 
 // enable assert()
@@ -241,9 +242,7 @@ void unknown_host_with_port()
   assert(caught);
 }
 
-} // anonymous
-
-int main()
+void run_tests(int, char const* const*)
 {
   ip_address();
   not_an_ip_address();
@@ -257,6 +256,22 @@ int main()
   remote_host_with_port();
   unknown_host();
   unknown_host_with_port();
+
+}
+
+} // anonymous
+
+int main(int argc, char* argv[])
+{
+  try
+  {
+    run_tests(argc, argv);
+  }
+  catch(std::exception const& ex)
+  {
+    std::cerr << argv[0] << ": exception: " << ex.what() << std::endl;
+    throw;
+  }
 
   return 0;
 }

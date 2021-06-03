@@ -20,6 +20,8 @@
 #include "membuf.hpp"
 
 #include <algorithm>
+#include <exception>
+#include <iostream>
 #include <string>
 
 // enable assert()
@@ -74,13 +76,26 @@ void test_long()
   assert(std::equal(buf.begin(), buf.end(), str.begin(), str.end()));
 }
 
-} // anonymous
-
-int main()
+void run_tests(int, char const* const*)
 {
   test_short();
   test_zeros();
   test_long();
+}
+
+} // anonymous
+
+int main(int argc, char* argv[])
+{
+  try
+  {
+    run_tests(argc, argv);
+  }
+  catch(std::exception const& ex)
+  {
+    std::cerr << argv[0] << ": exception: " << ex.what() << std::endl;
+    throw;
+  }
 
   return 0;
 }

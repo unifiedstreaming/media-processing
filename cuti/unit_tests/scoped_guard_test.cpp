@@ -19,6 +19,9 @@
 
 #include "scoped_guard.hpp"
 
+#include <iostream>
+#include <exception>
+
 // Enable assert()
 #undef NDEBUG
 #include <cassert>
@@ -58,13 +61,26 @@ void lvalue_lambda()
   assert(n_calls == 2);
 }
 
-} // anonymous
-
-int main()
+void run_tests(int, char const* const*)
 {
   not_dismissed();
   dismissed();
   lvalue_lambda();
+}
+
+} // anonymous
+
+int main(int argc, char* argv[])
+{
+  try
+  {
+    run_tests(argc, argv);
+  }
+  catch(std::exception const& ex)
+  {
+    std::cerr << argv[0] << ": exception: " << ex.what() << std::endl;
+    throw;
+  }
 
   return 0;
 }

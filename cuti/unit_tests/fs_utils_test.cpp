@@ -19,6 +19,7 @@
 
 #include "fs_utils.hpp"
 
+#include <exception>
 #include <iostream>
 
 // enable assert()
@@ -66,9 +67,7 @@ void test_absolute_path(char const* path)
   assert(abs1 == abs2);
 }
 
-} // anonymous
-
-int main()
+void run_tests(int, char const* const*)
 {
   test_current_directory();
 
@@ -104,6 +103,21 @@ int main()
   test_absolute_path("c:cfile");
   test_absolute_path("A:");
 #endif
+}
+
+} // anonymous
+
+int main(int argc, char* argv[])
+{
+  try
+  {
+    run_tests(argc, argv);
+  }
+  catch(std::exception const& ex)
+  {
+    std::cerr << argv[0] << ": exception: " << ex.what() << std::endl;
+    throw;
+  }
 
   return 0;
 }

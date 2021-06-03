@@ -19,14 +19,36 @@
 
 #include "socket_nifty.hpp"
 
+#include <exception>
+#include <iostream>
+
 #undef NDEBUG
 #include <cassert>
 
-int main()
+namespace // anonymous
+{
+
+void run_tests(int, char const* const*)
 {
   /*
    * That's right, no code.  Just testing the side effects of including
    * the nifty counter header.
    */
+}
+
+} // anonymous
+
+int main(int argc, char* argv[])
+{
+  try
+  {
+    run_tests(argc, argv);
+  }
+  catch(std::exception const& ex)
+  {
+    std::cerr << argv[0] << ": exception: " << ex.what() << std::endl;
+    throw;
+  }
+
   return 0;
 }

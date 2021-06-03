@@ -21,6 +21,7 @@
 #include "viewbuf.hpp"
 
 #include <cstring>
+#include <iostream>
 #include <exception>
 #include <string>
 
@@ -266,9 +267,7 @@ void subargument_concatenation()
   assert(reader.current_origin() == "input(2)");
 }
 
-} // anonymous
-
-int main()
+void run_tests(int, char const* const*)
 {
   whitespace();
   comment();
@@ -289,6 +288,21 @@ int main()
   unknown_escape();
 
   subargument_concatenation();
-  
+}
+
+} // anonymous
+
+int main(int argc, char* argv[])
+{
+  try
+  {
+    run_tests(argc, argv);
+  }
+  catch(std::exception const& ex)
+  {
+    std::cerr << argv[0] << ": exception: " << ex.what() << std::endl;
+    throw;
+  }
+
   return 0;
 }
