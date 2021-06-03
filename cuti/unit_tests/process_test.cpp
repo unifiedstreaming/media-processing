@@ -155,6 +155,48 @@ void root_group_test()
   }
   assert(caught);
 }
+
+void root_user_lookup()
+{
+  auto id = user_id_t::resolve("root");
+  assert(id.value() == 0);
+}
+  
+void failing_user_lookup()
+{
+  bool caught = false;
+  try
+  {
+    user_id_t::resolve("unethical-blackhat");
+  }
+  catch(std::exception const&)
+  {
+    caught = true;
+  }
+
+  assert(caught);
+}
+  
+void root_group_lookup()
+{
+  auto id = group_id_t::resolve("root");
+  assert(id.value() == 0);
+}
+  
+void failing_group_lookup()
+{
+  bool caught = false;
+  try
+  {
+    group_id_t::resolve("unethical-blackhats");
+  }
+  catch(std::exception const&)
+  {
+    caught = true;
+  }
+
+  assert(caught);
+}
   
 #endif // POSIX
 
@@ -173,6 +215,12 @@ int main()
   
   current_group_test(); 
   root_group_test();
+
+  root_user_lookup();
+  failing_user_lookup();
+  
+  root_group_lookup();
+  failing_group_lookup();
 
 #endif // POSIX
 

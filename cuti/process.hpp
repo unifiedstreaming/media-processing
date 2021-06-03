@@ -73,8 +73,8 @@ struct CUTI_ABI umask_t
   { return value_; }
 
   /*
-   * Applies *this to the current process, returning the process'
-   * previous umask.
+   * Applies *this to the current process, returning the previous
+   * umask of the current process.
    */
   umask_t apply() const;
 
@@ -101,9 +101,14 @@ struct CUTI_ABI user_id_t
   void apply() const;
 
   /*
-   * Returns the current process's effective user id.
+   * Returns the effective user id of the current process.
    */
   static user_id_t current() noexcept;
+
+  /*
+   * Resolves a user name.
+   */
+  static user_id_t resolve(char const* name);
 
 private :
   unsigned int value_;
@@ -128,18 +133,31 @@ struct CUTI_ABI group_id_t
   void apply() const;
 
   /*
-   * Returns the current process's effective group id.
+   * Returns the effective group id of the current process.
    */
   static group_id_t current() noexcept;
+
+  /*
+   * Resolves a group name.
+   */
+  static group_id_t resolve(char const* name);
 
 private :
   unsigned int value_;
 };
 
-// Enable option value parsing for umask_t
+// Enable option value parsing for umask_t, user_id_t, group_id_t
 CUTI_ABI
 void parse_optval(char const* name, args_reader_t const& reader,
                   char const* in, umask_t& out);
+
+CUTI_ABI
+void parse_optval(char const* name, args_reader_t const& reader,
+                  char const* in, user_id_t& out);
+
+CUTI_ABI
+void parse_optval(char const* name, args_reader_t const& reader,
+                  char const* in, group_id_t& out);
 
 #endif // POSIX
 

@@ -24,11 +24,16 @@
 #include "scoped_guard.hpp"
 #include "system_error.hpp"
 
+#include <cassert>
+#include <vector>
+
 #ifdef _WIN32
 #include <windows.h>
 #else
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <grp.h>
+#include <pwd.h>
 #include <unistd.h>
 #endif
 
@@ -62,7 +67,7 @@ void user_id_t::apply() const
   {
     int cause = last_system_error();
     system_exception_builder_t builder;
-    builder << "Can't set effective user id to " << this->value();
+    builder << "can't set effective user id to " << this->value();
     builder.explode(cause);
   }
 }
@@ -73,6 +78,36 @@ user_id_t user_id_t::current() noexcept
   return user_id_t(value);
 }
   
+user_id_t user_id_t::resolve(char const* name)
+{
+  std::vector<char> buffer(256);
+  struct passwd pwd;
+  struct passwd *pwd_ptr;
+
+  int r = ::getpwnam_r(name, &pwd, buffer.data(), buffer.size(), &pwd_ptr);
+  while(r == ERANGE)
+  {
+    buffer.resize(buffer.size() * 2);
+    r = ::getpwnam_r(name, &pwd, buffer.data(), buffer.size(), &pwd_ptr);
+  }
+
+  if(r != 0)
+  {
+    throw system_exception_t("getpwnam_r() failure", r);
+  }
+
+  if(pwd_ptr == nullptr)
+  {
+    system_exception_builder_t builder;
+    builder << "unknown user name '" << name << "'";
+    builder.explode();
+  }
+
+  assert(pwd_ptr == &pwd);
+  
+  return user_id_t(pwd.pw_uid);
+}
+
 void group_id_t::apply() const
 {
   int r = ::setegid(this->value());
@@ -80,7 +115,7 @@ void group_id_t::apply() const
   {
     int cause = last_system_error();
     system_exception_builder_t builder;
-    builder << "Can't set effective group id to " << this->value();
+    builder << "can't set effective group id to " << this->value();
     builder.explode(cause);
   }
 }
@@ -91,6 +126,36 @@ group_id_t group_id_t::current() noexcept
   return group_id_t(value);
 }
   
+group_id_t group_id_t::resolve(char const* name)
+{
+  std::vector<char> buffer(256);
+  struct group grp;
+  struct group *grp_ptr;
+
+  int r = ::getgrnam_r(name, &grp, buffer.data(), buffer.size(), &grp_ptr);
+  while(r == ERANGE)
+  {
+    buffer.resize(buffer.size() * 2);
+    r = ::getgrnam_r(name, &grp, buffer.data(), buffer.size(), &grp_ptr);
+  }
+
+  if(r != 0)
+  {
+    throw system_exception_t("getgrnam_r() failure", r);
+  }
+
+  if(grp_ptr == nullptr)
+  {
+    system_exception_builder_t builder;
+    builder << "unknown group name '" << name << "'";
+    builder.explode();
+  }
+
+  assert(grp_ptr == &grp);
+  
+  return group_id_t(grp.gr_gid);
+}
+
 void parse_optval(char const* name, args_reader_t const& reader,
                   char const* in, umask_t& out)
 {
@@ -124,6 +189,38 @@ void parse_optval(char const* name, args_reader_t const& reader,
   } while(*in != '\0');
 
   out = umask_t(value);
+}
+
+void parse_optval(char const* name, args_reader_t const& reader,
+                  char const* in, user_id_t& out)
+{
+  try
+  {
+    out = user_id_t::resolve(in);
+  }
+  catch(std::exception const& ex)
+  {
+    system_exception_builder_t builder;
+    builder << reader.current_origin() <<
+      ": option '" << name << "': " << ex.what();
+    builder.explode();
+  }
+}
+
+void parse_optval(char const* name, args_reader_t const& reader,
+                  char const* in, group_id_t& out)
+{
+  try
+  {
+    out = group_id_t::resolve(in);
+  }
+  catch(std::exception const& ex)
+  {
+    system_exception_builder_t builder;
+    builder << reader.current_origin() <<
+      ": option '" << name << "': " << ex.what();
+    builder.explode();
+  }
 }
 
 #endif // POSIX
