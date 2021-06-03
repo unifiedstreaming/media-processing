@@ -177,12 +177,6 @@ void failing_user_lookup()
   assert(caught);
 }
   
-void root_group_lookup()
-{
-  auto id = group_id_t::resolve("root");
-  assert(id.value() == 0);
-}
-  
 void failing_group_lookup()
 {
   bool caught = false;
@@ -218,8 +212,6 @@ int main()
 
   root_user_lookup();
   failing_user_lookup();
-  
-  root_group_lookup();
   failing_group_lookup();
 
 #endif // POSIX
