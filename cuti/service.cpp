@@ -94,6 +94,16 @@ void run_attended(control_pair_t& control_pair,
   signal_handler_t sigint_handler(SIGINT, on_sigint);
 
 #ifndef _WIN32
+  if(auto group_id = config.group_id())
+  {
+    group_id->apply();
+  }
+
+  if(auto user_id = config.user_id())
+  {
+    user_id->apply();
+  }
+
   if(auto umask = config.umask())
   {
     umask->apply();
@@ -543,6 +553,16 @@ void run_as_daemon(service_config_t const& config, char const* argv0)
 
       auto on_sigterm = [&] { send_signal(control_pair, SIGTERM); };
       signal_handler_t sigterm_handler(SIGTERM, on_sigterm);
+
+      if(auto group_id = config.group_id())
+      {
+        group_id->apply();
+      }
+
+      if(auto user_id = config.user_id())
+      {
+        user_id->apply();
+      }
 
       if(auto umask = config.umask())
       {

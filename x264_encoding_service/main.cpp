@@ -98,6 +98,9 @@ struct x264_encoding_service_config_t : cuti::service_config_t
 #endif
   , directory_()
   , dry_run_(false)
+#ifndef _WIN32
+  , group_()
+#endif
   , logfile_()
   , loglevel_(default_loglevel)
   , pidfile_()
@@ -107,6 +110,7 @@ struct x264_encoding_service_config_t : cuti::service_config_t
   , syslog_name_("")
 #ifndef _WIN32
   , umask_()
+  , user_()
 #endif
   {
     cuti::cmdline_reader_t cmdline_reader(argc, argv);
@@ -132,6 +136,16 @@ struct x264_encoding_service_config_t : cuti::service_config_t
   bool run_as_daemon() const override
   {
     return bool(daemon_);
+  }
+
+  cuti::group_id_t const* group_id() const override
+  {
+    return group_ ? &(*group_) : nullptr;
+  }
+
+  cuti::user_id_t const* user_id() const override
+  {
+    return user_ ? &(*user_) : nullptr;
   }
 
   cuti::umask_t const* umask() const override
@@ -209,6 +223,9 @@ private :
 #endif
         && !walker.match("--directory", directory_)
         && !walker.match("--dry-run", dry_run_)
+#ifndef _WIN32
+        && !walker.match("--group", group_)
+#endif
         && !walker.match("--logfile", logfile_)
         && !walker.match("--loglevel", loglevel_)
         && !walker.match("--pidfile", pidfile_)
@@ -218,6 +235,7 @@ private :
         && !walker.match("--syslog-name", syslog_name_)
 #ifndef _WIN32
         && !walker.match("--umask", umask_)
+        && !walker.match("--user", user_)
 #endif
       )
       {
@@ -256,6 +274,10 @@ private :
       "change directory to <path> (default: no change)" << std::endl;
     os << "  --dry-run                " <<
       "initialize the service, but do not run it" << std::endl;
+#ifndef _WIN32
+    os << "  --group <group name>     " <<
+      "run under <group name>'s group id" << std::endl;
+#endif
     os << "  --logfile <path>         " <<
       "log to file <path>" << std::endl;
     os << "  --loglevel <level>       " <<
@@ -276,6 +298,8 @@ private :
 #ifndef _WIN32
     os << "  --umask <mask>           " <<
       "set umask (default: no change)" << std::endl;
+    os << "  --user <user name>       " <<
+      "run under <user name>'s user id" << std::endl;
 #endif
     os << std::endl;
     os << copyright_notice() << std::endl;
@@ -293,6 +317,9 @@ private :
 #endif
   std::string directory_;
   cuti::flag_t dry_run_;
+#ifndef _WIN32
+  std::optional<cuti::group_id_t> group_;
+#endif
   std::string logfile_;
   cuti::loglevel_t loglevel_;
   std::string pidfile_;
@@ -302,6 +329,7 @@ private :
   std::string syslog_name_;
 #ifndef _WIN32
   std::optional<cuti::umask_t> umask_;
+  std::optional<cuti::user_id_t> user_;
 #endif
 };
 
