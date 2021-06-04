@@ -23,6 +23,9 @@
 #include "membuf.hpp"
 #include "streambuf_backend.hpp"
 
+#include <cassert>
+#include <utility>
+
 namespace cuti
 {
 
@@ -67,16 +70,16 @@ void rotate(std::string const& name, unsigned int depth)
 
 } // anonymous
 
-file_backend_t::file_backend_t(std::string const& filename,
+file_backend_t::file_backend_t(absolute_path_t path,
                                unsigned int size_limit,
                                unsigned int rotation_depth)
-: filename_(absolute_path(filename.c_str()))
+: path_((assert(!path.empty()), std::move(path)))
 , size_limit_(size_limit)
 , rotation_depth_(rotation_depth)
 , rotate_reported_(false)
 {
   // throw if the logfile cannot be opened, closing it immediately
-  auto test_access = create_logfile(filename_);
+  auto test_access = create_logfile(path_.value());
 }
 
 void file_backend_t::report(loglevel_t level,
@@ -89,7 +92,7 @@ void file_backend_t::report(loglevel_t level,
 std::unique_ptr<text_output_file_t>
 file_backend_t::open_log_handle()
 {
-  auto result = create_logfile(filename_);
+  auto result = create_logfile(path_.value());
   if(size_limit_ != 0 && result->size() >= size_limit_)
   {
     /*
@@ -105,10 +108,10 @@ file_backend_t::open_log_handle()
     }
 
     result.reset();
-    rotate(filename_, rotation_depth_);
+    rotate(path_.value(), rotation_depth_);
     rotate_reported_ = false;
 
-    result = create_logfile(filename_);
+    result = create_logfile(path_.value());
   }
 
   return result;

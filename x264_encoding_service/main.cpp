@@ -189,7 +189,7 @@ struct x264_encoding_service_config_t : cuti::service_config_t
 
     if(!pidfile_.empty())
     {
-      result = std::make_unique<cuti::pidfile_t>(pidfile_.c_str());
+      result = std::make_unique<cuti::pidfile_t>(pidfile_);
     }
 
     return result;
@@ -320,9 +320,9 @@ private :
 #ifndef _WIN32
   std::optional<cuti::group_id_t> group_;
 #endif
-  std::string logfile_;
+  cuti::absolute_path_t logfile_;
   cuti::loglevel_t loglevel_;
-  std::string pidfile_;
+  cuti::absolute_path_t pidfile_;
   unsigned int rotation_depth_;
   unsigned int size_limit_;
   cuti::flag_t syslog_;  

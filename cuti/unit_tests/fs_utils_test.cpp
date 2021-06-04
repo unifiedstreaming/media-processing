@@ -41,8 +41,9 @@ void test_current_directory()
   std::cout << "current directory: " << dir << std::endl;
 #endif
 
-  std::string abs = absolute_path(dir.c_str());
-  assert(dir == abs);
+  auto abs = absolute_path_t(dir);
+  assert(!abs.empty());
+  assert(dir == abs.value());
 }
 
 void test_change_directory()
@@ -58,13 +59,15 @@ void test_change_directory()
 
 void test_absolute_path(char const* path)
 {
-  std::string abs1 = absolute_path(path);
+  auto abs1 = absolute_path_t(path);
+  assert(!abs1.empty());
 #if PRINT
-  std::cout << path << " -> " << abs1 << std::endl;
+  std::cout << path << " -> " << abs1.value() << std::endl;
 #endif
 
-  std::string abs2 = absolute_path(abs1.c_str());
-  assert(abs1 == abs2);
+  auto abs2 = absolute_path_t(abs1.value());
+  assert(!abs2.empty());
+  assert(abs1.value() == abs2.value());
 }
 
 void run_tests(int, char const* const*)

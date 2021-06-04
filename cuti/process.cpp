@@ -25,6 +25,7 @@
 #include "system_error.hpp"
 
 #include <cassert>
+#include <utility>
 #include <vector>
 
 #ifdef _WIN32
@@ -225,20 +226,20 @@ void parse_optval(char const* name, args_reader_t const& reader,
 
 #endif // POSIX
 
-pidfile_t::pidfile_t(char const* path)
-: pidfile_t(path, current_process_id())
+pidfile_t::pidfile_t(absolute_path_t path)
+: pidfile_t(std::move(path), current_process_id())
 { }
 
-pidfile_t::pidfile_t(char const* path, int pid)
-: path_(absolute_path(path))
+pidfile_t::pidfile_t(absolute_path_t path, int pid)
+: path_((assert(!path.empty()), std::move(path)))
 {
   auto contents = std::to_string(pid) + '\n';
 
-  auto handle = create_pidfile(path_);
+  auto handle = create_pidfile(path_.value());
   auto file_guard = make_scoped_guard([&]
   {
     handle.reset();
-    try_delete(path_.c_str());
+    try_delete(path_.value().c_str());
   });
   
   handle->write(contents.data(), contents.data() + contents.size());
@@ -247,7 +248,7 @@ pidfile_t::pidfile_t(char const* path, int pid)
 
 pidfile_t::~pidfile_t()
 {
-  try_delete(path_.c_str());
+  try_delete(path_.value().c_str());
 }
 
 } // cuti

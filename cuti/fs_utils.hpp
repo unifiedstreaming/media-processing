@@ -22,12 +22,15 @@
 
 #include "linkage.h"
 
+#include <cassert>
 #include <cstddef>
 #include <memory>
 #include <string>
 
 namespace cuti
 {
+
+struct args_reader_t;
 
 struct CUTI_ABI text_output_file_t
 {
@@ -41,6 +44,35 @@ struct CUTI_ABI text_output_file_t
 
   virtual ~text_output_file_t();
 };
+
+struct CUTI_ABI absolute_path_t
+{
+  absolute_path_t()
+  : value_()
+  { }
+
+  explicit absolute_path_t(char const* path);
+  explicit absolute_path_t(std::string const& path);
+
+  bool empty() const
+  {
+    return value_.empty();
+  }
+
+  std::string const& value() const
+  {
+    assert(!this->empty());
+    return value_;
+  }
+
+private :
+  std::string value_;
+};
+
+// Enable option value parsing for absolute_path_t
+CUTI_ABI
+void parse_optval(char const* name, args_reader_t const& reader,
+                  char const* in, absolute_path_t& out);
 
 CUTI_ABI
 std::unique_ptr<text_output_file_t> create_logfile(std::string path);
@@ -56,8 +88,6 @@ CUTI_ABI void delete_if_exists(char const* name);
 
 CUTI_ABI std::string current_directory();
 CUTI_ABI void change_directory(char const* name);
-
-CUTI_ABI std::string absolute_path(char const* path);
 
 } // cuti
 

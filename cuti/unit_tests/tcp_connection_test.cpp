@@ -1237,7 +1237,7 @@ struct options_t
   , size_limit_(file_backend_t::no_size_limit)
   { }
 
-  std::string logfile_;
+  absolute_path_t logfile_;
   loglevel_t loglevel_;
   unsigned int rotation_depth_;
   unsigned int size_limit_;

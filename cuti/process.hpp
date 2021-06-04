@@ -22,6 +22,8 @@
 
 #include "linkage.h"
 
+#include "fs_utils.hpp"
+
 #include <cassert>
 #include <string>
 
@@ -39,19 +41,16 @@ int current_process_id() noexcept;
  */
 struct CUTI_ABI pidfile_t
 {
-  explicit pidfile_t(char const* path);
-  pidfile_t(char const* path, int pid);
+  explicit pidfile_t(absolute_path_t path);
+  pidfile_t(absolute_path_t path, int pid);
 
   pidfile_t(pidfile_t const&);
   pidfile_t& operator=(pidfile_t const&);
   
-  std::string const& effective_filename() const noexcept
-  { return path_; }
-
   ~pidfile_t();
 
 private :
-  std::string const path_;
+  absolute_path_t const path_;
 };
 
 #ifndef _WIN32 // POSIX

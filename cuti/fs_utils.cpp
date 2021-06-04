@@ -18,6 +18,8 @@
  */
 
 #include "fs_utils.hpp"
+
+#include "args_reader.hpp"
 #include "system_error.hpp"
 
 #include <cassert>
@@ -167,6 +169,36 @@ HANDLE open_pidfile_handle(char const *path)
                     nullptr);
 }
 
+std::string absolute_path(char const* path)
+{
+  if(*path == '\0')
+  {
+    throw system_exception_t("Can't convert empty path to absolute path");
+  }
+
+  std::vector<char> buffer(256);
+
+  DWORD length = GetFullPathName(
+    path, static_cast<DWORD>(buffer.size()), buffer.data(), nullptr);
+  if(length >= buffer.size())
+  {
+    buffer.resize(length);
+    length = GetFullPathName(
+      path, static_cast<DWORD>(buffer.size()), buffer.data(), nullptr);
+  }
+
+  if(length == 0)
+  {
+    int cause = last_system_error();
+    system_exception_builder_t builder;
+    builder << "Can't determine absolute path for file '" << path << "'";
+    builder.explode(cause);
+  }
+
+  assert(length < buffer.size());
+  return std::string(buffer.data(), buffer.data() + length);
+}
+
 } // anonymous
 
 int try_delete(char const* name) noexcept
@@ -235,31 +267,6 @@ void change_directory(char const* path)
   }
 }
   
-std::string absolute_path(char const* path)
-{
-  std::vector<char> buffer(256);
-
-  DWORD length = GetFullPathName(
-    path, static_cast<DWORD>(buffer.size()), buffer.data(), nullptr);
-  if(length >= buffer.size())
-  {
-    buffer.resize(length);
-    length = GetFullPathName(
-      path, static_cast<DWORD>(buffer.size()), buffer.data(), nullptr);
-  }
-
-  if(length == 0)
-  {
-    int cause = last_system_error();
-    system_exception_builder_t builder;
-    builder << "Can't determine absolute path for file " << path;
-    builder.explode(cause);
-  }
-
-  assert(length < buffer.size());
-  return std::string(buffer.data(), buffer.data() + length);
-}
-
 #else // POSIX
 
 namespace // anonymous
@@ -327,69 +334,6 @@ int open_pidfile_handle(char const *path)
   return ::open(path, O_CREAT | O_EXCL | O_WRONLY | O_CLOEXEC, 0444);
 }
 
-} // anonymous
-
-int try_delete(char const* name) noexcept
-{
-  return ::remove(name) != -1 ? 0 : last_system_error();
-}
-
-void rename_if_exists(char const* old_name, char const* new_name)
-{
-  int r = ::rename(old_name, new_name);
-  if(r == -1)
-  {
-    int cause = last_system_error();
-    if(cause != ENOENT)
-    {
-      system_exception_builder_t builder;
-      builder << "Can't rename file " << old_name << " to " << new_name;
-      builder.explode(cause);
-    }
-  }
-}
-
-void delete_if_exists(char const* name)
-{
-  int error = try_delete(name);
-  if(error != 0 && error != ENOENT)
-  {
-    system_exception_builder_t builder;
-    builder << "Can't delete file " << name;
-    builder.explode(error);
-  }
-}
-
-std::string current_directory()
-{
-  std::vector<char> buffer(256);
-
-  char* result;
-  while((result = ::getcwd(buffer.data(), buffer.size())) == nullptr)
-  {
-    int cause = last_system_error();
-    if(cause != ERANGE)
-    {
-      throw system_exception_t("Can't determine current directory", cause);
-    }
-    buffer.resize(buffer.size() * 2);
-  }
-
-  return result;
-}
-
-void change_directory(char const* path)
-{
-  int r = ::chdir(path);
-  if(r == -1)
-  {
-    int cause = last_system_error();
-    system_exception_builder_t builder;
-    builder << "Can't change directory to '" << path << "'";
-    builder.explode(cause);
-  }
-}
-  
 std::string absolute_path(char const* path)
 {
   std::string result;
@@ -460,6 +404,69 @@ std::string absolute_path(char const* path)
   return result;
 }
 
+} // anonymous
+
+int try_delete(char const* name) noexcept
+{
+  return ::remove(name) != -1 ? 0 : last_system_error();
+}
+
+void rename_if_exists(char const* old_name, char const* new_name)
+{
+  int r = ::rename(old_name, new_name);
+  if(r == -1)
+  {
+    int cause = last_system_error();
+    if(cause != ENOENT)
+    {
+      system_exception_builder_t builder;
+      builder << "Can't rename file " << old_name << " to " << new_name;
+      builder.explode(cause);
+    }
+  }
+}
+
+void delete_if_exists(char const* name)
+{
+  int error = try_delete(name);
+  if(error != 0 && error != ENOENT)
+  {
+    system_exception_builder_t builder;
+    builder << "Can't delete file " << name;
+    builder.explode(error);
+  }
+}
+
+std::string current_directory()
+{
+  std::vector<char> buffer(256);
+
+  char* result;
+  while((result = ::getcwd(buffer.data(), buffer.size())) == nullptr)
+  {
+    int cause = last_system_error();
+    if(cause != ERANGE)
+    {
+      throw system_exception_t("Can't determine current directory", cause);
+    }
+    buffer.resize(buffer.size() * 2);
+  }
+
+  return result;
+}
+
+void change_directory(char const* path)
+{
+  int r = ::chdir(path);
+  if(r == -1)
+  {
+    int cause = last_system_error();
+    system_exception_builder_t builder;
+    builder << "Can't change directory to '" << path << "'";
+    builder.explode(cause);
+  }
+}
+  
 #endif // POSIX
 
 text_output_file_t::text_output_file_t()
@@ -468,6 +475,30 @@ text_output_file_t::text_output_file_t()
 text_output_file_t::~text_output_file_t()
 { }
 
+absolute_path_t::absolute_path_t(char const* path)
+: value_(absolute_path(path))
+{ }
+
+absolute_path_t::absolute_path_t(std::string const& path)
+: value_(absolute_path(path.c_str()))
+{ }
+
+void parse_optval(char const* name, args_reader_t const& reader,
+                  char const* in, absolute_path_t& out)
+{
+  try
+  {
+    out = absolute_path_t(in);
+  }
+  catch(std::exception const& ex)
+  {
+    system_exception_builder_t builder;
+    builder << reader.current_origin() <<
+      ": option '" << name << "': " << ex.what();
+    builder.explode();
+  }
+}
+    
 std::unique_ptr<text_output_file_t> create_logfile(std::string path)
 {
   return std::make_unique<text_output_file_impl_t>(

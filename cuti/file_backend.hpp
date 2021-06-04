@@ -21,6 +21,8 @@
 #define CUTI_FILE_BACKEND_HPP_
 
 #include "linkage.h"
+
+#include "fs_utils.hpp"
 #include "logging_backend.hpp"
 
 #include <memory>
@@ -45,14 +47,9 @@ struct CUTI_ABI file_backend_t : logging_backend_t
   static constexpr unsigned int default_rotation_depth = 9;
 
   explicit file_backend_t(
-    std::string const& filename,
+    absolute_path_t path,
     unsigned int size_limit = no_size_limit,
     unsigned int rotation_depth = default_rotation_depth);
-
-  std::string const& effective_filename() const
-  {
-    return filename_;
-  }
 
   void report(loglevel_t level,
               char const* begin_msg, char const* end_msg) override;
@@ -61,7 +58,7 @@ private :
   std::unique_ptr<text_output_file_t> open_log_handle();
 
 private :
-  std::string const filename_;
+  absolute_path_t path_;
   unsigned int const size_limit_;
   unsigned int const rotation_depth_;
   bool rotate_reported_;
