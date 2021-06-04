@@ -110,11 +110,13 @@ void run_attended(control_pair_t& control_pair,
   }
 #endif
 
-  logger_t logger(std::make_unique<streambuf_backend_t>(std::cerr));
-  if(auto backend = config.create_logging_backend())
+  auto logging_backend = config.create_logging_backend();
+  if(!logging_backend)
   {
-    logger.set_backend(std::move(backend));
+    logging_backend = std::make_unique<streambuf_backend_t>(std::cerr);
   }
+
+  logger_t logger(std::move(logging_backend));
 
   auto pidfile = config.create_pidfile();
 
@@ -569,12 +571,14 @@ void run_as_daemon(service_config_t const& config, char const* argv0)
         umask->apply();
       }
       
-      logger_t logger(std::make_unique<syslog_backend_t>(
-        default_syslog_name(argv0)));
-      if(auto backend = config.create_logging_backend())
+      auto logging_backend = config.create_logging_backend();
+      if(!logging_backend)
       {
-        logger.set_backend(std::move(backend));
-      }
+        logging_backend = std::make_unique<syslog_backend_t>(
+          default_syslog_name(argv0));
+       }
+
+      logger_t logger(std::move(logging_backend));
 
       auto pidfile = config.create_pidfile();
 

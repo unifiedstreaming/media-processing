@@ -234,6 +234,25 @@ private :
           config_filename, *ifs.rdbuf());
         read_options(config_file_reader, config_file_depth + 1);      
       }
+
+      else if(walker.match("--logfile", logfile_))
+      {
+        syslog_ = false;
+        syslog_name_.clear();
+      }
+
+      else if(walker.match("--syslog", syslog_))
+      {
+        logfile_.clear();
+        syslog_name_.clear();
+      }
+
+      else if(walker.match("--syslog-name", syslog_name_))
+      {
+        logfile_.clear();
+        syslog_ = false;
+      }
+
       else if(
 #ifndef _WIN32
         !walker.match("--daemon", daemon_) &&
@@ -243,13 +262,10 @@ private :
 #ifndef _WIN32
         !walker.match("--group", group_) &&
 #endif
-        !walker.match("--logfile", logfile_) &&
         !walker.match("--loglevel", loglevel_) &&
         !walker.match("--pidfile", pidfile_) &&
         !walker.match("--rotation-depth", rotation_depth_) &&
         !walker.match("--size-limit", size_limit_) &&
-        !walker.match("--syslog", syslog_) &&
-        !walker.match("--syslog-name", syslog_name_) &&
 #ifndef _WIN32
         !walker.match("--umask", umask_) &&
         !walker.match("--user", user_) &&

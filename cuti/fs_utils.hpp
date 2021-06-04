@@ -65,6 +65,11 @@ struct CUTI_ABI absolute_path_t
     return value_;
   }
 
+  void clear()
+  {
+    value_.clear();
+  }
+
 private :
   std::string value_;
 };
