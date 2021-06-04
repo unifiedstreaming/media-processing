@@ -92,7 +92,6 @@ struct x264_encoding_service_config_t : cuti::service_config_t
 {
   x264_encoding_service_config_t(int argc, char const* const argv[])
   : argv0_((assert(argc > 0), argv[0]))
-  , config_()
 #ifndef _WIN32
   , daemon_(false)
 #endif
@@ -115,20 +114,6 @@ struct x264_encoding_service_config_t : cuti::service_config_t
   {
     cuti::cmdline_reader_t cmdline_reader(argc, argv);
     read_options(cmdline_reader);
-
-    if(!config_.empty())
-    {
-      std::ifstream ifs(config_);
-      if(!ifs)
-      {
-        cuti::exception_builder_t<std::runtime_error> builder;
-        builder << "Can't open config file '" << config_ << "'";
-        builder.explode();
-      }
-        
-      cuti::config_file_reader_t config_file_reader(config_, *ifs.rdbuf());
-      read_options(config_file_reader);
-    }
   }
 
 #ifndef _WIN32 // POSIX-only
@@ -213,30 +198,63 @@ struct x264_encoding_service_config_t : cuti::service_config_t
 private :
   void read_options(cuti::args_reader_t& reader)
   {
+    read_options(reader, 0);
+  }
+
+  void read_options(cuti::args_reader_t& reader, int config_file_depth)
+  {
+    static auto constexpr max_config_file_depth = 20;
+ 
+    std::string config_filename;
+
     cuti::option_walker_t walker(reader);
     while(!walker.done())
     {
-      if(
-           !walker.match("--config", config_)
+      if(walker.match("--config", config_filename))
+      {
+        if(config_file_depth >= max_config_file_depth)
+        {
+          cuti::exception_builder_t<std::runtime_error> builder;
+          builder << reader.current_origin() <<
+            ": maximum config file depth (" << max_config_file_depth <<
+            ") exceeded";
+          builder.explode();
+        }
+        
+        std::ifstream ifs(config_filename);
+        if(!ifs)
+        {
+          cuti::exception_builder_t<std::runtime_error> builder;
+          builder << reader.current_origin() <<
+            ": can't open config file '" << config_filename << "'";
+          builder.explode();
+        }
+        
+        cuti::config_file_reader_t config_file_reader(
+          config_filename, *ifs.rdbuf());
+        read_options(config_file_reader, config_file_depth + 1);      
+      }
+      else if(
 #ifndef _WIN32
-        && !walker.match("--daemon", daemon_)
+        !walker.match("--daemon", daemon_) &&
 #endif
-        && !walker.match("--directory", directory_)
-        && !walker.match("--dry-run", dry_run_)
+        !walker.match("--directory", directory_) &&
+        !walker.match("--dry-run", dry_run_) &&
 #ifndef _WIN32
-        && !walker.match("--group", group_)
+        !walker.match("--group", group_) &&
 #endif
-        && !walker.match("--logfile", logfile_)
-        && !walker.match("--loglevel", loglevel_)
-        && !walker.match("--pidfile", pidfile_)
-        && !walker.match("--rotation-depth", rotation_depth_)
-        && !walker.match("--size-limit", size_limit_)
-        && !walker.match("--syslog", syslog_)
-        && !walker.match("--syslog-name", syslog_name_)
+        !walker.match("--logfile", logfile_) &&
+        !walker.match("--loglevel", loglevel_) &&
+        !walker.match("--pidfile", pidfile_) &&
+        !walker.match("--rotation-depth", rotation_depth_) &&
+        !walker.match("--size-limit", size_limit_) &&
+        !walker.match("--syslog", syslog_) &&
+        !walker.match("--syslog-name", syslog_name_) &&
 #ifndef _WIN32
-        && !walker.match("--umask", umask_)
-        && !walker.match("--user", user_)
+        !walker.match("--umask", umask_) &&
+        !walker.match("--user", user_) &&
 #endif
+        true
       )
       {
         cuti::exception_builder_t<std::runtime_error> builder;
@@ -265,7 +283,7 @@ private :
     os << "usage: " << argv0_ << " [<option> ...]" << std::endl;
     os << "options are:" << std::endl;
     os << "  --config <path>          " <<
-      "read additional options from file <path>" << std::endl;
+      "insert options from file <path>" << std::endl;
 #ifndef _WIN32
     os << "  --daemon                 " <<
       "run as daemon" << std::endl;
@@ -311,7 +329,6 @@ private :
 
   std::string argv0_;
 
-  std::string config_;
 #ifndef _WIN32
   cuti::flag_t daemon_;
 #endif
