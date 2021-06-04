@@ -22,95 +22,78 @@ import testing ;
 project
 : requirements
   <threading>multi
+  <library>..//cuti
 ;
 
 unit-test callback_test
 : callback_test.cpp
-  ..//cuti
 ;
 
 unit-test circular_buffer_test
 : circular_buffer_test.cpp
-  ..//cuti
 ;
 
 unit-test config_file_reader_test
 : config_file_reader_test.cpp
-  ..//cuti
 ;
 
 unit-test default_scheduler_test
 : default_scheduler_test.cpp
-  ..//cuti
 ;
 
 unit-test fs_utils_test
 : fs_utils_test.cpp
-  ..//cuti
 ;
 
 unit-test indexed_heap_test
 : indexed_heap_test.cpp
-  ..//cuti
 ;
 
 unit-test list_arena_test
 : list_arena_test.cpp
-  ..//cuti
 ;
 
 unit-test membuf_test
 : membuf_test.cpp
-  ..//cuti
 ;
 
 unit-test option_walker_test
 : option_walker_test.cpp
-  ..//cuti
 ;
 
 unit-test process_test
 : process_test.cpp
-  ..//cuti
 ;
 
 unit-test resolver_test
 : resolver_test.cpp
-  ..//cuti
 ;
 
 unit-test scoped_guard_test
 : scoped_guard_test.cpp
-  ..//cuti
 ;
 
 unit-test signal_handler_test
 : signal_handler_test.cpp
-  ..//cuti
 ;
 
 unit-test socket_nifty_test
 : socket_nifty_test.cpp
-  ..//cuti
 ;
 
 unit-test streambuf_backend_test
 : streambuf_backend_test.cpp
-  ..//cuti
 ;
 
 unit-test tcp_acceptor_test
 : tcp_acceptor_test.cpp
-  ..//cuti
 ;
 
 unit-test tcp_connection_test
 : tcp_connection_test.cpp
-  ..//cuti
 ;
 
 unit-test tcp_socket_test
 : tcp_socket_test.cpp
-  ..//cuti
 ;
 
