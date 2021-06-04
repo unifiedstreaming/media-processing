@@ -62,12 +62,12 @@ umask_t umask_t::apply() const
 
 void user_id_t::apply() const
 {
-  int r = ::seteuid(this->value());
+  int r = ::setuid(this->value());
   if(r == -1)
   {
     int cause = last_system_error();
     system_exception_builder_t builder;
-    builder << "can't set effective user id to " << this->value();
+    builder << "can't set user id to " << this->value();
     builder.explode(cause);
   }
 }
@@ -110,12 +110,12 @@ user_id_t user_id_t::resolve(char const* name)
 
 void group_id_t::apply() const
 {
-  int r = ::setegid(this->value());
+  int r = ::setgid(this->value());
   if(r == -1)
   {
     int cause = last_system_error();
     system_exception_builder_t builder;
-    builder << "can't set effective group id to " << this->value();
+    builder << "can't set group id to " << this->value();
     builder.explode(cause);
   }
 }
