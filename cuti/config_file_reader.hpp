@@ -17,8 +17,8 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#ifndef CUTI_CONFIG_READER_HPP_
-#define CUTI_CONFIG_READER_HPP_
+#ifndef CUTI_CONFIG_FILE_READER_HPP_
+#define CUTI_CONFIG_FILE_READER_HPP_
 
 #include "args_reader.hpp"
 #include "linkage.h"
@@ -82,9 +82,9 @@ namespace cuti
  * Any other character is treated as a character literal representing
  * itself.
  */
-struct CUTI_ABI config_reader_t : args_reader_t
+struct CUTI_ABI config_file_reader_t : args_reader_t
 {
-  config_reader_t(std::string origin_prefix, std::streambuf& sb);
+  config_file_reader_t(std::string origin_prefix, std::streambuf& sb);
 
   bool at_end() const override;
   char const* current_argument() const override;

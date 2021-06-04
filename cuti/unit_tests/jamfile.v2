@@ -34,8 +34,8 @@ unit-test circular_buffer_test
   ..//cuti
 ;
 
-unit-test config_reader_test
-: config_reader_test.cpp
+unit-test config_file_reader_test
+: config_file_reader_test.cpp
   ..//cuti
 ;
 

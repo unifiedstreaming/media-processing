@@ -17,7 +17,7 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#include "config_reader.hpp"
+#include "config_file_reader.hpp"
 #include "viewbuf.hpp"
 
 #include <cstring>
@@ -38,7 +38,7 @@ void whitespace()
 {
   std::string input = " \n\t\n\r\n";
   viewbuf_t buf(input.data(), input.data() + input.size());
-  config_reader_t reader("input", buf);
+  config_file_reader_t reader("input", buf);
 
   assert(reader.at_end());
   assert(reader.current_origin() == "input(4)");
@@ -48,7 +48,7 @@ void comment()
 {
   std::string input = "#Comment\n";
   viewbuf_t buf(input.data(), input.data() + input.size());
-  config_reader_t reader("input", buf);
+  config_file_reader_t reader("input", buf);
 
   assert(reader.at_end());
   assert(reader.current_origin() == "input(2)");
@@ -58,7 +58,7 @@ void whitespace_and_comments()
 {
   std::string input = " \n\t#Comment\n\r\n#Comment\ntoken#Comment\n";
   viewbuf_t buf(input.data(), input.data() + input.size());
-  config_reader_t reader("input", buf);
+  config_file_reader_t reader("input", buf);
 
   assert(!reader.at_end());
   assert(reader.current_origin() == "input(5)");
@@ -73,7 +73,7 @@ void multiple_tokens_on_separate_lines()
 {
   std::string input = "one\ntwo\nthree\n";
   viewbuf_t buf(input.data(), input.data() + input.size());
-  config_reader_t reader("input", buf);
+  config_file_reader_t reader("input", buf);
 
   assert(!reader.at_end());
   assert(reader.current_origin() == "input(1)");
@@ -98,7 +98,7 @@ void multiple_tokens_on_single_line()
 {
   std::string input = "one\ttwo\rthree four";
   viewbuf_t buf(input.data(), input.data() + input.size());
-  config_reader_t reader("input", buf);
+  config_file_reader_t reader("input", buf);
 
   assert(!reader.at_end());
   assert(reader.current_origin() == "input(1)");
@@ -128,7 +128,7 @@ void single_quoted_string_literal()
 {
   std::string input = "\'C:\\Program Files\\Unified Streaming\'\n";
   viewbuf_t buf(input.data(), input.data() + input.size());
-  config_reader_t reader("input", buf);
+  config_file_reader_t reader("input", buf);
 
   assert(!reader.at_end());
   assert(reader.current_origin() == "input(1)");
@@ -144,7 +144,7 @@ void double_quote_in_single_quotes()
 {
   std::string input = "\'\"Wowza Wowza Wowza!\"\'\n";
   viewbuf_t buf(input.data(), input.data() + input.size());
-  config_reader_t reader("input", buf);
+  config_file_reader_t reader("input", buf);
 
   assert(!reader.at_end());
   assert(reader.current_origin() == "input(1)");
@@ -163,7 +163,7 @@ void missing_single_quote()
   bool caught = false;
   try
   {
-    config_reader_t reader("input", buf);
+    config_file_reader_t reader("input", buf);
   }
   catch(std::exception const&)
   {
@@ -176,7 +176,7 @@ void double_quoted_string_literal()
 {
   std::string input = "\"C:\\Program Files\\Unified Streaming\"\n";
   viewbuf_t buf(input.data(), input.data() + input.size());
-  config_reader_t reader("input", buf);
+  config_file_reader_t reader("input", buf);
 
   assert(!reader.at_end());
   assert(reader.current_origin() == "input(1)");
@@ -192,7 +192,7 @@ void single_quote_in_double_quotes()
 {
   std::string input = "\"John O\'Mill\"\n";
   viewbuf_t buf(input.data(), input.data() + input.size());
-  config_reader_t reader("input", buf);
+  config_file_reader_t reader("input", buf);
 
   assert(!reader.at_end());
   assert(reader.current_origin() == "input(1)");
@@ -211,7 +211,7 @@ void missing_double_quote()
   bool caught = false;
   try
   {
-    config_reader_t reader("input", buf);
+    config_file_reader_t reader("input", buf);
   }
   catch(std::exception const&)
   {
@@ -224,7 +224,7 @@ void backslash_escapes()
 {
   std::string input = "\\t\\n\\r\\ \\\"\\#\\\'\\\\\n";
   viewbuf_t buf(input.data(), input.data() + input.size());
-  config_reader_t reader("input", buf);
+  config_file_reader_t reader("input", buf);
 
   assert(!reader.at_end());
   assert(reader.current_origin() == "input(1)");
@@ -243,7 +243,7 @@ void unknown_escape()
   bool caught = false;
   try
   {
-    config_reader_t reader("input", buf);
+    config_file_reader_t reader("input", buf);
   }
   catch(std::exception const&)
   {
@@ -256,7 +256,7 @@ void subargument_concatenation()
 {
   std::string input = "\"In and out of\"\\ quotes\n";
   viewbuf_t buf(input.data(), input.data() + input.size());
-  config_reader_t reader("input", buf);
+  config_file_reader_t reader("input", buf);
 
   assert(!reader.at_end());
   assert(reader.current_origin() == "input(1)");

@@ -17,7 +17,7 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#include "config_reader.hpp"
+#include "config_file_reader.hpp"
 #include "system_error.hpp"
 
 #include <utility>
@@ -44,7 +44,7 @@ bool is_space(int c)
 
 } // anonymous
 
-config_reader_t::config_reader_t(std::string origin_prefix,
+config_file_reader_t::config_file_reader_t(std::string origin_prefix,
                                  std::streambuf& sb)
 : origin_prefix_(std::move(origin_prefix))
 , sb_(sb)
@@ -55,23 +55,23 @@ config_reader_t::config_reader_t(std::string origin_prefix,
   this->advance();
 }
 
-bool config_reader_t::at_end() const
+bool config_file_reader_t::at_end() const
 {
   return at_end_;
 }
 
-char const* config_reader_t::current_argument() const
+char const* config_file_reader_t::current_argument() const
 {
   assert(!this->at_end());
   return argument_.c_str();
 }
 
-std::string config_reader_t::current_origin() const
+std::string config_file_reader_t::current_origin() const
 {
   return origin_prefix_ + '(' + std::to_string(line_) + ')';
 }
 
-void config_reader_t::advance()
+void config_file_reader_t::advance()
 {
   assert(!this->at_end());
 

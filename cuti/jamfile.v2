@@ -68,7 +68,7 @@ lib cuti
   callback.cpp
   circular_buffer.cpp
   cmdline_reader.cpp
-  config_reader.cpp
+  config_file_reader.cpp
   default_backend.cpp
   default_scheduler.cpp
   endpoint.cpp

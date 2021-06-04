@@ -18,7 +18,7 @@
  */
 
 #include "cmdline_reader.hpp"
-#include "config_reader.hpp"
+#include "config_file_reader.hpp"
 #include "exception_builder.hpp"
 #include "file_backend.hpp"
 #include "logger.hpp"
@@ -126,8 +126,8 @@ struct x264_encoding_service_config_t : cuti::service_config_t
         builder.explode();
       }
         
-      cuti::config_reader_t config_reader(config_, *ifs.rdbuf());
-      read_options(config_reader);
+      cuti::config_file_reader_t config_file_reader(config_, *ifs.rdbuf());
+      read_options(config_file_reader);
     }
   }
 
