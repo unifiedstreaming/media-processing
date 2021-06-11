@@ -52,21 +52,18 @@ see <http://www.gnu.org/licenses/> for details.)";
 struct x264_encoding_service_t : cuti::service_t
 {
   x264_encoding_service_t(cuti::logging_context_t& logging_context,
-                          cuti::tcp_connection_t& control_connection)
-  : logging_context_(logging_context)
-  , control_connection_(control_connection)
+                          cuti::tcp_connection_t& control_connection,
+                          cuti::selector_factory_t const& selector_factory)
+  : dispatcher_(logging_context, control_connection, selector_factory)
   { }
 
   void run() override
   {
-    cuti::dispatcher_t dispatcher(logging_context_, control_connection_,
-      cuti::selector_factory_t());
-    dispatcher.run();
+    dispatcher_.run();
   }
       
 private :
-  cuti::logging_context_t& logging_context_;
-  cuti::tcp_connection_t& control_connection_;
+  cuti::dispatcher_t dispatcher_;
 };
 
 struct x264_encoding_service_config_t : cuti::service_config_t
@@ -85,6 +82,7 @@ struct x264_encoding_service_config_t : cuti::service_config_t
   , loglevel_(default_loglevel)
   , pidfile_()
   , rotation_depth_(cuti::file_backend_t::default_rotation_depth)
+  , selector_()
   , size_limit_(cuti::file_backend_t::no_size_limit)
   , syslog_(false)
   , syslog_name_("")
@@ -167,11 +165,11 @@ struct x264_encoding_service_config_t : cuti::service_config_t
   {
     context.level(loglevel_);
 
-    std::unique_ptr<cuti::service_t> result = nullptr;
-    if(!dry_run_)
+    auto result = std::make_unique<x264_encoding_service_t>(
+        context, control_connection, selector_);
+    if(dry_run_)
     {
-      result = std::make_unique<x264_encoding_service_t>(
-        context, control_connection);
+      result.reset();
     }
     return result;
   }
@@ -246,6 +244,7 @@ private :
         !walker.match("--loglevel", loglevel_) &&
         !walker.match("--pidfile", pidfile_) &&
         !walker.match("--rotation-depth", rotation_depth_) &&
+        !walker.match("--selector", selector_) &&
         !walker.match("--size-limit", size_limit_) &&
 #ifndef _WIN32
         !walker.match("--umask", umask_) &&
@@ -303,6 +302,9 @@ private :
     os << "  --rotation-depth <depth> " << 
       "sets logfile rotation depth (default: " <<
       cuti::file_backend_t::default_rotation_depth << ')' << std::endl;
+    os << "  --selector <type>        " <<
+      "sets selector type (default: " <<
+      cuti::selector_factory_t() << ")" << std::endl;
     os << "  --size-limit <limit>     " <<
       "sets logfile size limit (default: none)" << std::endl;
     os << "  --syslog                 " <<
@@ -338,6 +340,7 @@ private :
   cuti::loglevel_t loglevel_;
   cuti::absolute_path_t pidfile_;
   unsigned int rotation_depth_;
+  cuti::selector_factory_t selector_;
   unsigned int size_limit_;
   cuti::flag_t syslog_;  
   std::string syslog_name_;

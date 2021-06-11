@@ -19,11 +19,15 @@
 
 #include "selector_factory.hpp"
 
+#include "args_reader.hpp"
 #include "epoll_selector.hpp"
 #include "kqueue_selector.hpp"
 #include "poll_selector.hpp"
 #include "select_selector.hpp"
+#include "system_error.hpp"
 
+#include <algorithm>
+#include <cstring>
 #include <ostream>
 
 namespace cuti
@@ -60,6 +64,33 @@ std::vector<selector_factory_t> available_selector_factories()
 #endif
 
   return result;
+}
+
+CUTI_ABI
+void parse_optval(char const* name, args_reader_t const& reader,
+                  char const* in, selector_factory_t& out)
+{
+  auto factories = available_selector_factories();
+  auto name_matches = [&](selector_factory_t const& factory)
+   { return std::strcmp(in, factory.name()) == 0; };
+
+  auto pos = std::find_if(factories.begin(), factories.end(), name_matches);
+  if(pos == factories.end())
+  {
+    system_exception_builder_t builder;
+    builder << reader.current_origin() << ": " <<
+      "invalid selector type '" << in << "'. Valid types are: ";
+    auto pos = factories.begin();
+    builder << *pos;
+    for(++pos; pos != factories.end(); ++pos)
+    {
+      builder << ", " << *pos;
+    }
+    builder << ".";
+    builder.explode();
+  }
+
+  out = *pos;
 }
 
 } // cuti

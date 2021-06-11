@@ -31,6 +31,8 @@
 namespace cuti
 {
 
+struct args_reader_t;
+
 struct CUTI_ABI selector_factory_t
 {
   // Instantiates a (platform-specific) default selector factory
@@ -59,6 +61,11 @@ std::ostream& operator<<(std::ostream& os, selector_factory_t const& factory);
 
 CUTI_ABI
 std::vector<selector_factory_t> available_selector_factories();
+
+// Enable option value parsing for selector_factory_t
+CUTI_ABI
+void parse_optval(char const* name, args_reader_t const& reader,
+                  char const* in, selector_factory_t& out);
 
 } // cuti
 
