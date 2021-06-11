@@ -19,6 +19,7 @@
 
 #include "cmdline_reader.hpp"
 #include "config_file_reader.hpp"
+#include "dispatcher.hpp"
 #include "exception_builder.hpp"
 #include "file_backend.hpp"
 #include "logger.hpp"
@@ -58,29 +59,9 @@ struct x264_encoding_service_t : cuti::service_t
 
   void run() override
   {
-    if(auto msg = logging_context_.message_at(cuti::loglevel_t::info))
-    {
-      *msg << "Service started.";
-    }
-
-    char buf[1];
-    char* next;
-    do
-    {
-      control_connection_.read(buf, buf + 1, next);
-    } while(next == nullptr);
-
-    if(next == buf)
-    {
-      throw std::runtime_error("Unexpected EOF on control connection");
-    }
-
-    assert(next > buf);
-    if(auto msg = logging_context_.message_at(cuti::loglevel_t::info))
-    {
-      int sig = buf[0];
-      *msg << "Received signal " << sig << ". Stopping service.";
-    }
+    cuti::dispatcher_t dispatcher(logging_context_, control_connection_,
+      cuti::selector_factory_t());
+    dispatcher.run();
   }
       
 private :

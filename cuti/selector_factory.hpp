@@ -33,6 +33,9 @@ namespace cuti
 
 struct CUTI_ABI selector_factory_t
 {
+  // Instantiates a (platform-specific) default selector factory
+  selector_factory_t();
+
   template<int N>
   selector_factory_t(char const(&name)[N],
                      std::unique_ptr<selector_t>(&creator)())

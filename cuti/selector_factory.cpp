@@ -29,6 +29,10 @@
 namespace cuti
 {
 
+selector_factory_t::selector_factory_t()
+: selector_factory_t(available_selector_factories().front())
+{ }
+
 std::ostream& operator<<(std::ostream& os, selector_factory_t const& factory)
 {
   os << factory.name();

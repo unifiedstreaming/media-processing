@@ -71,6 +71,7 @@ lib cuti
   config_file_reader.cpp
   default_backend.cpp
   default_scheduler.cpp
+  dispatcher.cpp
   endpoint.cpp
   epoll_selector.cpp
   file_backend.cpp
