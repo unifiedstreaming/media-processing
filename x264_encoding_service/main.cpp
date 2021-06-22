@@ -64,7 +64,7 @@ struct x264_client_t : cuti::client_t
     connection_->set_nonblocking();
     if(auto msg = context.message_at(cuti::loglevel_t::info))
     {
-      *msg << "accepted connection " << *connection_;
+      *msg << "accepted client " << *connection_;
     }
   }
 
@@ -83,7 +83,7 @@ struct x264_client_t : cuti::client_t
   {
     if(auto msg = context_.message_at(cuti::loglevel_t::info))
     {
-      *msg << "closing connection " << *connection_;
+      *msg << "disconnecting client " << *connection_;
     }
   }
 
