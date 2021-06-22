@@ -177,9 +177,9 @@ default_endpoints()
   return cuti::local_interfaces(11264);
 }
   
-struct x264_encoding_service_config_t : cuti::service_config_t
+struct x264_config_t : cuti::service_config_t
 {
-  x264_encoding_service_config_t(int argc, char const* const argv[])
+  x264_config_t(int argc, char const* const argv[])
   : argv0_((assert(argc > 0), argv[0]))
 #ifndef _WIN32
   , daemon_(false)
@@ -481,18 +481,18 @@ private :
 #endif
 };
 
-struct x264_encoding_service_config_reader_t : cuti::service_config_reader_t
+struct x264_config_reader_t : cuti::service_config_reader_t
 {
   std::unique_ptr<cuti::service_config_t>
   read_config(int argc, char const* const argv[]) const override
   {
-    return std::make_unique<x264_encoding_service_config_t>(argc, argv);
+    return std::make_unique<x264_config_t>(argc, argv);
   }
 };
     
 void throwing_main(int argc, char const* const argv[])
 {
-  x264_encoding_service_config_reader_t config_reader;
+  x264_config_reader_t config_reader;
   cuti::run_service(config_reader, argc, argv);
 }
 
