@@ -67,6 +67,7 @@ lib cuti
   args_reader.cpp
   callback.cpp
   circular_buffer.cpp
+  client.cpp
   cmdline_reader.cpp
   config_file_reader.cpp
   default_backend.cpp
@@ -78,6 +79,7 @@ lib cuti
   fs_utils.cpp
   format.cpp
   kqueue_selector.cpp
+  listener.cpp
   logger.cpp
   logging_backend.cpp
   logging_context.cpp

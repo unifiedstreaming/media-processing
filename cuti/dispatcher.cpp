@@ -31,13 +31,60 @@ namespace cuti
 namespace // anonymous
 {
 
-void on_control(int& sig,
-                tcp_connection_t& connection,
-		scheduler_t& scheduler)
+} // anonymous
+
+dispatcher_t::dispatcher_t(logging_context_t& logging_context,
+                           tcp_connection_t& control,
+                           selector_factory_t const& selector_factory)
+: logging_context_(logging_context)
+, control_(control)
+, selector_name_(selector_factory.name())
+, scheduler_(selector_factory)
+, sig_(0)
+, listeners_()
+{
+  auto callback = [this] { this->on_control(); };
+  control_.call_when_readable(scheduler_, callback);
+}
+
+void dispatcher_t::add_listener(std::unique_ptr<listener_t> listener)
+{
+  listeners_.push_back(std::move(listener));
+  scoped_guard_t guard([&] { listeners_.pop_back(); });
+
+  listener_t& last = *listeners_.back();
+  auto callback = [this, &last ] { this->on_listener(last); };
+  last.call_when_ready(scheduler_, callback);
+
+  guard.dismiss();
+}
+
+void dispatcher_t::run()
+{
+  if(auto msg = logging_context_.message_at(loglevel_t::info))
+  {
+    *msg << "dispatcher running (selector: " << selector_name_ << ")";
+  }
+
+  sig_ = 0;
+  do
+  {
+    auto callback = scheduler_.wait();
+    assert(callback != nullptr);
+    callback();
+  } while(sig_ == 0);
+
+  if(auto msg = logging_context_.message_at(loglevel_t::info))
+  {
+    *msg << "caught signal " << sig_ << ", stopping dispatcher";
+  }
+}
+
+void dispatcher_t::on_control()
 {
   char buf[1];
   char* next;
-  connection.read(buf, buf + 1, next);
+  control_.read(buf, buf + 1, next);
 
   if(next == nullptr)
   {
@@ -50,48 +97,22 @@ void on_control(int& sig,
   else
   {
     assert(next == buf + 1);
-    sig = buf[0];
-    assert(sig != 0);
+    sig_ = buf[0];
+    assert(sig_ != 0);
   }
 
-  connection.call_when_readable(scheduler,
-    [&] { on_control(sig, connection, scheduler); });
+  auto callback = [this] { this->on_control(); };
+  control_.call_when_readable(scheduler_, callback);
 }
 
-} // anonymous
-
-dispatcher_t::dispatcher_t(logging_context_t& logging_context,
-                           tcp_connection_t& control_connection,
-                           selector_factory_t selector_factory)
-: logging_context_(logging_context)
-, control_connection_(control_connection)
-, selector_factory_(std::move(selector_factory))
-{ }
-
-void dispatcher_t::run()
+void dispatcher_t::on_listener(listener_t& listener)
 {
-  default_scheduler_t scheduler(selector_factory_);
-
-  int sig = 0;
-  control_connection_.call_when_readable(scheduler,
-    [&] { on_control(sig, control_connection_, scheduler); } );
-
-  if(auto msg = logging_context_.message_at(loglevel_t::info))
-  {
-    *msg << "dispatcher running (selector: " << selector_factory_ << ")";
-  }
-
-  while(sig == 0)
-  {
-    auto callback = scheduler.wait();
-    assert(callback != nullptr);
-    callback();
-  }
-
-  if(auto msg = logging_context_.message_at(loglevel_t::info))
-  {
-    *msg << "caught signal " << sig << ", stopping dispatcher";
-  }
+  std::unique_ptr<client_t> client = listener.on_ready();
+  // TODO: have scheduler monitor client
+  client.reset();
+  
+  auto callback = [this, &listener] { this->on_listener(listener); };
+  listener.call_when_ready(scheduler_, callback);
 }
 
 } // cuti

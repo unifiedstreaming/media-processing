@@ -20,8 +20,14 @@
 #ifndef CUTI_DISPATCHER_HPP_
 #define CUTI_DISPATCHER_HPP_
 
+#include "default_scheduler.hpp"
 #include "linkage.h"
+#include "listener.hpp"
 #include "selector_factory.hpp"
+
+#include <memory>
+#include <string>
+#include <vector>
 
 namespace cuti
 {
@@ -32,18 +38,27 @@ struct tcp_connection_t;
 struct CUTI_ABI dispatcher_t
 {
   dispatcher_t(logging_context_t& logging_context,
-	       tcp_connection_t& control_connection,
-               selector_factory_t selector_factory);
+	       tcp_connection_t& control,
+               selector_factory_t const& selector_factory);
 
   dispatcher_t(dispatcher_t const&) = delete;
   dispatcher_t& operator=(dispatcher_t const&) = delete;
+
+  void add_listener(std::unique_ptr<listener_t> listener);
   
   void run();
 
 private :
+  void on_control();
+  void on_listener(listener_t& listener);
+
+private :
   logging_context_t& logging_context_;
-  tcp_connection_t& control_connection_;
-  selector_factory_t selector_factory_;
+  tcp_connection_t& control_;
+  std::string selector_name_;
+  default_scheduler_t scheduler_;
+  int sig_;
+  std::vector<std::unique_ptr<listener_t>> listeners_;
 };
 
 } // cuti
