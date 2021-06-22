@@ -32,6 +32,7 @@ struct sockaddr;
 namespace cuti
 {
 
+struct args_reader_t;
 struct resolver_t;
 struct tcp_socket_t;
 
@@ -76,6 +77,9 @@ inline bool operator!=(endpoint_t const& lhs, endpoint_t const& rhs) noexcept
 
 CUTI_ABI
 std::ostream& operator<<(std::ostream& os, endpoint_t const& endpoint);
+
+CUTI_ABI void parse_optval(char const* name, args_reader_t const& reader,
+                           char const* in, endpoint_t& out);
 
 } // namespace cuti
 

@@ -20,19 +20,24 @@
 #include "cmdline_reader.hpp"
 #include "config_file_reader.hpp"
 #include "dispatcher.hpp"
+#include "endpoint.hpp"
 #include "exception_builder.hpp"
 #include "file_backend.hpp"
+#include "listener.hpp"
 #include "logger.hpp"
 #include "option_walker.hpp"
 #include "process.hpp"
+#include "resolver.hpp"
 #include "service.hpp"
 #include "syslog_backend.hpp"
+#include "tcp_acceptor.hpp"
 
 #include <fstream>
 #include <iostream>
 #include <memory>
 #include <stdexcept>
 #include <string>
+#include <vector>
 
 namespace // anonymous
 {
@@ -49,13 +54,113 @@ certain conditions, you may modify and/or redistribute this program;
 see <http://www.gnu.org/licenses/> for details.)";
 }
 
+struct x264_client_t : cuti::client_t
+{
+  x264_client_t(cuti::logging_context_t& context,
+                std::unique_ptr<cuti::tcp_connection_t> connection)
+  : context_(context)
+  , connection_(std::move(connection))
+  {
+    connection_->set_nonblocking();
+    if(auto msg = context.message_at(cuti::loglevel_t::info))
+    {
+      *msg << "accepted connection " << *connection_;
+    }
+  }
+
+  cuti::cancellation_ticket_t call_when_readable(
+    cuti::scheduler_t& scheduler, cuti::callback_t callback) override
+  {
+    return connection_->call_when_readable(scheduler, std::move(callback));
+  }
+
+  bool on_readable() override
+  {
+    return false;
+  }
+    
+  ~x264_client_t() override
+  {
+    if(auto msg = context_.message_at(cuti::loglevel_t::info))
+    {
+      *msg << "closing connection " << *connection_;
+    }
+  }
+
+private :
+  cuti::logging_context_t& context_;
+  std::unique_ptr<cuti::tcp_connection_t> connection_;
+};
+
+struct x264_listener_t : cuti::listener_t
+{
+  x264_listener_t(cuti::logging_context_t& context,
+                  cuti::endpoint_t const& endpoint)
+  : context_(context)
+  , acceptor_(endpoint)
+  {
+    acceptor_.set_nonblocking();
+
+    if(auto msg = context.message_at(cuti::loglevel_t::info))
+    {
+      *msg << "listening at endpoint " << endpoint;
+    }
+  }
+
+  cuti::cancellation_ticket_t call_when_ready(
+    cuti::scheduler_t& scheduler, cuti::callback_t callback) override
+  {
+    return acceptor_.call_when_ready(scheduler, std::move(callback));
+  }
+
+  std::unique_ptr<cuti::client_t> on_ready() override
+  {
+    std::unique_ptr<cuti::tcp_connection_t> accepted;
+    std::unique_ptr<cuti::client_t> result;
+
+    int error = acceptor_.accept(accepted);
+    if(error != 0)
+    {
+      if(auto msg = context_.message_at(cuti::loglevel_t::error))
+      {
+        *msg << "listener " << acceptor_ << ": accept() failure: " <<
+          cuti::system_error_string(error);
+      }
+    }
+    else if(accepted == nullptr)
+    {
+      if(auto msg = context_.message_at(cuti::loglevel_t::warning))
+      {
+        *msg << "listener " << acceptor_ << ": accept() would block";
+      }
+    }
+    else
+    {
+      result = std::make_unique<x264_client_t>(context_, std::move(accepted));
+    }
+
+    return result;
+  }
+    
+private :
+  cuti::logging_context_t& context_;
+  cuti::tcp_acceptor_t acceptor_;
+};
+  
 struct x264_encoding_service_t : cuti::service_t
 {
   x264_encoding_service_t(cuti::logging_context_t& logging_context,
                           cuti::tcp_connection_t& control_connection,
-                          cuti::selector_factory_t const& selector_factory)
+                          cuti::selector_factory_t const& selector_factory,
+                          std::vector<cuti::endpoint_t> const& endpoints)
   : dispatcher_(logging_context, control_connection, selector_factory)
-  { }
+  {
+    for(auto const& endpoint : endpoints)
+    {
+      dispatcher_.add_listener(std::make_unique<x264_listener_t>(
+        logging_context, endpoint));
+    }
+  }
 
   void run() override
   {
@@ -66,6 +171,12 @@ private :
   cuti::dispatcher_t dispatcher_;
 };
 
+std::vector<cuti::endpoint_t>
+default_endpoints()
+{
+  return cuti::local_interfaces(11264);
+}
+  
 struct x264_encoding_service_config_t : cuti::service_config_t
 {
   x264_encoding_service_config_t(int argc, char const* const argv[])
@@ -75,6 +186,7 @@ struct x264_encoding_service_config_t : cuti::service_config_t
 #endif
   , directory_()
   , dry_run_(false)
+  , endpoints_()
 #ifndef _WIN32
   , group_()
 #endif
@@ -165,8 +277,14 @@ struct x264_encoding_service_config_t : cuti::service_config_t
   {
     context.level(loglevel_);
 
+    auto endpoints = endpoints_;
+    if(endpoints.empty())
+    {
+      endpoints = default_endpoints();
+    }
+
     auto result = std::make_unique<x264_encoding_service_t>(
-        context, control_connection, selector_);
+        context, control_connection, selector_, endpoints);
     if(dry_run_)
     {
       result.reset();
@@ -238,6 +356,7 @@ private :
 #endif
         !walker.match("--directory", directory_) &&
         !walker.match("--dry-run", dry_run_) &&
+        !walker.match("--endpoint", endpoints_) &&
 #ifndef _WIN32
         !walker.match("--group", group_) &&
 #endif
@@ -288,6 +407,17 @@ private :
       "change directory to <path> (default: no change)" << std::endl;
     os << "  --dry-run                " <<
       "initialize the service, but do not run it" << std::endl;
+    os << "  --endpoint <port>@<ip>   " <<
+      "add endpoint to listen on" << std::endl;
+    os << "                             (defaults:";
+    {
+      auto defaults = default_endpoints();
+      for(auto const& endpoint : defaults)
+      {
+        os << ' ' << endpoint;
+      }
+      os << ")" << std::endl;
+    }
 #ifndef _WIN32
     os << "  --group <group name>     " <<
       "run under <group name>'s group id" << std::endl;
@@ -333,6 +463,7 @@ private :
 #endif
   std::string directory_;
   cuti::flag_t dry_run_;
+  std::vector<cuti::endpoint_t> endpoints_;
 #ifndef _WIN32
   std::optional<cuti::group_id_t> group_;
 #endif

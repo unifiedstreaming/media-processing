@@ -19,6 +19,8 @@
 
 #include "endpoint.hpp"
 
+#include "args_reader.hpp"
+#include "resolver.hpp"
 #include "system_error.hpp"
 
 #include <algorithm>
@@ -247,4 +249,49 @@ std::ostream& operator<<(std::ostream& os, endpoint_t const& endpoint)
   return os;
 }
 
-} // namespace cuti
+void parse_optval(char const* name, args_reader_t const& reader,
+                  char const* in, endpoint_t& out)
+{
+  unsigned int port = 0;
+  do
+  {
+    if(*in < '0' || *in > '9')
+    {
+      system_exception_builder_t builder;
+      builder << reader.current_origin() <<
+        ": digit expected in port number for option '" << name << "'";
+      builder.explode();
+    }
+
+    unsigned int dval = *in - '0';
+    if(port > max_port / 10 || 10 * port > max_port - dval)
+    {
+      system_exception_builder_t builder;
+      builder << reader.current_origin() <<
+        ": maximum port number (" << max_port <<
+        ") exceeded for option '" << name << "'";
+      builder.explode();
+    }
+
+    port *= 10;
+    port += dval;
+
+    ++in;
+  } while(*in != '@');
+
+  ++in;
+  try
+  {
+    out = resolve_ip(in, port);
+  }
+  catch(std::exception const& ex)
+  {
+    system_exception_builder_t builder;
+    builder << reader.current_origin() <<
+      ": error resolving IP address '" << in <<
+      "' for option '" << name << "': " << ex.what();
+    builder.explode();
+  }
+}
+    
+} // cuti
