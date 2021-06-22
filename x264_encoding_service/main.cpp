@@ -17,22 +17,21 @@
  * <http://www.gnu.org/licenses/>.
  */
 
+#include "x264_client.hpp"
+#include "x264_listener.hpp"
+#include "x264_service.hpp"
+
 #include "cmdline_reader.hpp"
 #include "config_file_reader.hpp"
-#include "dispatcher.hpp"
 #include "endpoint.hpp"
 #include "exception_builder.hpp"
 #include "file_backend.hpp"
-#include "listener.hpp"
 #include "logger.hpp"
 #include "option_walker.hpp"
 #include "process.hpp"
 #include "resolver.hpp"
-#include "service.hpp"
+#include "selector_factory.hpp"
 #include "syslog_backend.hpp"
-
-#include "x264_client.hpp"
-#include "x264_listener.hpp"
 
 #include <fstream>
 #include <iostream>
@@ -55,30 +54,6 @@ Public License as published by the Free Software Foundation. Under
 certain conditions, you may modify and/or redistribute this program;
 see <http://www.gnu.org/licenses/> for details.)";
 }
-
-struct x264_encoding_service_t : cuti::service_t
-{
-  x264_encoding_service_t(cuti::logging_context_t& logging_context,
-                          cuti::tcp_connection_t& control_connection,
-                          cuti::selector_factory_t const& selector_factory,
-                          std::vector<cuti::endpoint_t> const& endpoints)
-  : dispatcher_(logging_context, control_connection, selector_factory)
-  {
-    for(auto const& endpoint : endpoints)
-    {
-      dispatcher_.add_listener(std::make_unique<x264_listener_t>(
-        logging_context, endpoint));
-    }
-  }
-
-  void run() override
-  {
-    dispatcher_.run();
-  }
-      
-private :
-  cuti::dispatcher_t dispatcher_;
-};
 
 std::vector<cuti::endpoint_t>
 default_endpoints()
@@ -192,7 +167,7 @@ struct x264_config_t : cuti::service_config_t
       endpoints = default_endpoints();
     }
 
-    auto result = std::make_unique<x264_encoding_service_t>(
+    auto result = std::make_unique<x264_service_t>(
         context, control_connection, selector_, endpoints);
     if(dry_run_)
     {

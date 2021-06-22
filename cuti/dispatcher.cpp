@@ -28,12 +28,7 @@
 namespace cuti
 {
 
-namespace // anonymous
-{
-
-} // anonymous
-
-dispatcher_t::dispatcher_t(logging_context_t& logging_context,
+dispatcher_t::dispatcher_t(logging_context_t const& logging_context,
                            tcp_connection_t& control,
                            selector_factory_t const& selector_factory)
 : logging_context_(logging_context)

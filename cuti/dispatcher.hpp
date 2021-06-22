@@ -37,8 +37,8 @@ struct tcp_connection_t;
 
 struct CUTI_ABI dispatcher_t
 {
-  dispatcher_t(logging_context_t& logging_context,
-	       tcp_connection_t& control,
+  dispatcher_t(logging_context_t const& logging_context,
+               tcp_connection_t& control,
                selector_factory_t const& selector_factory);
 
   dispatcher_t(dispatcher_t const&) = delete;
@@ -53,7 +53,7 @@ private :
   void on_listener(listener_t& listener);
 
 private :
-  logging_context_t& logging_context_;
+  logging_context_t const& logging_context_;
   tcp_connection_t& control_;
   std::string selector_name_;
   default_scheduler_t scheduler_;

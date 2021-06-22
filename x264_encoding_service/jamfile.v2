@@ -23,6 +23,7 @@ exe x264_encoding_service
 : main.cpp
   x264_client.cpp
   x264_listener.cpp
+  x264_service.cpp
   /cuti//cuti
 : <threading>multi
   <target-os>linux:<linkflags>-Wl,--enable-new-dtags
