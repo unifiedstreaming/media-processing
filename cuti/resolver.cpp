@@ -22,9 +22,7 @@
 #include "system_error.hpp"
 
 #include <cassert>
-#include <cinttypes>
 #include <cstring>
-#include <limits>
 #include <memory>
 #include <utility>
 
@@ -50,8 +48,6 @@ namespace // anonymous
 std::shared_ptr<addrinfo const>
 make_addrinfo(int flags, char const* host, unsigned int port)
 {
-  static const unsigned int max_port =
-    std::numeric_limits<std::uint16_t>::max();
   if(port > max_port)
   {
     system_exception_builder_t builder;

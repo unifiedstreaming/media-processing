@@ -344,8 +344,8 @@ struct logged_tcp_connection_t
   {
     if(auto msg = context_.message_at(loglevel_))
     {
-      *msg << prefix_ << conn_ <<
-        ": trying to send " << last - first << " byte(s)";
+      *msg << prefix_ << '[' << conn_ <<
+        "]: trying to send " << last - first << " byte(s)";
     }
 
     int result = conn_.write(first, last, next);
@@ -353,7 +353,7 @@ struct logged_tcp_connection_t
     {
       if(auto msg = context_.message_at(loglevel_))
       {
-        *msg << prefix_ << conn_ << ": reported system error: " <<
+        *msg << prefix_ << '[' << conn_ << "]: reported system error: " <<
           system_error_string(result);
       }
     }
@@ -362,12 +362,12 @@ struct logged_tcp_connection_t
     {
       if(next == nullptr)
       {
-        *msg << prefix_ << conn_ << ": can't send yet";
+        *msg << prefix_ << '[' << conn_ << "]: can't send yet";
       }
       else
       {
-        *msg << prefix_ << conn_ <<
-          ": sent " << next - first << " byte(s)";
+        *msg << prefix_ << '[' << conn_ <<
+          "]: sent " << next - first << " byte(s)";
       }
     }
 
@@ -378,7 +378,7 @@ struct logged_tcp_connection_t
   {
     if(auto msg = context_.message_at(loglevel_))
     {
-      *msg << prefix_ << conn_ << ": sending EOF";
+      *msg << prefix_ << '[' << conn_ << "]: sending EOF";
     }
 
     int result = conn_.close_write_end();
@@ -386,7 +386,7 @@ struct logged_tcp_connection_t
     {
       if(auto msg = context_.message_at(loglevel_))
       {
-        *msg << prefix_ << conn_ << ": reported system error: " <<
+        *msg << prefix_ << '[' << conn_ << "]: reported system error: " <<
           system_error_string(result);
       }
     }
@@ -398,8 +398,8 @@ struct logged_tcp_connection_t
   {
     if(auto msg = context_.message_at(loglevel_))
     {
-      *msg << prefix_ << conn_ <<
-        ": trying to receive " << last - first << " byte(s)";
+      *msg << prefix_ << '[' << conn_ <<
+        "]: trying to receive " << last - first << " byte(s)";
     }
 
     int result = conn_.read(first, last, next);
@@ -407,7 +407,7 @@ struct logged_tcp_connection_t
     {
       if(auto msg = context_.message_at(loglevel_))
       {
-        *msg << prefix_ << conn_ << ": reported system error: " <<
+        *msg << prefix_ << '[' << conn_ << "]: reported system error: " <<
           system_error_string(result);
       }
     }
@@ -416,16 +416,16 @@ struct logged_tcp_connection_t
     {
       if(next == nullptr)
       {
-        *msg << prefix_ << conn_ << ": nothing to receive yet";
+        *msg << prefix_ << '[' << conn_ << "] : nothing to receive yet";
       }
       else if(next == first)
       {
-        *msg << prefix_ << conn_ << ": received EOF";
+        *msg << prefix_ << '[' << conn_ << "]: received EOF";
       }
       else
       {
-        *msg << prefix_ << conn_ <<
-          ": received " << next - first << " byte(s)";
+        *msg << prefix_ << '[' << conn_ <<
+          "]: received " << next - first << " byte(s)";
       }
     }
 
@@ -438,7 +438,7 @@ struct logged_tcp_connection_t
   {
     if(auto msg = context_.message_at(loglevel_))
     {
-      *msg << prefix_ << conn_ << ": requesting writable callback";
+      *msg << prefix_ << '[' << conn_ << "]: requesting writable callback";
     }
 
     return conn_.call_when_writable(
@@ -451,7 +451,7 @@ struct logged_tcp_connection_t
   {
     if(auto msg = context_.message_at(loglevel_))
     {
-      *msg << prefix_ << conn_ << ": requesting readable callback";
+      *msg << prefix_ << '[' << conn_ << "]: requesting readable callback";
     }
 
     return conn_.call_when_readable(
@@ -462,7 +462,7 @@ struct logged_tcp_connection_t
   {
     if(auto msg = context_.message_at(loglevel_))
     {
-      *msg << prefix_ << conn_ << ": connection destructor";
+      *msg << prefix_ << '[' << conn_ << "]: connection destructor";
     }
   }
 

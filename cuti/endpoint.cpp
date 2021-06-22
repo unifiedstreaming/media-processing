@@ -237,11 +237,11 @@ std::ostream& operator<<(std::ostream& os, endpoint_t const& endpoint)
 {
   if(endpoint.empty())
   {
-    os << "[EMPTY ENDPOINT]";
+    os << "<EMPTY ENDPOINT>";
   }
   else
   {
-    os << '[' << endpoint.port() << '@' << endpoint.ip_address() << ']';
+    os << endpoint.port() << '@' << endpoint.ip_address();
   }
 
   return os;

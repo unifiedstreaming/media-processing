@@ -24,6 +24,8 @@
 #include "linkage.h"
 #include "socket_nifty.hpp"
 
+#include <cinttypes>
+#include <limits>
 #include <string>
 #include <vector>
 
@@ -34,7 +36,8 @@ namespace cuti
  * Endpoint factory functions
  */
 using endpoints_t = std::vector<endpoint_t>;
-unsigned int const any_port = 0;
+unsigned int constexpr any_port = 0;
+unsigned int constexpr max_port = std::numeric_limits<uint16_t>::max();
 
 // Returns an endpoint for an IP address and port number
 CUTI_ABI endpoint_t resolve_ip(char const* ip, unsigned int port);
