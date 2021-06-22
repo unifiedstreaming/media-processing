@@ -32,6 +32,8 @@
 #include "syslog_backend.hpp"
 #include "tcp_acceptor.hpp"
 
+#include "x264_client.hpp"
+
 #include <fstream>
 #include <iostream>
 #include <memory>
@@ -53,44 +55,6 @@ Public License as published by the Free Software Foundation. Under
 certain conditions, you may modify and/or redistribute this program;
 see <http://www.gnu.org/licenses/> for details.)";
 }
-
-struct x264_client_t : cuti::client_t
-{
-  x264_client_t(cuti::logging_context_t& context,
-                std::unique_ptr<cuti::tcp_connection_t> connection)
-  : context_(context)
-  , connection_(std::move(connection))
-  {
-    connection_->set_nonblocking();
-    if(auto msg = context.message_at(cuti::loglevel_t::info))
-    {
-      *msg << "accepted client " << *connection_;
-    }
-  }
-
-  cuti::cancellation_ticket_t call_when_readable(
-    cuti::scheduler_t& scheduler, cuti::callback_t callback) override
-  {
-    return connection_->call_when_readable(scheduler, std::move(callback));
-  }
-
-  bool on_readable() override
-  {
-    return false;
-  }
-    
-  ~x264_client_t() override
-  {
-    if(auto msg = context_.message_at(cuti::loglevel_t::info))
-    {
-      *msg << "disconnecting client " << *connection_;
-    }
-  }
-
-private :
-  cuti::logging_context_t& context_;
-  std::unique_ptr<cuti::tcp_connection_t> connection_;
-};
 
 struct x264_listener_t : cuti::listener_t
 {
