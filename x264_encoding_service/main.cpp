@@ -30,9 +30,9 @@
 #include "resolver.hpp"
 #include "service.hpp"
 #include "syslog_backend.hpp"
-#include "tcp_acceptor.hpp"
 
 #include "x264_client.hpp"
+#include "x264_listener.hpp"
 
 #include <fstream>
 #include <iostream>
@@ -56,61 +56,6 @@ certain conditions, you may modify and/or redistribute this program;
 see <http://www.gnu.org/licenses/> for details.)";
 }
 
-struct x264_listener_t : cuti::listener_t
-{
-  x264_listener_t(cuti::logging_context_t& context,
-                  cuti::endpoint_t const& endpoint)
-  : context_(context)
-  , acceptor_(endpoint)
-  {
-    acceptor_.set_nonblocking();
-
-    if(auto msg = context.message_at(cuti::loglevel_t::info))
-    {
-      *msg << "listening at endpoint " << endpoint;
-    }
-  }
-
-  cuti::cancellation_ticket_t call_when_ready(
-    cuti::scheduler_t& scheduler, cuti::callback_t callback) override
-  {
-    return acceptor_.call_when_ready(scheduler, std::move(callback));
-  }
-
-  std::unique_ptr<cuti::client_t> on_ready() override
-  {
-    std::unique_ptr<cuti::tcp_connection_t> accepted;
-    std::unique_ptr<cuti::client_t> result;
-
-    int error = acceptor_.accept(accepted);
-    if(error != 0)
-    {
-      if(auto msg = context_.message_at(cuti::loglevel_t::error))
-      {
-        *msg << "listener " << acceptor_ << ": accept() failure: " <<
-          cuti::system_error_string(error);
-      }
-    }
-    else if(accepted == nullptr)
-    {
-      if(auto msg = context_.message_at(cuti::loglevel_t::warning))
-      {
-        *msg << "listener " << acceptor_ << ": accept() would block";
-      }
-    }
-    else
-    {
-      result = std::make_unique<x264_client_t>(context_, std::move(accepted));
-    }
-
-    return result;
-  }
-    
-private :
-  cuti::logging_context_t& context_;
-  cuti::tcp_acceptor_t acceptor_;
-};
-  
 struct x264_encoding_service_t : cuti::service_t
 {
   x264_encoding_service_t(cuti::logging_context_t& logging_context,
