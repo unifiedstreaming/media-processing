@@ -20,12 +20,12 @@
 #ifndef X264_CONFIG_HPP_
 #define X264_CONFIG_HPP_
 
-#include "endpoint.hpp"
-#include "flag.hpp"
-#include "fs_utils.hpp"
-#include "loglevel.hpp"
-#include "selector_factory.hpp"
-#include "service.hpp"
+#include <cuti/endpoint.hpp>
+#include <cuti/flag.hpp>
+#include <cuti/fs_utils.hpp>
+#include <cuti/loglevel.hpp>
+#include <cuti/selector_factory.hpp>
+#include <cuti/service.hpp>
 
 #include <optional>
 #include <ostream>

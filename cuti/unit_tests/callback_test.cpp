@@ -17,7 +17,7 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#include "callback.hpp"
+#include <cuti/callback.hpp>
 
 #include <exception>
 #include <iostream>

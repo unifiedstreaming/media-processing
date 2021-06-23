@@ -17,9 +17,9 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#include "cmdline_reader.hpp"
-#include "option_walker.hpp"
-#include "logger.hpp"
+#include <cuti/cmdline_reader.hpp>
+#include <cuti/option_walker.hpp>
+#include <cuti/logger.hpp>
 
 #include <cstring>
 #include <exception>

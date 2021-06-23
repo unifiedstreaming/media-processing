@@ -20,7 +20,7 @@
 #ifndef X264_CLIENT_HPP_
 #define X264_CLIENT_HPP_
 
-#include "client.hpp"
+#include <cuti/client.hpp>
 
 #include <memory>
 

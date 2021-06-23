@@ -17,7 +17,7 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#include "circular_buffer.hpp"
+#include <cuti/circular_buffer.hpp>
 
 #include <algorithm>
 #include <exception>

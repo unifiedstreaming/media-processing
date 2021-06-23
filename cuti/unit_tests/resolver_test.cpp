@@ -17,8 +17,8 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#include "resolver.hpp"
-#include "system_error.hpp"
+#include <cuti/resolver.hpp>
+#include <cuti/system_error.hpp>
 
 #include <exception>
 #include <iostream>

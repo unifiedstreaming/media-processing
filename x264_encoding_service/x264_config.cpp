@@ -19,16 +19,16 @@
 
 #include "x264_config.hpp"
 
-#include "args_reader.hpp"
-#include "cmdline_reader.hpp"
-#include "config_file_reader.hpp"
-#include "exception_builder.hpp"
-#include "file_backend.hpp"
-#include "option_walker.hpp"
-#include "resolver.hpp"
-#include "syslog_backend.hpp"
-
 #include "x264_service.hpp"
+
+#include <cuti/args_reader.hpp>
+#include <cuti/cmdline_reader.hpp>
+#include <cuti/config_file_reader.hpp>
+#include <cuti/exception_builder.hpp>
+#include <cuti/file_backend.hpp>
+#include <cuti/option_walker.hpp>
+#include <cuti/resolver.hpp>
+#include <cuti/syslog_backend.hpp>
 
 #include <cassert>
 #include <fstream>

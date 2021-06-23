@@ -17,8 +17,8 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#include "config_file_reader.hpp"
-#include "viewbuf.hpp"
+#include <cuti/config_file_reader.hpp>
+#include <cuti/viewbuf.hpp>
 
 #include <cstring>
 #include <iostream>

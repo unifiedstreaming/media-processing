@@ -20,7 +20,7 @@
 #ifndef X264_LISTENER_HPP_
 #define X264_LISTENER_HPP_
 
-#include "listener.hpp"
+#include <cuti/listener.hpp>
 
 #include <memory>
 

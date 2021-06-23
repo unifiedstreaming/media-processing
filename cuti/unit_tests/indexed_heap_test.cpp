@@ -17,7 +17,7 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#include "indexed_heap.hpp"
+#include <cuti/indexed_heap.hpp>
 
 #include <exception>
 #include <iostream>

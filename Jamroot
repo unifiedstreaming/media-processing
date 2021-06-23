@@ -18,9 +18,9 @@ project cs_oss
   <debug-symbols>on
 ;
 
-use-project /cuti : cuti ;
+use-project /cuti : cuti/cuti ;
 
-build-project cuti ;
+build-project cuti/cuti ;
 build-project x264_encoding_service ;
 
 explicit unit_tests ;

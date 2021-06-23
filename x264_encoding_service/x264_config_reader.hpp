@@ -20,7 +20,7 @@
 #ifndef X264_CONFIG_READER_HPP_
 #define X264_CONFIG_READER_HPP_
 
-#include "service.hpp"
+#include <cuti/service.hpp>
 
 struct x264_config_reader_t : cuti::service_config_reader_t
 {

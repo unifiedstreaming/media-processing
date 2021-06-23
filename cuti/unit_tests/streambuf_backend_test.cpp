@@ -17,8 +17,8 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#include "streambuf_backend.hpp"
-#include "scoped_thread.hpp"
+#include <cuti/streambuf_backend.hpp>
+#include <cuti/scoped_thread.hpp>
 
 #include <cstring>
 

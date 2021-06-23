@@ -19,8 +19,8 @@
 
 #include "x264_client.hpp"
 
-#include "logging_context.hpp"
-#include "tcp_connection.hpp"
+#include <cuti/logging_context.hpp>
+#include <cuti/tcp_connection.hpp>
 
 x264_client_t::x264_client_t(cuti::logging_context_t const& context,
                              std::unique_ptr<cuti::tcp_connection_t> connection)

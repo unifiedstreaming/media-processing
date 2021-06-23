@@ -20,8 +20,8 @@
 #ifndef X264_SERVICE_HPP_
 #define X264_SERVICE_HPP_
 
-#include "endpoint.hpp"
-#include "service.hpp"
+#include <cuti/endpoint.hpp>
+#include <cuti/service.hpp>
 
 #include <memory>
 #include <vector>

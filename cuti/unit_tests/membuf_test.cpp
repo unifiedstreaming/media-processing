@@ -17,7 +17,7 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#include "membuf.hpp"
+#include <cuti/membuf.hpp>
 
 #include <algorithm>
 #include <exception>

@@ -17,7 +17,7 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#include "socket_nifty.hpp"
+#include <cuti/socket_nifty.hpp>
 
 #include <exception>
 #include <iostream>

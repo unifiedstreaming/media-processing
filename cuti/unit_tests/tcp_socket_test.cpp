@@ -17,8 +17,8 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#include "tcp_socket.hpp"
-#include "resolver.hpp"
+#include <cuti/tcp_socket.hpp>
+#include <cuti/resolver.hpp>
 
 #include <exception>
 #include <iostream>

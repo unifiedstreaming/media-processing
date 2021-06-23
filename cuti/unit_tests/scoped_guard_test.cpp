@@ -17,7 +17,7 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#include "scoped_guard.hpp"
+#include <cuti/scoped_guard.hpp>
 
 #include <iostream>
 #include <exception>

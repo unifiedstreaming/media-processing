@@ -17,7 +17,7 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#include "list_arena.hpp"
+#include <cuti/list_arena.hpp>
 
 #include <exception>
 #include <iostream>

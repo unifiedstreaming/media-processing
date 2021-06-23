@@ -121,5 +121,5 @@ lib cuti
 :
   <toolset>msvc:<cxxflags>/wd4251 # class needs to have dll-interface 
   <toolset>msvc:<cxxflags>/wd4275 # non dll-interface class used as base
-  <include>.
+  <include>..
 ; 

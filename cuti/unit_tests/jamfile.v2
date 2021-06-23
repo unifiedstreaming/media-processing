@@ -22,7 +22,7 @@ import testing ;
 project
 : requirements
   <threading>multi
-  <library>..//cuti
+  <library>../cuti//cuti
 ;
 
 unit-test callback_test

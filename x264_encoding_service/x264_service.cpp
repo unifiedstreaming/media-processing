@@ -21,7 +21,7 @@
 
 #include "x264_listener.hpp"
 
-#include "dispatcher.hpp"
+#include <cuti/dispatcher.hpp>
 
 x264_service_t::x264_service_t(
   cuti::logging_context_t const& context,

@@ -17,7 +17,7 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#include "fs_utils.hpp"
+#include <cuti/fs_utils.hpp>
 
 #include <exception>
 #include <iostream>
