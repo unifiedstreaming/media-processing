@@ -17,35 +17,15 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#include "x264_config_reader.hpp"
+#ifndef X264_CONFIG_READER_HPP_
+#define X264_CONFIG_READER_HPP_
 
-#include <iostream>
-#include <stdexcept>
+#include "service.hpp"
 
-namespace // anonymous
+struct x264_config_reader_t : cuti::service_config_reader_t
 {
-
-void throwing_main(int argc, char const* const argv[])
-{
-  x264_config_reader_t config_reader;
-  cuti::run_service(config_reader, argc, argv);
-}
-
-} // anonymous
-
-int main(int argc, char* argv[])
-{
-  int result = 1;
-
-  try
-  {
-    throwing_main(argc, argv);
-    result = 0;
-  }
-  catch(std::exception const& ex)
-  {
-    std::cerr << argv[0] << ": " << ex.what() << std::endl;
-  }
-
-  return result;
-}
+  std::unique_ptr<cuti::service_config_t>
+  read_config(int argc, char const* const argv[]) const override;
+};
+    
+#endif

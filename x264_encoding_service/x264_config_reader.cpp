@@ -19,33 +19,10 @@
 
 #include "x264_config_reader.hpp"
 
-#include <iostream>
-#include <stdexcept>
+#include "x264_config.hpp"
 
-namespace // anonymous
+std::unique_ptr<cuti::service_config_t>
+x264_config_reader_t::read_config(int argc, char const* const argv[]) const
 {
-
-void throwing_main(int argc, char const* const argv[])
-{
-  x264_config_reader_t config_reader;
-  cuti::run_service(config_reader, argc, argv);
-}
-
-} // anonymous
-
-int main(int argc, char* argv[])
-{
-  int result = 1;
-
-  try
-  {
-    throwing_main(argc, argv);
-    result = 0;
-  }
-  catch(std::exception const& ex)
-  {
-    std::cerr << argv[0] << ": " << ex.what() << std::endl;
-  }
-
-  return result;
+  return std::make_unique<x264_config_t>(argc, argv);
 }
