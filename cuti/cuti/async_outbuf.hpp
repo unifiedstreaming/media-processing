@@ -29,28 +29,12 @@
 namespace cuti
 {
 
-struct tcp_connection_t;
-
 /*
- * Asynchronous socket output buffer.
+ * Abstract asynchronous output buffer.
  */
 struct CUTI_ABI async_outbuf_t
 {
-  static std::size_t constexpr default_bufsize = 256 * 1024;
-
-  /*
-   * Construct an asynchronous outbuf buffer for conn, using the
-   * default buffer size. The connection must stay alive until *this
-   * is destroyed.
-   */
-  explicit async_outbuf_t(tcp_connection_t& conn);
-
-  /*
-   * Construct an asynchronous outbuf buffer for conn, using the
-   * default buffer size. The connection must stay alive until *this
-   * is destroyed.
-   */
-  async_outbuf_t(tcp_connection_t& conn, std::size_t bufsize);
+  explicit async_outbuf_t(std::size_t bufsize);
 
   async_outbuf_t(async_outbuf_t const&) = delete;
   async_outbuf_t& operator=(async_outbuf_t const&) = delete;
@@ -118,15 +102,20 @@ struct CUTI_ABI async_outbuf_t
    * Destroys the buffer.  Please note that destroying a buffer that has
    * not been flushed will probably lead to data loss.
    */
-  ~async_outbuf_t();
+  virtual ~async_outbuf_t();
 
 private :
   void on_writable_now();
-  void on_conn_writable();
+  void on_derived_writable();
 
 private :
-  tcp_connection_t& conn_;
+  virtual cancellation_ticket_t
+  do_call_when_writable(scheduler_t& scheduler, callback_t callback) = 0;
 
+  virtual int
+  do_write(char const * first, char const* last, char const *& next) = 0;
+
+private :
   char* const buf_;
   char* const end_buf_;
   char* read_ptr_;

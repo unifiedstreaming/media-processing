@@ -17,8 +17,8 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#include <cuti/async_inbuf.hpp>
-#include <cuti/async_outbuf.hpp>
+#include <cuti/async_tcp_inbuf.hpp>
+#include <cuti/async_tcp_outbuf.hpp>
 #include <cuti/default_scheduler.hpp>
 #include <cuti/tcp_connection.hpp>
 
@@ -32,6 +32,8 @@ namespace // anoynmous
 {
 
 using namespace cuti;
+
+std::size_t constexpr default_bufsize = async_tcp_outbuf_t::default_bufsize;
 
 struct writer_t
 {
@@ -193,8 +195,8 @@ void do_test_echo(bool bulk,
   conn_out->set_nonblocking();
   conn_in->set_nonblocking();
 
-  async_outbuf_t outbuf(*conn_out, outbufsize);
-  async_inbuf_t inbuf(*conn_in, inbufsize);
+  async_tcp_outbuf_t outbuf(*conn_out, outbufsize);
+  async_tcp_inbuf_t inbuf(*conn_in, inbufsize);
 
   char const* first = str.empty() ? nullptr : str.data();
   char const* last = first + str.size();
@@ -228,8 +230,7 @@ std::string make_long_string()
   int i = 1;
   std::string result;
 
-  while(result.length() <= 2 * async_outbuf_t::default_bufsize ||
-        result.length() <= 2 * async_inbuf_t::default_bufsize)
+  while(result.length() <= 2 * default_bufsize)
   {
     result += "Segment ";
     result += std::to_string(i);
@@ -248,7 +249,7 @@ void test_echo()
 
   static size_t constexpr tiny_buf = 1;
   static size_t constexpr small_buf = 10;
-  static size_t constexpr large_buf = async_outbuf_t::default_bufsize;
+  static size_t constexpr large_buf = default_bufsize;
 
   for(auto bulk : { false, true })
   {
@@ -283,7 +284,7 @@ void do_test_error_status(bool bulk)
   conn_out->set_nonblocking();
   conn_in.reset();
 
-  async_outbuf_t outbuf(*conn_out);
+  async_tcp_outbuf_t outbuf(*conn_out);
 
   std::string str = make_long_string();
   char const* first = str.empty() ? nullptr : str.data();

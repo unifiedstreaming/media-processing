@@ -67,6 +67,8 @@ lib cuti
   args_reader.cpp
   async_inbuf.cpp
   async_outbuf.cpp
+  async_tcp_inbuf.cpp
+  async_tcp_outbuf.cpp
   callback.cpp
   circular_buffer.cpp
   client.cpp

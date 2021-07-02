@@ -26,13 +26,8 @@
 namespace cuti
 {
 
-async_outbuf_t::async_outbuf_t(tcp_connection_t& conn)
-: async_outbuf_t(conn, default_bufsize)
-{ }
-
-async_outbuf_t::async_outbuf_t(tcp_connection_t& conn, std::size_t bufsize)
-: conn_(conn)
-, buf_((assert(bufsize != 0), new char[bufsize]))
+async_outbuf_t::async_outbuf_t(std::size_t bufsize)
+: buf_((assert(bufsize != 0), new char[bufsize]))
 , end_buf_(buf_ + bufsize)
 , read_ptr_(buf_)
 , write_ptr_(buf_)
@@ -79,8 +74,8 @@ callback_t async_outbuf_t::call_when_writable(
   }
   else
   {
-    writable_ticket_ = conn_.call_when_writable(scheduler,
-      [this] { this->on_conn_writable(); });
+    writable_ticket_ = this->do_call_when_writable(scheduler,
+      [this] { this->on_derived_writable(); });
   }
   scheduler_ = &scheduler;
   callback_ = std::move(callback);
@@ -127,7 +122,7 @@ void async_outbuf_t::on_writable_now()
   callback();
 }
 
-void async_outbuf_t::on_conn_writable()
+void async_outbuf_t::on_derived_writable()
 {
   assert(scheduler_ != nullptr);
   assert(callback_ != nullptr);
@@ -135,7 +130,7 @@ void async_outbuf_t::on_conn_writable()
   writable_ticket_.clear();
 
   char const* next;
-  int r = conn_.write(read_ptr_, write_ptr_, next);
+  int r = this->do_write(read_ptr_, write_ptr_, next);
   if(next != write_ptr_)
   {
     // more to flush
@@ -144,8 +139,8 @@ void async_outbuf_t::on_conn_writable()
       // not spurious
       read_ptr_ += next - read_ptr_;
     }
-    writable_ticket_ = conn_.call_when_writable(*scheduler_,
-      [this] { this->on_conn_writable(); });
+    writable_ticket_ = this->do_call_when_writable(*scheduler_,
+      [this] { this->on_derived_writable(); });
   }
   else
   {

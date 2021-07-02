@@ -30,29 +30,14 @@
 namespace cuti
 {
 
-struct tcp_connection_t;
-
 /*
- * Asynchronous socket input buffer.
+ * Abstract asynchronous input buffer.
  */
 struct CUTI_ABI async_inbuf_t
 {
-  static std::size_t constexpr default_bufsize = 256 * 1024;
   static int constexpr eof = std::char_traits<char>::eof();
   
-  /*
-   * Construct an asynchronous input buffer for conn, using the
-   * default buffer size. The connection must stay alive until *this
-   * is destroyed.
-   */
-  explicit async_inbuf_t(tcp_connection_t& conn);
-
-  /*
-   * Construct an asynchronous input buffer for conn, using the
-   * specified buffer size. The connection must stay alive until *this
-   * is destroyed.
-   */
-  async_inbuf_t(tcp_connection_t& conn, std::size_t bufsize);
+  explicit async_inbuf_t(std::size_t bufsize);
 
   async_inbuf_t(async_inbuf_t const&) = delete;
   async_inbuf_t& operator=(async_inbuf_t const&) = delete;
@@ -121,15 +106,20 @@ struct CUTI_ABI async_inbuf_t
    */
   callback_t cancel_when_readable() noexcept;
  
-  ~async_inbuf_t();
+  virtual ~async_inbuf_t();
 
 private :
   void on_readable_now();
-  void on_conn_readable();
+  void on_derived_readable();
 
 private :
-  tcp_connection_t& conn_;
+  virtual cancellation_ticket_t
+  do_call_when_readable(scheduler_t& scheduler, callback_t callback) = 0;
 
+  virtual int
+  do_read(char* first, char const* last, char*& next) = 0;
+
+private :
   char* const buf_;
   char* const end_buf_;
   char* read_ptr_;
