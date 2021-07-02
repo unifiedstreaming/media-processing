@@ -25,6 +25,10 @@ project
   <library>../cuti//cuti
 ;
 
+unit-test async_buffers_test
+: async_buffers_test.cpp
+;
+
 unit-test callback_test
 : callback_test.cpp
 ;
