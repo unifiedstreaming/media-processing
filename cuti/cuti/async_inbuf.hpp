@@ -27,6 +27,7 @@
 #include <cstddef>
 #include <memory>
 #include <string>
+#include <vector>
 
 namespace cuti
 {
@@ -145,8 +146,7 @@ private :
 private :
   std::unique_ptr<async_input_adapter_t> adapter_;
 
-  char* const buf_;
-  char* const end_buf_;
+  std::vector<char> buf_;
   char* read_ptr_;
   char* limit_;
 

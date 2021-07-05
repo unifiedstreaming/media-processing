@@ -34,11 +34,10 @@ async_outbuf_t::async_outbuf_t(
   std::unique_ptr<async_output_adapter_t> adapter,
   std::size_t bufsize)
 : adapter_((assert(adapter != nullptr), std::move(adapter)))
-, buf_((assert(bufsize != 0), new char[bufsize]))
-, end_buf_(buf_ + bufsize)
-, read_ptr_(buf_)
-, write_ptr_(buf_)
-, limit_(end_buf_)
+, buf_((assert(bufsize != 0), bufsize))
+, read_ptr_(buf_.data())
+, write_ptr_(buf_.data())
+, limit_(buf_.data() + buf_.size())
 , error_status_(0)
 , scheduler_(nullptr)
 , writable_ticket_()
@@ -69,9 +68,9 @@ callback_t async_outbuf_t::call_when_writable(
 
   if(read_ptr_ == write_ptr_ || error_status_ != 0)
   {
-    read_ptr_ = buf_;
-    write_ptr_ = buf_;
-    limit_ = end_buf_;
+    read_ptr_ = buf_.data();
+    write_ptr_ = buf_.data();
+    limit_ = buf_.data() + buf_.size();
   }
   
   if(this->writable())
@@ -112,8 +111,6 @@ callback_t async_outbuf_t::cancel_when_writable() noexcept
 async_outbuf_t::~async_outbuf_t()
 {
   this->cancel_when_writable();
-
-  delete[] buf_;
 }
 
 void async_outbuf_t::on_writable_now()
@@ -152,9 +149,9 @@ void async_outbuf_t::on_adapter_writable()
   else
   {
     // flushed or error
-    read_ptr_ = buf_;
-    write_ptr_ = buf_;
-    limit_ = end_buf_;
+    read_ptr_ = buf_.data();
+    write_ptr_ = buf_.data();
+    limit_ = buf_.data() + buf_.size();
 
     error_status_ = r;
 
