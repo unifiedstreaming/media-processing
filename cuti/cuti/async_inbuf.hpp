@@ -25,19 +25,49 @@
 
 #include <cassert>
 #include <cstddef>
+#include <memory>
 #include <string>
 
 namespace cuti
 {
 
+struct CUTI_ABI async_input_adapter_t
+{
+  async_input_adapter_t()
+  { }
+
+  async_input_adapter_t(async_input_adapter_t const&) = delete;
+  async_input_adapter_t& operator=(async_input_adapter_t const&) = delete;
+
+  virtual cancellation_ticket_t
+  call_when_readable(scheduler_t& scheduler, callback_t callback) = 0;
+  
+  virtual int
+  read(char* first, char const* last, char*& next) = 0;
+
+  virtual ~async_input_adapter_t()
+  { }
+};
+  
 /*
- * Abstract asynchronous input buffer.
+ * Asynchronous input buffer.
  */
 struct CUTI_ABI async_inbuf_t
 {
+  static std::size_t constexpr default_bufsize = 256 * 1024;
+  
   static int constexpr eof = std::char_traits<char>::eof();
   
-  explicit async_inbuf_t(std::size_t bufsize);
+  /*
+   * Construct with default_bufsize.
+   */
+  explicit async_inbuf_t(std::unique_ptr<async_input_adapter_t> adapter);
+
+  /*
+   * Construct with the specified bufsize.
+   */
+  async_inbuf_t(std::unique_ptr<async_input_adapter_t> adapter,
+                std::size_t bufsize);
 
   async_inbuf_t(async_inbuf_t const&) = delete;
   async_inbuf_t& operator=(async_inbuf_t const&) = delete;
@@ -106,20 +136,15 @@ struct CUTI_ABI async_inbuf_t
    */
   callback_t cancel_when_readable() noexcept;
  
-  virtual ~async_inbuf_t();
+  ~async_inbuf_t();
 
 private :
   void on_readable_now();
-  void on_derived_readable();
+  void on_adapter_readable();
 
 private :
-  virtual cancellation_ticket_t
-  do_call_when_readable(scheduler_t& scheduler, callback_t callback) = 0;
+  std::unique_ptr<async_input_adapter_t> adapter_;
 
-  virtual int
-  do_read(char* first, char const* last, char*& next) = 0;
-
-private :
   char* const buf_;
   char* const end_buf_;
   char* read_ptr_;

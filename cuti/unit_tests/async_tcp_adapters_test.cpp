@@ -17,8 +17,10 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#include <cuti/async_tcp_inbuf.hpp>
-#include <cuti/async_tcp_outbuf.hpp>
+#include <cuti/async_inbuf.hpp>
+#include <cuti/async_outbuf.hpp>
+#include <cuti/async_tcp_input_adapter.hpp>
+#include <cuti/async_tcp_output_adapter.hpp>
 #include <cuti/default_scheduler.hpp>
 #include <cuti/tcp_connection.hpp>
 
@@ -33,7 +35,7 @@ namespace // anoynmous
 
 using namespace cuti;
 
-std::size_t constexpr default_bufsize = async_tcp_outbuf_t::default_bufsize;
+std::size_t constexpr default_bufsize = async_outbuf_t::default_bufsize;
 
 struct writer_t
 {
@@ -189,14 +191,17 @@ void do_test_echo(bool bulk,
 {
   default_scheduler_t scheduler;
 
-  std::unique_ptr<tcp_connection_t> conn_out;
-  std::unique_ptr<tcp_connection_t> conn_in;
+  std::shared_ptr<tcp_connection_t> conn_out;
+  std::shared_ptr<tcp_connection_t> conn_in;
   std::tie(conn_out, conn_in) = make_connected_pair();
   conn_out->set_nonblocking();
   conn_in->set_nonblocking();
 
-  async_tcp_outbuf_t outbuf(*conn_out, outbufsize);
-  async_tcp_inbuf_t inbuf(*conn_in, inbufsize);
+  async_outbuf_t outbuf(
+    std::make_unique<async_tcp_output_adapter_t>(conn_out), outbufsize);
+  async_inbuf_t inbuf(
+    std::make_unique<async_tcp_input_adapter_t>(conn_in),
+    inbufsize);
 
   char const* first = str.empty() ? nullptr : str.data();
   char const* last = first + str.size();
@@ -278,13 +283,14 @@ void do_test_error_status(bool bulk)
 {
   default_scheduler_t scheduler;
 
-  std::unique_ptr<tcp_connection_t> conn_out;
-  std::unique_ptr<tcp_connection_t> conn_in;
+  std::shared_ptr<tcp_connection_t> conn_out;
+  std::shared_ptr<tcp_connection_t> conn_in;
   std::tie(conn_out, conn_in) = make_connected_pair();
   conn_out->set_nonblocking();
   conn_in.reset();
 
-  async_tcp_outbuf_t outbuf(*conn_out);
+  async_outbuf_t outbuf(
+    std::make_unique<async_tcp_output_adapter_t>(conn_out), default_bufsize);
 
   std::string str = make_long_string();
   char const* first = str.empty() ? nullptr : str.data();

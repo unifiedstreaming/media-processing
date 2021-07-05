@@ -17,33 +17,31 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#include "async_tcp_outbuf.hpp"
+#include "async_tcp_output_adapter.hpp"
 
 #include "tcp_connection.hpp"
+
+#include <cassert>
+#include <utility>
 
 namespace cuti
 {
 
-async_tcp_outbuf_t::async_tcp_outbuf_t(tcp_connection_t& conn)
-: async_tcp_outbuf_t(conn, default_bufsize)
+async_tcp_output_adapter_t::async_tcp_output_adapter_t(
+  std::shared_ptr<tcp_connection_t> conn)
+: conn_((assert(conn != nullptr), std::move(conn)))
 { }
 
-async_tcp_outbuf_t::async_tcp_outbuf_t(
-  tcp_connection_t& conn, std::size_t bufsize)
-: async_outbuf_t(bufsize)
-, conn_(conn)
-{ }
-
-cancellation_ticket_t async_tcp_outbuf_t::do_call_when_writable(
+cancellation_ticket_t async_tcp_output_adapter_t::call_when_writable(
   scheduler_t& scheduler, callback_t callback)
 {
-  return conn_.call_when_writable(scheduler, std::move(callback));
+  return conn_->call_when_writable(scheduler, std::move(callback));
 }
 
-int async_tcp_outbuf_t::do_write(
+int async_tcp_output_adapter_t::write(
   char const* first, char const * last, char const *& next)
 {
-  return conn_.write(first, last, next);
+  return conn_->write(first, last, next);
 }
 
 } // cuti

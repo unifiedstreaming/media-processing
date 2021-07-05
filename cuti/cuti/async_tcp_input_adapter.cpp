@@ -17,32 +17,31 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#include "async_tcp_inbuf.hpp"
+#include "async_tcp_input_adapter.hpp"
 
 #include "tcp_connection.hpp"
+
+#include <cassert>
+#include <utility>
 
 namespace cuti
 {
 
-async_tcp_inbuf_t::async_tcp_inbuf_t(tcp_connection_t& conn)
-: async_tcp_inbuf_t(conn, default_bufsize)
+async_tcp_input_adapter_t::async_tcp_input_adapter_t(
+  std::shared_ptr<tcp_connection_t> conn)
+: conn_((assert(conn != nullptr), std::move(conn)))
 { }
 
-async_tcp_inbuf_t::async_tcp_inbuf_t(
-  tcp_connection_t& conn, std::size_t bufsize)
-: async_inbuf_t(bufsize)
-, conn_(conn)
-{ }
-
-cancellation_ticket_t async_tcp_inbuf_t::do_call_when_readable(
+cancellation_ticket_t async_tcp_input_adapter_t::call_when_readable(
   scheduler_t& scheduler, callback_t callback)
 {
-  return conn_.call_when_readable(scheduler, std::move(callback));
+  return conn_->call_when_readable(scheduler, std::move(callback));
 }
 
-int async_tcp_inbuf_t::do_read(char* first, char const* last, char*& next)
+int async_tcp_input_adapter_t::read(
+  char* first, char const* last, char*& next)
 {
-  return conn_.read(first, last, next);
+  return conn_->read(first, last, next);
 }
 
 } // cuti

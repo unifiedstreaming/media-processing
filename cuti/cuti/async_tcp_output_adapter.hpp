@@ -17,10 +17,12 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#ifndef CUTI_TCP_OUTBUF_HPP_
-#define CUTI_TCP_OUTBUF_HPP_
+#ifndef CUTI_ASYNC_TCP_OUTPUT_ADAPTER_HPP_
+#define CUTI_ASYNC_TCP_OUTPUT_ADAPTER_HPP_
 
 #include "async_outbuf.hpp"
+
+#include <memory>
 
 namespace cuti
 {
@@ -28,35 +30,19 @@ namespace cuti
 struct tcp_connection_t;
 
 /*
- * Asynchronous tcp output buffer.
+ * Asynchronous tcp output adapter.
  */
-struct CUTI_ABI async_tcp_outbuf_t : async_outbuf_t
+struct CUTI_ABI async_tcp_output_adapter_t : async_output_adapter_t
 {
-  static size_t constexpr default_bufsize = 256 * 1024;
+  explicit async_tcp_output_adapter_t(std::shared_ptr<tcp_connection_t> conn);
 
-  /*
-   * Construct an asynchronous output buffer for conn, using the
-   * default buffer size. The connection must stay alive until *this
-   * is destroyed.
-   */
-  explicit async_tcp_outbuf_t(tcp_connection_t& conn);
-
-  /*
-   * Construct an asynchronous output buffer for conn, using the
-   * specified buffer size. The connection must stay alive until *this
-   * is destroyed.
-   */
-  async_tcp_outbuf_t(tcp_connection_t& conn, std::size_t bufsize);
-
-private :
   cancellation_ticket_t
-  do_call_when_writable(scheduler_t& scheduler, callback_t callback) override;
+  call_when_writable(scheduler_t& scheduler, callback_t callback) override;
 
-  int
-  do_write(char const* first, char const* last, char const *& next) override;
+  int write(char const* first, char const* last, char const *& next) override;
 
 private :
-  tcp_connection_t& conn_;
+  std::shared_ptr<tcp_connection_t> conn_;
 };
 
 } // cuti

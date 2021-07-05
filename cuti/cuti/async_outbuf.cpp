@@ -26,8 +26,15 @@
 namespace cuti
 {
 
-async_outbuf_t::async_outbuf_t(std::size_t bufsize)
-: buf_((assert(bufsize != 0), new char[bufsize]))
+async_outbuf_t::async_outbuf_t(std::unique_ptr<async_output_adapter_t> adapter)
+: async_outbuf_t(std::move(adapter), default_bufsize)
+{ }
+
+async_outbuf_t::async_outbuf_t(
+  std::unique_ptr<async_output_adapter_t> adapter,
+  std::size_t bufsize)
+: adapter_((assert(adapter != nullptr), std::move(adapter)))
+, buf_((assert(bufsize != 0), new char[bufsize]))
 , end_buf_(buf_ + bufsize)
 , read_ptr_(buf_)
 , write_ptr_(buf_)
@@ -74,8 +81,8 @@ callback_t async_outbuf_t::call_when_writable(
   }
   else
   {
-    writable_ticket_ = this->do_call_when_writable(scheduler,
-      [this] { this->on_derived_writable(); });
+    writable_ticket_ = adapter_->call_when_writable(scheduler,
+      [this] { this->on_adapter_writable(); });
   }
   scheduler_ = &scheduler;
   callback_ = std::move(callback);
@@ -122,7 +129,7 @@ void async_outbuf_t::on_writable_now()
   callback();
 }
 
-void async_outbuf_t::on_derived_writable()
+void async_outbuf_t::on_adapter_writable()
 {
   assert(scheduler_ != nullptr);
   assert(callback_ != nullptr);
@@ -130,7 +137,7 @@ void async_outbuf_t::on_derived_writable()
   writable_ticket_.clear();
 
   char const* next;
-  int r = this->do_write(read_ptr_, write_ptr_, next);
+  int r = adapter_->write(read_ptr_, write_ptr_, next);
   if(next != write_ptr_)
   {
     // more to flush
@@ -139,8 +146,8 @@ void async_outbuf_t::on_derived_writable()
       // not spurious
       read_ptr_ += next - read_ptr_;
     }
-    writable_ticket_ = this->do_call_when_writable(*scheduler_,
-      [this] { this->on_derived_writable(); });
+    writable_ticket_ = adapter_->call_when_writable(*scheduler_,
+      [this] { this->on_adapter_writable(); });
   }
   else
   {

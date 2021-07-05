@@ -25,16 +25,47 @@
 
 #include <cassert>
 #include <cstddef>
+#include <memory>
 
 namespace cuti
 {
 
+struct CUTI_ABI async_output_adapter_t
+{
+  async_output_adapter_t()
+  { }
+
+  async_output_adapter_t(async_output_adapter_t const&) = delete;
+  async_output_adapter_t& operator=(async_output_adapter_t const&) = delete;
+
+  virtual cancellation_ticket_t
+  call_when_writable(scheduler_t& scheduler, callback_t callback) = 0;
+
+  virtual int
+  write(char const* first, char const* last, char const*& next) = 0;
+
+  virtual ~async_output_adapter_t()
+  { }
+};
+  
 /*
- * Abstract asynchronous output buffer.
+ * Asynchronous output buffer.
  */
 struct CUTI_ABI async_outbuf_t
 {
-  explicit async_outbuf_t(std::size_t bufsize);
+  static std::size_t constexpr default_bufsize = 256 * 1024;
+  
+  /*
+   * Construct with default_bufsize.
+   */
+  explicit async_outbuf_t(std::unique_ptr<async_output_adapter_t> adapter);
+
+  /*
+   * Construct with the specified bufsize.
+   */
+  async_outbuf_t(std::unique_ptr<async_output_adapter_t> adapter,
+                 std::size_t bufsize);
+
 
   async_outbuf_t(async_outbuf_t const&) = delete;
   async_outbuf_t& operator=(async_outbuf_t const&) = delete;
@@ -102,20 +133,15 @@ struct CUTI_ABI async_outbuf_t
    * Destroys the buffer.  Please note that destroying a buffer that has
    * not been flushed will probably lead to data loss.
    */
-  virtual ~async_outbuf_t();
+  ~async_outbuf_t();
 
 private :
   void on_writable_now();
-  void on_derived_writable();
+  void on_adapter_writable();
 
 private :
-  virtual cancellation_ticket_t
-  do_call_when_writable(scheduler_t& scheduler, callback_t callback) = 0;
+  std::unique_ptr<async_output_adapter_t> adapter_;
 
-  virtual int
-  do_write(char const * first, char const* last, char const *& next) = 0;
-
-private :
   char* const buf_;
   char* const end_buf_;
   char* read_ptr_;

@@ -25,8 +25,8 @@ project
   <library>../cuti//cuti
 ;
 
-unit-test async_tcp_buffers_test
-: async_tcp_buffers_test.cpp
+unit-test async_tcp_adapters_test
+: async_tcp_adapters_test.cpp
 ;
 
 unit-test callback_test

@@ -24,8 +24,15 @@
 namespace cuti
 {
 
-async_inbuf_t::async_inbuf_t(std::size_t bufsize)
-: buf_((assert(bufsize != 0), new char[bufsize]))
+async_inbuf_t::async_inbuf_t(std::unique_ptr<async_input_adapter_t> adapter)
+: async_inbuf_t(std::move(adapter), default_bufsize)
+{ }
+
+async_inbuf_t::async_inbuf_t(
+  std::unique_ptr<async_input_adapter_t> adapter,
+  std::size_t bufsize)
+: adapter_((assert(adapter != nullptr), std::move(adapter)))
+, buf_((assert(bufsize != 0), new char[bufsize]))
 , end_buf_(buf_ + bufsize)
 , read_ptr_(buf_)
 , limit_(buf_)
@@ -65,8 +72,8 @@ callback_t async_inbuf_t::call_when_readable(
   }
   else
   {
-    readable_ticket_ = this->do_call_when_readable(scheduler,
-      [this] { this->on_derived_readable(); });
+    readable_ticket_ = adapter_->call_when_readable(scheduler,
+      [this] { this->on_adapter_readable(); });
   }
   scheduler_ = &scheduler;
   callback_ = std::move(callback);
@@ -113,7 +120,7 @@ void async_inbuf_t::on_readable_now()
   callback();
 }
 
-void async_inbuf_t::on_derived_readable()
+void async_inbuf_t::on_adapter_readable()
 {
   assert(scheduler_ != nullptr);
   assert(callback_ != nullptr);
@@ -121,12 +128,12 @@ void async_inbuf_t::on_derived_readable()
   readable_ticket_.clear();
   
   char* next;
-  int r = this->do_read(buf_, end_buf_, next);
+  int r = adapter_->read(buf_, end_buf_, next);
   if(next == nullptr)
   {
     // spurious wakeup: try again
-    readable_ticket_ = this->do_call_when_readable(*scheduler_,
-      [this] { this->on_derived_readable(); });
+    readable_ticket_ = adapter_->call_when_readable(*scheduler_,
+      [this] { this->on_adapter_readable(); });
   }
   else
   {
