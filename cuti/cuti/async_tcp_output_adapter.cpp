@@ -30,13 +30,23 @@ namespace cuti
 async_tcp_output_adapter_t::async_tcp_output_adapter_t(
   std::shared_ptr<tcp_connection_t> conn)
 : conn_((assert(conn != nullptr), std::move(conn)))
+, error_status_(0)
 , writable_holder_()
 { }
 
 void async_tcp_output_adapter_t::call_when_writable(
   scheduler_t& scheduler, callback_t callback)
 {
-  writable_holder_.call_when_writable(scheduler, *conn_, std::move(callback));
+  if(error_status_ != 0)
+  {
+    writable_holder_.call_alarm(
+      scheduler, duration_t::zero(), std::move(callback));
+  }
+  else
+  {
+    writable_holder_.call_when_writable(
+      scheduler, *conn_, std::move(callback));
+  }
 }
 
 void async_tcp_output_adapter_t::cancel_when_writable() noexcept
@@ -44,10 +54,26 @@ void async_tcp_output_adapter_t::cancel_when_writable() noexcept
   writable_holder_.cancel();
 }
 
-int async_tcp_output_adapter_t::write(
-  char const* first, char const * last, char const *& next)
+char const* async_tcp_output_adapter_t::write(
+  char const* first, char const * last)
 {
-  return conn_->write(first, last, next);
+  char const* next;
+
+  if(error_status_ != 0)
+  {
+    next = last;
+  }
+  else
+  {
+    error_status_ = conn_->write(first, last, next);
+  }
+
+  return next;
+}
+
+int async_tcp_output_adapter_t::error_status() const noexcept
+{
+  return error_status_;
 }
 
 } // cuti

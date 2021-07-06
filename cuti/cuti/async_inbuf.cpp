@@ -36,10 +36,14 @@ async_inbuf_t::async_inbuf_t(
 , read_ptr_(buf_.data())
 , limit_(buf_.data())
 , eof_seen_(false)
-, error_status_(0)
 , readable_now_holder_()
 , user_callback_(nullptr)
 { }
+
+int async_inbuf_t::error_status() const noexcept
+{
+  return adapter_->error_status();
+}
 
 char* async_inbuf_t::read(char* first, char const* last)
 {
@@ -100,8 +104,7 @@ void async_inbuf_t::on_adapter_readable(scheduler_t& scheduler)
 {
   assert(user_callback_ != nullptr);
 
-  char* next;
-  int r = adapter_->read(buf_.data(), buf_.data() + buf_.size(), next);
+  char* next = adapter_->read(buf_.data(), buf_.data() + buf_.size());
   if(next == nullptr)
   {
     // spurious wakeup: try again
@@ -114,7 +117,6 @@ void async_inbuf_t::on_adapter_readable(scheduler_t& scheduler)
     read_ptr_ = buf_.data();
     limit_ = next;
     eof_seen_ = next == buf_.data();
-    error_status_ = r;
       
     callback_t callback = std::move(user_callback_);
     callback();

@@ -30,13 +30,23 @@ namespace cuti
 async_tcp_input_adapter_t::async_tcp_input_adapter_t(
   std::shared_ptr<tcp_connection_t> conn)
 : conn_((assert(conn != nullptr), std::move(conn)))
+, error_status_(0)
 , readable_holder_()
 { }
 
 void async_tcp_input_adapter_t::call_when_readable(
   scheduler_t& scheduler, callback_t callback)
 {
-  readable_holder_.call_when_readable(scheduler, *conn_, std::move(callback));
+  if(error_status_ != 0)
+  {
+    readable_holder_.call_alarm(
+      scheduler, duration_t::zero(), std::move(callback));
+  }
+  else
+  {
+    readable_holder_.call_when_readable(
+      scheduler, *conn_, std::move(callback));
+  }
 }
 
 void async_tcp_input_adapter_t::cancel_when_readable() noexcept
@@ -44,10 +54,25 @@ void async_tcp_input_adapter_t::cancel_when_readable() noexcept
   readable_holder_.cancel();
 }
 
-int async_tcp_input_adapter_t::read(
-  char* first, char const* last, char*& next)
+char* async_tcp_input_adapter_t::read(char* first, char const* last)
 {
-  return conn_->read(first, last, next);
+  char* next;
+
+  if(error_status_ != 0)
+  {
+    next = first;
+  }
+  else
+  {
+    error_status_ = conn_->read(first, last, next);
+  }
+
+  return next;
+}
+
+int async_tcp_input_adapter_t::error_status() const noexcept
+{
+  return error_status_;
 }
 
 } // cuti

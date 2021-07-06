@@ -38,10 +38,14 @@ async_outbuf_t::async_outbuf_t(
 , read_ptr_(buf_.data())
 , write_ptr_(buf_.data())
 , limit_(buf_.data() + buf_.size())
-, error_status_(0)
 , writable_now_holder_()
 , user_callback_(nullptr)
 { }
+
+int async_outbuf_t::error_status() const noexcept
+{
+  return adapter_->error_status();
+}
 
 char const* async_outbuf_t::write(char const* first, char const* last)
 {
@@ -65,7 +69,7 @@ void async_outbuf_t::call_when_writable(
 
   this->cancel_when_writable();
 
-  if(read_ptr_ == write_ptr_ || error_status_ != 0)
+  if(read_ptr_ == write_ptr_ || adapter_->error_status() != 0)
   {
     read_ptr_ = buf_.data();
     write_ptr_ = buf_.data();
@@ -109,8 +113,7 @@ void async_outbuf_t::on_adapter_writable(scheduler_t& scheduler)
 {
   assert(user_callback_ != nullptr);
 
-  char const* next;
-  int r = adapter_->write(read_ptr_, write_ptr_, next);
+  char const* next = adapter_->write(read_ptr_, write_ptr_);
   if(next != write_ptr_)
   {
     // more to flush
@@ -128,8 +131,6 @@ void async_outbuf_t::on_adapter_writable(scheduler_t& scheduler)
     read_ptr_ = buf_.data();
     write_ptr_ = buf_.data();
     limit_ = buf_.data() + buf_.size();
-
-    error_status_ = r;
 
     callback_t callback = std::move(user_callback_);
     callback();

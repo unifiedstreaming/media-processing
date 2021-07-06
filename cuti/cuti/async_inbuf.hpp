@@ -47,8 +47,11 @@ struct CUTI_ABI async_input_adapter_t
   virtual void
   cancel_when_readable() noexcept = 0;
   
-  virtual int 
-  read(char* first, char const* last, char*& next) = 0;
+  virtual char*
+  read(char* first, char const* last) = 0;
+
+  virtual int
+  error_status() const noexcept = 0;
 
   virtual ~async_input_adapter_t()
   { }
@@ -89,10 +92,7 @@ struct CUTI_ABI async_inbuf_t
    * Returns the buffer's error status: either 0 (OK) or a system
    * error code for the first error encountered.
    */
-  int error_status() const
-  {
-    return error_status_;
-  }
+  int error_status() const noexcept;
 
   /*
    * Returns the current input character, or eof at end of stream or
@@ -154,7 +154,6 @@ private :
   char* limit_;
 
   bool eof_seen_;
-  int error_status_;
 
   ticket_holder_t readable_now_holder_;
   callback_t user_callback_;
