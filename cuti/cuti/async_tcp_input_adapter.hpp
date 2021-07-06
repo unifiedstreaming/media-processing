@@ -21,6 +21,7 @@
 #define CUTI_ASYNC_TCP_INPUT_ADAPTER_HPP_
 
 #include "async_inbuf.hpp"
+#include "ticket_holder.hpp"
 
 #include <memory>
 
@@ -36,13 +37,18 @@ struct CUTI_ABI async_tcp_input_adapter_t : async_input_adapter_t
 {
   explicit async_tcp_input_adapter_t(std::shared_ptr<tcp_connection_t> conn);
 
-  cancellation_ticket_t
+  void
   call_when_readable(scheduler_t& scheduler, callback_t callback) override;
 
-  int read(char* first, char const* last, char*& next) override;
+  void
+  cancel_when_readable() noexcept;
+
+  int
+  read(char* first, char const* last, char*& next) override;
 
 private :
   std::shared_ptr<tcp_connection_t> conn_;
+  ticket_holder_t readable_holder_;
 };
 
 } // cuti

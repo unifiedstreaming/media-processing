@@ -22,6 +22,7 @@
 
 #include "linkage.h"
 #include "scheduler.hpp"
+#include "ticket_holder.hpp"
 
 #include <cassert>
 #include <cstddef>
@@ -40,10 +41,13 @@ struct CUTI_ABI async_input_adapter_t
   async_input_adapter_t(async_input_adapter_t const&) = delete;
   async_input_adapter_t& operator=(async_input_adapter_t const&) = delete;
 
-  virtual cancellation_ticket_t
+  virtual void
   call_when_readable(scheduler_t& scheduler, callback_t callback) = 0;
+
+  virtual void
+  cancel_when_readable() noexcept = 0;
   
-  virtual int
+  virtual int 
   read(char* first, char const* last, char*& next) = 0;
 
   virtual ~async_input_adapter_t()
@@ -125,23 +129,22 @@ struct CUTI_ABI async_inbuf_t
   char* read(char* first, char const* last);
 
   /*
-   * Schedules a callback for when *this is readable, returning any
-   * previously scheduled callback. The scheduler must stay alive
-   * while the callback is pending.
+   * Schedules a callback for when *this is readable. The scheduler
+   * must stay alive while the callback is pending.
    */
-  callback_t call_when_readable(scheduler_t& scheduler, callback_t callback);
+  void call_when_readable(scheduler_t& scheduler, callback_t callback);
 
   /*
-   * Cancels and returns any previously scheduled callback.  No effect
-   * if there is no pending callback.
+   * Cancels any previously scheduled callback.  No effect if there is
+   * no pending callback.
    */
-  callback_t cancel_when_readable() noexcept;
+  void cancel_when_readable() noexcept;
  
   ~async_inbuf_t();
 
 private :
   void on_readable_now();
-  void on_adapter_readable();
+  void on_adapter_readable(scheduler_t& scheduler);
 
 private :
   std::unique_ptr<async_input_adapter_t> adapter_;
@@ -153,9 +156,8 @@ private :
   bool eof_seen_;
   int error_status_;
 
-  scheduler_t* scheduler_;
-  cancellation_ticket_t readable_ticket_;
-  callback_t callback_;
+  ticket_holder_t readable_now_holder_;
+  callback_t user_callback_;
 };
 
 } // cuti

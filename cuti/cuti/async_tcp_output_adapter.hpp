@@ -21,6 +21,7 @@
 #define CUTI_ASYNC_TCP_OUTPUT_ADAPTER_HPP_
 
 #include "async_outbuf.hpp"
+#include "ticket_holder.hpp"
 
 #include <memory>
 
@@ -36,13 +37,17 @@ struct CUTI_ABI async_tcp_output_adapter_t : async_output_adapter_t
 {
   explicit async_tcp_output_adapter_t(std::shared_ptr<tcp_connection_t> conn);
 
-  cancellation_ticket_t
+  void
   call_when_writable(scheduler_t& scheduler, callback_t callback) override;
+
+  void
+  cancel_when_writable() noexcept;
 
   int write(char const* first, char const* last, char const *& next) override;
 
 private :
   std::shared_ptr<tcp_connection_t> conn_;
+  ticket_holder_t writable_holder_;
 };
 
 } // cuti

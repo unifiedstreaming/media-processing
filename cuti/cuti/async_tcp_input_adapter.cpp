@@ -30,12 +30,18 @@ namespace cuti
 async_tcp_input_adapter_t::async_tcp_input_adapter_t(
   std::shared_ptr<tcp_connection_t> conn)
 : conn_((assert(conn != nullptr), std::move(conn)))
+, readable_holder_()
 { }
 
-cancellation_ticket_t async_tcp_input_adapter_t::call_when_readable(
+void async_tcp_input_adapter_t::call_when_readable(
   scheduler_t& scheduler, callback_t callback)
 {
-  return conn_->call_when_readable(scheduler, std::move(callback));
+  readable_holder_.call_when_readable(scheduler, *conn_, std::move(callback));
+}
+
+void async_tcp_input_adapter_t::cancel_when_readable() noexcept
+{
+  readable_holder_.cancel();
 }
 
 int async_tcp_input_adapter_t::read(

@@ -30,12 +30,18 @@ namespace cuti
 async_tcp_output_adapter_t::async_tcp_output_adapter_t(
   std::shared_ptr<tcp_connection_t> conn)
 : conn_((assert(conn != nullptr), std::move(conn)))
+, writable_holder_()
 { }
 
-cancellation_ticket_t async_tcp_output_adapter_t::call_when_writable(
+void async_tcp_output_adapter_t::call_when_writable(
   scheduler_t& scheduler, callback_t callback)
 {
-  return conn_->call_when_writable(scheduler, std::move(callback));
+  writable_holder_.call_when_writable(scheduler, *conn_, std::move(callback));
+}
+
+void async_tcp_output_adapter_t::cancel_when_writable() noexcept
+{
+  writable_holder_.cancel();
 }
 
 int async_tcp_output_adapter_t::write(

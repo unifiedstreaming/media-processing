@@ -198,7 +198,8 @@ void do_test_echo(bool bulk,
   conn_in->set_nonblocking();
 
   async_outbuf_t outbuf(
-    std::make_unique<async_tcp_output_adapter_t>(conn_out), outbufsize);
+    std::make_unique<async_tcp_output_adapter_t>(conn_out),
+    outbufsize);
   async_inbuf_t inbuf(
     std::make_unique<async_tcp_input_adapter_t>(conn_in),
     inbufsize);

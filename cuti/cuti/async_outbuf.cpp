@@ -39,9 +39,8 @@ async_outbuf_t::async_outbuf_t(
 , write_ptr_(buf_.data())
 , limit_(buf_.data() + buf_.size())
 , error_status_(0)
-, scheduler_(nullptr)
-, writable_ticket_()
-, callback_(nullptr)
+, writable_now_holder_()
+, user_callback_(nullptr)
 { }
 
 char const* async_outbuf_t::write(char const* first, char const* last)
@@ -59,12 +58,12 @@ char const* async_outbuf_t::write(char const* first, char const* last)
   return first + count;
 }
 
-callback_t async_outbuf_t::call_when_writable(
+void async_outbuf_t::call_when_writable(
   scheduler_t& scheduler, callback_t callback)
 {
   assert(callback != nullptr);
 
-  callback_t result = this->cancel_when_writable();
+  this->cancel_when_writable();
 
   if(read_ptr_ == write_ptr_ || error_status_ != 0)
   {
@@ -75,37 +74,22 @@ callback_t async_outbuf_t::call_when_writable(
   
   if(this->writable())
   {
-    writable_ticket_ = scheduler.call_alarm(duration_t::zero(),
+    writable_now_holder_.call_alarm(scheduler, duration_t::zero(),
       [this] { this->on_writable_now(); });
   }
   else
   {
-    writable_ticket_ = adapter_->call_when_writable(scheduler,
-      [this] { this->on_adapter_writable(); });
+    adapter_->call_when_writable(scheduler,
+      [this, &scheduler] { this->on_adapter_writable(scheduler); });
   }
-  scheduler_ = &scheduler;
-  callback_ = std::move(callback);
-
-  return result;
+  user_callback_ = std::move(callback);
 }
 
-callback_t async_outbuf_t::cancel_when_writable() noexcept
+void async_outbuf_t::cancel_when_writable() noexcept
 {
-  callback_t result = nullptr;
-
-  if(!writable_ticket_.empty())
-  {
-    assert(scheduler_ != nullptr);
-    assert(callback_ != nullptr);
-
-    scheduler_->cancel(writable_ticket_);
-    writable_ticket_.clear();
-    
-    scheduler_ = nullptr;
-    result = std::move(callback_);
-  }
-
-  return result;
+  adapter_->cancel_when_writable();
+  writable_now_holder_.cancel();
+  user_callback_ = nullptr;
 }
 
 async_outbuf_t::~async_outbuf_t()
@@ -115,23 +99,15 @@ async_outbuf_t::~async_outbuf_t()
 
 void async_outbuf_t::on_writable_now()
 {
-  assert(scheduler_ != nullptr);
-  assert(callback_ != nullptr);
-
-  writable_ticket_.clear();
-
-  scheduler_ = nullptr;
-  callback_t callback = std::move(callback_);
+  assert(user_callback_ != nullptr);
+  callback_t callback = std::move(user_callback_);
 
   callback();
 }
 
-void async_outbuf_t::on_adapter_writable()
+void async_outbuf_t::on_adapter_writable(scheduler_t& scheduler)
 {
-  assert(scheduler_ != nullptr);
-  assert(callback_ != nullptr);
-
-  writable_ticket_.clear();
+  assert(user_callback_ != nullptr);
 
   char const* next;
   int r = adapter_->write(read_ptr_, write_ptr_, next);
@@ -143,8 +119,8 @@ void async_outbuf_t::on_adapter_writable()
       // not spurious
       read_ptr_ += next - read_ptr_;
     }
-    writable_ticket_ = adapter_->call_when_writable(*scheduler_,
-      [this] { this->on_adapter_writable(); });
+    adapter_->call_when_writable(scheduler,
+      [this, &scheduler] { this->on_adapter_writable(scheduler); });
   }
   else
   {
@@ -155,8 +131,7 @@ void async_outbuf_t::on_adapter_writable()
 
     error_status_ = r;
 
-    scheduler_ = nullptr;
-    callback_t callback = std::move(callback_);
+    callback_t callback = std::move(user_callback_);
     callback();
   }
 }

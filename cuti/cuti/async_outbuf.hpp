@@ -22,6 +22,7 @@
 
 #include "linkage.h"
 #include "scheduler.hpp"
+#include "ticket_holder.hpp"
 
 #include <cassert>
 #include <cstddef>
@@ -39,8 +40,11 @@ struct CUTI_ABI async_output_adapter_t
   async_output_adapter_t(async_output_adapter_t const&) = delete;
   async_output_adapter_t& operator=(async_output_adapter_t const&) = delete;
 
-  virtual cancellation_ticket_t
+  virtual void
   call_when_writable(scheduler_t& scheduler, callback_t callback) = 0;
+
+  virtual void
+  cancel_when_writable() noexcept = 0;
 
   virtual int
   write(char const* first, char const* last, char const*& next) = 0;
@@ -118,17 +122,16 @@ struct CUTI_ABI async_outbuf_t
   }
    
   /*
-   * Schedules a callback for when *this is writable, returning any
-   * previously scheduled callback. The scheduler must stay alive
-   * while the callback is pending.
+   * Schedules a callback for when *this is writable. The scheduler
+   * must stay alive while the callback is pending.
    */
-  callback_t call_when_writable(scheduler_t& scheduler, callback_t callback);
+  void call_when_writable(scheduler_t& scheduler, callback_t callback);
 
   /*
-   * Cancels and returns any previously scheduled callback.  No effect
-   * if there is no pending callback.
+   * Cancels any previously scheduled callback.  No effect if there is
+   * no pending callback.
    */
-  callback_t cancel_when_writable() noexcept;
+  void cancel_when_writable() noexcept;
  
   /*
    * Destroys the buffer.  Please note that destroying a buffer that has
@@ -138,7 +141,7 @@ struct CUTI_ABI async_outbuf_t
 
 private :
   void on_writable_now();
-  void on_adapter_writable();
+  void on_adapter_writable(scheduler_t& scheduler);
 
 private :
   std::unique_ptr<async_output_adapter_t> adapter_;
@@ -150,9 +153,8 @@ private :
 
   int error_status_;
 
-  scheduler_t* scheduler_;
-  cancellation_ticket_t writable_ticket_;
-  callback_t callback_;
+  ticket_holder_t writable_now_holder_;
+  callback_t user_callback_;
 };
 
 } // cuti

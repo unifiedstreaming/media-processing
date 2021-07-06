@@ -37,9 +37,8 @@ async_inbuf_t::async_inbuf_t(
 , limit_(buf_.data())
 , eof_seen_(false)
 , error_status_(0)
-, scheduler_(nullptr)
-, readable_ticket_()
-, callback_(nullptr)
+, readable_now_holder_()
+, user_callback_(nullptr)
 { }
 
 char* async_inbuf_t::read(char* first, char const* last)
@@ -57,46 +56,31 @@ char* async_inbuf_t::read(char* first, char const* last)
   return first + count;
 }
     
-callback_t async_inbuf_t::call_when_readable(
-  scheduler_t& scheduler, callback_t callback)
+void async_inbuf_t::call_when_readable(scheduler_t& scheduler,
+                                       callback_t callback)
 {
   assert(callback != nullptr);
 
-  callback_t result = cancel_when_readable();
+  this->cancel_when_readable();
 
   if(this->readable())
   {
-    readable_ticket_ = scheduler.call_alarm(duration_t::zero(),
+    readable_now_holder_.call_alarm(scheduler, duration_t::zero(),
       [this] { this->on_readable_now(); });
   }
   else
   {
-    readable_ticket_ = adapter_->call_when_readable(scheduler,
-      [this] { this->on_adapter_readable(); });
+    adapter_->call_when_readable(scheduler,
+      [this, &scheduler] { this->on_adapter_readable(scheduler); });
   }
-  scheduler_ = &scheduler;
-  callback_ = std::move(callback);
-
-  return result;
+  user_callback_ = std::move(callback);
 };
     
-callback_t async_inbuf_t::cancel_when_readable() noexcept
+void async_inbuf_t::cancel_when_readable() noexcept
 {
-  callback_t result = nullptr;
-
-  if(!readable_ticket_.empty())
-  {
-    assert(scheduler_ != nullptr);
-    assert(callback_ != nullptr);
-    
-    scheduler_->cancel(readable_ticket_);
-    readable_ticket_.clear();
-    
-    scheduler_ = nullptr;
-    result = std::move(callback_);
-  }
-
-  return result;
+  adapter_->cancel_when_readable();
+  readable_now_holder_.cancel();
+  user_callback_ = nullptr;
 }
 
 async_inbuf_t::~async_inbuf_t()
@@ -106,31 +90,23 @@ async_inbuf_t::~async_inbuf_t()
 
 void async_inbuf_t::on_readable_now()
 {
-  assert(scheduler_ != nullptr);
-  assert(callback_ != nullptr);
-
-  readable_ticket_.clear();
-
-  scheduler_ = nullptr;
-  callback_t callback = std::move(callback_);
+  assert(user_callback_ != nullptr);
+  callback_t callback = std::move(user_callback_);
 
   callback();
 }
 
-void async_inbuf_t::on_adapter_readable()
+void async_inbuf_t::on_adapter_readable(scheduler_t& scheduler)
 {
-  assert(scheduler_ != nullptr);
-  assert(callback_ != nullptr);
+  assert(user_callback_ != nullptr);
 
-  readable_ticket_.clear();
-  
   char* next;
   int r = adapter_->read(buf_.data(), buf_.data() + buf_.size(), next);
   if(next == nullptr)
   {
     // spurious wakeup: try again
-    readable_ticket_ = adapter_->call_when_readable(*scheduler_,
-      [this] { this->on_adapter_readable(); });
+    adapter_->call_when_readable(scheduler,
+      [this, &scheduler] { this->on_adapter_readable(scheduler); });
   }
   else
   {
@@ -140,8 +116,7 @@ void async_inbuf_t::on_adapter_readable()
     eof_seen_ = next == buf_.data();
     error_status_ = r;
       
-    scheduler_ = nullptr;
-    callback_t callback = std::move(callback_);
+    callback_t callback = std::move(user_callback_);
     callback();
   }
 }
