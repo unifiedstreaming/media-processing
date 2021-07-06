@@ -107,6 +107,7 @@ lib cuti
   tcp_acceptor.cpp
   tcp_connection.cpp
   tcp_socket.cpp
+  ticket_holder.cpp
   viewbuf.cpp
   advapi32
   ws2_32
