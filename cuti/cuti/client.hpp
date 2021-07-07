@@ -21,10 +21,13 @@
 #define CUTI_CLIENT_HPP_
 
 #include "linkage.h"
-#include "scheduler.hpp"
+#include "cancellation_ticket.hpp"
+#include "callback.hpp"
 
 namespace cuti
 {
+
+struct scheduler_t;
 
 /*
  * Abstract base class for a connected client.

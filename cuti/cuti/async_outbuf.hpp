@@ -21,7 +21,6 @@
 #define CUTI_ASYNC_OUTBUF_HPP_
 
 #include "linkage.h"
-#include "scheduler.hpp"
 #include "ticket_holder.hpp"
 
 #include <cassert>

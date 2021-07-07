@@ -20,14 +20,17 @@
 #ifndef CUTI_LISTENER_HPP_
 #define CUTI_LISTENER_HPP_
 
+#include "callback.hpp"
+#include "cancellation_ticket.hpp"
 #include "client.hpp"
 #include "linkage.h"
-#include "scheduler.hpp"
 
 #include <memory>
 
 namespace cuti
 {
+
+struct scheduler_t;
 
 /*
  * Abstract base class listening for connecting clients.

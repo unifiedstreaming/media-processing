@@ -19,6 +19,7 @@
 
 #include "ticket_holder.hpp"
 
+#include "scheduler.hpp"
 #include "tcp_acceptor.hpp"
 #include "tcp_connection.hpp"
 

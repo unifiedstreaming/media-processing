@@ -21,11 +21,13 @@
 #define CUTI_TICKET_HOLDER_HPP_
 
 #include "callback.hpp"
-#include "scheduler.hpp"
+#include "cancellation_ticket.hpp"
+#include "chrono_types.hpp"
 
 namespace cuti
 {
 
+struct scheduler_t;
 struct tcp_acceptor_t;
 struct tcp_connection_t;
 
