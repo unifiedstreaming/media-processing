@@ -26,14 +26,14 @@
 namespace cuti
 {
 
-async_outbuf_t::async_outbuf_t(std::unique_ptr<async_output_adapter_t> adapter)
-: async_outbuf_t(std::move(adapter), default_bufsize)
+async_outbuf_t::async_outbuf_t(std::unique_ptr<async_output_t> output)
+: async_outbuf_t(std::move(output), default_bufsize)
 { }
 
 async_outbuf_t::async_outbuf_t(
-  std::unique_ptr<async_output_adapter_t> adapter,
+  std::unique_ptr<async_output_t> output,
   std::size_t bufsize)
-: adapter_((assert(adapter != nullptr), std::move(adapter)))
+: output_((assert(output != nullptr), std::move(output)))
 , buf_((assert(bufsize != 0), bufsize))
 , read_ptr_(buf_.data())
 , write_ptr_(buf_.data())
@@ -44,7 +44,7 @@ async_outbuf_t::async_outbuf_t(
 
 int async_outbuf_t::error_status() const noexcept
 {
-  return adapter_->error_status();
+  return output_->error_status();
 }
 
 char const* async_outbuf_t::write(char const* first, char const* last)
@@ -69,7 +69,7 @@ void async_outbuf_t::call_when_writable(
 
   this->cancel_when_writable();
 
-  if(read_ptr_ == write_ptr_ || adapter_->error_status() != 0)
+  if(read_ptr_ == write_ptr_ || output_->error_status() != 0)
   {
     read_ptr_ = buf_.data();
     write_ptr_ = buf_.data();
@@ -83,15 +83,15 @@ void async_outbuf_t::call_when_writable(
   }
   else
   {
-    adapter_->call_when_writable(scheduler,
-      [this, &scheduler] { this->on_adapter_writable(scheduler); });
+    output_->call_when_writable(scheduler,
+      [this, &scheduler] { this->on_output_writable(scheduler); });
   }
   user_callback_ = std::move(callback);
 }
 
 void async_outbuf_t::cancel_when_writable() noexcept
 {
-  adapter_->cancel_when_writable();
+  output_->cancel_when_writable();
   writable_now_holder_.cancel();
   user_callback_ = nullptr;
 }
@@ -109,11 +109,11 @@ void async_outbuf_t::on_writable_now()
   callback();
 }
 
-void async_outbuf_t::on_adapter_writable(scheduler_t& scheduler)
+void async_outbuf_t::on_output_writable(scheduler_t& scheduler)
 {
   assert(user_callback_ != nullptr);
 
-  char const* next = adapter_->write(read_ptr_, write_ptr_);
+  char const* next = output_->write(read_ptr_, write_ptr_);
   if(next != write_ptr_)
   {
     // more to flush
@@ -122,8 +122,8 @@ void async_outbuf_t::on_adapter_writable(scheduler_t& scheduler)
       // not spurious
       read_ptr_ += next - read_ptr_;
     }
-    adapter_->call_when_writable(scheduler,
-      [this, &scheduler] { this->on_adapter_writable(scheduler); });
+    output_->call_when_writable(scheduler,
+      [this, &scheduler] { this->on_output_writable(scheduler); });
   }
   else
   {

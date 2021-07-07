@@ -24,14 +24,14 @@
 namespace cuti
 {
 
-async_inbuf_t::async_inbuf_t(std::unique_ptr<async_input_adapter_t> adapter)
-: async_inbuf_t(std::move(adapter), default_bufsize)
+async_inbuf_t::async_inbuf_t(std::unique_ptr<async_input_t> input)
+: async_inbuf_t(std::move(input), default_bufsize)
 { }
 
 async_inbuf_t::async_inbuf_t(
-  std::unique_ptr<async_input_adapter_t> adapter,
+  std::unique_ptr<async_input_t> input,
   std::size_t bufsize)
-: adapter_((assert(adapter != nullptr), std::move(adapter)))
+: input_((assert(input != nullptr), std::move(input)))
 , buf_((assert(bufsize != 0), bufsize))
 , read_ptr_(buf_.data())
 , limit_(buf_.data())
@@ -42,7 +42,7 @@ async_inbuf_t::async_inbuf_t(
 
 int async_inbuf_t::error_status() const noexcept
 {
-  return adapter_->error_status();
+  return input_->error_status();
 }
 
 char* async_inbuf_t::read(char* first, char const* last)
@@ -74,15 +74,15 @@ void async_inbuf_t::call_when_readable(scheduler_t& scheduler,
   }
   else
   {
-    adapter_->call_when_readable(scheduler,
-      [this, &scheduler] { this->on_adapter_readable(scheduler); });
+    input_->call_when_readable(scheduler,
+      [this, &scheduler] { this->on_input_readable(scheduler); });
   }
   user_callback_ = std::move(callback);
 };
     
 void async_inbuf_t::cancel_when_readable() noexcept
 {
-  adapter_->cancel_when_readable();
+  input_->cancel_when_readable();
   readable_now_holder_.cancel();
   user_callback_ = nullptr;
 }
@@ -100,16 +100,16 @@ void async_inbuf_t::on_readable_now()
   callback();
 }
 
-void async_inbuf_t::on_adapter_readable(scheduler_t& scheduler)
+void async_inbuf_t::on_input_readable(scheduler_t& scheduler)
 {
   assert(user_callback_ != nullptr);
 
-  char* next = adapter_->read(buf_.data(), buf_.data() + buf_.size());
+  char* next = input_->read(buf_.data(), buf_.data() + buf_.size());
   if(next == nullptr)
   {
     // spurious wakeup: try again
-    adapter_->call_when_readable(scheduler,
-      [this, &scheduler] { this->on_adapter_readable(scheduler); });
+    input_->call_when_readable(scheduler,
+      [this, &scheduler] { this->on_input_readable(scheduler); });
   }
   else
   {

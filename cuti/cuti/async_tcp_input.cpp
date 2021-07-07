@@ -17,7 +17,7 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#include "async_tcp_input_adapter.hpp"
+#include "async_tcp_input.hpp"
 
 #include "tcp_connection.hpp"
 
@@ -27,14 +27,13 @@
 namespace cuti
 {
 
-async_tcp_input_adapter_t::async_tcp_input_adapter_t(
-  std::shared_ptr<tcp_connection_t> conn)
+async_tcp_input_t::async_tcp_input_t(std::shared_ptr<tcp_connection_t> conn)
 : conn_((assert(conn != nullptr), std::move(conn)))
 , error_status_(0)
 , readable_holder_()
 { }
 
-void async_tcp_input_adapter_t::call_when_readable(
+void async_tcp_input_t::call_when_readable(
   scheduler_t& scheduler, callback_t callback)
 {
   if(error_status_ != 0)
@@ -49,12 +48,12 @@ void async_tcp_input_adapter_t::call_when_readable(
   }
 }
 
-void async_tcp_input_adapter_t::cancel_when_readable() noexcept
+void async_tcp_input_t::cancel_when_readable() noexcept
 {
   readable_holder_.cancel();
 }
 
-char* async_tcp_input_adapter_t::read(char* first, char const* last)
+char* async_tcp_input_t::read(char* first, char const* last)
 {
   char* next;
 
@@ -70,7 +69,7 @@ char* async_tcp_input_adapter_t::read(char* first, char const* last)
   return next;
 }
 
-int async_tcp_input_adapter_t::error_status() const noexcept
+int async_tcp_input_t::error_status() const noexcept
 {
   return error_status_;
 }

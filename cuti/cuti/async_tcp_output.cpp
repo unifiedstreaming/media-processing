@@ -17,7 +17,7 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#include "async_tcp_output_adapter.hpp"
+#include "async_tcp_output.hpp"
 
 #include "tcp_connection.hpp"
 
@@ -27,14 +27,13 @@
 namespace cuti
 {
 
-async_tcp_output_adapter_t::async_tcp_output_adapter_t(
-  std::shared_ptr<tcp_connection_t> conn)
+async_tcp_output_t::async_tcp_output_t(std::shared_ptr<tcp_connection_t> conn)
 : conn_((assert(conn != nullptr), std::move(conn)))
 , error_status_(0)
 , writable_holder_()
 { }
 
-void async_tcp_output_adapter_t::call_when_writable(
+void async_tcp_output_t::call_when_writable(
   scheduler_t& scheduler, callback_t callback)
 {
   if(error_status_ != 0)
@@ -49,12 +48,12 @@ void async_tcp_output_adapter_t::call_when_writable(
   }
 }
 
-void async_tcp_output_adapter_t::cancel_when_writable() noexcept
+void async_tcp_output_t::cancel_when_writable() noexcept
 {
   writable_holder_.cancel();
 }
 
-char const* async_tcp_output_adapter_t::write(
+char const* async_tcp_output_t::write(
   char const* first, char const * last)
 {
   char const* next;
@@ -71,7 +70,7 @@ char const* async_tcp_output_adapter_t::write(
   return next;
 }
 
-int async_tcp_output_adapter_t::error_status() const noexcept
+int async_tcp_output_t::error_status() const noexcept
 {
   return error_status_;
 }

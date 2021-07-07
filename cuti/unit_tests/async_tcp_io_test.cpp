@@ -19,8 +19,8 @@
 
 #include <cuti/async_inbuf.hpp>
 #include <cuti/async_outbuf.hpp>
-#include <cuti/async_tcp_input_adapter.hpp>
-#include <cuti/async_tcp_output_adapter.hpp>
+#include <cuti/async_tcp_input.hpp>
+#include <cuti/async_tcp_output.hpp>
 #include <cuti/default_scheduler.hpp>
 #include <cuti/tcp_connection.hpp>
 
@@ -198,10 +198,10 @@ void do_test_echo(bool bulk,
   conn_in->set_nonblocking();
 
   async_outbuf_t outbuf(
-    std::make_unique<async_tcp_output_adapter_t>(conn_out),
+    std::make_unique<async_tcp_output_t>(conn_out),
     outbufsize);
   async_inbuf_t inbuf(
-    std::make_unique<async_tcp_input_adapter_t>(conn_in),
+    std::make_unique<async_tcp_input_t>(conn_in),
     inbufsize);
 
   char const* first = str.empty() ? nullptr : str.data();
@@ -291,7 +291,7 @@ void do_test_error_status(bool bulk)
   conn_in.reset();
 
   async_outbuf_t outbuf(
-    std::make_unique<async_tcp_output_adapter_t>(conn_out), default_bufsize);
+    std::make_unique<async_tcp_output_t>(conn_out), default_bufsize);
 
   std::string str = make_long_string();
   char const* first = str.empty() ? nullptr : str.data();

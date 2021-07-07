@@ -17,10 +17,10 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#ifndef CUTI_ASYNC_TCP_INPUT_ADAPTER_HPP_
-#define CUTI_ASYNC_TCP_INPUT_ADAPTER_HPP_
+#ifndef CUTI_ASYNC_TCP_OUTPUT_HPP_
+#define CUTI_ASYNC_TCP_OUTPUT_HPP_
 
-#include "async_inbuf.hpp"
+#include "async_output.hpp"
 #include "ticket_holder.hpp"
 
 #include <memory>
@@ -31,25 +31,25 @@ namespace cuti
 struct tcp_connection_t;
 
 /*
- * Asynchronous tcp input adapter.
+ * Asynchronous tcp output adapter.
  */
-struct CUTI_ABI async_tcp_input_adapter_t : async_input_adapter_t
+struct CUTI_ABI async_tcp_output_t : async_output_t
 {
-  explicit async_tcp_input_adapter_t(std::shared_ptr<tcp_connection_t> conn);
+  explicit async_tcp_output_t(std::shared_ptr<tcp_connection_t> conn);
 
-  void call_when_readable(scheduler_t& scheduler,
+  void call_when_writable(scheduler_t& scheduler,
                           callback_t callback) override;
 
-  void cancel_when_readable() noexcept override;
+  void cancel_when_writable() noexcept override;
 
-  char* read(char* first, char const* last) override;
+  char const* write(char const* first, char const* last) override;
 
   int error_status() const noexcept override;
 
 private :
   std::shared_ptr<tcp_connection_t> conn_;
   int error_status_;
-  ticket_holder_t readable_holder_;
+  ticket_holder_t writable_holder_;
 };
 
 } // cuti

@@ -20,6 +20,7 @@
 #ifndef CUTI_ASYNC_OUTBUF_HPP_
 #define CUTI_ASYNC_OUTBUF_HPP_
 
+#include "async_output.hpp"
 #include "linkage.h"
 #include "ticket_holder.hpp"
 
@@ -31,30 +32,6 @@
 namespace cuti
 {
 
-struct CUTI_ABI async_output_adapter_t
-{
-  async_output_adapter_t()
-  { }
-
-  async_output_adapter_t(async_output_adapter_t const&) = delete;
-  async_output_adapter_t& operator=(async_output_adapter_t const&) = delete;
-
-  virtual void
-  call_when_writable(scheduler_t& scheduler, callback_t callback) = 0;
-
-  virtual void
-  cancel_when_writable() noexcept = 0;
-
-  virtual char const*
-  write(char const* first, char const* last) = 0;
-
-  virtual int
-  error_status() const noexcept = 0;
-
-  virtual ~async_output_adapter_t()
-  { }
-};
-  
 /*
  * Asynchronous output buffer.
  */
@@ -65,14 +42,12 @@ struct CUTI_ABI async_outbuf_t
   /*
    * Construct with default_bufsize.
    */
-  explicit async_outbuf_t(std::unique_ptr<async_output_adapter_t> adapter);
+  explicit async_outbuf_t(std::unique_ptr<async_output_t> output);
 
   /*
    * Construct with the specified bufsize.
    */
-  async_outbuf_t(std::unique_ptr<async_output_adapter_t> adapter,
-                 std::size_t bufsize);
-
+  async_outbuf_t(std::unique_ptr<async_output_t> output, std::size_t bufsize);
 
   async_outbuf_t(async_outbuf_t const&) = delete;
   async_outbuf_t& operator=(async_outbuf_t const&) = delete;
@@ -140,10 +115,10 @@ struct CUTI_ABI async_outbuf_t
 
 private :
   void on_writable_now();
-  void on_adapter_writable(scheduler_t& scheduler);
+  void on_output_writable(scheduler_t& scheduler);
 
 private :
-  std::unique_ptr<async_output_adapter_t> adapter_;
+  std::unique_ptr<async_output_t> output_;
 
   std::vector<char> buf_;
   char* read_ptr_;

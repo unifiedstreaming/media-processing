@@ -20,6 +20,7 @@
 #ifndef CUTI_ASYNC_INBUF_HPP_
 #define CUTI_ASYNC_INBUF_HPP_
 
+#include "async_input.hpp"
 #include "linkage.h"
 #include "ticket_holder.hpp"
 
@@ -32,30 +33,6 @@
 namespace cuti
 {
 
-struct CUTI_ABI async_input_adapter_t
-{
-  async_input_adapter_t()
-  { }
-
-  async_input_adapter_t(async_input_adapter_t const&) = delete;
-  async_input_adapter_t& operator=(async_input_adapter_t const&) = delete;
-
-  virtual void
-  call_when_readable(scheduler_t& scheduler, callback_t callback) = 0;
-
-  virtual void
-  cancel_when_readable() noexcept = 0;
-  
-  virtual char*
-  read(char* first, char const* last) = 0;
-
-  virtual int
-  error_status() const noexcept = 0;
-
-  virtual ~async_input_adapter_t()
-  { }
-};
-  
 /*
  * Asynchronous input buffer.
  */
@@ -68,13 +45,12 @@ struct CUTI_ABI async_inbuf_t
   /*
    * Construct with default_bufsize.
    */
-  explicit async_inbuf_t(std::unique_ptr<async_input_adapter_t> adapter);
+  explicit async_inbuf_t(std::unique_ptr<async_input_t> input);
 
   /*
    * Construct with the specified bufsize.
    */
-  async_inbuf_t(std::unique_ptr<async_input_adapter_t> adapter,
-                std::size_t bufsize);
+  async_inbuf_t(std::unique_ptr<async_input_t> input, std::size_t bufsize);
 
   async_inbuf_t(async_inbuf_t const&) = delete;
   async_inbuf_t& operator=(async_inbuf_t const&) = delete;
@@ -143,10 +119,10 @@ struct CUTI_ABI async_inbuf_t
 
 private :
   void on_readable_now();
-  void on_adapter_readable(scheduler_t& scheduler);
+  void on_input_readable(scheduler_t& scheduler);
 
 private :
-  std::unique_ptr<async_input_adapter_t> adapter_;
+  std::unique_ptr<async_input_t> input_;
 
   std::vector<char> buf_;
   char* read_ptr_;
