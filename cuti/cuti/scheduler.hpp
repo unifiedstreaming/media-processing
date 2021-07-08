@@ -48,7 +48,7 @@ struct CUTI_ABI scheduler_t
   scheduler_t& operator=(scheduler_t const&) = delete;
 
   /*
-   * Schedules a one-time callback at of after <when>.  Returns a
+   * Schedules a one-time callback at or after <when>.  Returns a
    * cancellation ticket that can be used to cancel the callback
    * before it is invoked.
    * Call this function again if you want another callback.
