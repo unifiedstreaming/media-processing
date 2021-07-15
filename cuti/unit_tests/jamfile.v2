@@ -25,6 +25,10 @@ project
   <library>../cuti//cuti
 ;
 
+unit-test async_reading_experiment
+: async_reading_experiment.cpp
+;
+
 unit-test async_tcp_io_test
 : async_tcp_io_test.cpp
 ;
