@@ -375,10 +375,45 @@ template<typename T>
 auto inline constexpr read_unsigned = [](
   async_source_t source, auto next, auto... args)
 {
+  static_assert(std::is_unsigned_v<T>);
+
   auto c = combine(skip_spaces, read_first_digit, read_trailing_digits<T>);
   return c(source, next, std::numeric_limits<T>::max(), args...);
 };
 
+template<typename Next, typename... Args>
+void read_optional_sign_impl(async_source_t source, Next next, Args... args)
+{
+  if(!source.readable())
+  {
+    source.call_when_readable(
+      [=] { read_optional_sign_impl(source, next, args...); });
+    return;
+  }
+
+  bool result;
+  switch(source.peek())
+  {
+  case '+' :
+    result = false;
+    source.skip();
+    break;
+  case '-' :
+    result = true;
+    source.skip();
+    break;
+  default :
+    result = false;
+    break;
+  }
+
+  next.start(source, result, args...);
+}
+
+auto inline constexpr read_optional_sign =
+  [](async_source_t source, auto next, auto... args)
+  { read_optional_sign_impl(source, next, args...); };
+    
 /*
  * Testing utilities
  */
@@ -644,6 +679,30 @@ void test_read_unsigned()
     }
   }
 }
+
+void test_read_optional_sign()
+{
+  {
+    result_t<bool> result;
+    auto engine = make_engine(read_optional_sign, read_eof, result);
+    run_engine(engine, "+");
+    assert(result.value() == false);
+  }
+
+  {
+    result_t<bool> result;
+    auto engine = make_engine(read_optional_sign, read_eof, result);
+    run_engine(engine, "-");
+    assert(result.value() == true);
+  }
+
+  {
+    result_t<bool> result;
+    auto engine = make_engine(read_optional_sign, read_eof, result);
+    run_engine(engine, "");
+    assert(result.value() == false);
+  }
+}
     
 } // anonymous
 
@@ -655,6 +714,7 @@ int main()
   test_read_first_digit();
   test_read_trailing_digits();
   test_read_unsigned();
+  test_read_optional_sign();
 
   return 0;
 }
