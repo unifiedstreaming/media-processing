@@ -299,17 +299,17 @@ void skip_spaces_impl(async_source_t source, Next next, Args... args)
 auto inline constexpr
 skip_spaces = [](auto... args) { skip_spaces_impl(args...); };
 
-unsigned int constexpr invalid_digit =
-  std::numeric_limits<unsigned int>::max(); 
+unsigned char constexpr invalid_digit =
+  std::numeric_limits<unsigned char>::max(); 
 
-unsigned int digit_value(int c)
+unsigned char digit_value(int c)
 {
   if(c < '0' || c > '9')
   {
     return invalid_digit;
   }
 
-  return static_cast<unsigned int>(c - '0');
+  return c - '0';
 }
     
 template<typename Next, typename... Args>
@@ -336,14 +336,13 @@ void read_first_digit_impl(async_source_t source, Next next, Args... args)
 auto inline constexpr
 read_first_digit = [](auto... args) { read_first_digit_impl(args...); };
 
-template<typename Next, typename T, typename U, typename... Args>
+template<typename T, typename Next, typename... Args>
 void read_trailing_digits_impl(
-  async_source_t source, Next next, T total, U max, Args... args)
+  async_source_t source, Next next, T total, T max, Args... args)
 {
   static_assert(std::is_unsigned_v<T>);
-  static_assert(std::is_unsigned_v<U>);
 
-  unsigned int dval;
+  unsigned char dval;
   while(source.readable() &&
         (dval = digit_value(source.peek())) != invalid_digit)
   {
@@ -368,14 +367,15 @@ void read_trailing_digits_impl(
   next.start(source, total, args...);
 }
 
+template<typename T>
 auto inline constexpr read_trailing_digits =
-  [](auto... args) { read_trailing_digits_impl(args...); };
+  [](auto... args) { read_trailing_digits_impl<T>(args...); };
 
 template<typename T>
 auto inline constexpr read_unsigned = [](
   async_source_t source, auto next, auto... args)
 {
-  auto c = combine(skip_spaces, read_first_digit, read_trailing_digits);
+  auto c = combine(skip_spaces, read_first_digit, read_trailing_digits<T>);
   return c(source, next, std::numeric_limits<T>::max(), args...);
 };
 
@@ -560,7 +560,8 @@ void test_read_trailing_digits()
 {
   {
     result_t<unsigned int> result;
-    auto engine = make_engine(read_trailing_digits, read_eof, result);
+    auto engine = make_engine(
+      read_trailing_digits<unsigned int>, read_eof, result);
 
     unsigned int initial_total = 0U;
     unsigned int max = 123U;
@@ -571,7 +572,8 @@ void test_read_trailing_digits()
 
   {
     result_t<unsigned int> result;
-    auto engine = make_engine(read_trailing_digits, read_eof, result);
+    auto engine = make_engine(
+      read_trailing_digits<unsigned int>, read_eof, result);
 
     unsigned int initial_total = 0U;
     unsigned int max = 123U;
@@ -582,7 +584,8 @@ void test_read_trailing_digits()
 
   {
     result_t<unsigned int> result;
-    auto engine = make_engine(read_trailing_digits, read_eof, result);
+    auto engine = make_engine(
+      read_trailing_digits<unsigned int>, read_eof, result);
 
     unsigned int initial_total = 0U;
     unsigned int max = 100U;
@@ -593,7 +596,8 @@ void test_read_trailing_digits()
 
   {
     result_t<unsigned int> result;
-    auto engine = make_engine(read_trailing_digits, read_eof, result);
+    auto engine = make_engine(
+      read_trailing_digits<unsigned int>, read_eof, result);
 
     unsigned int initial_total = 0U;
     unsigned int max = 98U;
