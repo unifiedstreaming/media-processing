@@ -347,7 +347,7 @@ void read_trailing_digits_impl(
   while(source.readable() &&
         (dval = digit_value(source.peek())) != invalid_digit)
   {
-    if(total * 10 > max || dval > max - total * 10)
+    if(total > max / 10 || dval > max - total * 10)
     {
       next.fail("integral value overflow");
       return;
