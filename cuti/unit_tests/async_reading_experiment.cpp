@@ -24,6 +24,10 @@
 #include <algorithm>
 #include <cstring>
 #include <iostream>
+#include <limits>
+#include <string>
+#include <string_view>
+#include <type_traits>
 #include <variant>
 
 #undef NDEBUG
@@ -73,45 +77,6 @@ private :
   scheduler_t& scheduler_;
 };
 
-struct async_array_input_t : async_input_t
-{
-  template<int N>
-  explicit async_array_input_t(char const (&arr)[N])
-  : rp_(arr)
-  , ep_(arr + N - 1)
-  , readable_holder_()
-  { }
-
-  void call_when_readable(scheduler_t& scheduler, callback_t callback) override
-  {
-    readable_holder_.call_alarm(
-      scheduler, duration_t::zero(), std::move(callback));
-  }
-
-  void cancel_when_readable() noexcept override
-  {
-    readable_holder_.cancel();
-  }
-
-  char* read(char* first, char const* last) override
-  {
-    auto count = std::min(ep_ - rp_, last - first);
-    std::copy(rp_, rp_ + count, first);
-    rp_ += count;
-    return first + count;
-  }
-
-  int error_status() const noexcept override
-  {
-    return 0;
-  }
-  
-private :
-  char const* rp_;
-  char const* const ep_;
-  ticket_holder_t readable_holder_;  
-};
-
 template<typename Function, typename Next>
 struct link_t
 {
@@ -152,6 +117,38 @@ template<typename First, typename Second, typename... Rest>
 auto make_engine(First first, Second second, Rest... rest)
 {
   return make_link(first, make_engine(second, rest...));
+}
+
+template<typename F1, typename F2>
+struct combine_t
+{
+  combine_t(F1 f1, F2 f2)
+  : f1_(f1)
+  , f2_(f2)
+  { }
+
+  template<typename Next, typename... Args>
+  void operator()(async_source_t source, Next next, Args... args)
+  {
+    auto link = make_link(f2_, next);
+    f1_(source, link, args...);
+  }
+    
+private :
+  F1 f1_;
+  F2 f2_;
+};
+
+template<typename F1, typename F2>
+auto combine(F1 f1, F2 f2)
+{
+  return combine_t<F1, F2>(f1, f2);
+}
+
+template<typename F1, typename F2, typename F3, typename... Fn>
+auto combine(F1 f1, F2 f2, F3 f3, Fn... fn)
+{
+  return combine(f1, combine(f2, f3, fn...));
 }
 
 template<typename T>
@@ -302,8 +299,129 @@ void skip_spaces_impl(async_source_t source, Next next, Args... args)
 auto inline constexpr
 skip_spaces = [](auto... args) { skip_spaces_impl(args...); };
 
-template<typename Engine, int N, typename... Args>
-void run_engine(Engine engine, char const (&input)[N], Args... args)
+unsigned int constexpr invalid_digit =
+  std::numeric_limits<unsigned int>::max(); 
+
+unsigned int digit_value(int c)
+{
+  if(c < '0' || c > '9')
+  {
+    return invalid_digit;
+  }
+
+  return static_cast<unsigned int>(c - '0');
+}
+    
+template<typename Next, typename... Args>
+void read_first_digit_impl(async_source_t source, Next next, Args... args)
+{
+  if(!source.readable())
+  {
+    source.call_when_readable(
+      [=] { read_first_digit_impl(source, next, args...); });
+    return;
+  }
+
+  unsigned int dval = digit_value(source.peek());
+  if(dval == invalid_digit)
+  {
+    next.fail("digit expected");
+    return;
+  }
+
+  source.skip();
+  next.start(source, dval, args...);
+}
+  
+auto inline constexpr
+read_first_digit = [](auto... args) { read_first_digit_impl(args...); };
+
+template<typename Next, typename T, typename U, typename... Args>
+void read_trailing_digits_impl(
+  async_source_t source, Next next, T total, U max, Args... args)
+{
+  static_assert(std::is_unsigned_v<T>);
+  static_assert(std::is_unsigned_v<U>);
+
+  unsigned int dval;
+  while(source.readable() &&
+        (dval = digit_value(source.peek())) != invalid_digit)
+  {
+    if(total * 10 > max || dval > max - total * 10)
+    {
+      next.fail("integral value overflow");
+      return;
+    }
+
+    total *= 10;
+    total += dval;
+    source.skip();
+  }
+
+  if(!source.readable())
+  {
+    source.call_when_readable(
+      [=] { read_trailing_digits_impl(source, next, total, max, args...); });
+    return;
+  }
+
+  next.start(source, total, args...);
+}
+
+auto inline constexpr read_trailing_digits =
+  [](auto... args) { read_trailing_digits_impl(args...); };
+
+template<typename T>
+auto inline constexpr read_unsigned = [](
+  async_source_t source, auto next, auto... args)
+{
+  auto c = combine(skip_spaces, read_first_digit, read_trailing_digits);
+  return c(source, next, std::numeric_limits<T>::max(), args...);
+};
+
+/*
+ * Testing utilities
+ */
+struct async_array_input_t : async_input_t
+{
+  explicit async_array_input_t(std::string_view src)
+  : rp_(src.data())
+  , ep_(src.data() + src.size())
+  , readable_holder_()
+  { }
+
+  void call_when_readable(scheduler_t& scheduler, callback_t callback) override
+  {
+    readable_holder_.call_alarm(
+      scheduler, duration_t::zero(), std::move(callback));
+  }
+
+  void cancel_when_readable() noexcept override
+  {
+    readable_holder_.cancel();
+  }
+
+  char* read(char* first, char const* last) override
+  {
+    auto count = std::min(ep_ - rp_, last - first);
+    std::copy(rp_, rp_ + count, first);
+    rp_ += count;
+    return first + count;
+  }
+
+  int error_status() const noexcept override
+  {
+    return 0;
+  }
+  
+private :
+  char const* rp_;
+  char const* const ep_;
+  ticket_holder_t readable_holder_;  
+};
+
+template<typename Engine, typename... Args>
+void run_engine(Engine engine, std::string_view input, Args... args)
 {
   async_inbuf_t inbuf(std::make_unique<async_array_input_t>(input), 1);
   default_scheduler_t scheduler;
@@ -317,6 +435,9 @@ void run_engine(Engine engine, char const (&input)[N], Args... args)
   }
 }
   
+/*
+ * Tests
+ */
 void test_result()
 {
   {
@@ -417,6 +538,108 @@ void test_skip_spaces()
     assert(result.value() == 42);
   }
 }
+
+void test_read_first_digit()
+{
+  {
+    result_t<unsigned int> result;
+    auto engine = make_engine(read_first_digit, read_eof, result);
+    run_engine(engine, "7");
+    assert(result.value() == 7);
+  }
+
+  {
+    result_t<unsigned int> result;
+    auto engine = make_engine(read_first_digit, read_eof, result);
+    run_engine(engine, "x");
+    assert(result.error() != nullptr);
+  }
+}
+
+void test_read_trailing_digits()
+{
+  {
+    result_t<unsigned int> result;
+    auto engine = make_engine(read_trailing_digits, read_eof, result);
+
+    unsigned int initial_total = 0U;
+    unsigned int max = 123U;
+    
+    run_engine(engine, "123", initial_total, max);
+    assert(result.value() == 123U);
+  }
+
+  {
+    result_t<unsigned int> result;
+    auto engine = make_engine(read_trailing_digits, read_eof, result);
+
+    unsigned int initial_total = 0U;
+    unsigned int max = 123U;
+    
+    run_engine(engine, "", initial_total, max);
+    assert(result.value() == 0U);
+  }
+
+  {
+    result_t<unsigned int> result;
+    auto engine = make_engine(read_trailing_digits, read_eof, result);
+
+    unsigned int initial_total = 0U;
+    unsigned int max = 100U;
+    
+    run_engine(engine, "123", initial_total, max);
+    assert(result.error() != nullptr);
+  }
+
+  {
+    result_t<unsigned int> result;
+    auto engine = make_engine(read_trailing_digits, read_eof, result);
+
+    unsigned int initial_total = 0U;
+    unsigned int max = 98U;
+    
+    run_engine(engine, "99", initial_total, max);
+    assert(result.error() != nullptr);
+  }
+}
+
+void test_read_unsigned()
+{
+  {
+    result_t<unsigned int> result;
+    auto engine = make_engine(read_unsigned<unsigned int>, read_eof, result);
+    run_engine(engine, "42");
+    assert(result.value() == 42);
+  }
+
+  {
+    result_t<unsigned int> result;
+    auto engine = make_engine(read_unsigned<unsigned int>, read_eof, result);
+    run_engine(engine, "\t\r 42");
+    assert(result.value() == 42);
+  }
+
+  {
+    result_t<unsigned int> result;
+    auto engine = make_engine(read_unsigned<unsigned int>, read_eof, result);
+    run_engine(engine, "\t\r x42");
+    assert(result.error() !=  nullptr);
+  }
+
+  {
+    constexpr auto ushort_max = std::numeric_limits<unsigned short>::max();
+    constexpr auto ulong_max = std::numeric_limits<unsigned long>::max();
+    if constexpr(ushort_max < ulong_max)
+    {
+      result_t<unsigned int> result;
+      auto engine = make_engine(read_unsigned<unsigned short>,
+        read_eof, result);
+      auto input = std::to_string((unsigned long) ushort_max + 1);
+      run_engine(engine, std::string_view(input));
+      assert(result.error() !=  nullptr);
+    }
+  }
+}
     
 } // anonymous
 
@@ -425,6 +648,9 @@ int main()
   test_result();
   test_read_eof();
   test_skip_spaces();
+  test_read_first_digit();
+  test_read_trailing_digits();
+  test_read_unsigned();
 
   return 0;
 }
