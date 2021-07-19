@@ -107,6 +107,12 @@ auto make_link(Function function, Next next)
   return link_t<Function, Next>(function, next);
 }
 
+template<typename A1, typename A2, typename A3, typename... Rest>
+auto make_link(A1 a1, A2 a2, A3 a3, Rest... rest)
+{
+  return make_link(a1, make_link(a2, a3, rest...));
+}
+  
 template<typename Last>
 auto make_engine(Last last)
 {
@@ -486,6 +492,87 @@ auto constexpr make_read_integral()
 template<typename T>
 auto inline constexpr read_integral = make_read_integral<T>();
 
+template<typename T>
+auto inline constexpr append_element =
+[](async_source_t source, auto next, T element, std::vector<T> elements,
+   auto... args)
+{
+  elements.push_back(element);
+  next.start(source, std::move(elements), args...);
+};
+  
+int constexpr max_recursion = 100;
+
+template<typename T, typename Next, typename... Args>
+void append_elements_impl(async_source_t source, Next next,
+                          std::vector<T> elements, int recursion, Args... args)
+{
+  int c;
+  while(source.readable() && recursion != max_recursion &&
+    is_space(c = source.peek()))
+  {
+    source.skip();
+  }
+  
+  if(!source.readable() || recursion == max_recursion)
+  {
+    source.call_when_readable([=, els=std::move(elements)]
+      { append_elements_impl(source, next, els, 0, args...); });
+    return;
+  }
+
+  if(c != ']')
+  {
+    auto c = combine(read_integral<T>, append_element<T>,
+      append_elements_impl<T, Next, Args...>);
+    c(source, next, std::move(elements), recursion + 1, args...);
+    return;
+  }
+
+  source.skip();
+  next.start(source, std::move(elements), args...);
+}
+      
+template<typename T>
+auto inline constexpr append_elements =
+[](async_source_t source, auto next, std::vector<T> elements, auto... args)
+{
+  append_elements_impl(source, next, std::move(elements), 0, args...);
+};
+
+template<typename T, typename Next, typename... Args>
+void read_vector_impl(async_source_t source, Next next, Args... args)
+{
+  int c;
+  while(source.readable() && is_space(c = source.peek()))
+  {
+    source.skip();
+  }
+
+  if(!source.readable())
+  {
+    source.call_when_readable(
+      [=] { read_vector_impl<T>(source, next, args...); });
+    return;
+  }
+
+  if(c != '[')
+  {
+    next.fail("'[' expected");
+    return;
+  }
+
+  source.skip();
+  make_link(append_elements<T>, next).start(source, std::vector<T>(), args...);
+}
+
+template<typename T>
+auto inline constexpr read_vector =
+[](async_source_t source, auto next, auto... args)
+{
+  read_vector_impl<T>(source, next, args...);
+};
+  
 /*
  * Testing utilities
  */
@@ -901,7 +988,64 @@ void test_read_signed()
     run_engine(engine, input);
     assert(result.error() != nullptr);
   }
+}
 
+void test_append_element()
+{
+  {
+    result_t<std::vector<int>> result;
+    auto engine = make_engine(append_element<int>, read_eof, result);
+    run_engine(engine, "", 1, std::vector<int>());
+    assert(result.value() == std::vector<int>{1});
+  }
+}
+    
+void test_read_vector()
+{
+  {
+    result_t<std::vector<int>> result;
+    auto engine = make_engine(read_vector<int>, read_eof, result);
+    run_engine(engine, "[]");
+    auto expected = std::vector<int>();
+    assert(result.value() == expected);
+  }
+
+  {
+    result_t<std::vector<int>> result;
+    auto engine = make_engine(read_vector<int>, read_eof, result);
+    run_engine(engine, " [ 1 2 3 ]");
+    auto expected = std::vector<int>{1, 2, 3};
+    assert(result.value() == expected);
+  }
+
+  {
+    result_t<std::vector<int>> result;
+    auto engine = make_engine(read_vector<int>, read_eof, result);
+    run_engine(engine, " [ -1 -2 -3 ]");
+    auto expected = std::vector<int>{-1, -2, -3};
+    assert(result.value() == expected);
+  }
+
+  {
+    result_t<std::vector<int>> result;
+    auto engine = make_engine(read_vector<int>, read_eof, result);
+    run_engine(engine, " -1 -2 -3 ]");
+    assert(result.error() != nullptr);
+  }
+
+  {
+    result_t<std::vector<int>> result;
+    auto engine = make_engine(read_vector<int>, read_eof, result);
+    run_engine(engine, " [ -1 -2 -3");
+    assert(result.error() != nullptr);
+  }
+
+  {
+    result_t<std::vector<unsigned int>> result;
+    auto engine = make_engine(read_vector<unsigned int>, read_eof, result);
+    run_engine(engine, " [ 1 -2 3 ]");
+    assert(result.error() != nullptr);
+  }
 }
 
 } // anonymous
@@ -916,6 +1060,8 @@ int main()
   test_read_unsigned();
   test_read_optional_sign();
   test_read_signed();
+  test_append_element();
+  test_read_vector();
 
   return 0;
 }
