@@ -469,6 +469,23 @@ auto inline constexpr read_signed =
   return c(source, next, args...);
 };
 
+template<typename T>
+auto constexpr make_read_integral()
+{
+  static_assert(std::is_integral_v<T>);
+  if constexpr(std::is_unsigned_v<T>)
+  {
+    return read_unsigned<T>;
+  }
+  else
+  {
+    return read_signed<T>;
+  }
+}
+  
+template<typename T>
+auto inline constexpr read_integral = make_read_integral<T>();
+
 /*
  * Testing utilities
  */
@@ -708,21 +725,28 @@ void test_read_unsigned()
 {
   {
     result_t<unsigned int> result;
-    auto engine = make_engine(read_unsigned<unsigned int>, read_eof, result);
+    auto engine = make_engine(read_integral<unsigned int>, read_eof, result);
     run_engine(engine, "42");
     assert(result.value() == 42);
   }
 
   {
     result_t<unsigned int> result;
-    auto engine = make_engine(read_unsigned<unsigned int>, read_eof, result);
+    auto engine = make_engine(read_integral<unsigned int>, read_eof, result);
+    run_engine(engine, "-42");
+    assert(result.error() != nullptr);
+  }
+
+  {
+    result_t<unsigned int> result;
+    auto engine = make_engine(read_integral<unsigned int>, read_eof, result);
     run_engine(engine, "\t\r 42");
     assert(result.value() == 42);
   }
 
   {
     result_t<unsigned int> result;
-    auto engine = make_engine(read_unsigned<unsigned int>, read_eof, result);
+    auto engine = make_engine(read_integral<unsigned int>, read_eof, result);
     run_engine(engine, "\t\r x42");
     assert(result.error() !=  nullptr);
   }
@@ -733,7 +757,7 @@ void test_read_unsigned()
     if constexpr(ushort_limit < ulong_limit)
     {
       result_t<unsigned int> result;
-      auto engine = make_engine(read_unsigned<unsigned short>,
+      auto engine = make_engine(read_integral<unsigned short>,
         read_eof, result);
       auto input = std::to_string((unsigned long) ushort_limit + 1);
       run_engine(engine, std::string_view(input));
@@ -770,63 +794,63 @@ void test_read_signed()
 {
   {
     result_t<int> result;
-    auto engine = make_engine(read_signed<int>, read_eof, result);
+    auto engine = make_engine(read_integral<int>, read_eof, result);
     run_engine(engine, "0");
     assert(result.value() == 0);
   }
 
   {
     result_t<int> result;
-    auto engine = make_engine(read_signed<int>, read_eof, result);
+    auto engine = make_engine(read_integral<int>, read_eof, result);
     run_engine(engine, "-0");
     assert(result.value() == 0);
   }
 
   {
     result_t<int> result;
-    auto engine = make_engine(read_signed<int>, read_eof, result);
+    auto engine = make_engine(read_integral<int>, read_eof, result);
     run_engine(engine, "42");
     assert(result.value() == 42);
   }
 
   {
     result_t<int> result;
-    auto engine = make_engine(read_signed<int>, read_eof, result);
+    auto engine = make_engine(read_integral<int>, read_eof, result);
     run_engine(engine, "\t\r 42");
     assert(result.value() == 42);
   }
 
   {
     result_t<int> result;
-    auto engine = make_engine(read_signed<int>, read_eof, result);
+    auto engine = make_engine(read_integral<int>, read_eof, result);
     run_engine(engine, "-42");
     assert(result.value() == -42);
   }
 
   {
     result_t<int> result;
-    auto engine = make_engine(read_signed<int>, read_eof, result);
+    auto engine = make_engine(read_integral<int>, read_eof, result);
     run_engine(engine, "\t\r -42");
     assert(result.value() == -42);
   }
 
   {
     result_t<int> result;
-    auto engine = make_engine(read_signed<int>, read_eof, result);
+    auto engine = make_engine(read_integral<int>, read_eof, result);
     run_engine(engine, "- 42");
     assert(result.error() != nullptr);
   }
 
   {
     result_t<int> result;
-    auto engine = make_engine(read_signed<int>, read_eof, result);
+    auto engine = make_engine(read_integral<int>, read_eof, result);
     run_engine(engine, "+42");
     assert(result.value() == 42);
   }
 
   {
     result_t<int> result;
-    auto engine = make_engine(read_signed<int>, read_eof, result);
+    auto engine = make_engine(read_integral<int>, read_eof, result);
     auto max = std::numeric_limits<int>::max();
     auto input = std::to_string(max);
     run_engine(engine, input);
@@ -835,7 +859,7 @@ void test_read_signed()
 
   {
     result_t<int> result;
-    auto engine = make_engine(read_signed<int>, read_eof, result);
+    auto engine = make_engine(read_integral<int>, read_eof, result);
     unsigned int max = std::numeric_limits<int>::max();
     auto input = std::to_string(max + 1);
     run_engine(engine, input);
@@ -844,7 +868,7 @@ void test_read_signed()
 
   {
     result_t<int> result;
-    auto engine = make_engine(read_signed<int>, read_eof, result);
+    auto engine = make_engine(read_integral<int>, read_eof, result);
     auto max = std::numeric_limits<int>::max();
     auto input = std::to_string(max) + "0";
     run_engine(engine, input);
@@ -853,7 +877,7 @@ void test_read_signed()
 
   {
     result_t<int> result;
-    auto engine = make_engine(read_signed<int>, read_eof, result);
+    auto engine = make_engine(read_integral<int>, read_eof, result);
     auto min = std::numeric_limits<int>::min();
     auto input = std::to_string(min);
     run_engine(engine, input);
@@ -862,7 +886,7 @@ void test_read_signed()
 
   {
     result_t<int> result;
-    auto engine = make_engine(read_signed<int>, read_eof, result);
+    auto engine = make_engine(read_integral<int>, read_eof, result);
     unsigned int max = std::numeric_limits<int>::max();
     auto input = "-" + std::to_string(max + 2);
     run_engine(engine, input);
@@ -871,7 +895,7 @@ void test_read_signed()
 
   {
     result_t<int> result;
-    auto engine = make_engine(read_signed<int>, read_eof, result);
+    auto engine = make_engine(read_integral<int>, read_eof, result);
     auto min = std::numeric_limits<int>::min();
     auto input = std::to_string(min) + "0";
     run_engine(engine, input);
