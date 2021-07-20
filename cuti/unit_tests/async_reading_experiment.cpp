@@ -47,6 +47,8 @@ struct async_source_t
   , scheduler_(scheduler)
   { }
 
+  async_source_t(async_source_t const&) = delete;
+
   bool readable() const
   {
     return inbuf_.readable();
@@ -86,7 +88,7 @@ struct link_t
   { }
 
   template<typename... Args>
-  void start(async_source_t source, Args... args)
+  void start(async_source_t& source, Args... args)
   {
     function_(source, next_, args...);
   }
@@ -134,7 +136,7 @@ struct combine_t
   { }
 
   template<typename Next, typename... Args>
-  void operator()(async_source_t source, Next next, Args... args)
+  void operator()(async_source_t& source, Next next, Args... args)
   {
     auto link = make_link(f2_, next);
     f1_(source, link, args...);
@@ -181,7 +183,7 @@ struct result_t
     return std::get<1>(*shared_state_);
   }
 
-  void start(async_source_t, T arg)
+  void start(async_source_t&, T arg)
   {
     assert(!this->available());
     shared_state_->template emplace<1>(arg);
@@ -223,7 +225,7 @@ struct result_t<void>
     assert(this->error() == nullptr);
   }
 
-  void start(async_source_t)
+  void start(async_source_t&)
   {
     assert(!this->available());
     shared_state_->available_ = true;
@@ -253,11 +255,12 @@ private :
 };
 
 template<typename Next, typename... Args>
-void read_eof_impl(async_source_t source, Next next, Args... args)
+void read_eof_impl(async_source_t& source, Next next, Args... args)
 {
   if(!source.readable())
   {
-    source.call_when_readable([=] { read_eof_impl(source, next, args...); });
+    source.call_when_readable([=, &source]
+      { read_eof_impl(source, next, args...); });
     return;
   }
 
@@ -273,7 +276,7 @@ void read_eof_impl(async_source_t source, Next next, Args... args)
 
 auto inline constexpr
 read_eof =
-[](async_source_t source, auto next, auto... args)
+[](async_source_t& source, auto next, auto... args)
 {
   read_eof_impl(source, next, args...);
 };
@@ -284,7 +287,7 @@ inline bool is_space(int c)
 }
 
 template<typename Next, typename... Args>
-void skip_spaces_impl(async_source_t source, Next next, Args... args)
+void skip_spaces_impl(async_source_t& source, Next next, Args... args)
 {
   while(source.readable() && is_space(source.peek()))
   {
@@ -293,7 +296,8 @@ void skip_spaces_impl(async_source_t source, Next next, Args... args)
 
   if(!source.readable())
   {
-    source.call_when_readable([=] { skip_spaces_impl(source, next, args...); });
+    source.call_when_readable([=, &source]
+      { skip_spaces_impl(source, next, args...); });
     return;
   }
 
@@ -302,7 +306,7 @@ void skip_spaces_impl(async_source_t source, Next next, Args... args)
 
 auto inline constexpr
 skip_spaces =
-[](async_source_t source, auto next, auto... args)
+[](async_source_t& source, auto next, auto... args)
 {
   skip_spaces_impl(source, next, args...);
 };
@@ -320,12 +324,12 @@ unsigned char digit_value(int c)
 }
     
 template<typename Next, typename... Args>
-void read_first_digit_impl(async_source_t source, Next next, Args... args)
+void read_first_digit_impl(async_source_t& source, Next next, Args... args)
 {
   if(!source.readable())
   {
-    source.call_when_readable(
-      [=] { read_first_digit_impl(source, next, args...); });
+    source.call_when_readable([=, &source]
+      { read_first_digit_impl(source, next, args...); });
     return;
   }
 
@@ -342,14 +346,14 @@ void read_first_digit_impl(async_source_t source, Next next, Args... args)
   
 auto inline constexpr
 read_first_digit =
-[](async_source_t source, auto next, auto... args)
+[](async_source_t& source, auto next, auto... args)
 {
   read_first_digit_impl(source, next, args...);
 };
 
 template<typename T, typename Next, typename... Args>
 void read_trailing_digits_impl(
-  async_source_t source, Next next, T total, T limit, Args... args)
+  async_source_t& source, Next next, T total, T limit, Args... args)
 {
   static_assert(std::is_unsigned_v<T>);
 
@@ -370,8 +374,8 @@ void read_trailing_digits_impl(
 
   if(!source.readable())
   {
-    source.call_when_readable(
-      [=] { read_trailing_digits_impl(source, next, total, limit, args...); });
+    source.call_when_readable([=, &source]
+      { read_trailing_digits_impl(source, next, total, limit, args...); });
     return;
   }
 
@@ -380,14 +384,14 @@ void read_trailing_digits_impl(
 
 template<typename T>
 auto inline constexpr read_trailing_digits =
-[](async_source_t source, auto next, auto... args)
+[](async_source_t& source, auto next, auto... args)
 {
   read_trailing_digits_impl<T>(source, next, args...);
 };
 
 template<typename T>
 auto inline constexpr read_unsigned =
-[](async_source_t source, auto next, auto... args)
+[](async_source_t& source, auto next, auto... args)
 {
   static_assert(std::is_unsigned_v<T>);
 
@@ -396,12 +400,12 @@ auto inline constexpr read_unsigned =
 };
 
 template<typename Next, typename... Args>
-void read_optional_sign_impl(async_source_t source, Next next, Args... args)
+void read_optional_sign_impl(async_source_t& source, Next next, Args... args)
 {
   if(!source.readable())
   {
-    source.call_when_readable(
-      [=] { read_optional_sign_impl(source, next, args...); });
+    source.call_when_readable([=, &source]
+      { read_optional_sign_impl(source, next, args...); });
     return;
   }
 
@@ -425,14 +429,14 @@ void read_optional_sign_impl(async_source_t source, Next next, Args... args)
 }
 
 auto inline constexpr read_optional_sign =
-[](async_source_t source, auto next, auto... args)
+[](async_source_t& source, auto next, auto... args)
 {
   read_optional_sign_impl(source, next, args...);
 };
 
 template<typename T>
 auto inline constexpr insert_limit =
-[](async_source_t source, auto next, bool negative, auto... args)
+[](async_source_t& source, auto next, bool negative, auto... args)
 {
   static_assert(std::is_signed_v<T>);
   std::make_unsigned_t<T> limit = std::numeric_limits<T>::max();
@@ -445,7 +449,7 @@ auto inline constexpr insert_limit =
 
 template<typename T>
 auto inline constexpr to_signed =
-[](async_source_t source, auto next, T value, bool negative, auto... args)
+[](async_source_t& source, auto next, T value, bool negative, auto... args)
 {
   static_assert(std::is_unsigned_v<T>);
   std::make_signed_t<T> result;
@@ -465,7 +469,7 @@ auto inline constexpr to_signed =
 
 template<typename T>
 auto inline constexpr read_signed =
-[](async_source_t source, auto next, auto... args)
+[](async_source_t& source, auto next, auto... args)
 {
   static_assert(std::is_signed_v<T>);
   using UT = std::make_unsigned_t<T>;
@@ -494,7 +498,7 @@ auto inline constexpr read_integral = make_read_integral<T>();
 
 template<typename T>
 auto inline constexpr append_element =
-[](async_source_t source, auto next, T element, std::vector<T> elements,
+[](async_source_t& source, auto next, T element, std::vector<T> elements,
    auto... args)
 {
   elements.push_back(element);
@@ -504,7 +508,7 @@ auto inline constexpr append_element =
 int constexpr max_recursion = 100;
 
 template<typename T, typename Next, typename... Args>
-void append_elements_impl(async_source_t source, Next next,
+void append_elements_impl(async_source_t& source, Next next,
                           std::vector<T> elements, int recursion, Args... args)
 {
   int c;
@@ -516,7 +520,7 @@ void append_elements_impl(async_source_t source, Next next,
   
   if(!source.readable() || recursion == max_recursion)
   {
-    source.call_when_readable([=, els=std::move(elements)]
+    source.call_when_readable([=, &source, els=std::move(elements)]
       { append_elements_impl(source, next, els, 0, args...); });
     return;
   }
@@ -535,13 +539,13 @@ void append_elements_impl(async_source_t source, Next next,
       
 template<typename T>
 auto inline constexpr append_elements =
-[](async_source_t source, auto next, std::vector<T> elements, auto... args)
+[](async_source_t& source, auto next, std::vector<T> elements, auto... args)
 {
   append_elements_impl(source, next, std::move(elements), 0, args...);
 };
 
 template<typename T, typename Next, typename... Args>
-void read_vector_impl(async_source_t source, Next next, Args... args)
+void read_vector_impl(async_source_t& source, Next next, Args... args)
 {
   int c;
   while(source.readable() && is_space(c = source.peek()))
@@ -551,8 +555,8 @@ void read_vector_impl(async_source_t source, Next next, Args... args)
 
   if(!source.readable())
   {
-    source.call_when_readable(
-      [=] { read_vector_impl<T>(source, next, args...); });
+    source.call_when_readable([=, &source]
+      { read_vector_impl<T>(source, next, args...); });
     return;
   }
 
@@ -568,7 +572,7 @@ void read_vector_impl(async_source_t source, Next next, Args... args)
 
 template<typename T>
 auto inline constexpr read_vector =
-[](async_source_t source, auto next, auto... args)
+[](async_source_t& source, auto next, auto... args)
 {
   read_vector_impl<T>(source, next, args...);
 };
@@ -638,7 +642,7 @@ void run_engine(Engine engine, std::string_view input, Args... args)
   
 auto inline constexpr
 force_error =
-[](async_source_t, auto next, auto...)
+[](async_source_t&, auto next, auto...)
 {
   next.fail("forced error");
 };
