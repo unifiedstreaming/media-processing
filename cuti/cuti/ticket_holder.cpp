@@ -30,8 +30,7 @@ namespace cuti
 {
 
 ticket_holder_t::ticket_holder_t()
-: scheduler_callback_([this] { this->on_scheduler_callback(); })
-, ticket_()
+: ticket_()
 , scheduler_(nullptr)
 , user_callback_(nullptr)
 { }
@@ -44,7 +43,8 @@ void ticket_holder_t::call_alarm(scheduler_t& scheduler,
 
   this->cancel();
 
-  ticket_ = scheduler.call_alarm(when, scheduler_callback_);
+  ticket_ = scheduler.call_alarm(when,
+    [this] { this->on_scheduler_callback(); });
   scheduler_ = &scheduler;
   user_callback_ = std::move(callback);
 }
@@ -57,7 +57,8 @@ void ticket_holder_t::call_alarm(scheduler_t& scheduler,
 
   this->cancel();
 
-  ticket_ = scheduler.call_alarm(timeout, scheduler_callback_);
+  ticket_ = scheduler.call_alarm(timeout,
+    [this] { this->on_scheduler_callback(); });
   scheduler_ = &scheduler;
   user_callback_ = std::move(callback);
 }
@@ -70,7 +71,8 @@ void ticket_holder_t::call_when_ready(scheduler_t& scheduler,
 
   this->cancel();
 
-  ticket_ = acceptor.call_when_ready(scheduler, scheduler_callback_);
+  ticket_ = acceptor.call_when_ready(scheduler,
+    [this] { this->on_scheduler_callback(); });
   scheduler_ = &scheduler;
   user_callback_ = std::move(callback);
 }
@@ -83,7 +85,8 @@ void ticket_holder_t::call_when_writable(scheduler_t& scheduler,
 
   this->cancel();
 
-  ticket_ = connection.call_when_writable(scheduler, scheduler_callback_);
+  ticket_ = connection.call_when_writable(scheduler,
+    [this] { this->on_scheduler_callback(); });
   scheduler_ = &scheduler;
   user_callback_ = std::move(callback);
 }
@@ -96,7 +99,8 @@ void ticket_holder_t::call_when_readable(scheduler_t& scheduler,
 
   this->cancel();
 
-  ticket_ = connection.call_when_readable(scheduler, scheduler_callback_);
+  ticket_ = connection.call_when_readable(scheduler,
+    [this] { this->on_scheduler_callback(); });
   scheduler_ = &scheduler;
   user_callback_ = std::move(callback);
 }

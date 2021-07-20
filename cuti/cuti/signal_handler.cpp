@@ -50,7 +50,7 @@ namespace // anonymous
  * pointer.
  */
 std::mutex curr_impl_mutex;
-signal_handler_t::impl_t const* curr_impl = nullptr;
+signal_handler_t::impl_t* curr_impl = nullptr;
 
 } // anonymous
 
@@ -119,7 +119,7 @@ private :
 
 private :
   callback_t callback_;
-  impl_t const *prev_impl_;
+  impl_t* prev_impl_;
 }; 
 
 #else // POSIX
@@ -152,7 +152,7 @@ private :
 };
     
 constexpr int n_sigs = 32;
-signal_handler_t::impl_t const* curr_impls[n_sigs];
+signal_handler_t::impl_t* curr_impls[n_sigs];
 
 } // anonymous
 
@@ -225,7 +225,7 @@ private :
 private :
   int sig_;
   callback_t callback_;
-  impl_t const* prev_impl_;
+  impl_t* prev_impl_;
   struct sigaction prev_action_;
 };
 

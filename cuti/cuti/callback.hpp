@@ -32,8 +32,7 @@ namespace cuti
 {
 
 /*
- * Type-erased callback wrapper as a workaround for some of the
- * problems of std::function<void()>.
+ * Type-erased (potentially mutable) callback wrapper.
  */
 struct CUTI_ABI callback_t
 {
@@ -47,19 +46,17 @@ struct CUTI_ABI callback_t
 
   template<typename F>
   callback_t(F* f)
-  : impl_(f != nullptr ? std::make_shared<impl_instance_t<F*>>(f) : nullptr)
+  : impl_(f != nullptr ? std::make_unique<impl_instance_t<F*>>(f) : nullptr)
   { }
 
   template<typename F, typename = std::enable_if_t<
     !std::is_convertible_v<std::decay_t<F>*, callback_t const*>>>
   callback_t(F&& f)
-  : impl_(std::make_shared<impl_instance_t<std::decay_t<F>>>(
+  : impl_(std::make_unique<impl_instance_t<std::decay_t<F>>>(
       std::forward<F>(f)))
   { }
 
-  callback_t(callback_t const& rhs) noexcept
-  : impl_(rhs.impl_)
-  { }
+  callback_t(callback_t const&) = delete;
 
   callback_t(callback_t&& rhs) noexcept
   : impl_(std::move(rhs.impl_))
@@ -74,7 +71,7 @@ struct CUTI_ABI callback_t
   template<typename F>
   callback_t& operator=(F* f)
   {
-    impl_ = f != nullptr ? std::make_shared<impl_instance_t<F*>>(f) : nullptr;
+    impl_ = f != nullptr ? std::make_unique<impl_instance_t<F*>>(f) : nullptr;
     return *this;
   }
 
@@ -82,16 +79,12 @@ struct CUTI_ABI callback_t
     !std::is_convertible_v<std::decay_t<F>*, callback_t const*>>>
   callback_t& operator=(F&& f)
   {
-    impl_ = std::make_shared<impl_instance_t<std::decay_t<F>>>(
+    impl_ = std::make_unique<impl_instance_t<std::decay_t<F>>>(
       std::forward<F>(f));
     return *this;
   }
 
-  callback_t& operator=(callback_t const& rhs) noexcept
-  {
-    impl_ = rhs.impl_;
-    return *this;
-  }
+  callback_t& operator=(callback_t const&) = delete;
 
   callback_t& operator=(callback_t&& rhs) noexcept
   {
@@ -109,7 +102,7 @@ struct CUTI_ABI callback_t
     impl_.swap(other.impl_);
   }
 
-  void operator()() const
+  void operator()()
   {
     assert(*this != nullptr);
     (*impl_)();
@@ -144,7 +137,7 @@ private :
     impl_t(impl_t const&) = delete;
     impl_t& operator=(impl_t const&) = delete;
 
-    virtual void operator()() const = 0;
+    virtual void operator()() = 0;
 
     virtual ~impl_t();
   };
@@ -162,7 +155,7 @@ private :
     , f_(std::move(f))
     { }
 
-    void operator()() const override
+    void operator()() override
     {
       f_();
     }
@@ -172,7 +165,7 @@ private :
   };
 
 private :
-  std::shared_ptr<impl_t const> impl_;
+  std::unique_ptr<impl_t> impl_;
 };
 
 CUTI_ABI

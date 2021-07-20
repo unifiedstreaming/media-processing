@@ -49,9 +49,9 @@ private :
 };
 
 static_assert(std::is_nothrow_default_constructible_v<callback_t>);
-static_assert(std::is_nothrow_copy_constructible_v<callback_t>);
+static_assert(!std::is_copy_constructible_v<callback_t>);
 static_assert(std::is_nothrow_move_constructible_v<callback_t>);
-static_assert(std::is_nothrow_copy_assignable_v<callback_t>);
+static_assert(!std::is_copy_assignable_v<callback_t>);
 static_assert(std::is_nothrow_move_assignable_v<callback_t>);
 static_assert(std::is_nothrow_swappable_v<callback_t>);
 
@@ -66,8 +66,8 @@ static_assert(!std::is_nothrow_assignable_v<callback_t, functor_t&&>);
 
 // check that callback_t's templated constructor and assignment operator
 // are properly SFINEA'd out for callback_t lvalues
-static_assert(std::is_nothrow_constructible_v<callback_t, callback_t&>);
-static_assert(std::is_nothrow_assignable_v<callback_t, callback_t&>);
+static_assert(!std::is_constructible_v<callback_t, callback_t&>);
+static_assert(!std::is_assignable_v<callback_t, callback_t&>);
 
 // check that callback_t's nullptr overloads don't trigger the templated
 // constructor and assignment operator
@@ -150,14 +150,21 @@ void lambda_callback()
   assert(called);
 }
 
-void copy_construct()
+void mutable_lambda_callback()
 {
-  callback_t cb1(function);
-  assert(cb1 != nullptr);
+  bool called_twice = false;
+  callback_t cb([&called_twice, cnt = 0]() mutable
+  {
+    if(++cnt == 2)
+    {
+      called_twice = true;
+    }
+  });
 
-  callback_t cb2(cb1);
-  assert(cb1 != nullptr);
-  assert(cb2 != nullptr);
+  assert(cb != nullptr);
+  cb();
+  cb();
+  assert(called_twice);
 }
 
 void move_construct()
@@ -167,17 +174,6 @@ void move_construct()
 
   callback_t cb2(std::move(cb1));
   assert(cb1 == nullptr);
-  assert(cb2 != nullptr);
-}
-
-void copy_assign()
-{
-  callback_t cb1(function);
-  assert(cb1 != nullptr);
-
-  callback_t cb2;
-  cb2 = cb1;
-  assert(cb1 != nullptr);
   assert(cb2 != nullptr);
 }
 
@@ -212,10 +208,9 @@ void run_tests(int, char const* const*)
   function_ptr_callback();
   functor_callback();
   lambda_callback();
+  mutable_lambda_callback();
 
-  copy_construct();
   move_construct();
-  copy_assign();
   move_assign();
   swapped();
 }  

@@ -109,7 +109,6 @@ private :
   void on_scheduler_callback();
 
 private :
-  callback_t const scheduler_callback_;
   cancellation_ticket_t ticket_;
   scheduler_t* scheduler_;
   callback_t user_callback_;
