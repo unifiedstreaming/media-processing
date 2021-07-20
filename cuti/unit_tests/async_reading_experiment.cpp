@@ -615,9 +615,10 @@ private :
 };
 
 template<typename Engine, typename... Args>
-void run_engine(Engine engine, std::string_view input, Args... args)
+void run_engine_with_bufsize(
+  std::size_t bufsize, Engine engine, std::string_view input, Args... args)
 {
-  async_inbuf_t inbuf(std::make_unique<async_array_input_t>(input), 1);
+  async_inbuf_t inbuf(std::make_unique<async_array_input_t>(input), bufsize);
   default_scheduler_t scheduler;
   async_source_t source(inbuf, scheduler);
 
@@ -627,6 +628,12 @@ void run_engine(Engine engine, std::string_view input, Args... args)
   {
     callback();
   }
+}
+  
+template<typename Engine, typename... Args>
+void run_engine(Engine engine, std::string_view input, Args... args)
+{
+  run_engine_with_bufsize(1, engine, input, args...);
 }
   
 auto inline constexpr
@@ -1015,6 +1022,24 @@ void test_read_vector()
     auto engine = make_engine(read_vector<int>, read_eof, result);
     run_engine(engine, " [ 1 2 3 ]");
     auto expected = std::vector<int>{1, 2, 3};
+    assert(result.value() == expected);
+  }
+
+  {
+    result_t<std::vector<int>> result;
+
+    std::string input = "[ ";
+    std::vector<int> expected;
+    for(int i = 0; i != 256; ++i)
+    {
+      input += std::to_string(i);
+      input += " ";
+      expected.push_back(i);
+    }
+    input += "]";
+      
+    auto engine = make_engine(read_vector<int>, read_eof, result);
+    run_engine_with_bufsize(async_inbuf_t::default_bufsize, engine, input);
     assert(result.value() == expected);
   }
 
