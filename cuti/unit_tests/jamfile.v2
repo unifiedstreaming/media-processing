@@ -77,6 +77,10 @@ unit-test resolver_test
 : resolver_test.cpp
 ;
 
+unit-test restarter_test
+: restarter_test.cpp
+;
+
 unit-test scoped_guard_test
 : scoped_guard_test.cpp
 ;
