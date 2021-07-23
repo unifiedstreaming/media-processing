@@ -65,6 +65,10 @@ unit-test membuf_test
 : membuf_test.cpp
 ;
 
+unit-test oneshot_test
+: oneshot_test.cpp
+;
+
 unit-test option_walker_test
 : option_walker_test.cpp
 ;
@@ -75,10 +79,6 @@ unit-test process_test
 
 unit-test resolver_test
 : resolver_test.cpp
-;
-
-unit-test restarter_test
-: restarter_test.cpp
 ;
 
 unit-test scoped_guard_test

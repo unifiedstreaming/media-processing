@@ -17,7 +17,7 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#include <cuti/restarter.hpp>
+#include <cuti/oneshot.hpp>
 
 #include <functional>
 #include <optional>
@@ -105,9 +105,9 @@ void restarted_value(counter_result_t& result, int count, int max,
 {
   if(count < max)
   {
-    auto restarter = make_restarter(restarted_value, std::ref(result),
+    auto oneshot = make_oneshot(restarted_value, std::ref(result),
       count + 1, max, std::move(counter));
-    restarter();
+    oneshot();
     return;
   }
 
@@ -119,9 +119,9 @@ void restarted_copy(counter_result_t& result, int count, int max,
 {
   if(count < max)
   {
-    auto restarter = make_restarter(restarted_copy, std::ref(result),
+    auto oneshot = make_oneshot(restarted_copy, std::ref(result),
       count + 1, max, counter);
-    restarter();
+    oneshot();
     return;
   }
 
@@ -133,9 +133,9 @@ void restarted_move(counter_result_t& result, int count, int max,
 {
   if(count < max)
   {
-    auto restarter = make_restarter(restarted_move, std::ref(result),
+    auto oneshot = make_oneshot(restarted_move, std::ref(result),
       count + 1, max, std::move(counter));
-    restarter();
+    oneshot();
     return;
   }
 
