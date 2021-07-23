@@ -93,7 +93,9 @@ struct CUTI_ABI callback_t
   {
     assert(*this != nullptr);
     (*impl_)();
-    impl_.reset();
+
+    // do not reset (we want to support calls from a signal handler)
+    // impl_.reset();
   }
 
   friend bool operator==(callback_t const& lhs, std::nullptr_t) noexcept

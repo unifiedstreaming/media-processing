@@ -110,7 +110,6 @@ void function_callback()
   function_called = false;
   cb();
   assert(function_called);
-  assert(cb == nullptr);
 }
 
 void flag_function_callback()
@@ -120,7 +119,6 @@ void flag_function_callback()
   assert(cb != nullptr);
   cb();
   assert(called);
-  assert(cb == nullptr);
 }
   
 void function_ptr_callback()
@@ -135,7 +133,6 @@ void function_ptr_callback()
   function_called = false;
   cb2();
   assert(function_called);
-  assert(cb2 == nullptr);
 
   f = nullptr;
   cb1 = f;
@@ -147,7 +144,6 @@ void function_ptr_callback()
   function_called = false;
   cb2();
   assert(function_called);
-  assert(cb2 == nullptr);
 }  
   
 void flag_function_ptr_callback()
@@ -164,14 +160,12 @@ void flag_function_ptr_callback()
   assert(cb2 != nullptr);
   cb2();
   assert(called);
-  assert(cb2 == nullptr);
 
   called = false;
   cb1 = callback_t(f, std::ref(called));
   assert(cb1 != nullptr);
   cb1();
   assert(called);
-  assert(cb1 == nullptr);
 
   f = nullptr;
   cb1 = callback_t(f, std::ref(called));
@@ -185,7 +179,6 @@ void functor_callback()
   assert(cb != nullptr);
   cb();
   assert(called);
-  assert(cb == nullptr);
 }
 
 void lambda_callback()
@@ -195,7 +188,6 @@ void lambda_callback()
   assert(cb != nullptr);
   cb();
   assert(called);
-  assert(cb == nullptr);
 }
 
 void mutable_lambda_callback()
@@ -210,7 +202,6 @@ void mutable_lambda_callback()
   assert(cb != nullptr);
   cb();
   assert(called);
-  assert(cb == nullptr);
 }
 
 void move_construct()
