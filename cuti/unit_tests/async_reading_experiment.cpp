@@ -18,8 +18,8 @@
  */
 
 #include <cuti/async_inbuf.hpp>
+#include <cuti/callback.hpp>
 #include <cuti/default_scheduler.hpp>
-#include <cuti/oneshot.hpp>
 #include <cuti/scheduler.hpp>
 
 #include <algorithm>
@@ -263,7 +263,7 @@ struct read_eof_t
   {
     if(!source.readable())
     {
-      source.call_when_readable(make_oneshot(
+      source.call_when_readable(callback_t(
         *this, std::ref(source), next, std::forward<Args>(args)...));
       return;
     }
@@ -297,7 +297,7 @@ struct skip_spaces_t
 
     if(!source.readable())
     {
-      source.call_when_readable(make_oneshot(
+      source.call_when_readable(callback_t(
         *this, std::ref(source), next, std::forward<Args>(args)...));
       return;
     }
@@ -328,7 +328,7 @@ struct read_first_digit_t
   {
     if(!source.readable())
     {
-      source.call_when_readable(make_oneshot(
+      source.call_when_readable(callback_t(
         *this, std::ref(source), next, std::forward<Args>(args)...));
       return;
     }
@@ -373,7 +373,7 @@ struct read_trailing_digits_t
 
     if(!source.readable())
     {
-      source.call_when_readable(make_oneshot(*this, std::ref(source), next,
+      source.call_when_readable(callback_t(*this, std::ref(source), next,
         total, limit, std::forward<Args>(args)...));
       return;
     }
@@ -409,7 +409,7 @@ struct read_optional_sign_t
   {
     if(!source.readable())
     {
-      source.call_when_readable(make_oneshot(*this, std::ref(source), next,
+      source.call_when_readable(callback_t(*this, std::ref(source), next,
         std::forward<Args>(args)...));
       return;
     }
@@ -555,7 +555,7 @@ struct append_elements_t
   
     if(!source.readable() || recursion == max_recursion)
     {
-      source.call_when_readable(make_oneshot(
+      source.call_when_readable(callback_t(
         *this, std::ref(source), next,
         std::move(elements), 0, std::forward<Args>(args)...));
       return;
@@ -591,7 +591,7 @@ struct read_vector_t
 
     if(!source.readable())
     {
-      source.call_when_readable(make_oneshot(
+      source.call_when_readable(callback_t(
         *this, std::ref(source), next, std::forward<Args>(args)...));
       return;
     }

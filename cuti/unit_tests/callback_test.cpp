@@ -20,7 +20,7 @@
 #include <cuti/callback.hpp>
 
 #include <exception>
-#include <iostream>
+#include <functional>
 #include <utility>
 #include <type_traits>
 
@@ -91,6 +91,11 @@ void function()
   function_called = true;
 }
 
+void flag_function(bool& called)
+{
+  called = true;
+}
+
 void empty_callback()
 {
   callback_t cb;
@@ -105,8 +110,19 @@ void function_callback()
   function_called = false;
   cb();
   assert(function_called);
+  assert(cb == nullptr);
 }
 
+void flag_function_callback()
+{
+  bool called = false;
+  callback_t cb(flag_function, std::ref(called));
+  assert(cb != nullptr);
+  cb();
+  assert(called);
+  assert(cb == nullptr);
+}
+  
 void function_ptr_callback()
 {
   void (*f)(void) = nullptr;
@@ -119,6 +135,7 @@ void function_ptr_callback()
   function_called = false;
   cb2();
   assert(function_called);
+  assert(cb2 == nullptr);
 
   f = nullptr;
   cb1 = f;
@@ -130,6 +147,35 @@ void function_ptr_callback()
   function_called = false;
   cb2();
   assert(function_called);
+  assert(cb2 == nullptr);
+}  
+  
+void flag_function_ptr_callback()
+{
+  bool called;
+
+  void (*f)(bool&) = nullptr;
+  callback_t cb1(f, std::ref(called));
+  assert(cb1 == nullptr);
+
+  called = false;
+  f = flag_function;
+  callback_t cb2(f, std::ref(called));
+  assert(cb2 != nullptr);
+  cb2();
+  assert(called);
+  assert(cb2 == nullptr);
+
+  called = false;
+  cb1 = callback_t(f, std::ref(called));
+  assert(cb1 != nullptr);
+  cb1();
+  assert(called);
+  assert(cb1 == nullptr);
+
+  f = nullptr;
+  cb1 = callback_t(f, std::ref(called));
+  assert(cb1 == nullptr);
 }  
   
 void functor_callback()
@@ -139,6 +185,7 @@ void functor_callback()
   assert(cb != nullptr);
   cb();
   assert(called);
+  assert(cb == nullptr);
 }
 
 void lambda_callback()
@@ -148,23 +195,22 @@ void lambda_callback()
   assert(cb != nullptr);
   cb();
   assert(called);
+  assert(cb == nullptr);
 }
 
 void mutable_lambda_callback()
 {
-  bool called_twice = false;
-  callback_t cb([&called_twice, cnt = 0]() mutable
+  bool called = false;
+  callback_t cb([&called, flag = false]() mutable
   {
-    if(++cnt == 2)
-    {
-      called_twice = true;
-    }
+    flag = true;
+    called = flag;
   });
 
   assert(cb != nullptr);
   cb();
-  cb();
-  assert(called_twice);
+  assert(called);
+  assert(cb == nullptr);
 }
 
 void move_construct()
@@ -201,11 +247,15 @@ void swapped()
   assert(cb2 != nullptr);
 }
 
-void run_tests(int, char const* const*)
+} // anonymous
+
+int main()
 {
   empty_callback();
   function_callback();
+  flag_function_callback();
   function_ptr_callback();
+  flag_function_ptr_callback();
   functor_callback();
   lambda_callback();
   mutable_lambda_callback();
@@ -213,21 +263,6 @@ void run_tests(int, char const* const*)
   move_construct();
   move_assign();
   swapped();
-}  
-
-} // anonymous
-
-int main(int argc, char* argv[])
-{
-  try
-  {
-    run_tests(argc, argv);
-  }
-  catch(std::exception const& ex)
-  {
-    std::cerr << argv[0] << ": exception: " << ex.what() << std::endl;
-    throw;
-  }
 
   return 0;
 }
