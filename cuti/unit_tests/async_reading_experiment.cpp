@@ -304,7 +304,6 @@ struct skip_spaces_t
 
     next.start(source, std::forward<Args>(args)...);
   }
-
 };
 
 auto inline constexpr skip_spaces = skip_spaces_t{};
@@ -321,11 +320,14 @@ unsigned char digit_value(int c)
   return c - '0';
 }
     
+template<typename T>
 struct read_first_digit_t
 {
   template<typename Next, typename... Args>
   void operator()(async_source_t& source, Next next, Args&&... args) const
   {
+    static_assert(std::is_unsigned_v<T>);
+
     if(!source.readable())
     {
       source.call_when_readable(callback_t(
@@ -333,7 +335,7 @@ struct read_first_digit_t
       return;
     }
 
-    unsigned int dval = digit_value(source.peek());
+    T dval = digit_value(source.peek());
     if(dval == invalid_digit)
     {
       next.fail("digit expected");
@@ -341,22 +343,24 @@ struct read_first_digit_t
     }
 
     source.skip();
-    next.start(source, dval, std::forward<Args>(args)...);
+    next.start(source, std::move(dval), std::forward<Args>(args)...);
   }
 };
 
-auto inline constexpr read_first_digit = read_first_digit_t{};
+template<typename T>
+auto inline constexpr read_first_digit = read_first_digit_t<T>{};
   
 template<typename T>
 struct read_trailing_digits_t
 {
   template<typename Next, typename... Args>
   void operator()(
-    async_source_t& source, Next next, T total, T limit, Args&&... args) const
+    async_source_t& source, Next next,
+      T&& total, T&& limit, Args&&... args) const
   {
     static_assert(std::is_unsigned_v<T>);
 
-    unsigned char dval;
+    T dval;
     while(source.readable() &&
           (dval = digit_value(source.peek())) != invalid_digit)
     {
@@ -378,7 +382,7 @@ struct read_trailing_digits_t
       return;
     }
 
-    next.start(source, total, std::forward<Args>(args)...);
+    next.start(source, std::move(total), std::forward<Args>(args)...);
   }
 };
 
@@ -393,8 +397,9 @@ struct read_unsigned_t
   {
     static_assert(std::is_unsigned_v<T>);
 
-    auto c = combine(skip_spaces, read_first_digit, read_trailing_digits<T>);
-    return c(source, next, std::numeric_limits<T>::max(),
+    auto c = combine(
+      skip_spaces, read_first_digit<T>, read_trailing_digits<T>);
+    c(source, next, std::numeric_limits<T>::max(),
       std::forward<Args>(args)...);
   }
 };
@@ -430,7 +435,7 @@ struct read_optional_sign_t
       break;
     }
 
-    next.start(source, result, args...);
+    next.start(source, std::move(result), std::forward<Args>(args)...);
   }
 };
 
@@ -440,7 +445,7 @@ template<typename T>
 struct insert_limit_t
 {
   template<typename Next, typename... Args>
-  void operator()(async_source_t& source, Next next, bool negative,
+  void operator()(async_source_t& source, Next next, bool&& negative,
     Args&&... args) const
   {
     static_assert(std::is_signed_v<T>);
@@ -449,7 +454,7 @@ struct insert_limit_t
     {
       ++limit;
     }
-    next.start(source, limit, negative, std::forward<Args>(args)...);
+    next.start(source, std::move(limit), std::move(negative), std::forward<Args>(args)...);
   }
 };
 
@@ -460,8 +465,8 @@ template<typename T>
 struct to_signed_t
 {
   template<typename Next, typename... Args>
-  void operator()(async_source_t& source, Next next, T value, bool negative,
-    Args&&... args) const
+  void operator()(async_source_t& source, Next next,
+    T&& value, bool&& negative, Args&&... args) const
   {
     static_assert(std::is_unsigned_v<T>);
     
@@ -477,7 +482,7 @@ struct to_signed_t
     {
       result = value;
     }
-    next.start(source, result, std::forward<Args>(args)...);
+    next.start(source, std::move(result), std::forward<Args>(args)...);
   }
 };
   
@@ -494,8 +499,8 @@ struct read_signed_t
     using UT = std::make_unsigned_t<T>;
 
     auto c = combine(skip_spaces, read_optional_sign, insert_limit<T>,
-      read_first_digit, read_trailing_digits<UT>, to_signed<UT>);
-    return c(source, next, std::forward<Args>(args)...);
+      read_first_digit<UT>, read_trailing_digits<UT>, to_signed<UT>);
+    c(source, next, std::forward<Args>(args)...);
   }
 };
 
@@ -524,10 +529,10 @@ struct append_element_t
 {
   template<typename Next, typename... Args>
   void operator()(async_source_t& source, Next next,
-    T element, std::vector<T> elements,
+    T&& element, std::vector<T>&& elements,
     Args&&... args) const
   {
-    elements.push_back(element);
+    elements.push_back(std::move(element));
     next.start(source, std::move(elements), std::forward<Args>(args)...);
   }
 };
@@ -542,8 +547,8 @@ struct append_elements_t
 {
   template<typename Next, typename... Args>
   void operator()(async_source_t& source, Next next,
-                  std::vector<T> elements, int recursion,
-		  Args&&... args) const
+                  std::vector<T>&& elements, int&& recursion,
+                  Args&&... args) const
   {
     int c;
     while(source.readable() &&
@@ -793,14 +798,14 @@ void test_read_first_digit()
 {
   {
     result_t<unsigned int> result;
-    auto engine = make_engine(read_first_digit, read_eof, result);
+    auto engine = make_engine(read_first_digit<unsigned int>, read_eof, result);
     run_engine(engine, "7");
     assert(result.value() == 7);
   }
 
   {
     result_t<unsigned int> result;
-    auto engine = make_engine(read_first_digit, read_eof, result);
+    auto engine = make_engine(read_first_digit<unsigned int>, read_eof, result);
     run_engine(engine, "x");
     assert(result.error() != nullptr);
   }
@@ -816,7 +821,7 @@ void test_read_trailing_digits()
     unsigned int initial_total = 0U;
     unsigned int limit = 123U;
     
-    run_engine(engine, "123", initial_total, limit);
+    run_engine(engine, "123", std::move(initial_total), std::move(limit));
     assert(result.value() == 123U);
   }
 
@@ -828,7 +833,7 @@ void test_read_trailing_digits()
     unsigned int initial_total = 0U;
     unsigned int limit = 123U;
     
-    run_engine(engine, "", initial_total, limit);
+    run_engine(engine, "", std::move(initial_total), std::move(limit));
     assert(result.value() == 0U);
   }
 
@@ -840,7 +845,7 @@ void test_read_trailing_digits()
     unsigned int initial_total = 0U;
     unsigned int limit = 100U;
     
-    run_engine(engine, "123", initial_total, limit);
+    run_engine(engine, "123", std::move(initial_total), std::move(limit));
     assert(result.error() != nullptr);
   }
 
@@ -852,7 +857,7 @@ void test_read_trailing_digits()
     unsigned int initial_total = 0U;
     unsigned int limit = 98U;
     
-    run_engine(engine, "99", initial_total, limit);
+    run_engine(engine, "99", std::move(initial_total), std::move(limit));
     assert(result.error() != nullptr);
   }
 }
