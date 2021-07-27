@@ -154,6 +154,7 @@ struct CUTI_ABI async_result_t<void>
   void on_exception(std::exception_ptr&& ex) noexcept
   {
     assert(ex != nullptr);
+    assert(!available());
     available_ = true;
     exception_ = std::move(ex);
   }
