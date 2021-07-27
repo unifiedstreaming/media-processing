@@ -56,7 +56,7 @@ struct async_result_t
    */
   std::exception_ptr exception() const noexcept
   {
-    assert(available());
+    assert(this->available());
     return state_.index() != 2 ? nullptr : std::get<2>(state_);
   }
 
@@ -67,10 +67,10 @@ struct async_result_t
    */
   T const& value() const
   {
-    assert(available());
-    if(auto ex = this->exception())
+    assert(this->available());
+    if(auto exptr = this->exception())
     {
-      std::rethrow_exception(ex);
+      std::rethrow_exception(exptr);
     }
     return std::get<1>(state_);
   }
@@ -82,10 +82,10 @@ struct async_result_t
    */
   T& value()
   {
-    assert(available());
-    if(auto ex = this->exception())
+    assert(this->available());
+    if(auto exptr = this->exception())
     {
-      std::rethrow_exception(ex);
+      std::rethrow_exception(exptr);
     }
     return std::get<1>(state_);
   }
@@ -93,20 +93,22 @@ struct async_result_t
   /*
    * Called when the operation successfully produces a value.
    */
-  void on_success(T&& value)
+  template<typename TT>
+  void on_success(TT&& value)
   {
-    assert(!available());
-    state_.template emplace<1>(std::move(value));
+    assert(!this->available());
+    state_.template emplace<1>(std::forward<TT>(value));
   }
 
   /*
    * Called when the operation produces an exception.
    */
-  void on_exception(std::exception_ptr&& ex) noexcept
+  template<typename Exptr>
+  void on_exception(Exptr&& exptr) noexcept
   {
-    assert(ex != nullptr);
-    assert(!available());
-    state_.template emplace<2>(std::move(ex));
+    assert(exptr != nullptr);
+    assert(!this->available());
+    state_.template emplace<2>(std::forward<Exptr>(exptr));
   }
 
 private :
@@ -122,7 +124,7 @@ struct CUTI_ABI async_result_t<void>
 {
   async_result_t()
   : available_(false)
-  , exception_(nullptr)
+  , exptr_(nullptr)
   { }
 
   bool available() const noexcept
@@ -132,36 +134,37 @@ struct CUTI_ABI async_result_t<void>
 
   std::exception_ptr exception() const noexcept
   {
-    assert(available());
-    return exception_;
+    assert(this->available());
+    return exptr_;
   }
 
   void value() const
   {
-    assert(available());
-    if(auto ex = this->exception())
+    assert(this->available());
+    if(auto exptr = this->exception())
     {
-      std::rethrow_exception(ex);
+      std::rethrow_exception(exptr);
     }
   }
     
   void on_success() noexcept
   {
-    assert(!available());
+    assert(!this->available());
     available_ = true;
   }
 
-  void on_exception(std::exception_ptr&& ex) noexcept
+  template<typename Exptr>
+  void on_exception(Exptr&& exptr) noexcept
   {
-    assert(ex != nullptr);
-    assert(!available());
+    assert(exptr != nullptr);
+    assert(!this->available());
     available_ = true;
-    exception_ = std::move(ex);
+    exptr_ = std::forward<Exptr>(exptr);
   }
 
 private :
   bool available_;
-  std::exception_ptr exception_;
+  std::exception_ptr exptr_;
 };
 
 /*
@@ -182,9 +185,10 @@ struct async_result_ref_t
     target_.on_success(std::forward<Args>(args)...);
   }
 
-  void fail(std::exception_ptr&& ex) const noexcept
+  template<typename Exptr>
+  void fail(Exptr&& exptr) const noexcept
   {
-    target_.on_exception(std::move(ex));
+    target_.on_exception(std::forward<Exptr>(exptr));
   }
 
 private :
