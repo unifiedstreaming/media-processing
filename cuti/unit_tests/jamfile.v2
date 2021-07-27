@@ -29,6 +29,10 @@ unit-test async_reading_experiment
 : async_reading_experiment.cpp
 ;
 
+unit-test async_result_test
+: async_result_test.cpp
+;
+
 unit-test async_tcp_io_test
 : async_tcp_io_test.cpp
 ;
