@@ -70,6 +70,7 @@ lib cuti
   async_outbuf.cpp
   async_output.cpp
   async_result.cpp
+  async_serializers.cpp
   async_source.cpp
   async_tcp_input.cpp
   async_tcp_output.cpp
@@ -94,6 +95,7 @@ lib cuti
   loglevel.cpp
   membuf.cpp
   option_walker.cpp
+  parse_error.cpp
   poll_selector.cpp
   process.cpp
   resolver.cpp
