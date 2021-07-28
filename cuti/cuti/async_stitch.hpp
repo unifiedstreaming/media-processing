@@ -78,7 +78,7 @@ template<typename F1, typename F2>
 struct async_stitch_t
 {
   template<typename FF1, typename FF2>
-  async_stitch_t(FF1&& f1, FF2&& f2)
+  constexpr async_stitch_t(FF1&& f1, FF2&& f2)
   : f1_(std::forward<FF1>(f1))
   , f2_(std::forward<FF2>(f2))
   { }
@@ -96,18 +96,18 @@ private :
 };
 
 /*
- * Covenience functions for generating stitched async function
+ * Convenience functions for generating stitched async function
  * objects.
  */
 template<typename F1, typename F2>
-auto async_stitch(F1&& f1, F2&& f2)
+constexpr auto async_stitch(F1&& f1, F2&& f2)
 {
   return async_stitch_t<std::decay_t<F1>, std::decay_t<F2>>(
     std::forward<F1>(f1), std::forward<F2>(f2));
 }
 
 template<typename F1, typename F2, typename... Fn>
-auto async_stitch(F1&& f1, F2&& f2, Fn&&... fn)
+constexpr auto async_stitch(F1&& f1, F2&& f2, Fn&&... fn)
 {
   return async_stitch(std::forward<F1>(f1),
            async_stitch(std::forward<F2>(f2), std::forward<Fn>(fn)...));

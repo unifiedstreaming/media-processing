@@ -134,7 +134,7 @@ void test_divide()
 
 void test_successful_stitch()
 {
-  auto stitched = async_stitch(add, divide, subtract, multiply);
+  constexpr auto stitched = async_stitch(add, divide, subtract, multiply);
   async_result_t<int> result;
   stitched(async_result_ref(result), 9, 7, 2, 1, 6);
   assert(result.value() == 42);
@@ -142,7 +142,7 @@ void test_successful_stitch()
   
 void test_failing_stitch()
 {
-  auto stitched = async_stitch(add, divide, subtract, multiply);
+  constexpr auto stitched = async_stitch(add, divide, subtract, multiply);
   async_result_t<int> result;
   stitched(async_result_ref(result), 9, 7, 0, 1, 6);
 
