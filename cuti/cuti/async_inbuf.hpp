@@ -21,6 +21,7 @@
 #define CUTI_ASYNC_INBUF_HPP_
 
 #include "async_input.hpp"
+#include "eof.hpp"
 #include "linkage.h"
 #include "ticket_holder.hpp"
 
@@ -39,8 +40,6 @@ namespace cuti
 struct CUTI_ABI async_inbuf_t
 {
   static std::size_t constexpr default_bufsize = 256 * 1024;
-  
-  static int constexpr eof = std::char_traits<char>::eof();
   
   /*
    * Construct with default_bufsize.

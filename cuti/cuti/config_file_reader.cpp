@@ -18,6 +18,7 @@
  */
 
 #include "config_file_reader.hpp"
+#include "eof.hpp"
 #include "system_error.hpp"
 
 #include <utility>
@@ -78,9 +79,6 @@ void config_file_reader_t::advance()
   /*
    * See 'Lexical structure' in the header file.
    */
-  using traits_type = std::streambuf::traits_type;
-  static auto constexpr eof = traits_type::eof();
-
   int c = sb_.sgetc();
 
   // skip spaces and comments

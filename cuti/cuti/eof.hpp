@@ -17,28 +17,16 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#include "viewbuf.hpp"
+#ifndef CUTI_EOF_HPP_
+#define CUTI_EOF_HPP_
 
-#include "eof.hpp"
+#include <string>
 
 namespace cuti
 {
 
-viewbuf_t::viewbuf_t(char const* begin, char const* end)
-: std::streambuf()
-{
-  // This is a read-only streambuf with inherited pbackfail(),
-  // so casting away const is OK.
-  this->setg(const_cast<char*>(begin), const_cast<char*>(begin),
-             const_cast<char*>(end));
-}
-
-viewbuf_t::int_type viewbuf_t::underflow()
-{
-  auto gptr = this->gptr();
-  return gptr == this->egptr() ?
-         eof :
-         traits_type::to_int_type(*gptr);
-}
+auto inline constexpr eof = std::char_traits<char>::eof();
 
 } // cuti
+
+#endif

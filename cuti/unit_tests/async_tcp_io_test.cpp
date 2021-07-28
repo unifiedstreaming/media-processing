@@ -159,7 +159,7 @@ private :
     else
     {
       int c;
-      while(in_.readable() && (c = in_.peek()) != async_inbuf_t::eof)
+      while(in_.readable() && (c = in_.peek()) != eof)
       {
         result_ += static_cast<char>(c);
         in_.skip();

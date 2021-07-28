@@ -18,6 +18,7 @@
  */
 
 #include "membuf.hpp"
+#include "eof.hpp"
 
 #include <algorithm>
 
@@ -61,7 +62,7 @@ membuf_t::int_type membuf_t::overflow(int_type c)
     epptr = new_buf + new_size;
   }
 
-  if(c != traits_type::eof())
+  if(c != eof)
   {
     *pptr = traits_type::to_char_type(c);
     ++pptr;

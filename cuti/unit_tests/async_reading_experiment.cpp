@@ -42,8 +42,6 @@ using namespace cuti;
 
 struct async_source_t
 {
-  static int constexpr eof = async_inbuf_t::eof;
-
   async_source_t(async_inbuf_t& inbuf, scheduler_t& scheduler)
   : inbuf_(inbuf)
   , scheduler_(scheduler)
@@ -268,7 +266,7 @@ struct read_eof_t
       return;
     }
 
-    if(source.peek() != async_source_t::eof)
+    if(source.peek() != eof)
     {
       next.fail("eof expected");
       return;
