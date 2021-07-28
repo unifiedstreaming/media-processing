@@ -17,7 +17,7 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#include <cuti/async_inbuf.hpp>
+#include <cuti/async_source.hpp>
 #include <cuti/callback.hpp>
 #include <cuti/default_scheduler.hpp>
 #include <cuti/scheduler.hpp>
@@ -39,45 +39,6 @@ namespace // anonymous
 {
 
 using namespace cuti;
-
-struct async_source_t
-{
-  async_source_t(async_inbuf_t& inbuf, scheduler_t& scheduler)
-  : inbuf_(inbuf)
-  , scheduler_(scheduler)
-  { }
-
-  async_source_t(async_source_t const&) = delete;
-
-  bool readable() const
-  {
-    return inbuf_.readable();
-  }
-
-  int peek() const
-  {
-    return inbuf_.peek();
-  }
-
-  void skip()
-  {
-    inbuf_.skip();
-  }
-
-  char* read(char* first, char const* last)
-  {
-    return inbuf_.read(first, last);
-  }
-
-  void call_when_readable(callback_t callback)
-  {
-    inbuf_.call_when_readable(scheduler_, std::move(callback));
-  }
-
-private :
-  async_inbuf_t& inbuf_;
-  scheduler_t& scheduler_;
-};
 
 template<typename Function, typename Next>
 struct link_t
