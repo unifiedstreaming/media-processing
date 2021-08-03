@@ -87,6 +87,7 @@ lib cuti
   file_backend.cpp
   fs_utils.cpp
   format.cpp
+  handler.cpp
   kqueue_selector.cpp
   listener.cpp
   logger.cpp
