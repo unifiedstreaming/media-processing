@@ -56,8 +56,8 @@ signal_handler_t::impl_t* curr_impl = nullptr;
 
 struct signal_handler_t::impl_t
 {
-  impl_t(int sig, callback_t callback)
-  : callback_(std::move(callback))
+  impl_t(int sig, handler_t handler)
+  : handler_(std::move(handler))
   , prev_impl_(nullptr)
   {
     if(sig != SIGINT)
@@ -75,7 +75,7 @@ struct signal_handler_t::impl_t
     }
 
     // ...then add the handler
-    BOOL r = SetConsoleCtrlHandler(handler, TRUE);
+    BOOL r = SetConsoleCtrlHandler(handler_routine, TRUE);
     assert(r != 0);
   }
 
@@ -85,7 +85,7 @@ struct signal_handler_t::impl_t
   ~impl_t()
   {
     // First remove the handler..
-    BOOL r = SetConsoleCtrlHandler(handler, FALSE);
+    BOOL r = SetConsoleCtrlHandler(handler_routine, FALSE);
     assert(r != 0);
     
     // ...then restore curr_impl
@@ -97,7 +97,7 @@ struct signal_handler_t::impl_t
   }
 
 private :
-  static BOOL WINAPI handler(DWORD dwCtrlType) noexcept
+  static BOOL WINAPI handler_routine(DWORD dwCtrlType) noexcept
   {
     BOOL result = FALSE;
 
@@ -106,9 +106,9 @@ private :
       std::scoped_lock<std::mutex> lock(curr_impl_mutex);
       assert(curr_impl != nullptr);
 
-      if(curr_impl->callback_ != nullptr)
+      if(curr_impl->handler_ != nullptr)
       {
-        curr_impl->callback_();
+        curr_impl->handler_();
       }
 
       result = TRUE;
@@ -118,7 +118,7 @@ private :
   }
 
 private :
-  callback_t callback_;
+  handler_t handler_;
   impl_t* prev_impl_;
 }; 
 
@@ -158,9 +158,9 @@ signal_handler_t::impl_t* curr_impls[n_sigs];
 
 struct signal_handler_t::impl_t
 {
-  impl_t(int sig, callback_t callback)
+  impl_t(int sig, handler_t handler)
   : sig_(sig)
-  , callback_(std::move(callback))
+  , handler_(std::move(handler))
   , prev_impl_(nullptr)
   {
     if(sig_ < 0 || sig_ >= n_sigs)
@@ -181,7 +181,7 @@ struct signal_handler_t::impl_t
     struct sigaction new_action;
     std::memset(&new_action, '\0', sizeof new_action);
 
-    new_action.sa_handler = handler;
+    new_action.sa_handler = handler_routine;
     sigemptyset(&new_action.sa_mask);
     sigaddset(&new_action.sa_mask, sig_);
     new_action.sa_flags = SA_RESTART;
@@ -208,31 +208,31 @@ struct signal_handler_t::impl_t
   }
 
 private :
-  static void handler(int sig) noexcept
+  static void handler_routine(int sig) noexcept
   {
     assert(sig >= 0);
     assert(sig < n_sigs);
     assert(curr_impls[sig] != nullptr);
 
-    if(curr_impls[sig]->callback_ != nullptr)
+    if(curr_impls[sig]->handler_ != nullptr)
     {
       auto saved_errno = errno;
-      curr_impls[sig]->callback_();
+      curr_impls[sig]->handler_();
       errno = saved_errno;
     }
   }
 
 private :
   int sig_;
-  callback_t callback_;
+  handler_t handler_;
   impl_t* prev_impl_;
   struct sigaction prev_action_;
 };
 
 #endif // POSIX
 
-signal_handler_t::signal_handler_t(int sig, callback_t callback)
-: impl_(std::make_unique<impl_t>(sig, std::move(callback)))
+signal_handler_t::signal_handler_t(int sig, handler_t handler)
+: impl_(std::make_unique<impl_t>(sig, std::move(handler)))
 { }
 
 signal_handler_t::~signal_handler_t()

@@ -20,7 +20,7 @@
 #ifndef CUTI_SIGNAL_HANDLER_HPP_
 #define CUTI_SIGNAL_HANDLER_HPP_
 
-#include "callback.hpp"
+#include "handler.hpp"
 #include "linkage.h"
 
 #include <csignal>
@@ -31,7 +31,7 @@ namespace cuti
 
 /*
  * signal_handler_t sets up a signal handler that calls a
- * user-provided callback when the OS reports some specific signal.
+ * user-provided handler when the OS reports some specific signal.
  * The usual platform-specific signal handler restrictions apply.
  *
  * Constructing or destroying a signal_handler_t while multiple
@@ -51,10 +51,10 @@ struct CUTI_ABI signal_handler_t
   struct impl_t;
 
   /*
-   * Sets the signal handler for <sig>.  If <callback> is nullptr,
+   * Sets the signal handler for <sig>.  If <handler> is nullptr,
    * the signal is effectively ignored.
    */
-  signal_handler_t(int sig, callback_t callback);
+  signal_handler_t(int sig, handler_t handler);
 
   signal_handler_t(signal_handler_t const&) = delete;
   signal_handler_t& operator=(signal_handler_t const&) = delete;
