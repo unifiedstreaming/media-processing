@@ -32,6 +32,7 @@
 
 // Enable assert()
 #undef NDEBUG
+#include <cassert>
 
 namespace // anonymous
 {
