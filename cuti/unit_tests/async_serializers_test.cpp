@@ -21,6 +21,7 @@
 #include <cuti/async_input.hpp>
 #include <cuti/async_result.hpp>
 #include <cuti/async_serializers.hpp>
+#include <cuti/async_stitch.hpp>
 #include <cuti/default_scheduler.hpp>
 #include <cuti/parse_error.hpp>
 #include <cuti/ticket_holder.hpp>
@@ -208,17 +209,26 @@ void test_void_failure(F&& f, std::string_view input)
   do_test_void_failure(f, input, async_inbuf_t::default_bufsize);
 }
 
-void test_check_eom()
+void test_drop_source()
 {
-  test_void_success(check_eom, "\n");
-  test_void_failure(check_eom, " \n");
+  test_void_success(drop_source, "");
 }
+
+void test_check_eof()
+{
+  auto chain = async_stitch(check_eof, drop_source);
+  
+  test_void_success(chain, "");
+  test_void_failure(chain, " ");
+}
+
 
 } // anonymous
 
 int main()
 {
-  test_check_eom();
+  test_drop_source();
+  test_check_eof();
 
   return 0;
 }

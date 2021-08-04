@@ -31,10 +31,21 @@ namespace cuti
 namespace detail
 {
 
-struct check_eom_t
+struct drop_source_t
 {
   template<typename Cont, typename... Args>
-  void operator()(Cont&& cont, async_source_t source, Args&&... args) const
+  void operator()(
+    Cont&& cont, async_source_t /* source */, Args&&... args) const
+  {
+    cont.submit(std::forward<Args>(args)...);
+  }
+};
+
+struct check_eof_t
+{
+  template<typename Cont, typename... Args>
+  void operator()(
+    Cont&& cont, async_source_t source, Args&&... args) const
   {
     if(!source.readable())
     {
@@ -43,20 +54,20 @@ struct check_eom_t
       return;
     }
 
-    if(source.peek() != '\n')
+    if(source.peek() != eof)
     {
       cont.fail(std::make_exception_ptr(parse_error_t("eof expected")));
       return;
     }
 
-    source.skip();
-    cont.submit(std::forward<Args>(args)...);
+    cont.submit(source, std::forward<Args>(args)...);
   }
 };
 
 } // namespace cuti::detail
 
-inline auto constexpr check_eom = detail::check_eom_t{};
+inline auto constexpr drop_source = detail::drop_source_t{};
+inline auto constexpr check_eof = detail::check_eof_t{};
 
 } // namespace cuti
 
