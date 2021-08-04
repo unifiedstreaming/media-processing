@@ -94,6 +94,8 @@ struct skip_whitespace_t
   }
 };
 
+inline auto constexpr skip_whitespace = skip_whitespace_t{};
+
 inline int digit_value(int c)
 {
   if(c < '0' || c > '9')
@@ -104,8 +106,11 @@ inline int digit_value(int c)
   return c - '0';
 }
 
+template<typename T>
 struct read_first_digit_t
 {
+  static_assert(std::is_unsigned_v<T>);
+
   template<typename Cont, typename... Args>
   void operator()(
     Cont&& cont, async_source_t source, Args&&... args) const
@@ -117,38 +122,38 @@ struct read_first_digit_t
       return;
     }
 
-    int value = digit_value(source.peek());
-    if(value == -1)
+    int dval = digit_value(source.peek());
+    if(dval == -1)
     {
       cont.fail(std::make_exception_ptr(parse_error_t("digit expected")));
       return;
     }
 
     source.skip();
-    cont.submit(source, static_cast<unsigned char>(value),
-      std::forward<Args>(args)...);
+    cont.submit(source, T(dval), std::forward<Args>(args)...);
   }
 };
 
 template<typename T>
-struct read_unsigned_trailing_digits_t
+auto constexpr read_first_digit = read_first_digit_t<T>{};
+
+template<typename T>
+struct read_trailing_digits_t
 {
   static_assert(std::is_unsigned_v<T>);
-  static constexpr T max = std::numeric_limits<T>::max();
 
   template<typename Cont, typename... Args>
   void operator()(
-    Cont&& cont, async_source_t source, T total, Args&&... args) const
+    Cont&& cont, async_source_t source, T total, T limit, Args&&... args) const
   {
     int dval;
     while(source.readable() &&
           (dval = digit_value(source.peek())) != -1)
     {
-      unsigned char udval = static_cast<unsigned char>(dval);
-      if(total > max / 10 || udval > max - 10 * total)
+      T udval = T(dval);
+      if(total > limit / 10 || udval > limit - 10 * total)
       {
-        cont.fail(std::make_exception_ptr(
-	  parse_error_t("unsigned integral overflow")));
+        cont.fail(std::make_exception_ptr(parse_error_t("integral overflow")));
         return;
       }
 
@@ -161,28 +166,74 @@ struct read_unsigned_trailing_digits_t
     if(!source.readable())
     {
       source.call_when_readable(callback_t(*this, std::forward<Cont>(cont),
-        source, total, std::forward<Args>(args)...));
+        source, total, limit, std::forward<Args>(args)...));
       return;
     }
 
     cont.submit(source, total, std::forward<Args>(args)...);
   }
 };
-  
+
+template<typename T>
+auto constexpr read_trailing_digits = read_trailing_digits_t<T>{};
+
+template<typename T>
+struct read_unsigned_t
+{
+  static_assert(std::is_unsigned_v<T>);
+  static auto constexpr limit = std::numeric_limits<T>::max();
+
+  template<typename Cont, typename... Args>
+  void operator()(
+    Cont&& cont, async_source_t source, Args&&... args) const
+  {
+    static constexpr auto chain = async_stitch(
+      skip_whitespace, read_first_digit<T>, read_trailing_digits<T>);
+    chain(std::forward<Cont>(cont), source, limit,
+      std::forward<Args>(args)...);
+  }
+};
+    
+template<typename T>
+auto constexpr read_unsigned = read_unsigned_t<T>{};
+
+struct read_optional_sign_t
+{
+  template<typename Cont, typename... Args>
+  void operator()(
+    Cont&& cont, async_source_t source, Args&&... args) const
+  {
+    if(!source.readable())
+    {
+      source.call_when_readable(callback_t(*this, std::forward<Cont>(cont),
+        source, std::forward<Args>(args)...));
+      return;
+    }
+
+    bool negative = false;
+    switch(source.peek())
+    {
+    case '-' :
+      negative = true;
+      source.skip();
+      break;
+    case '+' :
+      source.skip();
+      break;
+    default :
+      break;
+    }
+
+    cont.submit(source, negative, std::forward<Args>(args)...);
+  }
+};
+      
+inline auto constexpr read_optional_sign = read_optional_sign_t{};
+
 } // namespace cuti::detail
 
 inline auto constexpr drop_source = detail::drop_source_t{};
 inline auto constexpr check_eof = detail::check_eof_t{};
-inline auto constexpr skip_whitespace = detail::skip_whitespace_t{};
-inline auto constexpr read_first_digit = detail::read_first_digit_t{};
-
-template<typename T>
-auto constexpr read_unsigned_trailing_digits =
-  detail::read_unsigned_trailing_digits_t<T>{};
-
-template<typename T>
-auto constexpr read_unsigned = async_stitch(
-  skip_whitespace, read_first_digit, read_unsigned_trailing_digits<T>);
 
 } // namespace cuti
 

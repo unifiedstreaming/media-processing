@@ -223,7 +223,7 @@ void test_check_eof()
 
 void test_skip_whitespace()
 {
-  auto chain = async_stitch(skip_whitespace, check_eof, drop_source);
+  auto chain = async_stitch(detail::skip_whitespace, check_eof, drop_source);
   
   test_void_success(chain, "");
   test_void_success(chain, "\t\r ");
@@ -232,20 +232,22 @@ void test_skip_whitespace()
 
 void test_read_first_digit()
 {
-  auto chain = async_stitch(read_first_digit, check_eof, drop_source);
+  auto chain = async_stitch(detail::read_first_digit<unsigned int>,
+    check_eof, drop_source);
 
-  test_value_success(chain, "0", 0);
-  test_value_success(chain, "9", 9);
+  test_value_success<unsigned int>(chain, "0", 0);
+  test_value_success<unsigned int>(chain, "9", 9);
 
-  test_value_failure<int>(chain, "/");
-  test_value_failure<int>(chain, "/");
-  test_value_failure<int>(chain, "");
+  test_value_failure<unsigned int>(chain, "/");
+  test_value_failure<unsigned int>(chain, "/");
+  test_value_failure<unsigned int>(chain, "");
 }
   
 void test_read_unsigned()
 {
   {
-    auto chain = async_stitch(read_unsigned<uint8_t>, check_eof, drop_source);
+    auto chain = async_stitch(detail::read_unsigned<uint8_t>,
+      check_eof, drop_source);
 
     test_value_success<uint8_t>(chain, " 0", 0);
     test_value_success<uint8_t>(chain, "\t255", 255);
@@ -255,7 +257,8 @@ void test_read_unsigned()
   }
 
   {
-    auto chain = async_stitch(read_unsigned<uint16_t>, check_eof, drop_source);
+    auto chain = async_stitch(detail::read_unsigned<uint16_t>,
+      check_eof, drop_source);
 
     test_value_success<uint16_t>(chain, "\r0", 0);
     test_value_success<uint16_t>(chain, "\t 65535", 65535);
@@ -265,6 +268,16 @@ void test_read_unsigned()
   }
 }
 
+void test_read_optional_sign()
+{
+  auto chain = async_stitch(detail::read_optional_sign,
+    check_eof, drop_source);
+
+  test_value_success<bool>(chain, "-", true);
+  test_value_success<bool>(chain, "+", false);
+  test_value_success<bool>(chain, "", false);
+}
+  
 } // anonymous
 
 int main()
@@ -274,6 +287,7 @@ int main()
   test_skip_whitespace();
   test_read_first_digit();
   test_read_unsigned();
+  test_read_optional_sign();
 
   return 0;
 }
