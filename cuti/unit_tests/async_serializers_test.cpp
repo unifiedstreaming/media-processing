@@ -191,8 +191,8 @@ void test_value_success(F&& f, std::string_view input, T expected)
 template<typename T, typename F>
 void test_value_failure(F&& f, std::string_view input)
 {
-  do_test_value_failure(f, input, 1);
-  do_test_value_failure(f, input, async_inbuf_t::default_bufsize);
+  do_test_value_failure<T>(f, input, 1);
+  do_test_value_failure<T>(f, input, async_inbuf_t::default_bufsize);
 }
 
 template<typename F>
@@ -231,6 +231,18 @@ void test_skip_whitespace()
   test_void_failure(chain, "x");
 }
 
+void test_read_first_digit()
+{
+  auto chain = async_stitch(read_first_digit, check_eof, drop_source);
+
+  test_value_success(chain, "0", 0);
+  test_value_success(chain, "9", 9);
+
+  test_value_failure<int>(chain, "/");
+  test_value_failure<int>(chain, "/");
+  test_value_failure<int>(chain, "");
+}
+  
 } // anonymous
 
 int main()
@@ -238,6 +250,7 @@ int main()
   test_drop_source();
   test_check_eof();
   test_skip_whitespace();
+  test_read_first_digit();
 
   return 0;
 }

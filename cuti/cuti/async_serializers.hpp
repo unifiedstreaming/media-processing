@@ -91,11 +91,47 @@ struct skip_whitespace_t
   }
 };
 
+inline int digit_value(int c)
+{
+  if(c < '0' || c > '9')
+  {
+    return -1;
+  }
+
+  return c - '0';
+}
+
+struct read_first_digit_t
+{
+  template<typename Cont, typename... Args>
+  void operator()(
+    Cont&& cont, async_source_t source, Args&&... args) const
+  {
+    if(!source.readable())
+    {
+      source.call_when_readable(callback_t(*this, std::forward<Cont>(cont),
+        source, std::forward<Args>(args)...));
+      return;
+    }
+
+    int value = digit_value(source.peek());
+    if(value == -1)
+    {
+      cont.fail(std::make_exception_ptr(parse_error_t("digit expected")));
+      return;
+    }
+
+    source.skip();
+    cont.submit(source, value, std::forward<Args>(args)...);
+  }
+};
+
 } // namespace cuti::detail
 
 inline auto constexpr drop_source = detail::drop_source_t{};
 inline auto constexpr check_eof = detail::check_eof_t{};
 inline auto constexpr skip_whitespace = detail::skip_whitespace_t{};
+inline auto constexpr read_first_digit = detail::read_first_digit_t{};
 
 } // namespace cuti
 
