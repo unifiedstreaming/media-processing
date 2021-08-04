@@ -230,6 +230,78 @@ struct read_optional_sign_t
       
 inline auto constexpr read_optional_sign = read_optional_sign_t{};
 
+template<typename T>
+struct insert_limit_t
+{
+  static_assert(std::is_integral_v<T>);
+  static_assert(std::is_signed_v<T>);
+  
+  template<typename Cont, typename... Args>
+  void operator()(
+    Cont&& cont, async_source_t source, bool negative, Args&&... args) const
+  {
+    std::make_unsigned_t<T> limit = std::numeric_limits<T>::max();
+    if(negative)
+    {
+      ++limit;
+    }
+    cont.submit(source, limit, negative, std::forward<Args>(args)...);
+  }
+};
+    
+template<typename T>
+auto constexpr insert_limit = insert_limit_t<T>{};
+
+template<typename T>
+struct apply_sign_t
+{
+  static_assert(std::is_unsigned_v<T>);
+  
+  template<typename Cont, typename... Args>
+  void operator()(
+    Cont&& cont, async_source_t source, T value, bool negative,
+    Args&&... args) const
+  {
+    std::make_signed_t<T> signed_value;
+    if(!negative)
+    {
+      signed_value = value;
+    }
+    else
+    {
+      --value;
+      signed_value = value;
+      signed_value = -signed_value;
+      --signed_value;
+    }
+    cont.submit(source, signed_value, std::forward<Args>(args)...);
+  }
+};
+    
+template<typename T>
+auto constexpr apply_sign = apply_sign_t<T>{};
+
+template<typename T>
+struct read_signed_t
+{
+  static_assert(std::is_signed_v<T>);
+  static_assert(std::is_integral_v<T>);
+
+  template<typename Cont, typename... Args>
+  void operator()(
+    Cont&& cont, async_source_t source, Args&&... args) const
+  {
+    using UT = std::make_unsigned_t<T>;
+    static constexpr auto chain = async_stitch(
+      skip_whitespace, read_optional_sign, insert_limit<T>,
+      read_first_digit<UT>, read_trailing_digits<UT>, apply_sign<UT>);
+    chain(std::forward<Cont>(cont), source, std::forward<Args>(args)...);
+  }
+};
+    
+template<typename T>
+auto constexpr read_signed = read_signed_t<T>{};
+
 } // namespace cuti::detail
 
 inline auto constexpr drop_source = detail::drop_source_t{};

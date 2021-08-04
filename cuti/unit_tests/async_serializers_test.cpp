@@ -278,6 +278,39 @@ void test_read_optional_sign()
   test_value_success<bool>(chain, "", false);
 }
   
+void test_read_signed()
+{
+  {
+    auto chain = async_stitch(detail::read_signed<int8_t>,
+      check_eof, drop_source);
+
+    test_value_success<int8_t>(chain, "0", 0);
+    test_value_success<int8_t>(chain, "-0", 0);
+    test_value_success<int8_t>(chain, "+0", 0);
+    test_value_success<int8_t>(chain, " -128", -128);
+    test_value_success<int8_t>(chain, " 127", 127);
+    test_value_failure<int8_t>(chain, "\t-129");
+    test_value_failure<int8_t>(chain, "\r128");
+    test_value_failure<int8_t>(chain, " 1234");
+    test_value_failure<int8_t>(chain, " x");
+  }
+
+  {
+    auto chain = async_stitch(detail::read_signed<int16_t>,
+      check_eof, drop_source);
+
+    test_value_success<int16_t>(chain, "0", 0);
+    test_value_success<int16_t>(chain, "-0", 0);
+    test_value_success<int16_t>(chain, "+0", 0);
+    test_value_success<int16_t>(chain, " -32768", -32768);
+    test_value_success<int16_t>(chain, " 32767", 32767);
+    test_value_failure<int16_t>(chain, "\t-32769");
+    test_value_failure<int16_t>(chain, "\r32768");
+    test_value_failure<int16_t>(chain, " 123456");
+    test_value_failure<int16_t>(chain, " x");
+  }
+}
+
 } // anonymous
 
 int main()
@@ -288,6 +321,7 @@ int main()
   test_read_first_digit();
   test_read_unsigned();
   test_read_optional_sign();
+  test_read_signed();
 
   return 0;
 }
