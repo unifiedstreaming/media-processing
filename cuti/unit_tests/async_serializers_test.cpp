@@ -26,6 +26,7 @@
 #include <cuti/parse_error.hpp>
 #include <cuti/ticket_holder.hpp>
 
+#include <cstdint>
 #include <string_view>
 #include <type_traits>
 
@@ -96,7 +97,6 @@ void do_test_value_success(F&& f, std::string_view input, std::size_t bufsize,
     callback();
   }
 
-  assert(result.exception() == nullptr);
   assert(result.value() == expected);
 }
 
@@ -147,7 +147,6 @@ void do_test_void_success(F&& f, std::string_view input, std::size_t bufsize)
     callback();
   }
 
-  assert(result.exception() == nullptr);
   result.value();
 }
 
@@ -243,6 +242,29 @@ void test_read_first_digit()
   test_value_failure<int>(chain, "");
 }
   
+void test_read_unsigned()
+{
+  {
+    auto chain = async_stitch(read_unsigned<uint8_t>, check_eof, drop_source);
+
+    test_value_success<uint8_t>(chain, " 0", 0);
+    test_value_success<uint8_t>(chain, "\t255", 255);
+    test_value_failure<uint8_t>(chain, " 256");
+    test_value_failure<uint8_t>(chain, " 1234");
+    test_value_failure<uint8_t>(chain, " x255");
+  }
+
+  {
+    auto chain = async_stitch(read_unsigned<uint16_t>, check_eof, drop_source);
+
+    test_value_success<uint16_t>(chain, "\r0", 0);
+    test_value_success<uint16_t>(chain, "\t 65535", 65535);
+    test_value_failure<uint16_t>(chain, " 65536");
+    test_value_failure<uint16_t>(chain, " 123456");
+    test_value_failure<uint16_t>(chain, " x65535");
+  }
+}
+
 } // anonymous
 
 int main()
@@ -251,6 +273,7 @@ int main()
   test_check_eof();
   test_skip_whitespace();
   test_read_first_digit();
+  test_read_unsigned();
 
   return 0;
 }
