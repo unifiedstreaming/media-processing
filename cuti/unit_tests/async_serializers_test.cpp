@@ -81,7 +81,7 @@ private :
 };
 
 template<typename T, typename F>
-void do_test_value_success(F&& f, std::string_view input, std::size_t bufsize,
+void do_test_value_success(F f, std::string_view input, std::size_t bufsize,
                            T expected)
 {
   async_inbuf_t inbuf(std::make_unique<async_array_input_t>(input), bufsize);
@@ -102,7 +102,7 @@ void do_test_value_success(F&& f, std::string_view input, std::size_t bufsize,
 }
 
 template<typename T, typename F>
-void do_test_value_failure(F&& f, std::string_view input, std::size_t bufsize)
+void do_test_value_failure(F f, std::string_view input, std::size_t bufsize)
 {
   async_inbuf_t inbuf(std::make_unique<async_array_input_t>(input), bufsize);
   default_scheduler_t scheduler;
@@ -132,7 +132,7 @@ void do_test_value_failure(F&& f, std::string_view input, std::size_t bufsize)
 }
 
 template<typename F>
-void do_test_void_success(F&& f, std::string_view input, std::size_t bufsize)
+void do_test_void_success(F f, std::string_view input, std::size_t bufsize)
 {
   async_inbuf_t inbuf(std::make_unique<async_array_input_t>(input), bufsize);
   default_scheduler_t scheduler;
@@ -152,7 +152,7 @@ void do_test_void_success(F&& f, std::string_view input, std::size_t bufsize)
 }
 
 template<typename F>
-void do_test_void_failure(F&& f, std::string_view input, std::size_t bufsize)
+void do_test_void_failure(F f, std::string_view input, std::size_t bufsize)
 {
   async_inbuf_t inbuf(std::make_unique<async_array_input_t>(input), bufsize);
   default_scheduler_t scheduler;
@@ -182,28 +182,28 @@ void do_test_void_failure(F&& f, std::string_view input, std::size_t bufsize)
 }
 
 template<typename T, typename F>
-void test_value_success(F&& f, std::string_view input, T expected)
+void test_value_success(F f, std::string_view input, T expected)
 {
   do_test_value_success(f, input, 1, expected);
   do_test_value_success(f, input, async_inbuf_t::default_bufsize, expected);
 }
 
 template<typename T, typename F>
-void test_value_failure(F&& f, std::string_view input)
+void test_value_failure(F f, std::string_view input)
 {
   do_test_value_failure<T>(f, input, 1);
   do_test_value_failure<T>(f, input, async_inbuf_t::default_bufsize);
 }
 
 template<typename F>
-void test_void_success(F&& f, std::string_view input)
+void test_void_success(F f, std::string_view input)
 {
   do_test_void_success(f, input, 1);
   do_test_void_success(f, input, async_inbuf_t::default_bufsize);
 }
 
 template<typename F>
-void test_void_failure(F&& f, std::string_view input)
+void test_void_failure(F f, std::string_view input)
 {
   do_test_void_failure(f, input, 1);
   do_test_void_failure(f, input, async_inbuf_t::default_bufsize);

@@ -37,8 +37,7 @@ namespace detail
 struct drop_source_t
 {
   template<typename Cont, typename... Args>
-  void operator()(
-    Cont&& cont, async_source_t /* source */, Args&&... args) const
+  void operator()(Cont cont, async_source_t /* source */, Args&&... args) const
   {
     cont.submit(std::forward<Args>(args)...);
   }
@@ -47,12 +46,11 @@ struct drop_source_t
 struct check_eof_t
 {
   template<typename Cont, typename... Args>
-  void operator()(
-    Cont&& cont, async_source_t source, Args&&... args) const
+  void operator()(Cont cont, async_source_t source, Args&&... args) const
   {
     if(!source.readable())
     {
-      source.call_when_readable(callback_t(*this, std::forward<Cont>(cont),
+      source.call_when_readable(callback_t(*this, cont,
         source, std::forward<Args>(args)...));
       return;
     }
@@ -75,8 +73,7 @@ inline bool is_whitespace(int c)
 struct skip_whitespace_t
 {
   template<typename Cont, typename... Args>
-  void operator()(
-    Cont&& cont, async_source_t source, Args&&... args) const
+  void operator()(Cont cont, async_source_t source, Args&&... args) const
   {
     while(source.readable() && is_whitespace(source.peek()))
     {
@@ -85,7 +82,7 @@ struct skip_whitespace_t
 
     if(!source.readable())
     {
-      source.call_when_readable(callback_t(*this, std::forward<Cont>(cont),
+      source.call_when_readable(callback_t(*this, cont,
         source, std::forward<Args>(args)...));
       return;
     }      
@@ -112,12 +109,11 @@ struct read_first_digit_t
   static_assert(std::is_unsigned_v<T>);
 
   template<typename Cont, typename... Args>
-  void operator()(
-    Cont&& cont, async_source_t source, Args&&... args) const
+  void operator()(Cont cont, async_source_t source, Args&&... args) const
   {
     if(!source.readable())
     {
-      source.call_when_readable(callback_t(*this, std::forward<Cont>(cont),
+      source.call_when_readable(callback_t(*this, cont,
         source, std::forward<Args>(args)...));
       return;
     }
@@ -143,8 +139,8 @@ struct read_trailing_digits_t
   static_assert(std::is_unsigned_v<T>);
 
   template<typename Cont, typename... Args>
-  void operator()(
-    Cont&& cont, async_source_t source, T total, T limit, Args&&... args) const
+  void operator()(Cont cont, async_source_t source, T total, T limit,
+                  Args&&... args) const
   {
     int dval;
     while(source.readable() &&
@@ -165,7 +161,7 @@ struct read_trailing_digits_t
       
     if(!source.readable())
     {
-      source.call_when_readable(callback_t(*this, std::forward<Cont>(cont),
+      source.call_when_readable(callback_t(*this, cont,
         source, total, limit, std::forward<Args>(args)...));
       return;
     }
@@ -184,12 +180,11 @@ struct read_unsigned_t
   static auto constexpr limit = std::numeric_limits<T>::max();
 
   template<typename Cont, typename... Args>
-  void operator()(
-    Cont&& cont, async_source_t source, Args&&... args) const
+  void operator()(Cont cont, async_source_t source, Args&&... args) const
   {
     static constexpr auto chain = async_stitch(
       skip_whitespace, read_first_digit<T>, read_trailing_digits<T>);
-    chain(std::forward<Cont>(cont), source, limit,
+    chain(cont, source, limit,
       std::forward<Args>(args)...);
   }
 };
@@ -200,12 +195,11 @@ auto constexpr read_unsigned = read_unsigned_t<T>{};
 struct read_optional_sign_t
 {
   template<typename Cont, typename... Args>
-  void operator()(
-    Cont&& cont, async_source_t source, Args&&... args) const
+  void operator()(Cont cont, async_source_t source, Args&&... args) const
   {
     if(!source.readable())
     {
-      source.call_when_readable(callback_t(*this, std::forward<Cont>(cont),
+      source.call_when_readable(callback_t(*this, cont,
         source, std::forward<Args>(args)...));
       return;
     }
@@ -237,8 +231,8 @@ struct insert_limit_t
   static_assert(std::is_signed_v<T>);
   
   template<typename Cont, typename... Args>
-  void operator()(
-    Cont&& cont, async_source_t source, bool negative, Args&&... args) const
+  void operator()(Cont cont, async_source_t source, bool negative,
+                  Args&&... args) const
   {
     std::make_unsigned_t<T> limit = std::numeric_limits<T>::max();
     if(negative)
@@ -258,9 +252,8 @@ struct apply_sign_t
   static_assert(std::is_unsigned_v<T>);
   
   template<typename Cont, typename... Args>
-  void operator()(
-    Cont&& cont, async_source_t source, T value, bool negative,
-    Args&&... args) const
+  void operator()(Cont cont, async_source_t source, T value, bool negative,
+                  Args&&... args) const
   {
     std::make_signed_t<T> signed_value;
     if(!negative)
@@ -288,14 +281,13 @@ struct read_signed_t
   static_assert(std::is_integral_v<T>);
 
   template<typename Cont, typename... Args>
-  void operator()(
-    Cont&& cont, async_source_t source, Args&&... args) const
+  void operator()(Cont cont, async_source_t source, Args&&... args) const
   {
     using UT = std::make_unsigned_t<T>;
     static constexpr auto chain = async_stitch(
       skip_whitespace, read_optional_sign, insert_limit<T>,
       read_first_digit<UT>, read_trailing_digits<UT>, apply_sign<UT>);
-    chain(std::forward<Cont>(cont), source, std::forward<Args>(args)...);
+    chain(cont, source, std::forward<Args>(args)...);
   }
 };
     
