@@ -222,6 +222,14 @@ void test_check_eof()
   test_void_failure(chain, " ");
 }
 
+void test_skip_whitespace()
+{
+  auto chain = async_stitch(skip_whitespace, check_eof, drop_source);
+  
+  test_void_success(chain, "");
+  test_void_success(chain, "\t\r ");
+  test_void_failure(chain, "x");
+}
 
 } // anonymous
 
@@ -229,6 +237,7 @@ int main()
 {
   test_drop_source();
   test_check_eof();
+  test_skip_whitespace();
 
   return 0;
 }

@@ -64,10 +64,38 @@ struct check_eof_t
   }
 };
 
+inline bool is_whitespace(int c)
+{
+  return c == '\t' || c == '\r' || c == ' ';
+}
+
+struct skip_whitespace_t
+{
+  template<typename Cont, typename... Args>
+  void operator()(
+    Cont&& cont, async_source_t source, Args&&... args) const
+  {
+    while(source.readable() && is_whitespace(source.peek()))
+    {
+      source.skip();
+    }
+
+    if(!source.readable())
+    {
+      source.call_when_readable(callback_t(*this, std::forward<Cont>(cont),
+        source, std::forward<Args>(args)...));
+      return;
+    }      
+    
+    cont.submit(source, std::forward<Args>(args)...);
+  }
+};
+
 } // namespace cuti::detail
 
 inline auto constexpr drop_source = detail::drop_source_t{};
 inline auto constexpr check_eof = detail::check_eof_t{};
+inline auto constexpr skip_whitespace = detail::skip_whitespace_t{};
 
 } // namespace cuti
 
