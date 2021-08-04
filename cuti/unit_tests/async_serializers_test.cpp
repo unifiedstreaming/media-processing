@@ -77,9 +77,9 @@ private :
   ticket_holder_t readable_holder_;  
 };
 
-template<typename T, typename F, typename E = int>
-void do_test_success(
-  F&& f, std::string_view input, std::size_t bufsize, E expected = 0)
+template<typename T, typename F>
+void do_test_value_success(F&& f, std::string_view input, std::size_t bufsize,
+                           T expected)
 {
   async_inbuf_t inbuf(std::make_unique<async_array_input_t>(input), bufsize);
   default_scheduler_t scheduler;
@@ -88,33 +88,19 @@ void do_test_success(
   async_result_t<T> result;
   f(async_result_ref(result), source);
 
-  while(auto callback = scheduler.wait())
+  while(!result.available())
   {
+    auto callback = scheduler.wait();
+    assert(callback != nullptr);
     callback();
   }
 
-  assert(result.available());
   assert(result.exception() == nullptr);
-
-  if constexpr(!std::is_same_v<T, void>)
-  {
-    assert(result.value() == expected);
-  }
-  else
-  {
-    result.value();
-  }
-}
-
-template<typename T, typename F, typename E = int>
-void test_success(F&& f, std::string_view input, E expected = 0)
-{
-  do_test_success<T>(f, input, 1, expected);
-  do_test_success<T>(f, input, async_inbuf_t::default_bufsize, expected); 
+  assert(result.value() == expected);
 }
 
 template<typename T, typename F>
-void do_test_failure(F&& f, std::string_view input, std::size_t bufsize)
+void do_test_value_failure(F&& f, std::string_view input, std::size_t bufsize)
 {
   async_inbuf_t inbuf(std::make_unique<async_array_input_t>(input), bufsize);
   default_scheduler_t scheduler;
@@ -123,20 +109,71 @@ void do_test_failure(F&& f, std::string_view input, std::size_t bufsize)
   async_result_t<T> result;
   f(async_result_ref(result), source);
 
-  while(auto callback = scheduler.wait())
+  while(!result.available())
   {
+    auto callback = scheduler.wait();
+    assert(callback != nullptr);
     callback();
   }
-
-  assert(result.available());
+  
   assert(result.exception() != nullptr);
-
   bool caught = false;
   try
   {
     result.value();
   }
-  catch(parse_error_t const&)
+  catch(std::exception const&)
+  {
+    caught = true;
+  }
+  assert(caught);
+}
+
+template<typename F>
+void do_test_void_success(F&& f, std::string_view input, std::size_t bufsize)
+{
+  async_inbuf_t inbuf(std::make_unique<async_array_input_t>(input), bufsize);
+  default_scheduler_t scheduler;
+  async_source_t source(inbuf, scheduler);
+
+  async_result_t<void> result;
+  f(async_result_ref(result), source);
+
+  while(!result.available())
+  {
+    auto callback = scheduler.wait();
+    assert(callback != nullptr);
+    callback();
+  }
+
+  assert(result.exception() == nullptr);
+  result.value();
+}
+
+template<typename F>
+void do_test_void_failure(F&& f, std::string_view input, std::size_t bufsize)
+{
+  async_inbuf_t inbuf(std::make_unique<async_array_input_t>(input), bufsize);
+  default_scheduler_t scheduler;
+  async_source_t source(inbuf, scheduler);
+
+  async_result_t<void> result;
+  f(async_result_ref(result), source);
+
+  while(!result.available())
+  {
+    auto callback = scheduler.wait();
+    assert(callback != nullptr);
+    callback();
+  }
+  
+  assert(result.exception() != nullptr);
+  bool caught = false;
+  try
+  {
+    result.value();
+  }
+  catch(std::exception const&)
   {
     caught = true;
   }
@@ -144,16 +181,37 @@ void do_test_failure(F&& f, std::string_view input, std::size_t bufsize)
 }
 
 template<typename T, typename F>
-void test_failure(F&& f, std::string_view input)
+void test_value_success(F&& f, std::string_view input, T expected)
 {
-  do_test_failure<T>(f, input, 1);
-  do_test_failure<T>(f, input, async_inbuf_t::default_bufsize); 
+  do_test_value_success(f, input, 1, expected);
+  do_test_value_success(f, input, async_inbuf_t::default_bufsize, expected);
+}
+
+template<typename T, typename F>
+void test_value_failure(F&& f, std::string_view input)
+{
+  do_test_value_failure(f, input, 1);
+  do_test_value_failure(f, input, async_inbuf_t::default_bufsize);
+}
+
+template<typename F>
+void test_void_success(F&& f, std::string_view input)
+{
+  do_test_void_success(f, input, 1);
+  do_test_void_success(f, input, async_inbuf_t::default_bufsize);
+}
+
+template<typename F>
+void test_void_failure(F&& f, std::string_view input)
+{
+  do_test_void_failure(f, input, 1);
+  do_test_void_failure(f, input, async_inbuf_t::default_bufsize);
 }
 
 void test_check_eom()
 {
-  test_success<void>(check_eom, "\n");
-  test_failure<void>(check_eom, " \n");
+  test_void_success(check_eom, "\n");
+  test_void_failure(check_eom, " \n");
 }
 
 } // anonymous
