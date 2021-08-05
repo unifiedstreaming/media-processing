@@ -43,15 +43,15 @@ struct drop_source_t
   }
 };
 
-struct check_eof_t
+struct read_eof_t
 {
   template<typename Cont, typename... Args>
   void operator()(Cont cont, async_source_t source, Args&&... args) const
   {
     if(!source.readable())
     {
-      source.call_when_readable(callback_t(*this, cont,
-        source, std::forward<Args>(args)...));
+      source.call_when_readable(callback_t(
+        *this, cont, source, std::forward<Args>(args)...));
       return;
     }
 
@@ -82,8 +82,8 @@ struct skip_whitespace_t
 
     if(!source.readable())
     {
-      source.call_when_readable(callback_t(*this, cont,
-        source, std::forward<Args>(args)...));
+      source.call_when_readable(callback_t(
+        *this, cont, source, std::forward<Args>(args)...));
       return;
     }      
     
@@ -113,8 +113,8 @@ struct read_first_digit_t
   {
     if(!source.readable())
     {
-      source.call_when_readable(callback_t(*this, cont,
-        source, std::forward<Args>(args)...));
+      source.call_when_readable(callback_t(
+        *this, cont, source, std::forward<Args>(args)...));
       return;
     }
 
@@ -161,8 +161,8 @@ struct read_trailing_digits_t
       
     if(!source.readable())
     {
-      source.call_when_readable(callback_t(*this, cont,
-        source, total, limit, std::forward<Args>(args)...));
+      source.call_when_readable(callback_t(
+        *this, cont, source, total, limit, std::forward<Args>(args)...));
       return;
     }
 
@@ -199,8 +199,8 @@ struct read_optional_sign_t
   {
     if(!source.readable())
     {
-      source.call_when_readable(callback_t(*this, cont,
-        source, std::forward<Args>(args)...));
+      source.call_when_readable(callback_t(
+        *this, cont, source, std::forward<Args>(args)...));
       return;
     }
 
@@ -294,12 +294,37 @@ struct read_signed_t
 template<typename T>
 auto constexpr read_signed = read_signed_t<T>{};
 
+struct read_begin_sequence_t
+{
+  template<typename Cont, typename... Args>
+  void operator()(Cont cont, async_source_t source, Args&&... args) const
+  {
+    if(!source.readable())
+    {
+      source.call_when_readable(callback_t(
+        *this, cont, source, std::forward<Args>(args)...));
+      return;
+    }
+
+    if(source.peek() != '[')
+    {
+      cont.fail(std::make_exception_ptr(parse_error_t("'[' expected")));
+      return;
+    }
+
+    source.skip();
+    cont.submit(source, std::forward<Args>(args)...);
+  }
+};
+
+inline auto constexpr read_begin_sequence = read_begin_sequence_t{};
+
 struct not_supported_t { };
 
 } // namespace cuti::detail
 
 inline auto constexpr drop_source = detail::drop_source_t{};
-inline auto constexpr check_eof = detail::check_eof_t{};
+inline auto constexpr read_eof = detail::read_eof_t{};
 
 template<typename T>
 auto constexpr async_read = detail::not_supported_t{};

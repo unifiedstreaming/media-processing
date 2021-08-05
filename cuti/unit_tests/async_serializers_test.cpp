@@ -278,9 +278,9 @@ void test_drop_source()
   test_void_success(drop_source, "");
 }
 
-void test_check_eof()
+void test_read_eof()
 {
-  auto chain = async_stitch(check_eof, drop_source);
+  auto chain = async_stitch(read_eof, drop_source);
   
   test_void_success(chain, "");
   test_void_failure(chain, " ");
@@ -288,7 +288,7 @@ void test_check_eof()
 
 void test_skip_whitespace()
 {
-  auto chain = async_stitch(detail::skip_whitespace, check_eof, drop_source);
+  auto chain = async_stitch(detail::skip_whitespace, read_eof, drop_source);
   
   test_void_success(chain, "");
   test_void_success(chain, "\t\r ");
@@ -298,7 +298,7 @@ void test_skip_whitespace()
 void test_read_first_digit()
 {
   auto chain = async_stitch(detail::read_first_digit<unsigned int>,
-    check_eof, drop_source);
+    read_eof, drop_source);
 
   test_value_success<unsigned int>(chain, "0", 0);
   test_value_success<unsigned int>(chain, "9", 9);
@@ -311,7 +311,7 @@ void test_read_first_digit()
 template<typename T>
 void do_test_read_unsigned()
 {
-  auto chain = async_stitch(async_read<T>, check_eof, drop_source);
+  auto chain = async_stitch(async_read<T>, read_eof, drop_source);
   auto max = std::numeric_limits<T>::max();
 
   test_value_success<T>(chain, "0", T(0));
@@ -334,7 +334,7 @@ void test_read_unsigned()
 void test_read_optional_sign()
 {
   auto chain = async_stitch(detail::read_optional_sign,
-    check_eof, drop_source);
+    read_eof, drop_source);
 
   test_value_success<bool>(chain, "-", true);
   test_value_success<bool>(chain, "+", false);
@@ -344,7 +344,7 @@ void test_read_optional_sign()
 template<typename T>
 void do_test_read_signed()
 {
-  auto chain = async_stitch(async_read<T>, check_eof, drop_source);
+  auto chain = async_stitch(async_read<T>, read_eof, drop_source);
   auto min = std::numeric_limits<T>::min();
   auto max = std::numeric_limits<T>::max();
 
@@ -369,6 +369,15 @@ void test_read_signed()
   do_test_read_unsigned<long long>();
 }
 
+void test_read_begin_sequence()
+{
+  auto chain = async_stitch(
+    detail::read_begin_sequence, read_eof, drop_source);
+
+  test_void_success(chain, "[");
+  test_void_failure(chain, "]");
+}
+
 } // anonymous
 
 int main()
@@ -377,12 +386,13 @@ int main()
   test_decimals_plus_one();
 
   test_drop_source();
-  test_check_eof();
+  test_read_eof();
   test_skip_whitespace();
   test_read_first_digit();
   test_read_unsigned();
   test_read_optional_sign();
   test_read_signed();
+  test_read_begin_sequence();
 
   return 0;
 }
