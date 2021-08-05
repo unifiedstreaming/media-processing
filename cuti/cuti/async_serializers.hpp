@@ -26,10 +26,21 @@
 
 #include <exception>
 #include <limits>
+#include <vector>
 #include <type_traits>
 
 namespace cuti
 {
+
+namespace detail
+{
+
+struct not_supported_t { };
+
+} // namespace cuti::detail
+
+template<typename T>
+auto constexpr async_read = detail::not_supported_t{};
 
 namespace detail
 {
@@ -319,15 +330,76 @@ struct read_begin_sequence_t
 
 inline auto constexpr read_begin_sequence = read_begin_sequence_t{};
 
-struct not_supported_t { };
+template<typename T>
+struct append_element_t
+{
+  template<typename Cont, typename TT, typename... Args>
+  void operator()(Cont cont, async_source_t source,
+                  TT&& element, std::vector<T>&& sequence,
+                  Args&&... args) const
+  {
+    sequence.push_back(std::forward<TT>(element));
+    cont.submit(source, std::move(sequence), std::forward<Args>(args)...);
+  }
+};
+
+template<typename T>
+auto constexpr append_element = append_element_t<T>{};
+
+template<typename T>
+struct append_sequence_t
+{
+  static auto constexpr max_recursion = 100;
+
+  template<typename Cont, typename... Args>
+  void operator()(Cont cont, async_source_t source,
+                  std::vector<T>&& sequence, int recursion,
+                  Args&&... args) const
+  {
+    if(!source.readable() || recursion == max_recursion)
+    {
+      source.call_when_readable(callback_t(
+        *this, cont, source, std::move(sequence), 0,
+        std::forward<Args>(args)...));
+      return;
+    }
+
+    if(source.peek() != ']')
+    {
+      auto constexpr chain = async_stitch(async_read<T>, append_element<T>,
+        skip_whitespace, append_sequence_t<T>{});
+      chain(cont, source, std::move(sequence), recursion + 1,
+        std::forward<Args>(args)...);
+      return;
+    }
+
+    source.skip();
+    cont.submit(source, std::move(sequence), std::forward<Args>(args)...);
+ }
+};
+      
+template<typename T>
+auto constexpr append_sequence = append_sequence_t<T>{};
+
+template<typename T>
+struct read_sequence_t
+{
+  template<typename Cont, typename... Args>
+  void operator()(Cont cont, async_source_t source, Args&&... args) const
+  {
+    auto constexpr chain = async_stitch(skip_whitespace, read_begin_sequence,
+      skip_whitespace, append_sequence<T>);
+    chain(cont, source, std::vector<T>{}, 0, std::forward<Args>(args)...);
+  }
+};
+
+template<typename T>
+auto constexpr read_sequence = read_sequence_t<T>{};
 
 } // namespace cuti::detail
 
 inline auto constexpr drop_source = detail::drop_source_t{};
 inline auto constexpr read_eof = detail::read_eof_t{};
-
-template<typename T>
-auto constexpr async_read = detail::not_supported_t{};
 
 template<>
 inline auto constexpr async_read<unsigned short> =
@@ -360,6 +432,10 @@ inline auto constexpr async_read<long> =
 template<>
 inline auto constexpr async_read<long long> =
   detail::read_signed<long long>;
+
+template<typename T>
+inline auto constexpr async_read<std::vector<T>> =
+  detail::read_sequence<T>;
 
 } // namespace cuti
 

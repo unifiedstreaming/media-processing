@@ -28,6 +28,7 @@
 
 #include <algorithm>
 #include <cstdint>
+#include <string>
 #include <string_view>
 #include <type_traits>
 
@@ -130,7 +131,7 @@ std::string decimals_plus_one(std::string const& input)
   
 template<typename T, typename F>
 void do_test_value_success(F f, std::string_view input, std::size_t bufsize,
-                           T expected)
+                           T const& expected)
 {
   async_inbuf_t inbuf(std::make_unique<async_array_input_t>(input), bufsize);
   default_scheduler_t scheduler;
@@ -230,7 +231,7 @@ void do_test_void_failure(F f, std::string_view input, std::size_t bufsize)
 }
 
 template<typename T, typename F>
-void test_value_success(F f, std::string_view input, T expected)
+void test_value_success(F f, std::string_view input, T const& expected)
 {
   do_test_value_success(f, input, 1, expected);
   do_test_value_success(f, input, async_inbuf_t::default_bufsize, expected);
@@ -378,6 +379,66 @@ void test_read_begin_sequence()
   test_void_failure(chain, "]");
 }
 
+void test_read_sequence()
+{
+  {
+    auto chain = async_stitch(
+      async_read<std::vector<int>>, read_eof, drop_source);
+
+    test_value_success<std::vector<int>>(
+      chain, "[]", std::vector<int>{});
+    test_value_success<std::vector<int>>(
+      chain, " [ ]", std::vector<int>{});
+    test_value_success<std::vector<int>>(
+      chain, " [ 42 ]", std::vector<int>{42});
+    test_value_success<std::vector<int>>(
+      chain, " [ 1 -2 3 ]", std::vector<int>{1, -2, 3});
+
+    {
+      std::string input = "[";
+      std::vector<int> expected;
+      for(int i = 0; i != 250; ++i)
+      {
+        input += ' ';
+        input += std::to_string(i);
+        expected.push_back(i);
+      }
+      input += " ]";
+
+      test_value_success<std::vector<int>>(chain, input, expected);
+    }
+
+    test_value_failure<std::vector<int>>(chain, " x");
+    test_value_failure<std::vector<int>>(chain, "[ 42");
+  }
+
+  {
+    auto chain = async_stitch(
+      async_read<std::vector<std::vector<int>>>, read_eof, drop_source);
+
+    std::string input = "[";
+    std::vector<std::vector<int>> expected;
+    for(int i = 0; i != 100; ++i)
+    {
+      std::string subinput = "[";
+      std::vector<int> subexpected;
+      for(int j = 0; j != 100; ++j)
+      {
+        subinput += ' ';
+        subinput += std::to_string(j);
+        subexpected.push_back(j);
+      }
+      subinput += " ]";
+      input += ' ';
+      input += subinput;
+      expected.push_back(std::move(subexpected));
+    }
+    input += " ]";
+        
+    test_value_success<std::vector<std::vector<int>>>(chain, input, expected);
+  }
+}
+
 } // anonymous
 
 int main()
@@ -393,6 +454,7 @@ int main()
   test_read_optional_sign();
   test_read_signed();
   test_read_begin_sequence();
+  test_read_sequence();
 
   return 0;
 }
