@@ -294,10 +294,47 @@ struct read_signed_t
 template<typename T>
 auto constexpr read_signed = read_signed_t<T>{};
 
+struct not_supported_t { };
+
 } // namespace cuti::detail
 
 inline auto constexpr drop_source = detail::drop_source_t{};
 inline auto constexpr check_eof = detail::check_eof_t{};
+
+template<typename T>
+auto constexpr async_read = detail::not_supported_t{};
+
+template<>
+inline auto constexpr async_read<unsigned short> =
+  detail::read_unsigned<unsigned short>;
+
+template<>
+inline auto constexpr async_read<unsigned int> =
+  detail::read_unsigned<unsigned int>;
+
+template<>
+inline auto constexpr async_read<unsigned long> =
+  detail::read_unsigned<unsigned long>;
+
+template<>
+inline auto constexpr async_read<unsigned long long> =
+  detail::read_unsigned<unsigned long long>;
+
+template<>
+inline auto constexpr async_read<short> =
+  detail::read_signed<short>;
+
+template<>
+inline auto constexpr async_read<int> =
+  detail::read_signed<int>;
+
+template<>
+inline auto constexpr async_read<long> =
+  detail::read_signed<long>;
+
+template<>
+inline auto constexpr async_read<long long> =
+  detail::read_signed<long long>;
 
 } // namespace cuti
 

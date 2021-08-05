@@ -26,6 +26,7 @@
 #include <cuti/parse_error.hpp>
 #include <cuti/ticket_holder.hpp>
 
+#include <algorithm>
 #include <cstdint>
 #include <string_view>
 #include <type_traits>
@@ -80,6 +81,53 @@ private :
   ticket_holder_t readable_holder_;  
 };
 
+/*
+ * Multiplies the trailing decimal part of a string value by 10.
+ */
+std::string decimals_times_ten(std::string const& input)
+{
+  return input + '0';
+}
+
+/*
+ * Adds one to the trailing decimal part of a string value.  In other
+ * words: if the string value is negative, it subtracts 1.
+ */
+std::string decimals_plus_one(std::string const& input)
+{
+  std::string result;
+ 
+  bool carry = true;
+  auto pos = input.rbegin();
+  while(pos != input.rend() && carry && *pos >= '0' && *pos <= '9')
+  {
+    if(*pos < '9')
+    {
+      result += *pos + 1;
+      carry = false;
+    }
+    else
+    {
+      result += '0';
+    }
+    ++pos;
+  }
+
+  if(carry)
+  {
+    result += '1';
+  }
+
+  while(pos != input.rend())
+  {
+    result += *pos;
+    ++pos;
+  }
+
+  std::reverse(result.begin(), result.end());
+  return result;
+}
+  
 template<typename T, typename F>
 void do_test_value_success(F f, std::string_view input, std::size_t bufsize,
                            T expected)
@@ -209,6 +257,22 @@ void test_void_failure(F f, std::string_view input)
   do_test_void_failure(f, input, async_inbuf_t::default_bufsize);
 }
 
+void test_decimals_times_ten()
+{
+  assert(decimals_times_ten("1") == "10");
+  assert(decimals_times_ten("99") == "990");
+  assert(decimals_times_ten("-1") == "-10");
+  assert(decimals_times_ten("-99") == "-990");
+}
+
+void test_decimals_plus_one()
+{
+  assert(decimals_plus_one("1") == "2");
+  assert(decimals_plus_one("99") == "100");
+  assert(decimals_plus_one("-1") == "-2");
+  assert(decimals_plus_one("-99") == "-100");
+}
+  
 void test_drop_source()
 {
   test_void_success(drop_source, "");
@@ -244,29 +308,27 @@ void test_read_first_digit()
   test_value_failure<unsigned int>(chain, "");
 }
   
+template<typename T>
+void do_test_read_unsigned()
+{
+  auto chain = async_stitch(async_read<T>, check_eof, drop_source);
+  auto max = std::numeric_limits<T>::max();
+
+  test_value_success<T>(chain, "0", T(0));
+  test_value_success<T>(chain, "\t\r 0", T(0));
+  test_value_success<T>(chain, std::to_string(max), max);
+
+  test_value_failure<T>(chain, "x");
+  test_value_failure<T>(chain, decimals_times_ten(std::to_string(max)));
+  test_value_failure<T>(chain, decimals_plus_one(std::to_string(max)));
+}
+  
 void test_read_unsigned()
 {
-  {
-    auto chain = async_stitch(detail::read_unsigned<uint8_t>,
-      check_eof, drop_source);
-
-    test_value_success<uint8_t>(chain, " 0", 0);
-    test_value_success<uint8_t>(chain, "\t255", 255);
-    test_value_failure<uint8_t>(chain, " 256");
-    test_value_failure<uint8_t>(chain, " 1234");
-    test_value_failure<uint8_t>(chain, " x255");
-  }
-
-  {
-    auto chain = async_stitch(detail::read_unsigned<uint16_t>,
-      check_eof, drop_source);
-
-    test_value_success<uint16_t>(chain, "\r0", 0);
-    test_value_success<uint16_t>(chain, "\t 65535", 65535);
-    test_value_failure<uint16_t>(chain, " 65536");
-    test_value_failure<uint16_t>(chain, " 123456");
-    test_value_failure<uint16_t>(chain, " x65535");
-  }
+  do_test_read_unsigned<unsigned short>();
+  do_test_read_unsigned<unsigned int>();
+  do_test_read_unsigned<unsigned long>();
+  do_test_read_unsigned<unsigned long long>();
 }
 
 void test_read_optional_sign()
@@ -279,43 +341,41 @@ void test_read_optional_sign()
   test_value_success<bool>(chain, "", false);
 }
   
+template<typename T>
+void do_test_read_signed()
+{
+  auto chain = async_stitch(async_read<T>, check_eof, drop_source);
+  auto min = std::numeric_limits<T>::min();
+  auto max = std::numeric_limits<T>::max();
+
+  test_value_success<T>(chain, std::to_string(min), min);
+  test_value_success<T>(chain, "\t\r 0", T(0));
+  test_value_success<T>(chain, "\t\r -0", T(0));
+  test_value_success<T>(chain, "\t\r +0", T(0));
+  test_value_success<T>(chain, std::to_string(max), max);
+
+  test_value_failure<T>(chain, "x");
+  test_value_failure<T>(chain, decimals_times_ten(std::to_string(min)));
+  test_value_failure<T>(chain, decimals_plus_one(std::to_string(min)));
+  test_value_failure<T>(chain, decimals_times_ten(std::to_string(max)));
+  test_value_failure<T>(chain, decimals_plus_one(std::to_string(max)));
+}
+  
 void test_read_signed()
 {
-  {
-    auto chain = async_stitch(detail::read_signed<int8_t>,
-      check_eof, drop_source);
-
-    test_value_success<int8_t>(chain, "0", 0);
-    test_value_success<int8_t>(chain, "-0", 0);
-    test_value_success<int8_t>(chain, "+0", 0);
-    test_value_success<int8_t>(chain, " -128", -128);
-    test_value_success<int8_t>(chain, " 127", 127);
-    test_value_failure<int8_t>(chain, "\t-129");
-    test_value_failure<int8_t>(chain, "\r128");
-    test_value_failure<int8_t>(chain, " 1234");
-    test_value_failure<int8_t>(chain, " x");
-  }
-
-  {
-    auto chain = async_stitch(detail::read_signed<int16_t>,
-      check_eof, drop_source);
-
-    test_value_success<int16_t>(chain, "0", 0);
-    test_value_success<int16_t>(chain, "-0", 0);
-    test_value_success<int16_t>(chain, "+0", 0);
-    test_value_success<int16_t>(chain, " -32768", -32768);
-    test_value_success<int16_t>(chain, " 32767", 32767);
-    test_value_failure<int16_t>(chain, "\t-32769");
-    test_value_failure<int16_t>(chain, "\r32768");
-    test_value_failure<int16_t>(chain, " 123456");
-    test_value_failure<int16_t>(chain, " x");
-  }
+  do_test_read_unsigned<short>();
+  do_test_read_unsigned<int>();
+  do_test_read_unsigned<long>();
+  do_test_read_unsigned<long long>();
 }
 
 } // anonymous
 
 int main()
 {
+  test_decimals_times_ten();
+  test_decimals_plus_one();
+
   test_drop_source();
   test_check_eof();
   test_skip_whitespace();
