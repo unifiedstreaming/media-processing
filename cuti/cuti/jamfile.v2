@@ -70,7 +70,6 @@ lib cuti
   async_outbuf.cpp
   async_output.cpp
   async_result.cpp
-  async_serializers.cpp
   async_source.cpp
   async_tcp_input.cpp
   async_tcp_output.cpp
