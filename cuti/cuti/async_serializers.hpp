@@ -267,7 +267,7 @@ struct apply_sign_t
                   Args&&... args) const
   {
     std::make_signed_t<T> signed_value;
-    if(!negative)
+    if(value == 0 || !negative)
     {
       signed_value = value;
     }
@@ -366,7 +366,8 @@ struct append_sequence_t
 
     if(source.peek() != ']')
     {
-      auto constexpr chain = async_stitch(async_read<T>, append_element<T>,
+      static auto constexpr chain = async_stitch(
+        async_read<T>, append_element<T>,
         skip_whitespace, append_sequence_t<T>{});
       chain(cont, source, std::move(sequence), recursion + 1,
         std::forward<Args>(args)...);
@@ -387,8 +388,8 @@ struct read_sequence_t
   template<typename Cont, typename... Args>
   void operator()(Cont cont, async_source_t source, Args&&... args) const
   {
-    auto constexpr chain = async_stitch(skip_whitespace, read_begin_sequence,
-      skip_whitespace, append_sequence<T>);
+    static auto constexpr chain = async_stitch(skip_whitespace,
+      read_begin_sequence, skip_whitespace, append_sequence<T>);
     chain(cont, source, std::vector<T>{}, 0, std::forward<Args>(args)...);
   }
 };
@@ -434,7 +435,7 @@ inline auto constexpr async_read<long long> =
   detail::read_signed<long long>;
 
 template<typename T>
-inline auto constexpr async_read<std::vector<T>> =
+auto constexpr async_read<std::vector<T>> =
   detail::read_sequence<T>;
 
 } // namespace cuti
