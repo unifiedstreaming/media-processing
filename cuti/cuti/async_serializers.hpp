@@ -26,6 +26,7 @@
 
 #include <exception>
 #include <limits>
+#include <string>
 #include <vector>
 #include <type_traits>
 
@@ -305,6 +306,226 @@ struct read_signed_t
 template<typename T>
 auto constexpr read_signed = read_signed_t<T>{};
 
+struct read_double_quote_t
+{
+  template<typename Cont, typename... Args>
+  void operator()(Cont cont, async_source_t source, Args&&... args) const
+  {
+    if(!source.readable())
+    {
+      source.call_when_readable(callback_t(
+        *this, cont, source, std::forward<Args>(args)...));
+      return;
+    }
+
+    if(source.peek() != '"')
+    {
+      cont.fail(std::make_exception_ptr(parse_error_t("'\"' expected")));
+      return;
+    }
+
+    source.skip();
+    cont.submit(source, std::forward<Args>(args)...);
+  }
+};
+
+inline auto constexpr read_double_quote = read_double_quote_t{};
+
+inline int hex_digit_value(int c)
+{
+  int result;
+
+  if(c >= '0' && c <= '9')
+  {
+    result = c - '0';
+  }
+  else if(c >= 'A' && c <= 'F')
+  {
+    result = c - 'A' + 10;
+  }
+  else if(c >= 'a' && c <= 'f')
+  {
+    result = c - 'a' + 10;
+  }
+  else
+  {
+    result = -1;
+  }
+  
+  return result;
+}
+
+struct read_hex_digit_t
+{
+  template<typename Cont, typename... Args>
+  void operator()(Cont cont, async_source_t source, Args&&... args) const
+  {
+    if(!source.readable())
+    {
+      source.call_when_readable(callback_t(
+        *this, cont, source, std::forward<Args>(args)...));
+      return;
+    }
+
+    int dval = hex_digit_value(source.peek());
+    if(dval == -1)
+    {
+      cont.fail(std::make_exception_ptr(parse_error_t("hex digit expected")));
+      return;
+    }
+
+    source.skip();
+    cont.submit(source, dval, std::forward<Args>(args)...);
+  }
+};
+
+inline auto constexpr read_hex_digit = read_hex_digit_t{};
+
+struct append_hex_digits_t
+{
+  template<typename Cont, typename... Args>
+  void operator()(Cont cont, async_source_t source,
+                  int second, int first, std::string&& value,
+                  Args&&... args) const
+  {
+    value += static_cast<char>(second + 16 * first);
+    cont.submit(source, std::move(value), std::forward<Args>(args)...);
+  }
+};
+
+inline auto constexpr append_hex_digits = append_hex_digits_t{};
+
+struct append_string_escape_t
+{
+  template<typename Cont, typename... Args>
+  void operator()(Cont cont, async_source_t source, std::string&& value,
+                  Args&&... args) const
+  {
+    if(!source.readable())
+    {
+      source.call_when_readable(callback_t(
+        *this, cont, source, std::move(value), std::forward<Args>(args)...));
+      return;
+    }
+
+    switch(source.peek())
+    {
+    case '0' :
+      value += '\0'; break;
+    case 't' :
+      value += '\t'; break;
+    case 'n' :
+      value += '\n'; break;
+    case 'r' :
+      value += '\r'; break;
+    case '\\' :
+      value += '\\'; break;
+    case '"' :
+      value += '"'; break;
+    case 'x' :
+      {
+        source.skip();
+        static auto constexpr chain = async_stitch(
+          read_hex_digit, read_hex_digit, append_hex_digits);
+        chain(cont, source, std::move(value), std::forward<Args>(args)...);
+        return;
+      }
+    default :
+      {
+        cont.fail(std::make_exception_ptr(parse_error_t(
+          "illegal escape sequence in string value")));
+        return;
+      }
+    }
+        
+    source.skip();
+    cont.submit(source, std::move(value), std::forward<Args>(args)...);
+  }
+};    
+          
+inline auto constexpr append_string_escape = append_string_escape_t{};
+
+inline bool is_literal_char(int c)
+{
+  switch(c)
+  {
+  case '"' :
+  case '\\' :
+    return false;
+  default :
+    return c >= 0x20 && c <= 0xFF;
+  }
+}
+
+struct append_string_chars_t
+{
+  static auto constexpr max_recursion = 100;
+
+  template<typename Cont, typename... Args>
+  void operator()(Cont cont, async_source_t source,
+                  std::string&& value, int recursion,
+                  Args&&... args) const
+  {
+    int c;
+    while(source.readable() && recursion != max_recursion &&
+          is_literal_char(c = source.peek()))
+    {
+      value += static_cast<char>(c);
+      source.skip();
+    }
+
+    if(!source.readable() || recursion == max_recursion)
+    {
+      source.call_when_readable(callback_t(
+        *this, cont, source, std::move(value), 0,
+        std::forward<Args>(args)...));
+      return;
+    }
+
+    if(c == '\\')
+    {
+      source.skip();
+      static auto constexpr chain = async_stitch(
+        append_string_escape, append_string_chars_t{});
+      chain(cont, source, std::move(value), recursion + 1,
+        std::forward<Args>(args)...);
+      return;
+    }
+
+    if(c == '\n' || c == eof)
+    {
+      cont.fail(std::make_exception_ptr(parse_error_t(
+        "missing terminating '\"'")));
+      return;
+    }
+
+    if(c != '"')
+    {
+      cont.fail(std::make_exception_ptr(parse_error_t(
+        "illegal character " + std::to_string(c) + " in string value")));
+      return;
+    }
+
+    source.skip();
+    cont.submit(source, std::move(value), std::forward<Args>(args)...);
+  }
+};
+
+inline auto constexpr append_string_chars = append_string_chars_t{};
+
+struct read_string_t
+{
+  template<typename Cont, typename... Args>
+  void operator()(Cont cont, async_source_t source, Args&&... args) const
+  {
+    static auto constexpr chain = async_stitch(
+      skip_whitespace, read_double_quote, append_string_chars);
+    chain(cont, source, std::string{}, 0, std::forward<Args>(args)...);
+  }
+};
+      
+inline auto constexpr read_string = read_string_t{};
+
 struct read_begin_sequence_t
 {
   template<typename Cont, typename... Args>
@@ -433,6 +654,10 @@ inline auto constexpr async_read<long> =
 template<>
 inline auto constexpr async_read<long long> =
   detail::read_signed<long long>;
+
+template<>
+inline auto constexpr async_read<std::string> =
+  detail::read_string;
 
 template<typename T>
 auto constexpr async_read<std::vector<T>> =

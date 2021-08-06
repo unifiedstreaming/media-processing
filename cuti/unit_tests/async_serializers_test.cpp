@@ -370,6 +370,53 @@ void test_read_signed()
   do_test_read_unsigned<long long>();
 }
 
+void test_read_double_quote()
+{
+  auto chain = async_stitch(
+    detail::read_double_quote, read_eof, drop_source);
+
+  test_void_success(chain, "\"");
+  test_void_failure(chain, "\n");
+  test_void_failure(chain, "");
+}
+
+void test_read_string()
+{
+  auto chain = async_stitch(
+    async_read<std::string>, read_eof, drop_source);
+
+  test_value_success<std::string>(chain, "\"\"", "");
+  test_value_success<std::string>(chain, "\t\r \"\"", "");
+  test_value_success<std::string>(chain, "\"hello world\"", "hello world");
+  test_value_success<std::string>(chain, "\"\\t\\n\\r\\\\\\\"\"",
+    "\t\n\r\\\"");
+
+  {
+    std::string expected;
+    expected += '\0';
+    test_value_success<std::string>(chain, "\"\\0\"", expected);
+  }
+
+  {
+    std::string expected;
+    expected += '\0';
+    test_value_success<std::string>(chain, "\"\\x00\"", expected);
+  }
+
+  test_value_success<std::string>(chain,
+    "\"\\x01\\x23\\x45\\x67\\x89\\xAB\\xCD\\xEF\\xab\\xcd\\xef\"",
+    "\x01\x23\x45\x67\x89\xAB\xCD\xEF\xAB\xCD\xEF");
+
+  test_value_failure<std::string>(chain, "");
+  test_value_failure<std::string>(chain, "\"");
+  test_value_failure<std::string>(chain, "\"\n\"");
+  test_value_failure<std::string>(chain, "\"\t\"");
+  test_value_failure<std::string>(chain, "\"\\x\"");
+  test_value_failure<std::string>(chain, "\"\\xg\"");
+  test_value_failure<std::string>(chain, "\"\\xa\"");
+  test_value_failure<std::string>(chain, "\"\\xag\"");
+}
+
 void test_read_begin_sequence()
 {
   auto chain = async_stitch(
@@ -454,6 +501,8 @@ int main()
   test_read_optional_sign();
   test_read_signed();
   test_read_begin_sequence();
+  test_read_double_quote();
+  test_read_string();
   test_read_sequence();
 
   return 0;
