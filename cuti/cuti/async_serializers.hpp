@@ -355,40 +355,39 @@ inline int hex_digit_value(int c)
   return result;
 }
 
-struct read_hex_digit_t
-{
-  template<typename Cont, typename... Args>
-  void operator()(Cont cont, async_source_t source, Args&&... args) const
-  {
-    if(!source.readable())
-    {
-      source.call_when_readable(callback_t(
-        *this, cont, source, std::forward<Args>(args)...));
-      return;
-    }
-
-    int dval = hex_digit_value(source.peek());
-    if(dval == -1)
-    {
-      cont.fail(std::make_exception_ptr(parse_error_t("hex digit expected")));
-      return;
-    }
-
-    source.skip();
-    cont.submit(source, dval, std::forward<Args>(args)...);
-  }
-};
-
-inline auto constexpr read_hex_digit = read_hex_digit_t{};
-
 struct append_hex_digits_t
 {
   template<typename Cont, typename... Args>
   void operator()(Cont cont, async_source_t source,
-                  int second, int first, std::string&& value,
+                  unsigned int count, unsigned int total, std::string&& value,
                   Args&&... args) const
   {
-    value += static_cast<char>(second + 16 * first);
+    while(count != 0)
+    {
+      if(!source.readable())
+      {
+        source.call_when_readable(callback_t(
+          *this, cont, source, count, total, std::move(value),
+          std::forward<Args>(args)...));
+        return;
+      }
+
+      int dval = hex_digit_value(source.peek());
+      if(dval == -1)
+      {
+        cont.fail(std::make_exception_ptr(parse_error_t(
+          "hex digit expected")));
+        return;
+      }
+
+      source.skip();
+      total *= 16;
+      total += dval;
+
+      --count;
+    }
+
+    value += static_cast<char>(total);
     cont.submit(source, std::move(value), std::forward<Args>(args)...);
   }
 };
@@ -425,9 +424,8 @@ struct append_string_escape_t
     case 'x' :
       {
         source.skip();
-        static auto constexpr chain = async_stitch(
-          read_hex_digit, read_hex_digit, append_hex_digits);
-        chain(cont, source, std::move(value), std::forward<Args>(args)...);
+        append_hex_digits(cont, source, 2, 0, std::move(value),
+          std::forward<Args>(args)...);
         return;
       }
     default :
