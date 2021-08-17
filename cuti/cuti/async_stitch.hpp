@@ -31,40 +31,40 @@ namespace cuti
  * a continuation into an object that is *itself* a continuation
  * implementing both submit() and fail().
  */
-template<typename F, typename Cont>
+template<typename F, typename Next>
 struct async_link_t
 {
-  template<typename FF, typename CCont>
-  async_link_t(FF&& f, CCont&& cont)
+  template<typename FF, typename NNext>
+  async_link_t(FF&& f, NNext&& next)
   : f_(std::forward<FF>(f))
-  , cont_(std::forward<CCont>(cont))
+  , next_(std::forward<NNext>(next))
   { }
 
   template<typename... Args>
   void submit(Args&&... args) const
   {
-    f_(cont_, std::forward<Args>(args)...);
+    f_(next_, std::forward<Args>(args)...);
   }
 
   template<typename Exptr>
   void fail(Exptr&& exptr) const
   {
-    cont_.fail(std::forward<Exptr>(exptr));
+    next_.fail(std::forward<Exptr>(exptr));
   }
     
 private :
   F f_;
-  Cont cont_;
+  Next next_;
 };
 
 /*
  * Convenience function for generating an async_link_t.
  */
-template<typename F, typename Cont>
-auto async_link(F&& f, Cont&& cont)
+template<typename F, typename Next>
+auto async_link(F&& f, Next&& next)
 {
-  return async_link_t<std::decay_t<F>, std::decay_t<Cont>>(
-    std::forward<F>(f), std::forward<Cont>(cont));
+  return async_link_t<std::decay_t<F>, std::decay_t<Next>>(
+    std::forward<F>(f), std::forward<Next>(next));
 }
 
 /*
@@ -83,10 +83,10 @@ struct async_stitch_t
   , f2_(std::forward<FF2>(f2))
   { }
 
-  template<typename Cont, typename... Args>
-  void operator()(Cont&& cont, Args&&... args) const
+  template<typename Next, typename... Args>
+  void operator()(Next&& next, Args&&... args) const
   {
-    auto link = async_link(f2_, std::forward<Cont>(cont));
+    auto link = async_link(f2_, std::forward<Next>(next));
     f1_(link, std::forward<Args>(args)...);
   }
     

@@ -48,32 +48,32 @@ namespace detail
 
 struct drop_source_t
 {
-  template<typename Cont, typename... Args>
-  void operator()(Cont cont, async_source_t /* source */, Args&&... args) const
+  template<typename Next, typename... Args>
+  void operator()(Next next, async_source_t /* source */, Args&&... args) const
   {
-    cont.submit(std::forward<Args>(args)...);
+    next.submit(std::forward<Args>(args)...);
   }
 };
 
 struct read_eof_t
 {
-  template<typename Cont, typename... Args>
-  void operator()(Cont cont, async_source_t source, Args&&... args) const
+  template<typename Next, typename... Args>
+  void operator()(Next next, async_source_t source, Args&&... args) const
   {
     if(!source.readable())
     {
       source.call_when_readable(*this,
-        cont, source, std::forward<Args>(args)...);
+        next, source, std::forward<Args>(args)...);
       return;
     }
 
     if(source.peek() != eof)
     {
-      cont.fail(std::make_exception_ptr(parse_error_t("eof expected")));
+      next.fail(std::make_exception_ptr(parse_error_t("eof expected")));
       return;
     }
 
-    cont.submit(source, std::forward<Args>(args)...);
+    next.submit(source, std::forward<Args>(args)...);
   }
 };
 
@@ -84,8 +84,8 @@ inline bool is_whitespace(int c)
 
 struct skip_whitespace_t
 {
-  template<typename Cont, typename... Args>
-  void operator()(Cont cont, async_source_t source, Args&&... args) const
+  template<typename Next, typename... Args>
+  void operator()(Next next, async_source_t source, Args&&... args) const
   {
     while(source.readable() && is_whitespace(source.peek()))
     {
@@ -95,11 +95,11 @@ struct skip_whitespace_t
     if(!source.readable())
     {
       source.call_when_readable(*this,
-        cont, source, std::forward<Args>(args)...);
+        next, source, std::forward<Args>(args)...);
       return;
     }      
     
-    cont.submit(source, std::forward<Args>(args)...);
+    next.submit(source, std::forward<Args>(args)...);
   }
 };
 
@@ -120,25 +120,25 @@ struct read_first_digit_t
 {
   static_assert(std::is_unsigned_v<T>);
 
-  template<typename Cont, typename... Args>
-  void operator()(Cont cont, async_source_t source, Args&&... args) const
+  template<typename Next, typename... Args>
+  void operator()(Next next, async_source_t source, Args&&... args) const
   {
     if(!source.readable())
     {
       source.call_when_readable(*this,
-        cont, source, std::forward<Args>(args)...);
+        next, source, std::forward<Args>(args)...);
       return;
     }
 
     int dval = digit_value(source.peek());
     if(dval == -1)
     {
-      cont.fail(std::make_exception_ptr(parse_error_t("digit expected")));
+      next.fail(std::make_exception_ptr(parse_error_t("digit expected")));
       return;
     }
 
     source.skip();
-    cont.submit(source, T(dval), std::forward<Args>(args)...);
+    next.submit(source, T(dval), std::forward<Args>(args)...);
   }
 };
 
@@ -150,8 +150,8 @@ struct read_trailing_digits_t
 {
   static_assert(std::is_unsigned_v<T>);
 
-  template<typename Cont, typename... Args>
-  void operator()(Cont cont, async_source_t source, T total, T limit,
+  template<typename Next, typename... Args>
+  void operator()(Next next, async_source_t source, T total, T limit,
                   Args&&... args) const
   {
     int dval;
@@ -161,7 +161,7 @@ struct read_trailing_digits_t
       T udval = T(dval);
       if(total > limit / 10 || udval > limit - 10 * total)
       {
-        cont.fail(std::make_exception_ptr(parse_error_t("integral overflow")));
+        next.fail(std::make_exception_ptr(parse_error_t("integral overflow")));
         return;
       }
 
@@ -174,11 +174,11 @@ struct read_trailing_digits_t
     if(!source.readable())
     {
       source.call_when_readable(*this,
-        cont, source, total, limit, std::forward<Args>(args)...);
+        next, source, total, limit, std::forward<Args>(args)...);
       return;
     }
 
-    cont.submit(source, total, std::forward<Args>(args)...);
+    next.submit(source, total, std::forward<Args>(args)...);
   }
 };
 
@@ -191,12 +191,12 @@ struct read_unsigned_t
   static_assert(std::is_unsigned_v<T>);
   static auto constexpr limit = std::numeric_limits<T>::max();
 
-  template<typename Cont, typename... Args>
-  void operator()(Cont cont, async_source_t source, Args&&... args) const
+  template<typename Next, typename... Args>
+  void operator()(Next next, async_source_t source, Args&&... args) const
   {
     static constexpr auto chain = async_stitch(
       skip_whitespace, read_first_digit<T>, read_trailing_digits<T>);
-    chain(cont, source, limit, std::forward<Args>(args)...);
+    chain(next, source, limit, std::forward<Args>(args)...);
   }
 };
     
@@ -205,13 +205,13 @@ auto constexpr read_unsigned = read_unsigned_t<T>{};
 
 struct read_optional_sign_t
 {
-  template<typename Cont, typename... Args>
-  void operator()(Cont cont, async_source_t source, Args&&... args) const
+  template<typename Next, typename... Args>
+  void operator()(Next next, async_source_t source, Args&&... args) const
   {
     if(!source.readable())
     {
       source.call_when_readable(*this,
-        cont, source, std::forward<Args>(args)...);
+        next, source, std::forward<Args>(args)...);
       return;
     }
 
@@ -229,7 +229,7 @@ struct read_optional_sign_t
       break;
     }
 
-    cont.submit(source, negative, std::forward<Args>(args)...);
+    next.submit(source, negative, std::forward<Args>(args)...);
   }
 };
       
@@ -241,8 +241,8 @@ struct insert_limit_t
   static_assert(std::is_integral_v<T>);
   static_assert(std::is_signed_v<T>);
   
-  template<typename Cont, typename... Args>
-  void operator()(Cont cont, async_source_t source, bool negative,
+  template<typename Next, typename... Args>
+  void operator()(Next next, async_source_t source, bool negative,
                   Args&&... args) const
   {
     std::make_unsigned_t<T> limit = std::numeric_limits<T>::max();
@@ -250,7 +250,7 @@ struct insert_limit_t
     {
       ++limit;
     }
-    cont.submit(source, limit, negative, std::forward<Args>(args)...);
+    next.submit(source, limit, negative, std::forward<Args>(args)...);
   }
 };
     
@@ -262,8 +262,8 @@ struct apply_sign_t
 {
   static_assert(std::is_unsigned_v<T>);
   
-  template<typename Cont, typename... Args>
-  void operator()(Cont cont, async_source_t source, T value, bool negative,
+  template<typename Next, typename... Args>
+  void operator()(Next next, async_source_t source, T value, bool negative,
                   Args&&... args) const
   {
     std::make_signed_t<T> signed_value;
@@ -278,7 +278,7 @@ struct apply_sign_t
       signed_value = -signed_value;
       --signed_value;
     }
-    cont.submit(source, signed_value, std::forward<Args>(args)...);
+    next.submit(source, signed_value, std::forward<Args>(args)...);
   }
 };
     
@@ -291,14 +291,14 @@ struct read_signed_t
   static_assert(std::is_signed_v<T>);
   static_assert(std::is_integral_v<T>);
 
-  template<typename Cont, typename... Args>
-  void operator()(Cont cont, async_source_t source, Args&&... args) const
+  template<typename Next, typename... Args>
+  void operator()(Next next, async_source_t source, Args&&... args) const
   {
     using UT = std::make_unsigned_t<T>;
     static constexpr auto chain = async_stitch(
       skip_whitespace, read_optional_sign, insert_limit<T>,
       read_first_digit<UT>, read_trailing_digits<UT>, apply_sign<UT>);
-    chain(cont, source, std::forward<Args>(args)...);
+    chain(next, source, std::forward<Args>(args)...);
   }
 };
     
@@ -307,24 +307,24 @@ auto constexpr read_signed = read_signed_t<T>{};
 
 struct read_double_quote_t
 {
-  template<typename Cont, typename... Args>
-  void operator()(Cont cont, async_source_t source, Args&&... args) const
+  template<typename Next, typename... Args>
+  void operator()(Next next, async_source_t source, Args&&... args) const
   {
     if(!source.readable())
     {
       source.call_when_readable(*this,
-        cont, source, std::forward<Args>(args)...);
+        next, source, std::forward<Args>(args)...);
       return;
     }
 
     if(source.peek() != '"')
     {
-      cont.fail(std::make_exception_ptr(parse_error_t("'\"' expected")));
+      next.fail(std::make_exception_ptr(parse_error_t("'\"' expected")));
       return;
     }
 
     source.skip();
-    cont.submit(source, std::forward<Args>(args)...);
+    next.submit(source, std::forward<Args>(args)...);
   }
 };
 
@@ -356,8 +356,8 @@ inline int hex_digit_value(int c)
 
 struct append_hex_digits_t
 {
-  template<typename Cont, typename... Args>
-  void operator()(Cont cont, async_source_t source,
+  template<typename Next, typename... Args>
+  void operator()(Next next, async_source_t source,
                   unsigned int count, unsigned int total, std::string&& value,
                   Args&&... args) const
   {
@@ -366,7 +366,7 @@ struct append_hex_digits_t
       if(!source.readable())
       {
         source.call_when_readable(*this,
-          cont, source, count, total, std::move(value),
+          next, source, count, total, std::move(value),
           std::forward<Args>(args)...);
         return;
       }
@@ -374,7 +374,7 @@ struct append_hex_digits_t
       int dval = hex_digit_value(source.peek());
       if(dval == -1)
       {
-        cont.fail(std::make_exception_ptr(parse_error_t(
+        next.fail(std::make_exception_ptr(parse_error_t(
           "hex digit expected")));
         return;
       }
@@ -387,7 +387,7 @@ struct append_hex_digits_t
     }
 
     value += static_cast<char>(total);
-    cont.submit(source, std::move(value), std::forward<Args>(args)...);
+    next.submit(source, std::move(value), std::forward<Args>(args)...);
   }
 };
 
@@ -395,14 +395,14 @@ inline auto constexpr append_hex_digits = append_hex_digits_t{};
 
 struct append_string_escape_t
 {
-  template<typename Cont, typename... Args>
-  void operator()(Cont cont, async_source_t source, std::string&& value,
+  template<typename Next, typename... Args>
+  void operator()(Next next, async_source_t source, std::string&& value,
                   Args&&... args) const
   {
     if(!source.readable())
     {
       source.call_when_readable(*this,
-        cont, source, std::move(value), std::forward<Args>(args)...);
+        next, source, std::move(value), std::forward<Args>(args)...);
       return;
     }
 
@@ -423,20 +423,20 @@ struct append_string_escape_t
     case 'x' :
       {
         source.skip();
-        append_hex_digits(cont, source, 2, 0, std::move(value),
+        append_hex_digits(next, source, 2, 0, std::move(value),
           std::forward<Args>(args)...);
         return;
       }
     default :
       {
-        cont.fail(std::make_exception_ptr(parse_error_t(
+        next.fail(std::make_exception_ptr(parse_error_t(
           "illegal escape sequence in string value")));
         return;
       }
     }
         
     source.skip();
-    cont.submit(source, std::move(value), std::forward<Args>(args)...);
+    next.submit(source, std::move(value), std::forward<Args>(args)...);
   }
 };    
           
@@ -458,8 +458,8 @@ struct append_string_chars_t
 {
   static auto constexpr max_recursion = 100;
 
-  template<typename Cont, typename... Args>
-  void operator()(Cont cont, async_source_t source,
+  template<typename Next, typename... Args>
+  void operator()(Next next, async_source_t source,
                   std::string&& value, int recursion,
                   Args&&... args) const
   {
@@ -474,7 +474,7 @@ struct append_string_chars_t
     if(!source.readable() || recursion == max_recursion)
     {
       source.call_when_readable(*this,
-        cont, source, std::move(value), 0, std::forward<Args>(args)...);
+        next, source, std::move(value), 0, std::forward<Args>(args)...);
       return;
     }
 
@@ -483,27 +483,27 @@ struct append_string_chars_t
       source.skip();
       static auto constexpr chain = async_stitch(
         append_string_escape, append_string_chars_t{});
-      chain(cont, source, std::move(value), recursion + 1,
+      chain(next, source, std::move(value), recursion + 1,
         std::forward<Args>(args)...);
       return;
     }
 
     if(c == '\n' || c == eof)
     {
-      cont.fail(std::make_exception_ptr(parse_error_t(
+      next.fail(std::make_exception_ptr(parse_error_t(
         "missing terminating '\"'")));
       return;
     }
 
     if(c != '"')
     {
-      cont.fail(std::make_exception_ptr(parse_error_t(
+      next.fail(std::make_exception_ptr(parse_error_t(
         "illegal character " + std::to_string(c) + " in string value")));
       return;
     }
 
     source.skip();
-    cont.submit(source, std::move(value), std::forward<Args>(args)...);
+    next.submit(source, std::move(value), std::forward<Args>(args)...);
   }
 };
 
@@ -511,12 +511,12 @@ inline auto constexpr append_string_chars = append_string_chars_t{};
 
 struct read_string_t
 {
-  template<typename Cont, typename... Args>
-  void operator()(Cont cont, async_source_t source, Args&&... args) const
+  template<typename Next, typename... Args>
+  void operator()(Next next, async_source_t source, Args&&... args) const
   {
     static auto constexpr chain = async_stitch(
       skip_whitespace, read_double_quote, append_string_chars);
-    chain(cont, source, std::string{}, 0, std::forward<Args>(args)...);
+    chain(next, source, std::string{}, 0, std::forward<Args>(args)...);
   }
 };
       
@@ -524,24 +524,24 @@ inline auto constexpr read_string = read_string_t{};
 
 struct read_begin_sequence_t
 {
-  template<typename Cont, typename... Args>
-  void operator()(Cont cont, async_source_t source, Args&&... args) const
+  template<typename Next, typename... Args>
+  void operator()(Next next, async_source_t source, Args&&... args) const
   {
     if(!source.readable())
     {
       source.call_when_readable(*this,
-        cont, source, std::forward<Args>(args)...);
+        next, source, std::forward<Args>(args)...);
       return;
     }
 
     if(source.peek() != '[')
     {
-      cont.fail(std::make_exception_ptr(parse_error_t("'[' expected")));
+      next.fail(std::make_exception_ptr(parse_error_t("'[' expected")));
       return;
     }
 
     source.skip();
-    cont.submit(source, std::forward<Args>(args)...);
+    next.submit(source, std::forward<Args>(args)...);
   }
 };
 
@@ -550,13 +550,13 @@ inline auto constexpr read_begin_sequence = read_begin_sequence_t{};
 template<typename T>
 struct append_element_t
 {
-  template<typename Cont, typename TT, typename... Args>
-  void operator()(Cont cont, async_source_t source,
+  template<typename Next, typename TT, typename... Args>
+  void operator()(Next next, async_source_t source,
                   TT&& element, std::vector<T>&& sequence,
                   Args&&... args) const
   {
     sequence.push_back(std::forward<TT>(element));
-    cont.submit(source, std::move(sequence), std::forward<Args>(args)...);
+    next.submit(source, std::move(sequence), std::forward<Args>(args)...);
   }
 };
 
@@ -568,15 +568,15 @@ struct append_sequence_t
 {
   static auto constexpr max_recursion = 100;
 
-  template<typename Cont, typename... Args>
-  void operator()(Cont cont, async_source_t source,
+  template<typename Next, typename... Args>
+  void operator()(Next next, async_source_t source,
                   std::vector<T>&& sequence, int recursion,
                   Args&&... args) const
   {
     if(!source.readable() || recursion == max_recursion)
     {
       source.call_when_readable(*this,
-        cont, source, std::move(sequence), 0, std::forward<Args>(args)...);
+        next, source, std::move(sequence), 0, std::forward<Args>(args)...);
       return;
     }
 
@@ -585,13 +585,13 @@ struct append_sequence_t
       static auto constexpr chain = async_stitch(
         async_read<T>, append_element<T>,
         skip_whitespace, append_sequence_t<T>{});
-      chain(cont, source, std::move(sequence), recursion + 1,
+      chain(next, source, std::move(sequence), recursion + 1,
         std::forward<Args>(args)...);
       return;
     }
 
     source.skip();
-    cont.submit(source, std::move(sequence), std::forward<Args>(args)...);
+    next.submit(source, std::move(sequence), std::forward<Args>(args)...);
  }
 };
       
@@ -601,12 +601,12 @@ auto constexpr append_sequence = append_sequence_t<T>{};
 template<typename T>
 struct read_sequence_t
 {
-  template<typename Cont, typename... Args>
-  void operator()(Cont cont, async_source_t source, Args&&... args) const
+  template<typename Next, typename... Args>
+  void operator()(Next next, async_source_t source, Args&&... args) const
   {
     static auto constexpr chain = async_stitch(skip_whitespace,
       read_begin_sequence, skip_whitespace, append_sequence<T>);
-    chain(cont, source, std::vector<T>{}, 0, std::forward<Args>(args)...);
+    chain(next, source, std::vector<T>{}, 0, std::forward<Args>(args)...);
   }
 };
 
