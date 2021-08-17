@@ -46,10 +46,10 @@ struct async_link_t
     f_(next_, std::forward<Args>(args)...);
   }
 
-  template<typename Exptr>
-  void fail(Exptr&& exptr) const
+  template<typename Ex>
+  void fail(Ex&& ex) const
   {
-    next_.fail(std::forward<Exptr>(exptr));
+    next_.fail(std::forward<Ex>(ex));
   }
     
 private :

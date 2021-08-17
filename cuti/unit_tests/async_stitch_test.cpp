@@ -75,8 +75,7 @@ struct divide_t
   {
     if(t2 == 0)
     {
-      cont.fail(std::make_exception_ptr(
-        std::runtime_error("division by zero")));
+      cont.fail(std::runtime_error("division by zero"));
       return;
     }
     cont.submit(t1 / t2, std::forward<Args>(args)...);

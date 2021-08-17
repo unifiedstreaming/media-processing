@@ -173,7 +173,7 @@ void do_test_value_failure(F f, std::string_view input, std::size_t bufsize)
   {
     result.value();
   }
-  catch(std::exception const&)
+  catch(parse_error_t const&)
   {
     caught = true;
   }
@@ -223,7 +223,7 @@ void do_test_void_failure(F f, std::string_view input, std::size_t bufsize)
   {
     result.value();
   }
-  catch(std::exception const&)
+  catch(parse_error_t const&)
   {
     caught = true;
   }

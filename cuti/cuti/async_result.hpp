@@ -101,14 +101,25 @@ struct async_result_t
   }
 
   /*
-   * Called when the operation produces an exception.
+   * Called for reporting an exception object instance.
+   * Caveat: std::make_exception_ptr() is subject to slicing.
    */
-  template<typename Exptr>
-  void on_exception(Exptr&& exptr) noexcept
+  template<typename Ex>
+  void on_exception(Ex&& ex)
+  {
+    assert(!this->available());
+    state_.template emplace<2>(std::make_exception_ptr(ex));
+  }
+
+  /*
+   * Overload for reporting a caught exception returned by
+   * std::current_exception().
+   */
+  void on_exception(std::exception_ptr exptr) noexcept
   {
     assert(exptr != nullptr);
     assert(!this->available());
-    state_.template emplace<2>(std::forward<Exptr>(exptr));
+    state_.template emplace<2>(exptr);
   }
 
 private :
@@ -153,13 +164,20 @@ struct CUTI_ABI async_result_t<void>
     available_ = true;
   }
 
-  template<typename Exptr>
-  void on_exception(Exptr&& exptr) noexcept
+  template<typename Ex>
+  void on_exception(Ex&& ex)
+  {
+    assert(!this->available());
+    exptr_ = std::make_exception_ptr(ex);
+    available_ = true;
+  }
+
+  void on_exception(std::exception_ptr exptr) noexcept
   {
     assert(exptr != nullptr);
     assert(!this->available());
+    exptr_ = std::move(exptr);
     available_ = true;
-    exptr_ = std::forward<Exptr>(exptr);
   }
 
 private :
@@ -185,10 +203,10 @@ struct async_result_ref_t
     target_.on_success(std::forward<Args>(args)...);
   }
 
-  template<typename Exptr>
-  void fail(Exptr&& exptr) const noexcept
+  template<typename Ex>
+  void fail(Ex&& ex) const noexcept
   {
-    target_.on_exception(std::forward<Exptr>(exptr));
+    target_.on_exception(std::forward<Ex>(ex));
   }
 
 private :

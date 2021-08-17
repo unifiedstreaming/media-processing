@@ -69,7 +69,7 @@ struct read_eof_t
 
     if(source.peek() != eof)
     {
-      next.fail(std::make_exception_ptr(parse_error_t("eof expected")));
+      next.fail(parse_error_t("eof expected"));
       return;
     }
 
@@ -133,7 +133,7 @@ struct read_first_digit_t
     int dval = digit_value(source.peek());
     if(dval == -1)
     {
-      next.fail(std::make_exception_ptr(parse_error_t("digit expected")));
+      next.fail(parse_error_t("digit expected"));
       return;
     }
 
@@ -161,7 +161,7 @@ struct read_trailing_digits_t
       T udval = T(dval);
       if(total > limit / 10 || udval > limit - 10 * total)
       {
-        next.fail(std::make_exception_ptr(parse_error_t("integral overflow")));
+        next.fail(parse_error_t("integral overflow"));
         return;
       }
 
@@ -319,7 +319,7 @@ struct read_double_quote_t
 
     if(source.peek() != '"')
     {
-      next.fail(std::make_exception_ptr(parse_error_t("'\"' expected")));
+      next.fail(parse_error_t("'\"' expected"));
       return;
     }
 
@@ -374,8 +374,7 @@ struct append_hex_digits_t
       int dval = hex_digit_value(source.peek());
       if(dval == -1)
       {
-        next.fail(std::make_exception_ptr(parse_error_t(
-          "hex digit expected")));
+        next.fail(parse_error_t("hex digit expected"));
         return;
       }
 
@@ -429,8 +428,7 @@ struct append_string_escape_t
       }
     default :
       {
-        next.fail(std::make_exception_ptr(parse_error_t(
-          "illegal escape sequence in string value")));
+        next.fail(parse_error_t("illegal escape sequence in string value"));
         return;
       }
     }
@@ -490,15 +488,14 @@ struct append_string_chars_t
 
     if(c == '\n' || c == eof)
     {
-      next.fail(std::make_exception_ptr(parse_error_t(
-        "missing terminating '\"'")));
+      next.fail(parse_error_t("missing terminating '\"'"));
       return;
     }
 
     if(c != '"')
     {
-      next.fail(std::make_exception_ptr(parse_error_t(
-        "illegal character " + std::to_string(c) + " in string value")));
+      next.fail(parse_error_t(
+        "illegal character " + std::to_string(c) + " in string value"));
       return;
     }
 
@@ -536,7 +533,7 @@ struct read_begin_sequence_t
 
     if(source.peek() != '[')
     {
-      next.fail(std::make_exception_ptr(parse_error_t("'[' expected")));
+      next.fail(parse_error_t("'[' expected"));
       return;
     }
 
