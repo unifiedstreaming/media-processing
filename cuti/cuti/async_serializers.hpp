@@ -62,8 +62,8 @@ struct read_eof_t
   {
     if(!source.readable())
     {
-      source.call_when_readable(callback_t(
-        *this, cont, source, std::forward<Args>(args)...));
+      source.call_when_readable(*this,
+        cont, source, std::forward<Args>(args)...);
       return;
     }
 
@@ -94,8 +94,8 @@ struct skip_whitespace_t
 
     if(!source.readable())
     {
-      source.call_when_readable(callback_t(
-        *this, cont, source, std::forward<Args>(args)...));
+      source.call_when_readable(*this,
+        cont, source, std::forward<Args>(args)...);
       return;
     }      
     
@@ -125,8 +125,8 @@ struct read_first_digit_t
   {
     if(!source.readable())
     {
-      source.call_when_readable(callback_t(
-        *this, cont, source, std::forward<Args>(args)...));
+      source.call_when_readable(*this,
+        cont, source, std::forward<Args>(args)...);
       return;
     }
 
@@ -173,8 +173,8 @@ struct read_trailing_digits_t
       
     if(!source.readable())
     {
-      source.call_when_readable(callback_t(
-        *this, cont, source, total, limit, std::forward<Args>(args)...));
+      source.call_when_readable(*this,
+        cont, source, total, limit, std::forward<Args>(args)...);
       return;
     }
 
@@ -196,8 +196,7 @@ struct read_unsigned_t
   {
     static constexpr auto chain = async_stitch(
       skip_whitespace, read_first_digit<T>, read_trailing_digits<T>);
-    chain(cont, source, limit,
-      std::forward<Args>(args)...);
+    chain(cont, source, limit, std::forward<Args>(args)...);
   }
 };
     
@@ -211,8 +210,8 @@ struct read_optional_sign_t
   {
     if(!source.readable())
     {
-      source.call_when_readable(callback_t(
-        *this, cont, source, std::forward<Args>(args)...));
+      source.call_when_readable(*this,
+        cont, source, std::forward<Args>(args)...);
       return;
     }
 
@@ -313,8 +312,8 @@ struct read_double_quote_t
   {
     if(!source.readable())
     {
-      source.call_when_readable(callback_t(
-        *this, cont, source, std::forward<Args>(args)...));
+      source.call_when_readable(*this,
+        cont, source, std::forward<Args>(args)...);
       return;
     }
 
@@ -366,9 +365,9 @@ struct append_hex_digits_t
     {
       if(!source.readable())
       {
-        source.call_when_readable(callback_t(
-          *this, cont, source, count, total, std::move(value),
-          std::forward<Args>(args)...));
+        source.call_when_readable(*this,
+          cont, source, count, total, std::move(value),
+          std::forward<Args>(args)...);
         return;
       }
 
@@ -402,8 +401,8 @@ struct append_string_escape_t
   {
     if(!source.readable())
     {
-      source.call_when_readable(callback_t(
-        *this, cont, source, std::move(value), std::forward<Args>(args)...));
+      source.call_when_readable(*this,
+        cont, source, std::move(value), std::forward<Args>(args)...);
       return;
     }
 
@@ -474,9 +473,8 @@ struct append_string_chars_t
 
     if(!source.readable() || recursion == max_recursion)
     {
-      source.call_when_readable(callback_t(
-        *this, cont, source, std::move(value), 0,
-        std::forward<Args>(args)...));
+      source.call_when_readable(*this,
+        cont, source, std::move(value), 0, std::forward<Args>(args)...);
       return;
     }
 
@@ -531,8 +529,8 @@ struct read_begin_sequence_t
   {
     if(!source.readable())
     {
-      source.call_when_readable(callback_t(
-        *this, cont, source, std::forward<Args>(args)...));
+      source.call_when_readable(*this,
+        cont, source, std::forward<Args>(args)...);
       return;
     }
 
@@ -577,9 +575,8 @@ struct append_sequence_t
   {
     if(!source.readable() || recursion == max_recursion)
     {
-      source.call_when_readable(callback_t(
-        *this, cont, source, std::move(sequence), 0,
-        std::forward<Args>(args)...));
+      source.call_when_readable(*this,
+        cont, source, std::move(sequence), 0, std::forward<Args>(args)...);
       return;
     }
 

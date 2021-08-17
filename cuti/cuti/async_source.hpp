@@ -58,9 +58,11 @@ struct CUTI_ABI async_source_t
     return inbuf_.read(first, last);
   }
 
-  void call_when_readable(callback_t callback)
+  template<typename F, typename... Args>
+  void call_when_readable(F&& f, Args&&... args)
   {
-    inbuf_.call_when_readable(scheduler_, std::move(callback));
+    inbuf_.call_when_readable(scheduler_,
+      callback_t(std::forward<F>(f), std::forward<Args>(args)...));
   }
 
 private :
