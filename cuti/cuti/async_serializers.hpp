@@ -145,13 +145,13 @@ struct read_first_digit_t
 template<typename T>
 auto constexpr read_first_digit = read_first_digit_t<T>{};
 
-template<typename T>
+template<typename T, T limit>
 struct read_trailing_digits_t
 {
   static_assert(std::is_unsigned_v<T>);
 
   template<typename Next, typename... Args>
-  void operator()(Next next, async_source_t source, T total, T limit,
+  void operator()(Next next, async_source_t source, T total,
                   Args&&... args) const
   {
     int dval;
@@ -174,7 +174,7 @@ struct read_trailing_digits_t
     if(!source.readable())
     {
       source.call_when_readable(*this,
-        next, source, total, limit, std::forward<Args>(args)...);
+        next, source, total, std::forward<Args>(args)...);
       return;
     }
 
@@ -182,26 +182,20 @@ struct read_trailing_digits_t
   }
 };
 
-template<typename T>
-auto constexpr read_trailing_digits = read_trailing_digits_t<T>{};
+template<typename T, T limit>
+auto constexpr read_trailing_digits = read_trailing_digits_t<T, limit>{};
+
+template<typename T, T limit>
+auto constexpr read_unsigned_digits = async_stitch(
+  read_first_digit<T>,
+  read_trailing_digits<T, limit>);
 
 template<typename T>
-struct read_unsigned_t
-{
-  static_assert(std::is_unsigned_v<T>);
-  static auto constexpr limit = std::numeric_limits<T>::max();
+auto constexpr read_unsigned = async_stitch(
+  skip_whitespace,
+  read_unsigned_digits<T, std::numeric_limits<T>::max()>);
 
-  template<typename Next, typename... Args>
-  void operator()(Next next, async_source_t source, Args&&... args) const
-  {
-    static constexpr auto chain = async_stitch(
-      skip_whitespace, read_first_digit<T>, read_trailing_digits<T>);
-    chain(next, source, limit, std::forward<Args>(args)...);
-  }
-};
-    
-template<typename T>
-auto constexpr read_unsigned = read_unsigned_t<T>{};
+enum class sign_t { positive, negative };
 
 struct read_optional_sign_t
 {
@@ -215,11 +209,11 @@ struct read_optional_sign_t
       return;
     }
 
-    bool negative = false;
+    sign_t sign = sign_t::positive;
     switch(source.peek())
     {
     case '-' :
-      negative = true;
+      sign = sign_t::negative;
       source.skip();
       break;
     case '+' :
@@ -229,81 +223,86 @@ struct read_optional_sign_t
       break;
     }
 
-    next.submit(source, negative, std::forward<Args>(args)...);
+    next.submit(source, sign, std::forward<Args>(args)...);
   }
 };
       
 inline auto constexpr read_optional_sign = read_optional_sign_t{};
 
-template<typename T>
-struct insert_limit_t
-{
-  static_assert(std::is_integral_v<T>);
-  static_assert(std::is_signed_v<T>);
-  
-  template<typename Next, typename... Args>
-  void operator()(Next next, async_source_t source, bool negative,
-                  Args&&... args) const
-  {
-    std::make_unsigned_t<T> limit = std::numeric_limits<T>::max();
-    if(negative)
-    {
-      ++limit;
-    }
-    next.submit(source, limit, negative, std::forward<Args>(args)...);
-  }
-};
-    
-template<typename T>
-auto constexpr insert_limit = insert_limit_t<T>{};
-
-template<typename T>
-struct apply_sign_t
+template<typename T, sign_t sign>
+struct to_signed_t
 {
   static_assert(std::is_unsigned_v<T>);
-  
+
   template<typename Next, typename... Args>
-  void operator()(Next next, async_source_t source, T value, bool negative,
+  void operator()(Next next, async_source_t source, T value,
                   Args&&... args) const
   {
     std::make_signed_t<T> signed_value;
-    if(value == 0 || !negative)
+
+    if constexpr(sign == sign_t::positive)
     {
       signed_value = value;
     }
     else
     {
-      --value;
-      signed_value = value;
-      signed_value = -signed_value;
-      --signed_value;
+      if(value == 0)
+      {
+        signed_value = 0;
+      }
+      else
+      {
+        signed_value = value - 1;
+        signed_value = -signed_value - 1;
+      }
     }
+
     next.submit(source, signed_value, std::forward<Args>(args)...);
   }
 };
-    
-template<typename T>
-auto constexpr apply_sign = apply_sign_t<T>{};
+
+template<typename T, sign_t sign>
+auto constexpr to_signed = to_signed_t<T, sign>{};
 
 template<typename T>
-struct read_signed_t
+struct read_signed_digits_t
 {
   static_assert(std::is_signed_v<T>);
   static_assert(std::is_integral_v<T>);
 
   template<typename Next, typename... Args>
-  void operator()(Next next, async_source_t source, Args&&... args) const
+  void operator()(Next next, async_source_t source, sign_t sign,
+                  Args&&... args) const
   {
     using UT = std::make_unsigned_t<T>;
-    static constexpr auto chain = async_stitch(
-      skip_whitespace, read_optional_sign, insert_limit<T>,
-      read_first_digit<UT>, read_trailing_digits<UT>, apply_sign<UT>);
-    chain(next, source, std::forward<Args>(args)...);
+    static UT constexpr positive_limit = std::numeric_limits<T>::max();
+    static UT constexpr negative_limit = positive_limit + 1;
+
+    if(sign == sign_t::positive)
+    {
+      static auto constexpr chain = async_stitch(
+        read_unsigned_digits<UT, positive_limit>,
+        to_signed<UT, sign_t::positive>);
+      chain(next, source, std::forward<Args>(args)...);
+    }
+    else
+    {
+      static auto constexpr chain = async_stitch(
+        read_unsigned_digits<UT, negative_limit>,
+        to_signed<UT, sign_t::negative>);
+      chain(next, source, std::forward<Args>(args)...);
+    }
   }
 };
-    
+        
 template<typename T>
-auto constexpr read_signed = read_signed_t<T>{};
+auto constexpr read_signed_digits = read_signed_digits_t<T>{};
+
+template<typename T>
+auto constexpr read_signed = async_stitch(
+  skip_whitespace,
+  read_optional_sign,
+  read_signed_digits<T>);
 
 struct read_double_quote_t
 {

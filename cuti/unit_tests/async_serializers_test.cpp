@@ -337,9 +337,9 @@ void test_read_optional_sign()
   auto chain = async_stitch(detail::read_optional_sign,
     read_eof, drop_source);
 
-  test_value_success<bool>(chain, "-", true);
-  test_value_success<bool>(chain, "+", false);
-  test_value_success<bool>(chain, "", false);
+  test_value_success<detail::sign_t>(chain, "-", detail::sign_t::negative);
+  test_value_success<detail::sign_t>(chain, "+", detail::sign_t::positive);
+  test_value_success<detail::sign_t>(chain, "", detail::sign_t::positive);
 }
   
 template<typename T>
