@@ -53,6 +53,10 @@ unit-test config_file_reader_test
 : config_file_reader_test.cpp
 ;
 
+unit-test construct_test
+: construct_test.cpp
+;
+
 unit-test default_scheduler_test
 : default_scheduler_test.cpp
 ;
