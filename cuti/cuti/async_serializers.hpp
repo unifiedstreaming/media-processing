@@ -316,7 +316,7 @@ struct read_double_quote_t
       return;
     }
 
-    if(source.peek() != '"')
+    if(source.peek() != '\"')
     {
       next.fail(parse_error_t("'\"' expected"));
       return;
@@ -416,8 +416,8 @@ struct append_string_escape_t
       value += '\r'; break;
     case '\\' :
       value += '\\'; break;
-    case '"' :
-      value += '"'; break;
+    case '\"' :
+      value += '\"'; break;
     case 'x' :
       {
         source.skip();
@@ -443,7 +443,7 @@ inline bool is_literal_char(int c)
 {
   switch(c)
   {
-  case '"' :
+  case '\"' :
   case '\\' :
     return false;
   default :
@@ -491,7 +491,7 @@ struct append_string_chars_t
       return;
     }
 
-    if(c != '"')
+    if(c != '\"')
     {
       next.fail(parse_error_t(
         "illegal character " + std::to_string(c) + " in string value"));
