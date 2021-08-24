@@ -89,6 +89,10 @@ unit-test process_test
 : process_test.cpp
 ;
 
+unit-test ref_args_test
+: ref_args_test.cpp
+;
+
 unit-test resolver_test
 : resolver_test.cpp
 ;
