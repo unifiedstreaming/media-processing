@@ -510,22 +510,44 @@ struct person_t
 
 bool operator==(person_t const& lhs, person_t const& rhs)
 {
-  return lhs.first_name_ == rhs.first_name_ &&
+  return
+    lhs.first_name_ == rhs.first_name_ &&
     lhs.last_name_ == rhs.last_name_ &&
     lhs.year_of_birth_ == rhs.year_of_birth_;
 }
+
+struct family_t
+{
+  person_t father_;
+  person_t mother_;
+  std::vector<person_t> children_;
+};
   
+bool operator==(family_t const& lhs, family_t const& rhs)
+{
+  return
+    lhs.father_ == rhs.father_ &&
+    lhs.mother_ == rhs.mother_ &&
+    lhs.children_ == rhs.children_;
+}
+
 } // anonymous
 
 template<>
 inline auto constexpr cuti::async_read<person_t> =
   cuti::async_read_struct<person_t, std::string, std::string, int>;
 
+template<>
+inline auto constexpr cuti::async_read<family_t> =
+  cuti::async_read_struct<family_t, person_t, person_t, std::vector<person_t>>;
+
 namespace // anonymous
 {
 
 void test_read_struct()
 {
+  person_t const heinrich{"Heinrich", "Marx", 1777};
+  person_t const henriette{"Henriette", "Presburg", 1788};
   person_t const karl{"Karl", "Marx", 1818};
 
   {
@@ -539,19 +561,31 @@ void test_read_struct()
     test_value_failure<person_t>(chain, " { \"\" \"Marx\" 1818 }");
   }
 
-  person_t const heinrich{"Heinrich", "Marx", 1777};
-  person_t const henriette{"Henriette", "Presburg", 1788};
-
-  std::vector<person_t> const family{karl, heinrich, henriette};
   {
+    std::vector<person_t> const folks{heinrich, henriette, karl};
+
     auto chain = async_stitch(async_read<std::vector<person_t>>,
       read_eof, drop_source);
 
     test_value_success<std::vector<person_t>>(
       chain,
-      "[{ \"Karl\" \"Marx\" 1818 }"
-        "{ \"Heinrich\" \"Marx\" 1777 }"
-        "{ \"Henriette\" \"Presburg\" 1788 }]",
+      "[{ \"Heinrich\" \"Marx\" 1777 }"
+        "{ \"Henriette\" \"Presburg\" 1788 }"
+        "{ \"Karl\" \"Marx\" 1818 }]",
+      folks);
+  }
+
+  {
+    family_t const family{heinrich, henriette, {karl}};
+
+    auto chain = async_stitch(async_read<family_t>,
+      read_eof, drop_source);
+
+    test_value_success<family_t>(
+      chain,
+      "{{ \"Heinrich\" \"Marx\" 1777 }"
+        "{ \"Henriette\" \"Presburg\" 1788 }"
+        "[{ \"Karl\" \"Marx\" 1818 }]}",
       family);
   }
 }
