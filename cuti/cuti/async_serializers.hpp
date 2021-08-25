@@ -304,11 +304,15 @@ auto constexpr read_signed = async_stitch(
   read_optional_sign,
   read_signed_digits<T>);
 
-struct read_double_quote_t
+template<char fixed>
+struct read_fixed_char_t
 {
   template<typename Next, typename... Args>
   void operator()(Next next, async_source_t source, Args&&... args) const
   {
+    static int constexpr fixed_int =
+      std::char_traits<char>::to_int_type(fixed);
+
     if(!source.readable())
     {
       source.call_when_readable(*this,
@@ -316,9 +320,14 @@ struct read_double_quote_t
       return;
     }
 
-    if(source.peek() != '\"')
+    if(source.peek() != fixed_int)
     {
-      next.fail(parse_error_t("'\"' expected"));
+      static char const single_quote[] = "\'";
+
+      auto message = std::string(single_quote) +
+        fixed + single_quote + " expected";
+
+      next.fail(parse_error_t(message));
       return;
     }
 
@@ -327,7 +336,10 @@ struct read_double_quote_t
   }
 };
 
-inline auto constexpr read_double_quote = read_double_quote_t{};
+template<char fixed>
+auto constexpr read_fixed_char = read_fixed_char_t<fixed>{};
+      
+inline auto constexpr read_double_quote = read_fixed_char<'\"'>;
 
 inline int hex_digit_value(int c)
 {
@@ -518,30 +530,7 @@ struct read_string_t
       
 inline auto constexpr read_string = read_string_t{};
 
-struct read_begin_sequence_t
-{
-  template<typename Next, typename... Args>
-  void operator()(Next next, async_source_t source, Args&&... args) const
-  {
-    if(!source.readable())
-    {
-      source.call_when_readable(*this,
-        next, source, std::forward<Args>(args)...);
-      return;
-    }
-
-    if(source.peek() != '[')
-    {
-      next.fail(parse_error_t("'[' expected"));
-      return;
-    }
-
-    source.skip();
-    next.submit(source, std::forward<Args>(args)...);
-  }
-};
-
-inline auto constexpr read_begin_sequence = read_begin_sequence_t{};
+inline auto constexpr read_begin_sequence = read_fixed_char<'['>;
 
 template<typename T>
 struct append_element_t
