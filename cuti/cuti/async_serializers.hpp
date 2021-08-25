@@ -22,10 +22,13 @@
 
 #include "async_source.hpp"
 #include "async_stitch.hpp"
+#include "construct.hpp"
 #include "parse_error.hpp"
+#include "ref_args.hpp"
 
 #include <exception>
 #include <limits>
+#include <optional>
 #include <string>
 #include <vector>
 #include <type_traits>
@@ -598,6 +601,114 @@ struct read_sequence_t
 template<typename T>
 auto constexpr read_sequence = read_sequence_t<T>{};
 
+inline auto constexpr read_begin_struct = read_fixed_char<'{'>;
+
+inline auto constexpr read_end_struct = read_fixed_char<'}'>;
+
+template<typename... FieldTypes>
+struct read_fields_t;
+
+template<>
+struct read_fields_t<>
+{
+  template<typename Next, typename... Args>
+  void operator()(Next next, async_source_t source, Args&&... args) const
+  {
+    next.submit(source, std::forward<Args>(args)...);
+  }
+};
+
+template<typename FirstFieldType, typename... OtherFieldTypes>
+struct read_fields_t<FirstFieldType, OtherFieldTypes...>
+{
+  template<typename Next, typename... Args>
+  void operator()(Next next, async_source_t source, Args&&... args) const
+  {
+    static auto constexpr chain = async_stitch(
+      async_read<FirstFieldType>, read_fields_t<OtherFieldTypes...>{});
+    chain(next, source, std::forward<Args>(args)...);
+  }
+};
+
+template<typename... FieldTypes>
+auto constexpr read_fields = read_fields_t<FieldTypes...>{};
+
+template<typename T, int N>
+struct build_impl_t;
+
+template<typename T>
+struct build_impl_t<T, 0>
+{
+  template<typename Next, typename Refs, typename... Args>
+  void operator()(Next next, async_source_t source,
+                  Refs refs, Args&&... args) const
+  {
+    std::optional<T> opt_value;
+
+    try
+    {
+      static auto constexpr factory = construct<T>;
+      opt_value.emplace(refs.apply(factory));
+    }
+    catch(std::exception const&)
+    {
+      next.fail(std::current_exception());
+      return;
+    }
+
+    next.submit(source, std::move(*opt_value), std::forward<Args>(args)...);
+  }
+};
+
+template<typename T, int N>
+struct build_impl_t
+{
+  template<typename Next, typename Refs, typename Arg1, typename... Argn>
+  void operator()(Next next, async_source_t source,
+                  Refs refs, Arg1&& arg1, Argn&&... argn) const
+  {
+    static auto constexpr delegate = build_impl_t<T, N - 1>{};
+    delegate(next, source,
+      refs.with_first_arg(std::forward<Arg1>(arg1)),
+      std::forward<Argn>(argn)...);
+  }
+};
+
+template<typename T, int N>
+struct build_t
+{
+  template<typename Next, typename... Args>
+  void operator()(Next next, async_source_t source, Args&&... args) const
+  {
+    static auto constexpr impl = build_impl_t<T, N>{};
+    impl(next, source, ref_args(), std::forward<Args>(args)...);
+  }
+};
+
+template<typename T, int N>
+auto constexpr build = build_t<T, N>{};
+
+template<typename T, typename... FieldTypes>
+struct read_struct_t
+{
+  template<typename Next, typename... Args>
+  void operator()(Next next, async_source_t source, Args&&... args) const
+  {
+    static auto constexpr chain = async_stitch(
+      skip_whitespace,
+      read_begin_struct,
+      read_fields<FieldTypes...>,
+      build<T, sizeof...(FieldTypes)>,
+      skip_whitespace,
+      read_end_struct
+    );
+    chain(next, source, std::forward<Args>(args)...);
+  }
+};
+  
+template<typename T, typename... FieldTypes>
+auto constexpr read_struct = read_struct_t<T, FieldTypes...>{};
+
 } // namespace cuti::detail
 
 inline auto constexpr drop_source = detail::drop_source_t{};
@@ -642,6 +753,10 @@ inline auto constexpr async_read<std::string> =
 template<typename T>
 auto constexpr async_read<std::vector<T>> =
   detail::read_sequence<T>;
+
+template<typename T, typename... FieldTypes>
+auto constexpr async_read_struct =
+  detail::read_struct<T, FieldTypes...>;
 
 } // namespace cuti
 

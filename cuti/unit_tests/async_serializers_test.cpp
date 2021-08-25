@@ -173,7 +173,7 @@ void do_test_value_failure(F f, std::string_view input, std::size_t bufsize)
   {
     result.value();
   }
-  catch(parse_error_t const&)
+  catch(std::exception const&)
   {
     caught = true;
   }
@@ -486,6 +486,76 @@ void test_read_sequence()
   }
 }
 
+struct person_t
+{
+  static std::string validate_name(std::string name)
+  {
+    if(name.empty())
+    {
+      throw std::runtime_error("name is empty");
+    }
+    return name;
+  }
+
+  person_t(std::string first_name, std::string last_name, int year_of_birth)
+  : first_name_(validate_name(std::move(first_name)))
+  , last_name_(validate_name(std::move(last_name)))
+  , year_of_birth_(year_of_birth)
+  { }
+  
+  std::string first_name_;
+  std::string last_name_;
+  int year_of_birth_;
+};
+
+bool operator==(person_t const& lhs, person_t const& rhs)
+{
+  return lhs.first_name_ == rhs.first_name_ &&
+    lhs.last_name_ == rhs.last_name_ &&
+    lhs.year_of_birth_ == rhs.year_of_birth_;
+}
+  
+} // anonymous
+
+template<>
+inline auto constexpr cuti::async_read<person_t> =
+  cuti::async_read_struct<person_t, std::string, std::string, int>;
+
+namespace // anonymous
+{
+
+void test_read_struct()
+{
+  person_t const karl{"Karl", "Marx", 1818};
+
+  {
+    auto chain = async_stitch(async_read<person_t>, read_eof, drop_source);
+
+    test_value_success<person_t>(chain, " { \"Karl\" \"Marx\" 1818 }", karl);
+    test_value_failure<person_t>(chain, " \"Karl\" \"Marx\" 1818 }");
+    test_value_failure<person_t>(chain, " { \"Karl\" \"Marx\" 1818");
+    test_value_failure<person_t>(chain, " { \"Karl\" \"Marx\" \"1818\" }");
+    test_value_failure<person_t>(chain, " { \"Karl\" \"Marx\" }");
+    test_value_failure<person_t>(chain, " { \"\" \"Marx\" 1818 }");
+  }
+
+  person_t const heinrich{"Heinrich", "Marx", 1777};
+  person_t const henriette{"Henriette", "Presburg", 1788};
+
+  std::vector<person_t> const family{karl, heinrich, henriette};
+  {
+    auto chain = async_stitch(async_read<std::vector<person_t>>,
+      read_eof, drop_source);
+
+    test_value_success<std::vector<person_t>>(
+      chain,
+      "[{ \"Karl\" \"Marx\" 1818 }"
+        "{ \"Heinrich\" \"Marx\" 1777 }"
+        "{ \"Henriette\" \"Presburg\" 1788 }]",
+      family);
+  }
+}
+
 } // anonymous
 
 int main()
@@ -504,6 +574,7 @@ int main()
   test_read_double_quote();
   test_read_string();
   test_read_sequence();
+  test_read_struct();
 
   return 0;
 }
