@@ -524,6 +524,18 @@ struct person_t
   int year_of_birth_;
 };
 
+struct reversed_person_factory_t
+{
+  person_t operator()(int year_of_birth,
+                      std::string last_name,
+                      std::string first_name) const
+  {
+    return person_t(std::move(first_name),
+                    std::move(last_name),
+                    year_of_birth);
+  }
+};
+     
 bool operator==(person_t const& lhs, person_t const& rhs)
 {
   return
@@ -575,6 +587,15 @@ void test_read_struct()
     test_value_failure<person_t>(chain, " { \"Karl\" \"Marx\" \"1818\" }");
     test_value_failure<person_t>(chain, " { \"Karl\" \"Marx\" }");
     test_value_failure<person_t>(chain, " { \"\" \"Marx\" 1818 }");
+  }
+
+  {
+    auto chain = async_stitch(
+      async_read_struct_with_factory<reversed_person_factory_t,
+                                     int, std::string, std::string>,
+      read_eof, drop_source);
+
+    test_value_success<person_t>(chain, " { 1818  \"Marx\" \"Karl\" }", karl);
   }
 
   {

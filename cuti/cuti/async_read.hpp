@@ -669,22 +669,23 @@ struct read_fields_t<FirstField, OtherFields...>
 template<typename... Fields>
 auto constexpr read_fields = read_fields_t<Fields...>{};
 
-template<typename T, int N>
+template<typename Factory, int N>
 struct build_impl_t;
 
-template<typename T>
-struct build_impl_t<T, 0>
+template<typename Factory>
+struct build_impl_t<Factory, 0>
 {
   template<typename Next, typename Refs, typename... Args>
   void operator()(Next next, async_source_t source,
                   Refs refs, Args&&... args) const
   {
-    std::optional<T> opt_value;
+    static auto constexpr factory = Factory{};
+    using value_t = std::decay_t<decltype(refs.apply(factory))>;
+    std::optional<value_t> opt_value;
 
     try
     {
-      static auto constexpr factory = construct<T>;
-      opt_value.emplace(refs.apply(factory));
+      opt_value = refs.apply(factory);
     }
     catch(std::exception const&)
     {
@@ -696,35 +697,35 @@ struct build_impl_t<T, 0>
   }
 };
 
-template<typename T, int N>
+template<typename Factory, int N>
 struct build_impl_t
 {
   template<typename Next, typename Refs, typename Arg1, typename... Argn>
   void operator()(Next next, async_source_t source,
                   Refs refs, Arg1&& arg1, Argn&&... argn) const
   {
-    static auto constexpr delegate = build_impl_t<T, N - 1>{};
+    static auto constexpr delegate = build_impl_t<Factory, N - 1>{};
     delegate(next, source,
       refs.with_first_arg(std::forward<Arg1>(arg1)),
       std::forward<Argn>(argn)...);
   }
 };
 
-template<typename T, int N>
+template<typename Factory, int N>
 struct build_t
 {
   template<typename Next, typename... Args>
   void operator()(Next next, async_source_t source, Args&&... args) const
   {
-    static auto constexpr impl = build_impl_t<T, N>{};
+    static auto constexpr impl = build_impl_t<Factory, N>{};
     impl(next, source, ref_args(), std::forward<Args>(args)...);
   }
 };
 
-template<typename T, int N>
-auto constexpr build = build_t<T, N>{};
+template<typename Factory, int N>
+auto constexpr build = build_t<Factory, N>{};
 
-template<typename T, typename... Fields>
+template<typename Factory, typename... Fields>
 struct read_struct_t
 {
   template<typename Next, typename... Args>
@@ -734,7 +735,7 @@ struct read_struct_t
       skip_whitespace,
       read_begin_struct,
       read_fields<Fields...>,
-      build<T, sizeof...(Fields)>,
+      build<Factory, sizeof...(Fields)>,
       skip_whitespace,
       read_end_struct
     );
@@ -742,8 +743,8 @@ struct read_struct_t
   }
 };
   
-template<typename T, typename... Fields>
-auto constexpr read_struct = read_struct_t<T, Fields...>{};
+template<typename Factory, typename... Fields>
+auto constexpr read_struct = read_struct_t<Factory, Fields...>{};
 
 } // namespace cuti::detail
 
@@ -794,9 +795,13 @@ template<typename T>
 auto constexpr async_read<std::vector<T>> =
   detail::read_sequence<T>;
 
+template<typename Factory, typename... Fields>
+auto constexpr async_read_struct_with_factory =
+  detail::read_struct<Factory, Fields...>;
+
 template<typename T, typename... Fields>
 auto constexpr async_read_struct =
-  detail::read_struct<T, Fields...>;
+  async_read_struct_with_factory<construct_t<T>, Fields...>;
 
 } // namespace cuti
 
