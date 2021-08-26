@@ -511,7 +511,7 @@ struct append_string_chars_t
                   std::string&& value, int recursion,
                   Args&&... args) const
   {
-    int c;
+    int c{};
     while(source.readable() && recursion != max_recursion &&
           is_literal_char(c = source.peek()))
     {
