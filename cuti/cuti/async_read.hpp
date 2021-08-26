@@ -641,7 +641,7 @@ inline auto constexpr read_begin_struct = read_fixed_char<'{'>;
 
 inline auto constexpr read_end_struct = read_fixed_char<'}'>;
 
-template<typename... FieldTypes>
+template<typename... Fields>
 struct read_fields_t;
 
 template<>
@@ -654,20 +654,20 @@ struct read_fields_t<>
   }
 };
 
-template<typename FirstFieldType, typename... OtherFieldTypes>
-struct read_fields_t<FirstFieldType, OtherFieldTypes...>
+template<typename FirstField, typename... OtherFields>
+struct read_fields_t<FirstField, OtherFields...>
 {
   template<typename Next, typename... Args>
   void operator()(Next next, async_source_t source, Args&&... args) const
   {
     static auto constexpr chain = async_stitch(
-      async_read<FirstFieldType>, read_fields_t<OtherFieldTypes...>{});
+      async_read<FirstField>, read_fields_t<OtherFields...>{});
     chain(next, source, std::forward<Args>(args)...);
   }
 };
 
-template<typename... FieldTypes>
-auto constexpr read_fields = read_fields_t<FieldTypes...>{};
+template<typename... Fields>
+auto constexpr read_fields = read_fields_t<Fields...>{};
 
 template<typename T, int N>
 struct build_impl_t;
@@ -724,7 +724,7 @@ struct build_t
 template<typename T, int N>
 auto constexpr build = build_t<T, N>{};
 
-template<typename T, typename... FieldTypes>
+template<typename T, typename... Fields>
 struct read_struct_t
 {
   template<typename Next, typename... Args>
@@ -733,8 +733,8 @@ struct read_struct_t
     static auto constexpr chain = async_stitch(
       skip_whitespace,
       read_begin_struct,
-      read_fields<FieldTypes...>,
-      build<T, sizeof...(FieldTypes)>,
+      read_fields<Fields...>,
+      build<T, sizeof...(Fields)>,
       skip_whitespace,
       read_end_struct
     );
@@ -742,8 +742,8 @@ struct read_struct_t
   }
 };
   
-template<typename T, typename... FieldTypes>
-auto constexpr read_struct = read_struct_t<T, FieldTypes...>{};
+template<typename T, typename... Fields>
+auto constexpr read_struct = read_struct_t<T, Fields...>{};
 
 } // namespace cuti::detail
 
@@ -794,9 +794,9 @@ template<typename T>
 auto constexpr async_read<std::vector<T>> =
   detail::read_sequence<T>;
 
-template<typename T, typename... FieldTypes>
+template<typename T, typename... Fields>
 auto constexpr async_read_struct =
-  detail::read_struct<T, FieldTypes...>;
+  detail::read_struct<T, Fields...>;
 
 } // namespace cuti
 
