@@ -80,6 +80,41 @@ struct read_eof_t
   }
 };
 
+template<char fixed>
+struct read_fixed_char_t
+{
+  template<typename Next, typename... Args>
+  void operator()(Next next, async_source_t source, Args&&... args) const
+  {
+    static int constexpr fixed_int =
+      std::char_traits<char>::to_int_type(fixed);
+
+    if(!source.readable())
+    {
+      source.call_when_readable(*this,
+        next, source, std::forward<Args>(args)...);
+      return;
+    }
+
+    if(source.peek() != fixed_int)
+    {
+      static char const single_quote[] = "\'";
+
+      auto message = std::string(single_quote) +
+        fixed + single_quote + " expected";
+
+      next.fail(parse_error_t(message));
+      return;
+    }
+
+    source.skip();
+    next.submit(source, std::forward<Args>(args)...);
+  }
+};
+
+template<char fixed>
+auto constexpr read_fixed_char = read_fixed_char_t<fixed>{};
+      
 inline bool is_whitespace(int c)
 {
   return c == '\t' || c == '\r' || c == ' ';
@@ -107,6 +142,42 @@ struct skip_whitespace_t
 };
 
 inline auto constexpr skip_whitespace = skip_whitespace_t{};
+
+struct read_bool_char_t
+{
+  template<typename Next, typename... Args>
+  void operator()(Next next, async_source_t source, Args&&... args) const
+  {
+    if(!source.readable())
+    {
+      source.call_when_readable(*this,
+        next, source, std::forward<Args>(args)...);
+      return;
+    }
+
+    bool value = false;
+    switch(source.peek())
+    {
+    case '~' :
+      break;
+    case '*' :
+      value = true;
+      break;
+    default :
+      next.fail(parse_error_t("boolean value ('~' or '*') expected"));
+      return;
+    }
+
+    source.skip();
+    next.submit(source, value, std::forward<Args>(args)...);
+  }
+};
+
+inline auto constexpr read_bool_char = read_bool_char_t{};
+
+inline auto constexpr read_bool = async_stitch(
+  skip_whitespace,
+  read_bool_char);
 
 inline int digit_value(int c)
 {
@@ -307,41 +378,6 @@ auto constexpr read_signed = async_stitch(
   read_optional_sign,
   read_signed_digits<T>);
 
-template<char fixed>
-struct read_fixed_char_t
-{
-  template<typename Next, typename... Args>
-  void operator()(Next next, async_source_t source, Args&&... args) const
-  {
-    static int constexpr fixed_int =
-      std::char_traits<char>::to_int_type(fixed);
-
-    if(!source.readable())
-    {
-      source.call_when_readable(*this,
-        next, source, std::forward<Args>(args)...);
-      return;
-    }
-
-    if(source.peek() != fixed_int)
-    {
-      static char const single_quote[] = "\'";
-
-      auto message = std::string(single_quote) +
-        fixed + single_quote + " expected";
-
-      next.fail(parse_error_t(message));
-      return;
-    }
-
-    source.skip();
-    next.submit(source, std::forward<Args>(args)...);
-  }
-};
-
-template<char fixed>
-auto constexpr read_fixed_char = read_fixed_char_t<fixed>{};
-      
 inline auto constexpr read_double_quote = read_fixed_char<'\"'>;
 
 inline int hex_digit_value(int c)
@@ -713,6 +749,10 @@ auto constexpr read_struct = read_struct_t<T, FieldTypes...>{};
 
 inline auto constexpr drop_source = detail::drop_source_t{};
 inline auto constexpr read_eof = detail::read_eof_t{};
+
+template<>
+inline auto constexpr async_read<bool> =
+  detail::read_bool;
 
 template<>
 inline auto constexpr async_read<unsigned short> =

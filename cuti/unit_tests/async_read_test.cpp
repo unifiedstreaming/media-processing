@@ -297,6 +297,21 @@ void test_skip_whitespace()
   test_void_failure(chain, "x");
 }
 
+void test_read_bool()
+{
+  auto chain = async_stitch(async_read<bool>, read_eof, drop_source);
+
+  test_value_success<bool>(chain, "~", false);
+  test_value_success<bool>(chain, "\t\r ~", false);
+  test_value_success<bool>(chain, "*", true);
+  test_value_success<bool>(chain, "\t\r *", true);
+
+  test_value_failure<bool>(chain, "");
+  test_value_failure<bool>(chain, "\t\r ");
+  test_value_failure<bool>(chain, "x");
+  test_value_failure<bool>(chain, "\t\r x");
+}
+  
 void test_read_first_digit()
 {
   auto chain = async_stitch(detail::read_first_digit<unsigned int>,
@@ -601,6 +616,8 @@ int main()
   test_drop_source();
   test_read_eof();
   test_skip_whitespace();
+
+  test_read_bool();
   test_read_first_digit();
   test_read_unsigned();
   test_read_optional_sign();
