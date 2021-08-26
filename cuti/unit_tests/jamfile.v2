@@ -29,8 +29,8 @@ unit-test async_result_test
 : async_result_test.cpp
 ;
 
-unit-test async_serializers_test
-: async_serializers_test.cpp
+unit-test async_read_test
+: async_read_test.cpp
 ;
 
 unit-test async_stitch_test

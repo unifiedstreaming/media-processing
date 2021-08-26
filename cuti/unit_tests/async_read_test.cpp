@@ -17,10 +17,11 @@
  * <http://www.gnu.org/licenses/>.
  */
 
+#include <cuti/async_read.hpp>
+
 #include <cuti/async_inbuf.hpp>
 #include <cuti/async_input.hpp>
 #include <cuti/async_result.hpp>
-#include <cuti/async_serializers.hpp>
 #include <cuti/async_stitch.hpp>
 #include <cuti/default_scheduler.hpp>
 #include <cuti/parse_error.hpp>
@@ -223,7 +224,7 @@ void do_test_void_failure(F f, std::string_view input, std::size_t bufsize)
   {
     result.value();
   }
-  catch(parse_error_t const&)
+  catch(std::exception const&)
   {
     caught = true;
   }

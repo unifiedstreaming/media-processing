@@ -17,8 +17,8 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#ifndef CUTI_ASYNC_SERIALIZERS_HPP_
-#define CUTI_ASYNC_SERIALIZERS_HPP_
+#ifndef CUTI_ASYNC_READ_HPP_
+#define CUTI_ASYNC_READ_HPP_
 
 #include "async_source.hpp"
 #include "async_stitch.hpp"
