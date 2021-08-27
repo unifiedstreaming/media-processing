@@ -641,34 +641,6 @@ inline auto constexpr read_begin_struct = read_fixed_char<'{'>;
 
 inline auto constexpr read_end_struct = read_fixed_char<'}'>;
 
-template<typename... Fields>
-struct read_fields_t;
-
-template<>
-struct read_fields_t<>
-{
-  template<typename Next, typename... Args>
-  void operator()(Next next, async_source_t source, Args&&... args) const
-  {
-    next.submit(source, std::forward<Args>(args)...);
-  }
-};
-
-template<typename FirstField, typename... OtherFields>
-struct read_fields_t<FirstField, OtherFields...>
-{
-  template<typename Next, typename... Args>
-  void operator()(Next next, async_source_t source, Args&&... args) const
-  {
-    static auto constexpr chain = async_stitch(
-      async_read<FirstField>, read_fields_t<OtherFields...>{});
-    chain(next, source, std::forward<Args>(args)...);
-  }
-};
-
-template<typename... Fields>
-auto constexpr read_fields = read_fields_t<Fields...>{};
-
 template<typename Factory, int N>
 struct build_impl_t;
 
@@ -734,7 +706,7 @@ struct read_struct_t
     static auto constexpr chain = async_stitch(
       skip_whitespace,
       read_begin_struct,
-      read_fields<Fields...>,
+      async_stitch(async_read<Fields>...),
       build<Factory, sizeof...(Fields)>,
       skip_whitespace,
       read_end_struct
