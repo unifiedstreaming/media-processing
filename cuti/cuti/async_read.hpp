@@ -641,17 +641,17 @@ inline auto constexpr read_begin_struct = read_fixed_char<'{'>;
 
 inline auto constexpr read_end_struct = read_fixed_char<'}'>;
 
-template<typename Factory, int N>
+template<int N>
 struct build_impl_t;
 
-template<typename Factory>
-struct build_impl_t<Factory, 0>
+template<>
+struct build_impl_t<0>
 {
-  template<typename Next, typename Refs, typename... Args>
+  template<typename Next, typename Refs,
+           typename Factory, typename... Args>
   void operator()(Next next, async_source_t source,
-                  Refs refs, Args&&... args) const
+                  Refs refs, Factory const& factory, Args&&... args) const
   {
-    static auto constexpr factory = Factory{};
     using value_t = std::decay_t<decltype(refs.apply(factory))>;
     std::optional<value_t> opt_value;
 
@@ -669,37 +669,45 @@ struct build_impl_t<Factory, 0>
   }
 };
 
-template<typename Factory, int N>
+template<int N>
 struct build_impl_t
 {
   template<typename Next, typename Refs, typename Arg1, typename... Argn>
   void operator()(Next next, async_source_t source,
                   Refs refs, Arg1&& arg1, Argn&&... argn) const
   {
-    static auto constexpr delegate = build_impl_t<Factory, N - 1>{};
+    static auto constexpr delegate = build_impl_t<N - 1>{};
     delegate(next, source,
       refs.with_first_arg(std::forward<Arg1>(arg1)),
       std::forward<Argn>(argn)...);
   }
 };
 
-template<typename Factory, int N>
+template<int N>
 struct build_t
 {
   template<typename Next, typename... Args>
   void operator()(Next next, async_source_t source, Args&&... args) const
   {
-    static auto constexpr impl = build_impl_t<Factory, N>{};
+    static auto constexpr impl = build_impl_t<N>{};
     impl(next, source, ref_args(), std::forward<Args>(args)...);
   }
 };
 
-template<typename Factory, int N>
-auto constexpr build = build_t<Factory, N>{};
+template<int N>
+auto constexpr build = build_t<N>{};
 
 template<typename Factory, typename... Fields>
-struct read_struct_t
+struct async_builder_t
 {
+  async_builder_t() = delete;
+
+  template<typename FFactory, typename = std::enable_if_t<
+    !std::is_convertible_v<std::decay_t<FFactory>*, async_builder_t const*>>>
+  constexpr async_builder_t(FFactory&& factory)
+  : factory_(std::forward<FFactory>(factory))
+  { }
+
   template<typename Next, typename... Args>
   void operator()(Next next, async_source_t source, Args&&... args) const
   {
@@ -707,16 +715,27 @@ struct read_struct_t
       skip_whitespace,
       read_begin_struct,
       async_stitch(async_read<Fields>...),
-      build<Factory, sizeof...(Fields)>,
+      build<sizeof...(Fields)>,
       skip_whitespace,
       read_end_struct
     );
-    chain(next, source, std::forward<Args>(args)...);
+    chain(next, source, factory_, std::forward<Args>(args)...);
   }
+
+private :
+  Factory factory_;
 };
   
-template<typename Factory, typename... Fields>
-auto constexpr read_struct = read_struct_t<Factory, Fields...>{};
+template<typename... Fields>
+struct make_async_builder_t
+{
+  template<typename Factory>
+  constexpr auto operator()(Factory&& factory) const
+  {
+    return async_builder_t<std::decay_t<Factory>, Fields...>(
+      std::forward<Factory>(factory));
+  }
+};
 
 } // namespace cuti::detail
 
@@ -767,13 +786,13 @@ template<typename T>
 auto constexpr async_read<std::vector<T>> =
   detail::read_sequence<T>;
 
-template<typename Factory, typename... Fields>
-auto constexpr async_read_struct_with_factory =
-  detail::read_struct<Factory, Fields...>;
+template<typename... Fields>
+auto constexpr make_async_builder =
+  detail::make_async_builder_t<Fields...>{};
 
 template<typename T, typename... Fields>
-auto constexpr async_read_struct =
-  async_read_struct_with_factory<construct_t<T>, Fields...>;
+auto constexpr async_construct =
+  make_async_builder<Fields...>(construct<T>);
 
 } // namespace cuti
 

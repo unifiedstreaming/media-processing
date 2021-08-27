@@ -524,17 +524,14 @@ struct person_t
   int year_of_birth_;
 };
 
-struct reversed_person_factory_t
+person_t make_reversed_person(int year_of_birth,
+                              std::string last_name,
+                              std::string first_name)
 {
-  person_t operator()(int year_of_birth,
-                      std::string last_name,
-                      std::string first_name) const
-  {
-    return person_t(std::move(first_name),
-                    std::move(last_name),
-                    year_of_birth);
-  }
-};
+  return person_t(std::move(first_name),
+                  std::move(last_name),
+                  year_of_birth);
+}
      
 bool operator==(person_t const& lhs, person_t const& rhs)
 {
@@ -563,11 +560,11 @@ bool operator==(family_t const& lhs, family_t const& rhs)
 
 template<>
 inline auto constexpr cuti::async_read<person_t> =
-  cuti::async_read_struct<person_t, std::string, std::string, int>;
+  cuti::async_construct<person_t, std::string, std::string, int>;
 
 template<>
 inline auto constexpr cuti::async_read<family_t> =
-  cuti::async_read_struct<family_t, person_t, person_t, std::vector<person_t>>;
+  cuti::async_construct<family_t, person_t, person_t, std::vector<person_t>>;
 
 namespace // anonymous
 {
@@ -579,7 +576,8 @@ void test_read_struct()
   person_t const karl{"Karl", "Marx", 1818};
 
   {
-    auto chain = async_stitch(async_read<person_t>, read_eof, drop_source);
+    static auto constexpr chain =
+      async_stitch(async_read<person_t>, read_eof, drop_source);
 
     test_value_success<person_t>(chain, " { \"Karl\" \"Marx\" 1818 }", karl);
     test_value_failure<person_t>(chain, " \"Karl\" \"Marx\" 1818 }");
@@ -590,9 +588,9 @@ void test_read_struct()
   }
 
   {
-    auto chain = async_stitch(
-      async_read_struct_with_factory<reversed_person_factory_t,
-                                     int, std::string, std::string>,
+    static auto constexpr chain = async_stitch(
+      make_async_builder<
+        int, std::string, std::string>(make_reversed_person),
       read_eof, drop_source);
 
     test_value_success<person_t>(chain, " { 1818  \"Marx\" \"Karl\" }", karl);
@@ -601,8 +599,8 @@ void test_read_struct()
   {
     std::vector<person_t> const folks{heinrich, henriette, karl};
 
-    auto chain = async_stitch(async_read<std::vector<person_t>>,
-      read_eof, drop_source);
+    static auto constexpr chain =
+      async_stitch(async_read<std::vector<person_t>>, read_eof, drop_source);
 
     test_value_success<std::vector<person_t>>(
       chain,
@@ -615,8 +613,8 @@ void test_read_struct()
   {
     family_t const family{heinrich, henriette, {karl}};
 
-    auto chain = async_stitch(async_read<family_t>,
-      read_eof, drop_source);
+    static auto constexpr chain =
+      async_stitch(async_read<family_t>, read_eof, drop_source);
 
     test_value_success<family_t>(
       chain,
