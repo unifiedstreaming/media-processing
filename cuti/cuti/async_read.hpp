@@ -112,9 +112,33 @@ struct read_fixed_char_t
   }
 };
 
+template<>
+struct read_fixed_char_t<'\n'>
+{
+  template<typename Next, typename... Args>
+  void operator()(Next next, async_source_t source, Args&&... args) const
+  {
+    if(!source.readable())
+    {
+      source.call_when_readable(*this,
+        next, source, std::forward<Args>(args)...);
+      return;
+    }
+
+    if(source.peek() != '\n')
+    {
+      next.fail(parse_error_t("newline expected"));
+      return;
+    }
+
+    source.skip();
+    next.submit(source, std::forward<Args>(args)...);
+  }
+};
+
 template<char fixed>
 auto constexpr read_fixed_char = read_fixed_char_t<fixed>{};
-      
+
 inline bool is_whitespace(int c)
 {
   return c == '\t' || c == '\r' || c == ' ';
@@ -378,8 +402,6 @@ auto constexpr read_signed = async_stitch(
   read_optional_sign,
   read_signed_digits<T>);
 
-inline auto constexpr read_double_quote = read_fixed_char<'\"'>;
-
 inline int hex_digit_value(int c)
 {
   int result;
@@ -562,14 +584,12 @@ struct read_string_t
   void operator()(Next next, async_source_t source, Args&&... args) const
   {
     static auto constexpr chain = async_stitch(
-      skip_whitespace, read_double_quote, append_string_chars);
+      skip_whitespace, read_fixed_char<'\"'>, append_string_chars);
     chain(next, source, std::string{}, 0, std::forward<Args>(args)...);
   }
 };
       
 inline auto constexpr read_string = read_string_t{};
-
-inline auto constexpr read_begin_sequence = read_fixed_char<'['>;
 
 template<typename T>
 struct append_element_t
@@ -629,17 +649,13 @@ struct read_sequence_t
   void operator()(Next next, async_source_t source, Args&&... args) const
   {
     static auto constexpr chain = async_stitch(skip_whitespace,
-      read_begin_sequence, skip_whitespace, append_sequence<T>);
+      read_fixed_char<'['>, skip_whitespace, append_sequence<T>);
     chain(next, source, std::vector<T>{}, 0, std::forward<Args>(args)...);
   }
 };
 
 template<typename T>
 auto constexpr read_sequence = read_sequence_t<T>{};
-
-inline auto constexpr read_begin_struct = read_fixed_char<'{'>;
-
-inline auto constexpr read_end_struct = read_fixed_char<'}'>;
 
 template<int N>
 struct build_impl_t;
@@ -713,11 +729,11 @@ struct async_builder_t
   {
     static auto constexpr chain = async_stitch(
       skip_whitespace,
-      read_begin_struct,
+      read_fixed_char<'{'>,
       async_stitch(async_read<Fields>...),
       build<sizeof...(Fields)>,
       skip_whitespace,
-      read_end_struct
+      read_fixed_char<'}'>
     );
     chain(next, source, factory_, std::forward<Args>(args)...);
   }
@@ -736,6 +752,13 @@ struct make_async_builder_t
       std::forward<Factory>(factory));
   }
 };
+
+inline auto constexpr read_blob_header = async_stitch(
+  skip_whitespace,
+  read_fixed_char<'#'>,
+  read_unsigned<unsigned int>,
+  skip_whitespace,
+  read_fixed_char<'\n'>);
 
 } // namespace cuti::detail
 

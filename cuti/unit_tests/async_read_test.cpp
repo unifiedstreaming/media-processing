@@ -386,10 +386,10 @@ void test_read_signed()
   do_test_read_unsigned<long long>();
 }
 
-void test_read_double_quote()
+void test_read_fixed_char()
 {
   auto chain = async_stitch(
-    detail::read_double_quote, read_eof, drop_source);
+    detail::read_fixed_char<'\"'>, read_eof, drop_source);
 
   test_void_success(chain, "\"");
   test_void_failure(chain, "\n");
@@ -431,15 +431,6 @@ void test_read_string()
   test_value_failure<std::string>(chain, "\"\\xg\"");
   test_value_failure<std::string>(chain, "\"\\xa\"");
   test_value_failure<std::string>(chain, "\"\\xag\"");
-}
-
-void test_read_begin_sequence()
-{
-  auto chain = async_stitch(
-    detail::read_begin_sequence, read_eof, drop_source);
-
-  test_void_success(chain, "[");
-  test_void_failure(chain, "]");
 }
 
 void test_read_sequence()
@@ -625,6 +616,21 @@ void test_read_struct()
   }
 }
 
+void test_read_blob_header()
+{
+  static auto constexpr chain =
+    async_stitch(detail::read_blob_header, read_eof, drop_source);
+
+  test_value_success<unsigned int>(chain, "#1234\n", 1234);
+  test_value_success<unsigned int>(chain, " #1234\n", 1234);
+  test_value_success<unsigned int>(chain, " # 1234\n", 1234);
+  test_value_success<unsigned int>(chain, " # 1234\r\n", 1234);
+
+  test_value_failure<unsigned int>(chain, "1234\n");
+  test_value_failure<unsigned int>(chain, "#\n");
+  test_value_failure<unsigned int>(chain, "#1234");
+}
+
 } // anonymous
 
 int main()
@@ -641,11 +647,11 @@ int main()
   test_read_unsigned();
   test_read_optional_sign();
   test_read_signed();
-  test_read_begin_sequence();
-  test_read_double_quote();
+  test_read_fixed_char();
   test_read_string();
   test_read_sequence();
   test_read_struct();
+  test_read_blob_header();
 
   return 0;
 }
