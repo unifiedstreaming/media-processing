@@ -650,11 +650,21 @@ void do_test_read_blob()
   {
     std::vector<CharT> expected{};
     test_value_success<std::vector<CharT>>(chain, "#0\n", expected);
+
+    test_value_failure<std::vector<CharT>>(chain, "#0");
+    test_value_failure<std::vector<CharT>>(chain, "#");
   }
   {
     std::vector<CharT> expected{ 'a', 'b', 'c'};
     test_value_success<std::vector<CharT>>(chain,
       "#3\nabc\n#0\n", expected);
+
+    test_value_failure<std::vector<CharT>>(chain,
+      "#3\nabcd\n#0\n");
+    test_value_failure<std::vector<CharT>>(chain,
+      "#4\nabc\n#0\n");
+    test_value_failure<std::vector<CharT>>(chain,
+      "#3\nab");
   }
   {
     std::vector<CharT> expected{ 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'};
