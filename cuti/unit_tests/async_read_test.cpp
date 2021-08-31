@@ -396,6 +396,16 @@ void test_read_fixed_char()
   test_void_failure(chain, "");
 }
 
+void test_read_optional_char()
+{
+  auto chain = async_stitch(
+    detail::read_optional_char<'\r'>, read_eof, drop_source);
+
+  test_void_success(chain, "\r");
+  test_void_success(chain, "");
+  test_void_failure(chain, "\n");
+}
+
 void test_read_string()
 {
   auto chain = async_stitch(
@@ -621,14 +631,67 @@ void test_read_blob_header()
   static auto constexpr chain =
     async_stitch(detail::read_blob_header, read_eof, drop_source);
 
-  test_value_success<unsigned int>(chain, "#1234\n", 1234);
-  test_value_success<unsigned int>(chain, " #1234\n", 1234);
-  test_value_success<unsigned int>(chain, " # 1234\n", 1234);
-  test_value_success<unsigned int>(chain, " # 1234\r\n", 1234);
+  test_value_success<std::size_t>(chain, "#1234\n", 1234);
+  test_value_success<std::size_t>(chain, " #1234\n", 1234);
+  test_value_success<std::size_t>(chain, " # 1234\n", 1234);
+  test_value_success<std::size_t>(chain, " # 1234\r\n", 1234);
 
-  test_value_failure<unsigned int>(chain, "1234\n");
-  test_value_failure<unsigned int>(chain, "#\n");
-  test_value_failure<unsigned int>(chain, "#1234");
+  test_value_failure<std::size_t>(chain, "1234\n");
+  test_value_failure<std::size_t>(chain, "#\n");
+  test_value_failure<std::size_t>(chain, "#1234");
+}
+
+template<typename CharT>
+void do_test_read_blob()
+{
+  static auto constexpr chain =
+    async_stitch(async_read<std::vector<CharT>>, read_eof, drop_source);
+
+  {
+    std::vector<CharT> expected{};
+    test_value_success<std::vector<CharT>>(chain, "#0\n", expected);
+  }
+  {
+    std::vector<CharT> expected{ 'a', 'b', 'c'};
+    test_value_success<std::vector<CharT>>(chain,
+      "#3\nabc\n#0\n", expected);
+  }
+  {
+    std::vector<CharT> expected{ 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'};
+    test_value_success<std::vector<CharT>>(chain,
+      "#3\r\nabc\r\n#5\r\ndefgh\r\n#0\r\n", expected);
+  }
+  {
+    std::vector<CharT> expected;
+    std::string input = "#16384\n";
+    for(int i = 0; i != 16384; i++)
+    {
+      expected.push_back(static_cast<CharT>(i));
+      input += static_cast<char>(i);
+    }
+    input += "\n#0\n";
+    test_value_success<std::vector<CharT>>(chain, input, expected);
+  }
+  {
+    std::vector<CharT> expected;
+    std::string input = "";
+    for(int i = 0; i != 16384; i++)
+    {
+      expected.push_back(static_cast<CharT>(i));
+      input += "#1\n";
+      input += static_cast<char>(i);
+      input += "\n";
+    }
+    input += "#0\n";
+    test_value_success<std::vector<CharT>>(chain, input, expected);
+  }
+}
+
+void test_read_blob()
+{
+  do_test_read_blob<char>();
+  do_test_read_blob<signed char>();
+  do_test_read_blob<unsigned char>();
 }
 
 } // anonymous
@@ -648,10 +711,12 @@ int main()
   test_read_optional_sign();
   test_read_signed();
   test_read_fixed_char();
+  test_read_optional_char();
   test_read_string();
+  test_read_blob_header();
+  test_read_blob();
   test_read_sequence();
   test_read_struct();
-  test_read_blob_header();
 
   return 0;
 }

@@ -26,6 +26,7 @@
 #include "parse_error.hpp"
 #include "ref_args.hpp"
 
+#include <cstddef>
 #include <exception>
 #include <limits>
 #include <optional>
@@ -138,6 +139,34 @@ struct read_fixed_char_t<'\n'>
 
 template<char fixed>
 auto constexpr read_fixed_char = read_fixed_char_t<fixed>{};
+
+template<char optional>
+struct read_optional_char_t
+{
+  template<typename Next, typename... Args>
+  void operator()(Next next, async_source_t source, Args&&... args) const
+  {
+    static int constexpr optional_int =
+      std::char_traits<char>::to_int_type(optional);
+
+    if(!source.readable())
+    {
+      source.call_when_readable(*this,
+        next, source, std::forward<Args>(args)...);
+      return;
+    }
+
+    if(source.peek() == optional_int)
+    {
+      source.skip();
+    }
+
+    next.submit(source, std::forward<Args>(args)...);
+  }
+};
+
+template<char optional>
+auto constexpr read_optional_char = read_optional_char_t<optional>{};
 
 inline bool is_whitespace(int c)
 {
@@ -591,6 +620,134 @@ struct read_string_t
       
 inline auto constexpr read_string = read_string_t{};
 
+inline auto constexpr read_blob_header = async_stitch(
+  skip_whitespace,
+  read_fixed_char<'#'>,
+  read_unsigned<std::size_t>,
+  skip_whitespace,
+  read_fixed_char<'\n'>);
+
+template<typename CharT>
+struct resize_blob_t
+{
+  template<typename Next, typename... Args>
+  void operator()(Next next, async_source_t source,
+                  std::size_t byte_count, std::vector<CharT>&& blob,
+                  Args&&... args) const
+  {
+    auto old_size = blob.size();
+    if(byte_count > blob.max_size() - old_size)
+    {
+      next.fail(parse_error_t("maximum blob size exceeded"));
+      return;
+    }
+
+    blob.resize(old_size + byte_count);
+    next.submit(source, old_size, std::move(blob),
+      std::forward<Args>(args)...);
+  }
+};
+
+template<typename CharT>
+auto constexpr resize_blob = resize_blob_t<CharT>{};
+    
+template<typename CharT>
+struct read_blob_data_t
+{
+  static_assert(std::is_same_v<CharT, char> ||
+                std::is_same_v<CharT, signed char> ||
+                std::is_same_v<CharT, unsigned char>);
+
+  static int constexpr max_recursion = 100;
+
+  template<typename Next, typename... Args>
+  void operator()(Next next, async_source_t source,
+                  std::size_t index, std::vector<CharT>&& blob, int recursion,
+                  Args&&... args) const
+  {
+    while(index != blob.size())
+    {
+      if(!source.readable() || recursion == max_recursion)
+      {
+        source.call_when_readable(*this,
+          next, source, index, std::move(blob), 0,
+          std::forward<Args>(args)...);
+        return;
+      }
+
+      auto front = reinterpret_cast<char *>(&blob.front());
+      auto start = front + index;
+      auto limit = front + blob.size();
+      auto end = source.read(start, limit);
+
+      if(end == start)
+      {
+        next.fail(parse_error_t("unexpected eof reading blob data"));
+        return;
+      }
+
+      index += end - start;
+    }
+
+    next.submit(source, std::move(blob), recursion + 1,
+                std::forward<Args>(args)...);
+  }
+};
+
+template<typename CharT>
+auto constexpr read_blob_data = read_blob_data_t<CharT>{};
+    
+template<typename CharT>
+struct append_blobs_t
+{
+  template<typename Next, typename... Args>
+  void operator()(Next next, async_source_t source,
+    std::size_t byte_count, std::vector<CharT>&& blob, int recursion,
+    Args&&... args) const
+  {
+    if(byte_count != 0)
+    {
+      static auto constexpr chain = async_stitch(
+        resize_blob<CharT>,
+        read_blob_data<CharT>,
+        read_optional_char<'\r'>,
+        read_fixed_char<'\n'>,
+        read_blob_header,
+        append_blobs_t{});
+
+      chain(next, source, byte_count, std::move(blob), recursion,
+        std::forward<Args>(args)...);
+      return;
+    }
+
+    next.submit(source, std::move(blob), std::forward<Args>(args)...);
+  }
+};
+
+template<typename CharT>
+auto constexpr append_blobs = append_blobs_t<CharT>{};
+    
+template<typename CharT>
+struct read_blob_t
+{
+  static_assert(std::is_same_v<CharT, char> ||
+                std::is_same_v<CharT, signed char> ||
+                std::is_same_v<CharT, unsigned char>);
+
+  template<typename Next, typename... Args>
+  void operator()(Next next, async_source_t source, Args&&... args) const
+  {
+    static auto constexpr chain = async_stitch(
+      read_blob_header,
+      append_blobs<CharT>);
+
+    chain(next, source, std::vector<CharT>(), 0, std::forward<Args>(args)...);
+  }
+};
+
+template<typename CharT>
+auto constexpr read_blob = read_blob_t<CharT>{};
+    
 template<typename T>
 struct append_element_t
 {
@@ -753,13 +910,6 @@ struct make_async_builder_t
   }
 };
 
-inline auto constexpr read_blob_header = async_stitch(
-  skip_whitespace,
-  read_fixed_char<'#'>,
-  read_unsigned<unsigned int>,
-  skip_whitespace,
-  read_fixed_char<'\n'>);
-
 } // namespace cuti::detail
 
 inline auto constexpr drop_source = detail::drop_source_t{};
@@ -804,6 +954,18 @@ inline auto constexpr async_read<long long> =
 template<>
 inline auto constexpr async_read<std::string> =
   detail::read_string;
+
+template<>
+inline auto constexpr async_read<std::vector<char>> =
+  detail::read_blob<char>;
+
+template<>
+inline auto constexpr async_read<std::vector<signed char>> =
+  detail::read_blob<signed char>;
+
+template<>
+inline auto constexpr async_read<std::vector<unsigned char>> =
+  detail::read_blob<unsigned char>;
 
 template<typename T>
 auto constexpr async_read<std::vector<T>> =
