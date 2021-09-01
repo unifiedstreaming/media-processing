@@ -99,36 +99,20 @@ struct read_fixed_char_t
 
     if(source.peek() != fixed_int)
     {
-      static char const single_quote[] = "\'";
+      std::string message;
 
-      auto message = std::string(single_quote) +
-        fixed + single_quote + " expected";
+      if constexpr(fixed == '\n')
+      {
+        message = "newline expected";
+      }
+      else
+      {
+        static char const single_quote[] = "\'";
+        message = std::string(single_quote) +
+          fixed + single_quote + " expected";
+      }
 
       next.fail(parse_error_t(message));
-      return;
-    }
-
-    source.skip();
-    next.submit(source, std::forward<Args>(args)...);
-  }
-};
-
-template<>
-struct read_fixed_char_t<'\n'>
-{
-  template<typename Next, typename... Args>
-  void operator()(Next next, async_source_t source, Args&&... args) const
-  {
-    if(!source.readable())
-    {
-      source.call_when_readable(*this,
-        next, source, std::forward<Args>(args)...);
-      return;
-    }
-
-    if(source.peek() != '\n')
-    {
-      next.fail(parse_error_t("newline expected"));
       return;
     }
 
