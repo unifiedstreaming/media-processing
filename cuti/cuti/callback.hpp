@@ -21,7 +21,6 @@
 #define CUTI_CALLBACK_HPP_
 
 #include "linkage.h"
-#include "oneshot.hpp"
 
 #include <cassert>
 #include <cstddef>
@@ -33,7 +32,7 @@ namespace cuti
 {
 
 /*
- * Type-erased mutable one-shot callback wrapper.
+ * Type-erased callback wrapper.
  */
 struct CUTI_ABI callback_t
 {
@@ -45,10 +44,10 @@ struct CUTI_ABI callback_t
   : impl_(nullptr)
   { }
 
-  template<typename F, typename... Args, typename = std::enable_if_t<
+  template<typename F, typename = std::enable_if_t<
     !std::is_convertible_v<std::decay_t<F>*, callback_t const*>>>
-  callback_t(F&& f, Args&&... args)
-  : impl_(make_impl(std::forward<F>(f), std::forward<Args>(args)...))
+  callback_t(F&& f)
+  : impl_(make_impl(std::forward<F>(f)))
   { }
 
   callback_t(callback_t const&) = delete;
@@ -89,11 +88,10 @@ struct CUTI_ABI callback_t
     impl_.swap(other.impl_);
   }
 
-  void operator()()
+  void operator()() const
   {
     assert(*this != nullptr);
     (*impl_)();
-    impl_.reset();
   }
 
   friend bool operator==(callback_t const& lhs, std::nullptr_t) noexcept
@@ -125,21 +123,38 @@ private :
     impl_t(impl_t const&) = delete;
     impl_t& operator=(impl_t const&) = delete;
 
-    virtual void operator()() = 0;
+    virtual void operator()() const = 0;
 
     virtual ~impl_t();
   };
 
   template<typename F>
-  struct impl_instance_t : impl_t
+  struct ptr_impl_t : impl_t
   {
-    template<typename... Args>
-    impl_instance_t(Args&&... args)
+    ptr_impl_t(F* f)
     : impl_t()
-    , f_(std::forward<Args>(args)...)
+    , f_((assert(f != nullptr), f))
     { }
 
-    void operator()() override
+    void operator()() const override
+    {
+      (*f_)();
+    }
+
+  private :
+    F* f_;
+  };
+
+  template<typename F>
+  struct obj_impl_t : impl_t
+  {
+    template<typename FF>
+    obj_impl_t(FF&& f)
+    : impl_t()
+    , f_(std::forward<FF>(f))
+    { }
+
+    void operator()() const override
     {
       f_();
     }
@@ -148,20 +163,13 @@ private :
     F f_;
   };
 
-  template<typename F, typename... Args>
-  std::unique_ptr<impl_t> make_impl(F&& f, Args&&... args)
-  {
-    if constexpr(std::is_pointer_v<std::remove_reference_t<F>>)
-    {
-      if(f == nullptr)
-      {
-        return nullptr;
-      }
-    }
+  template<typename F>
+  static auto make_impl(F* f)
+  { return f != nullptr ? std::make_unique<ptr_impl_t<F>>(f) : nullptr; }
 
-    return std::make_unique<impl_instance_t<oneshot_for_args_t<F, Args...>>>(
-      std::forward<F>(f), std::forward<Args>(args)...);
-  }
+  template<typename F>
+  static auto make_impl(F&& f)
+  { return std::make_unique<obj_impl_t<std::decay_t<F>>>(std::forward<F>(f)); }
 
 private :
   std::unique_ptr<impl_t> impl_;

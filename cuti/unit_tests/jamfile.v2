@@ -65,10 +65,6 @@ unit-test membuf_test
 : membuf_test.cpp
 ;
 
-unit-test oneshot_test
-: oneshot_test.cpp
-;
-
 unit-test option_walker_test
 : option_walker_test.cpp
 ;

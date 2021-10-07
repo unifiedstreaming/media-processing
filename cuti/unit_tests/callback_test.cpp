@@ -91,9 +91,9 @@ void function()
   function_called = true;
 }
 
-void flag_function(bool& called)
+void counting_function(int& n_calls)
 {
-  called = true;
+  ++n_calls;
 }
 
 void empty_callback()
@@ -112,13 +112,18 @@ void function_callback()
   assert(function_called);
 }
 
-void flag_function_callback()
+void counting_function_callback()
 {
-  bool called = false;
-  callback_t cb(flag_function, std::ref(called));
+  int n_calls = 0;
+
+  callback_t cb([&] { counting_function(n_calls); });
   assert(cb != nullptr);
+
   cb();
-  assert(called);
+  assert(n_calls == 1);
+
+  cb();
+  assert(n_calls == 2);
 }
   
 void function_ptr_callback()
@@ -146,32 +151,6 @@ void function_ptr_callback()
   assert(function_called);
 }  
   
-void flag_function_ptr_callback()
-{
-  bool called;
-
-  void (*f)(bool&) = nullptr;
-  callback_t cb1(f, std::ref(called));
-  assert(cb1 == nullptr);
-
-  called = false;
-  f = flag_function;
-  callback_t cb2(f, std::ref(called));
-  assert(cb2 != nullptr);
-  cb2();
-  assert(called);
-
-  called = false;
-  cb1 = callback_t(f, std::ref(called));
-  assert(cb1 != nullptr);
-  cb1();
-  assert(called);
-
-  f = nullptr;
-  cb1 = callback_t(f, std::ref(called));
-  assert(cb1 == nullptr);
-}  
-  
 void functor_callback()
 {
   bool called = false;
@@ -181,24 +160,27 @@ void functor_callback()
   assert(called);
 }
 
+void functor_ptr_callback()
+{
+  bool called = false;
+  functor_t functor(called);
+
+  functor_t* ptr = nullptr;
+  callback_t cb1 = ptr;
+  assert(cb1 == nullptr);
+
+  ptr = &functor;
+  callback_t cb2 = ptr;
+  assert(cb2 != nullptr);
+  cb2();
+
+  assert(called);
+}
+  
 void lambda_callback()
 {
   bool called = false;
   callback_t cb([&] { called = true; });
-  assert(cb != nullptr);
-  cb();
-  assert(called);
-}
-
-void mutable_lambda_callback()
-{
-  bool called = false;
-  callback_t cb([&called, flag = false]() mutable
-  {
-    flag = true;
-    called = flag;
-  });
-
   assert(cb != nullptr);
   cb();
   assert(called);
@@ -244,12 +226,11 @@ int main()
 {
   empty_callback();
   function_callback();
-  flag_function_callback();
+  counting_function_callback();
   function_ptr_callback();
-  flag_function_ptr_callback();
   functor_callback();
+  functor_ptr_callback();
   lambda_callback();
-  mutable_lambda_callback();
 
   move_construct();
   move_assign();
