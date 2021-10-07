@@ -56,8 +56,8 @@ signal_handler_t::impl_t* curr_impl = nullptr;
 
 struct signal_handler_t::impl_t
 {
-  impl_t(int sig, handler_t handler)
-  : handler_(std::move(handler))
+  impl_t(int sig, callback_t callback)
+  : callback_(std::move(callback))
   , prev_impl_(nullptr)
   {
     if(sig != SIGINT)
@@ -106,9 +106,9 @@ private :
       std::scoped_lock<std::mutex> lock(curr_impl_mutex);
       assert(curr_impl != nullptr);
 
-      if(curr_impl->handler_ != nullptr)
+      if(curr_impl->callback_ != nullptr)
       {
-        curr_impl->handler_();
+        curr_impl->callback_();
       }
 
       result = TRUE;
@@ -118,7 +118,7 @@ private :
   }
 
 private :
-  handler_t handler_;
+  callback_t callback_;
   impl_t* prev_impl_;
 }; 
 
@@ -158,9 +158,9 @@ signal_handler_t::impl_t* curr_impls[n_sigs];
 
 struct signal_handler_t::impl_t
 {
-  impl_t(int sig, handler_t handler)
+  impl_t(int sig, callback_t callback)
   : sig_(sig)
-  , handler_(std::move(handler))
+  , callback_(std::move(callback))
   , prev_impl_(nullptr)
   {
     if(sig_ < 0 || sig_ >= n_sigs)
@@ -214,25 +214,25 @@ private :
     assert(sig < n_sigs);
     assert(curr_impls[sig] != nullptr);
 
-    if(curr_impls[sig]->handler_ != nullptr)
+    if(curr_impls[sig]->callback_ != nullptr)
     {
       auto saved_errno = errno;
-      curr_impls[sig]->handler_();
+      curr_impls[sig]->callback_();
       errno = saved_errno;
     }
   }
 
 private :
   int sig_;
-  handler_t handler_;
+  callback_t callback_;
   impl_t* prev_impl_;
   struct sigaction prev_action_;
 };
 
 #endif // POSIX
 
-signal_handler_t::signal_handler_t(int sig, handler_t handler)
-: impl_(std::make_unique<impl_t>(sig, std::move(handler)))
+signal_handler_t::signal_handler_t(int sig, callback_t callback)
+: impl_(std::make_unique<impl_t>(sig, std::move(callback)))
 { }
 
 signal_handler_t::~signal_handler_t()

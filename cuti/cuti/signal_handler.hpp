@@ -20,7 +20,7 @@
 #ifndef CUTI_SIGNAL_HANDLER_HPP_
 #define CUTI_SIGNAL_HANDLER_HPP_
 
-#include "handler.hpp"
+#include "callback.hpp"
 #include "linkage.h"
 
 #include <csignal>
@@ -54,7 +54,7 @@ struct CUTI_ABI signal_handler_t
    * Sets the signal handler for <sig>.  If <handler> is nullptr,
    * the signal is effectively ignored.
    */
-  signal_handler_t(int sig, handler_t handler);
+  signal_handler_t(int sig, callback_t handler);
 
   signal_handler_t(signal_handler_t const&) = delete;
   signal_handler_t& operator=(signal_handler_t const&) = delete;
