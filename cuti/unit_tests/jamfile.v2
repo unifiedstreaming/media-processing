@@ -25,18 +25,6 @@ project
   <library>../cuti//cuti
 ;
 
-unit-test async_read_test
-: async_read_test.cpp
-;
-
-unit-test async_result_test
-: async_result_test.cpp
-;
-
-unit-test async_stitch_test
-: async_stitch_test.cpp
-;
-
 unit-test async_tcp_io_test
 : async_tcp_io_test.cpp
 ;
@@ -51,10 +39,6 @@ unit-test circular_buffer_test
 
 unit-test config_file_reader_test
 : config_file_reader_test.cpp
-;
-
-unit-test construct_test
-: construct_test.cpp
 ;
 
 unit-test default_scheduler_test
@@ -91,10 +75,6 @@ unit-test option_walker_test
 
 unit-test process_test
 : process_test.cpp
-;
-
-unit-test ref_args_test
-: ref_args_test.cpp
 ;
 
 unit-test resolver_test

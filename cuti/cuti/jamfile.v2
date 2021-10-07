@@ -69,7 +69,6 @@ lib cuti
   async_input.cpp
   async_outbuf.cpp
   async_output.cpp
-  async_result.cpp
   async_source.cpp
   async_tcp_input.cpp
   async_tcp_output.cpp
@@ -98,7 +97,6 @@ lib cuti
   parse_error.cpp
   poll_selector.cpp
   process.cpp
-  ref_args.cpp
   resolver.cpp
   scheduler.cpp
   scoped_thread.cpp
