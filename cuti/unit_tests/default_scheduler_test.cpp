@@ -199,8 +199,44 @@ private :
   cancellation_ticket_t timeout_ticket_;
 };
 
+void check_alarm_order(logging_context_t& context,
+                       selector_factory_t const& factory)
+{
+  if(auto msg = context.message_at(loglevel))
+  {
+    *msg << "check_alarm_order(): using " << factory << " selector";
+  }
+
+  default_scheduler_t scheduler(factory);
+
+  std::vector<int> order;
+
+  scheduler.call_alarm(milliseconds_t(0), [&] { order.push_back(0); });
+  scheduler.call_alarm(milliseconds_t(1), [&] { order.push_back(1); });
+  scheduler.call_alarm(milliseconds_t(2), [&] { order.push_back(2); });
+
+  while(auto cb = scheduler.wait())
+  {
+    cb();
+  }
+
+  assert(order.size() == 3);
+  assert(order[0] == 0);
+  assert(order[1] == 1);
+  assert(order[2] == 2);
+}
+  
+void check_alarm_order(logging_context_t& context)
+{
+  auto factories = available_selector_factories();
+  for(auto const& factory : factories)
+  {
+    check_alarm_order(context, factory);
+  }
+}
+
 void empty_scheduler(logging_context_t& context,
-                    selector_factory_t const& factory)
+                     selector_factory_t const& factory)
 {
   if(auto msg = context.message_at(loglevel))
   {
@@ -532,6 +568,7 @@ void run_tests(int argc, char const* const* argv)
   logging_context_t context(
     logger, argc == 1 ? loglevel_t::error : loglevel_t::info);
 
+  check_alarm_order(context);
   empty_scheduler(context);
   no_client(context);
   single_client(context);
