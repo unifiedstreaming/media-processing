@@ -61,6 +61,10 @@ unit-test membuf_test
 : membuf_test.cpp
 ;
 
+unit-test nb_buffers_test
+: nb_buffers_test.cpp
+;
+
 unit-test option_walker_test
 : option_walker_test.cpp
 ;

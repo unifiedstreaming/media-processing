@@ -91,6 +91,12 @@ lib cuti
   logging_context.cpp
   loglevel.cpp
   membuf.cpp
+  nb_inbuf.cpp
+  nb_outbuf.cpp
+  nb_sink.cpp
+  nb_source.cpp
+  nb_string_sink.cpp
+  nb_string_source.cpp
   option_walker.cpp
   parse_error.cpp
   poll_selector.cpp
