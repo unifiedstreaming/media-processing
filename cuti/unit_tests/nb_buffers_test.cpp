@@ -38,20 +38,19 @@ namespace // anoymous
 
 using namespace cuti;
 
-template<bool use_bulk_io, std::size_t circ_bufsize>
+template<bool use_bulk_io>
 struct copier_t
 {
-  static_assert(circ_bufsize != 0);
-
   copier_t(logging_context_t& context,
            scheduler_t& scheduler,
            std::unique_ptr<nb_inbuf_t> inbuf,
-           std::unique_ptr<nb_outbuf_t> outbuf)
+           std::unique_ptr<nb_outbuf_t> outbuf,
+           std::size_t circ_bufsize)
   : context_(context)
   , scheduler_(scheduler)
   , inbuf_((assert(inbuf != nullptr), std::move(inbuf)))
   , outbuf_((assert(outbuf != nullptr), std::move(outbuf)))
-  , circbuf_(circ_bufsize)
+  , circbuf_((assert(circ_bufsize != 0), circ_bufsize))
   , eof_seen_(false)
   { }
 
@@ -233,8 +232,9 @@ make_tcp_buffers(std::unique_ptr<tcp_connection_t> conn,
     std::make_unique<nb_outbuf_t>(std::move(sink), bufsize));
 }
   
-template<bool use_bulk_io, std::size_t circ_bufsize>
-void do_test_string_buffers(logging_context_t& context)
+template<bool use_bulk_io>
+void do_test_string_buffers(logging_context_t& context,
+                            std::size_t circ_bufsize)
 {
   if(auto msg = context.message_at(loglevel_t::info))
   {
@@ -252,7 +252,7 @@ void do_test_string_buffers(logging_context_t& context)
     { 1, nb_outbuf_t::default_bufsize, 1, nb_outbuf_t::default_bufsize };
 
   std::vector<std::shared_ptr<std::string>> outputs;
-  std::vector<std::unique_ptr<copier_t<use_bulk_io, circ_bufsize>>> copiers;
+  std::vector<std::unique_ptr<copier_t<use_bulk_io>>> copiers;
 
   for(int i = 0; i != 4; ++i)
   {
@@ -261,8 +261,8 @@ void do_test_string_buffers(logging_context_t& context)
     auto output = std::make_shared<std::string>();
     auto outbuf = make_string_outbuf(output, outbuf_sizes[i]);
 
-    auto copier = std::make_unique<copier_t<use_bulk_io, circ_bufsize>>(
-      context, scheduler, std::move(inbuf), std::move(outbuf));
+    auto copier = std::make_unique<copier_t<use_bulk_io>>(
+      context, scheduler, std::move(inbuf), std::move(outbuf), circ_bufsize);
 
     if(auto msg = context.message_at(loglevel_t::info))
     {
@@ -297,10 +297,10 @@ void do_test_string_buffers(logging_context_t& context)
 
 void test_string_buffers(logging_context_t& context)
 {
-  do_test_string_buffers<false, 1>(context);
-  do_test_string_buffers<false, 16 * 1024>(context);
-  do_test_string_buffers<true, 1>(context);
-  do_test_string_buffers<true, 16 * 1024>(context);
+  do_test_string_buffers<false>(context, 1);
+  do_test_string_buffers<false>(context, 16 * 1024);
+  do_test_string_buffers<true>(context, 1);
+  do_test_string_buffers<true>(context, 16 * 1024);
 }
   
 std::string make_large_payload()
@@ -320,11 +320,12 @@ std::string make_large_payload()
 }
   
 
-template<bool use_bulk_io,
-         std::size_t circ_bufsize,
-         std::size_t client_bufsize,
-         std::size_t server_bufsize>
-void do_test_tcp_buffers(logging_context_t& context, std::string payload)
+template<bool use_bulk_io>
+void do_test_tcp_buffers(logging_context_t& context,
+                         std::size_t circ_bufsize,
+                         std::size_t client_bufsize,
+                         std::size_t server_bufsize,
+                         std::string payload)
 {
   if(auto msg = context.message_at(loglevel_t::info))
   {
@@ -358,12 +359,12 @@ void do_test_tcp_buffers(logging_context_t& context, std::string payload)
   std::tie(echoer_in, echoer_out) =
     make_tcp_buffers(std::move(server_side), server_bufsize);
 
-  copier_t<use_bulk_io, circ_bufsize> producer(context, scheduler,
-    std::move(producer_in), std::move(producer_out));
-  copier_t<use_bulk_io, circ_bufsize> echoer(context, scheduler,
-    std::move(echoer_in), std::move(echoer_out));
-  copier_t<use_bulk_io, circ_bufsize> consumer(context, scheduler,
-    std::move(consumer_in), std::move(consumer_out));
+  copier_t<use_bulk_io> producer(context, scheduler,
+    std::move(producer_in), std::move(producer_out), circ_bufsize);
+  copier_t<use_bulk_io> echoer(context, scheduler,
+    std::move(echoer_in), std::move(echoer_out), circ_bufsize);
+  copier_t<use_bulk_io> consumer(context, scheduler,
+    std::move(consumer_in), std::move(consumer_out), circ_bufsize);
 
   if(auto msg = context.message_at(loglevel_t::info))
   {
@@ -393,18 +394,18 @@ void test_tcp_buffers(logging_context_t& context)
   std::string const small_payload = "Hello peer";
   std::string const large_payload = make_large_payload();
 
-  do_test_tcp_buffers<false, 1, 1, 1>(
-    context, small_payload);
-  do_test_tcp_buffers<true, 1, 1, 1>(
-    context, small_payload);
-  do_test_tcp_buffers<false, 128 * 1024, 256 * 1024, 256 * 1024>(
-    context, large_payload);
-  do_test_tcp_buffers<true, 128 * 1024, 256 * 1024, 256 * 1024>(
-    context, large_payload);
-  do_test_tcp_buffers<false, 256 * 1024, 128 * 1024, 128 * 1024>(
-    context, large_payload);
-  do_test_tcp_buffers<true, 256 * 1024, 128 * 1024, 128 * 1024>(
-    context, large_payload);
+  do_test_tcp_buffers<false>(context,
+    1, 1, 1, small_payload);
+  do_test_tcp_buffers<true>(context,
+    1, 1, 1, small_payload);
+  do_test_tcp_buffers<false>(context,
+    128 * 1024, 256 * 1024, 256 * 1024, large_payload);
+  do_test_tcp_buffers<true>(context,
+    128 * 1024, 256 * 1024, 256 * 1024, large_payload);
+  do_test_tcp_buffers<false>(context,
+    256 * 1024, 128 * 1024, 128 * 1024, large_payload);
+  do_test_tcp_buffers<true>(context,
+    256 * 1024, 128 * 1024, 128 * 1024, large_payload);
 }
 
 void run_tests(int argc, char const* const*)
