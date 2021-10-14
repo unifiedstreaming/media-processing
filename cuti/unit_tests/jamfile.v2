@@ -25,10 +25,6 @@ project
   <library>../cuti//cuti
 ;
 
-unit-test async_tcp_io_test
-: async_tcp_io_test.cpp
-;
-
 unit-test callback_test
 : callback_test.cpp
 ;
@@ -103,8 +99,4 @@ unit-test tcp_connection_test
 
 unit-test tcp_socket_test
 : tcp_socket_test.cpp
-;
-
-unit-test ticket_holder_test
-: ticket_holder_test.cpp
 ;
