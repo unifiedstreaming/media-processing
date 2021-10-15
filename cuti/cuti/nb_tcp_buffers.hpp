@@ -17,22 +17,29 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#ifndef CUTI_NB_TCP_BINDERS_HPP_
-#define CUTI_NB_TCP_BINDERS_HPP_
+#ifndef CUTI_NB_TCP_BUFFERS_HPP_
+#define CUTI_NB_TCP_BUFFERS_HPP_
 
 #include "linkage.h"
-#include "nb_sink.hpp"
-#include "nb_source.hpp"
+#include "nb_inbuf.hpp"
+#include "nb_outbuf.hpp"
 #include "tcp_connection.hpp"
 
+#include <cstddef>
 #include <memory>
-#include <utility>
 
 namespace cuti
 {
 
-CUTI_ABI std::pair<std::unique_ptr<nb_source_t>, std::unique_ptr<nb_sink_t>>
-make_nb_tcp_binders(std::unique_ptr<tcp_connection_t> conn);
+/*
+ * Returns an nb_inbuf_t/nb_outbuf_t pair for reading from, and
+ * writing to, a tcp connection.
+ */
+CUTI_ABI
+std::pair<std::unique_ptr<nb_inbuf_t>, std::unique_ptr<nb_outbuf_t>>
+make_nb_tcp_buffers(std::unique_ptr<tcp_connection_t> conn,
+                    std::size_t inbufsize = nb_inbuf_t::default_bufsize,
+                    std::size_t outbufsize = nb_outbuf_t::default_bufsize);
 
 } // cuti
 

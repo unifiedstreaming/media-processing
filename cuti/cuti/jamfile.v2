@@ -91,7 +91,7 @@ lib cuti
   nb_source.cpp
   nb_string_inbuf.cpp
   nb_string_outbuf.cpp
-  nb_tcp_binders.cpp
+  nb_tcp_buffers.cpp
   option_walker.cpp
   parse_error.cpp
   poll_selector.cpp

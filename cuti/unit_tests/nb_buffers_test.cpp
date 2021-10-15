@@ -24,7 +24,7 @@
 #include <cuti/nb_outbuf.hpp>
 #include <cuti/nb_string_inbuf.hpp>
 #include <cuti/nb_string_outbuf.hpp>
-#include <cuti/nb_tcp_binders.hpp>
+#include <cuti/nb_tcp_buffers.hpp>
 #include <cuti/streambuf_backend.hpp>
 
 #include <iostream>
@@ -201,19 +201,6 @@ private :
   bool eof_seen_;
 };
 
-std::pair<std::unique_ptr<nb_inbuf_t>, std::unique_ptr<nb_outbuf_t>>
-make_tcp_buffers(std::unique_ptr<tcp_connection_t> conn,
-                 std::size_t bufsize)
-{
-  std::unique_ptr<nb_source_t> source;
-  std::unique_ptr<nb_sink_t> sink;
-  std::tie(source, sink) = make_nb_tcp_binders(std::move(conn));
-
-  return std::make_pair(
-    std::make_unique<nb_inbuf_t>(std::move(source), bufsize),
-    std::make_unique<nb_outbuf_t>(std::move(sink), bufsize));
-}
-  
 template<bool use_bulk_io>
 void do_test_string_buffers(logging_context_t& context,
                             std::size_t circ_bufsize)
@@ -285,7 +272,7 @@ std::string make_large_payload()
   std::string result;
 
   unsigned int count = 0;
-  while(result.size() < 500 * 1000)
+  while(result.size() < 1000 * 1000)
   {
     result += "Hello peer(";
     result += std::to_string(count);
@@ -326,13 +313,13 @@ void do_test_tcp_buffers(logging_context_t& context,
 
   std::unique_ptr<nb_inbuf_t> consumer_in;
   std::unique_ptr<nb_outbuf_t> producer_out;
-  std::tie(consumer_in, producer_out) =
-    make_tcp_buffers(std::move(client_side), client_bufsize);
+  std::tie(consumer_in, producer_out) = make_nb_tcp_buffers(
+    std::move(client_side), client_bufsize, client_bufsize);
 
   std::unique_ptr<nb_inbuf_t> echoer_in;
   std::unique_ptr<nb_outbuf_t> echoer_out;
-  std::tie(echoer_in, echoer_out) =
-    make_tcp_buffers(std::move(server_side), server_bufsize);
+  std::tie(echoer_in, echoer_out) = make_nb_tcp_buffers(
+    std::move(server_side), server_bufsize, server_bufsize);
 
   copier_t<use_bulk_io> producer(context, scheduler,
     std::move(producer_in), std::move(producer_out), circ_bufsize);
@@ -381,6 +368,10 @@ void test_tcp_buffers(logging_context_t& context)
     256 * 1024, 128 * 1024, 128 * 1024, large_payload);
   do_test_tcp_buffers<true>(context,
     256 * 1024, 128 * 1024, 128 * 1024, large_payload);
+  do_test_tcp_buffers<false>(context,
+    256 * 1024, 256 * 1024, 256 * 1024, large_payload);
+  do_test_tcp_buffers<true>(context,
+    256 * 1024, 256 * 1024, 256 * 1024, large_payload);
 }
 
 void run_tests(int argc, char const* const*)
