@@ -89,8 +89,8 @@ lib cuti
   nb_outbuf.cpp
   nb_sink.cpp
   nb_source.cpp
-  nb_string_sink.cpp
-  nb_string_source.cpp
+  nb_string_inbuf.cpp
+  nb_string_outbuf.cpp
   nb_tcp_binders.cpp
   option_walker.cpp
   parse_error.cpp

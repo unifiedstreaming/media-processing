@@ -17,12 +17,10 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#include "nb_string_sink.hpp"
+#include "nb_string_outbuf.hpp"
 
+#include "nb_sink.hpp"
 #include "scheduler.hpp"
-
-#include <cassert>
-#include <utility>
 
 namespace cuti
 {
@@ -32,13 +30,13 @@ namespace // anonymous
 
 struct nb_string_sink_t : nb_sink_t
 {
-  explicit nb_string_sink_t(std::shared_ptr<std::string> target)
-  : target_((assert(target != nullptr), std::move(target)))
+  explicit nb_string_sink_t(std::string& output)
+  : output_(output)
   { }
 
   int write(char const* first, char const* last, char const*& next) override
   {
-    target_->insert(target_->end(), first, last);
+    output_.insert(output_.end(), first, last);
 
     next = last;
     return 0;
@@ -51,15 +49,17 @@ struct nb_string_sink_t : nb_sink_t
   }
 
 private :
-  std::shared_ptr<std::string> target_;
+  std::string& output_;
 };
 
 } // anonymous
 
-std::unique_ptr<nb_sink_t>
-make_nb_string_sink(std::shared_ptr<std::string> target)
+std::unique_ptr<nb_outbuf_t>
+make_nb_string_outbuf(std::string& output, std::size_t bufsize)
 {
-  return std::make_unique<nb_string_sink_t>(std::move(target));
+  return std::make_unique<nb_outbuf_t>(
+    std::make_unique<nb_string_sink_t>(output),
+    bufsize);
 }
 
 } // cuti

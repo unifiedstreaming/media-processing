@@ -17,21 +17,29 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#ifndef CUTI_NB_STRING_SINK_HPP_
-#define CUTI_NB_STRING_SINK_HPP_
+#ifndef CUTI_NB_STRING_OUTBUF_HPP_
+#define CUTI_NB_STRING_OUTBUF_HPP_
 
 #include "linkage.h"
-#include "nb_sink.hpp"
+#include "nb_outbuf.hpp"
 
-#include <string>
+#include <cstddef>
 #include <memory>
+#include <string>
 
 namespace cuti
 {
 
-CUTI_ABI std::unique_ptr<nb_sink_t>
-make_nb_string_sink(std::shared_ptr<std::string> target);
+/*
+ * Returns an nb_outbuf_t that writes to output.
+ * Please note that the output string must survive the outbuf.
+ */
+CUTI_ABI std::unique_ptr<nb_outbuf_t>
+make_nb_string_outbuf(std::string& output,
+                      std::size_t bufsize = nb_outbuf_t::default_bufsize);
 
-} // cuti
+}
 
 #endif
+
+

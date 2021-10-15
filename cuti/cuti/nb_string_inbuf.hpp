@@ -17,21 +17,28 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#ifndef CUTI_NB_STRING_SOURCE_HPP_
-#define CUTI_NB_STRING_SOURCE_HPP_
+#ifndef CUTI_NB_STRING_INBUF_HPP_
+#define CUTI_NB_STRING_INBUF_HPP_
 
 #include "linkage.h"
-#include "nb_source.hpp"
+#include "nb_inbuf.hpp"
 
-#include <string>
+#include <cstddef>
 #include <memory>
+#include <string>
 
 namespace cuti
 {
 
-CUTI_ABI std::unique_ptr<nb_source_t>
-make_nb_string_source(std::shared_ptr<std::string const> target);
+/*
+ * Returns an nb_inbuf_t that reads from (a copy of) input.
+ */
+CUTI_ABI std::unique_ptr<nb_inbuf_t>
+make_nb_string_inbuf(std::string input,
+                     std::size_t bufsize = nb_inbuf_t::default_bufsize);
 
-} // cuti
+}
 
 #endif
+
+

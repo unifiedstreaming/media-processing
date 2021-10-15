@@ -22,8 +22,8 @@
 #include <cuti/logging_context.hpp>
 #include <cuti/nb_inbuf.hpp>
 #include <cuti/nb_outbuf.hpp>
-#include <cuti/nb_string_source.hpp>
-#include <cuti/nb_string_sink.hpp>
+#include <cuti/nb_string_inbuf.hpp>
+#include <cuti/nb_string_outbuf.hpp>
 #include <cuti/nb_tcp_binders.hpp>
 #include <cuti/streambuf_backend.hpp>
 
@@ -201,24 +201,6 @@ private :
   bool eof_seen_;
 };
 
-std::unique_ptr<nb_inbuf_t>
-make_string_inbuf(std::shared_ptr<std::string const> input,
-                  std::size_t bufsize)
-{
-  return std::make_unique<nb_inbuf_t>(
-    make_nb_string_source(std::move(input)),
-    bufsize);
-}
-
-std::unique_ptr<nb_outbuf_t>
-make_string_outbuf(std::shared_ptr<std::string> output,
-                   std::size_t bufsize)
-{
-  return std::make_unique<nb_outbuf_t>(
-    make_nb_string_sink(std::move(output)),
-    bufsize);
-}
-
 std::pair<std::unique_ptr<nb_inbuf_t>, std::unique_ptr<nb_outbuf_t>>
 make_tcp_buffers(std::unique_ptr<tcp_connection_t> conn,
                  std::size_t bufsize)
@@ -244,34 +226,29 @@ void do_test_string_buffers(logging_context_t& context,
 
   default_scheduler_t scheduler; 
 
-  auto input = std::make_shared<std::string const>("Hello peer");
+  std::string input = "Hello peer";
 
   static constexpr std::size_t inbuf_sizes[] =
     { 1, 1, nb_inbuf_t::default_bufsize, nb_inbuf_t::default_bufsize };
   static constexpr std::size_t outbuf_sizes[] =
     { 1, nb_outbuf_t::default_bufsize, 1, nb_outbuf_t::default_bufsize };
 
-  std::vector<std::shared_ptr<std::string>> outputs;
-  std::vector<std::unique_ptr<copier_t<use_bulk_io>>> copiers;
+  std::string outputs[4];
+  std::unique_ptr<copier_t<use_bulk_io>> copiers[4];
 
   for(int i = 0; i != 4; ++i)
   {
-    auto inbuf = make_string_inbuf(input, inbuf_sizes[i]);
+    auto inbuf = make_nb_string_inbuf(input, inbuf_sizes[i]);
+    auto outbuf = make_nb_string_outbuf(outputs[i], outbuf_sizes[i]);
 
-    auto output = std::make_shared<std::string>();
-    auto outbuf = make_string_outbuf(output, outbuf_sizes[i]);
-
-    auto copier = std::make_unique<copier_t<use_bulk_io>>(
+    copiers[i] = std::make_unique<copier_t<use_bulk_io>>(
       context, scheduler, std::move(inbuf), std::move(outbuf), circ_bufsize);
 
     if(auto msg = context.message_at(loglevel_t::info))
     {
-      *msg << "copier@" << copier.get() << ": inbufsize: " <<
+      *msg << "copier@" << copiers[i].get() << ": inbufsize: " <<
         inbuf_sizes[i] << " outbufsize: " << outbuf_sizes[i];
     }
-      
-    outputs.push_back(output);
-    copiers.push_back(std::move(copier));
   }
 
   for(auto& copier : copiers)
@@ -291,7 +268,7 @@ void do_test_string_buffers(logging_context_t& context,
 
   for(auto& output : outputs)
   {
-    assert(*output == *input);
+    assert(output == input);
   }
 }
 
@@ -325,7 +302,7 @@ void do_test_tcp_buffers(logging_context_t& context,
                          std::size_t circ_bufsize,
                          std::size_t client_bufsize,
                          std::size_t server_bufsize,
-                         std::string payload)
+                         std::string const& input)
 {
   if(auto msg = context.message_at(loglevel_t::info))
   {
@@ -333,26 +310,24 @@ void do_test_tcp_buffers(logging_context_t& context,
       " circ_bufsize: " << circ_bufsize <<
       " client_bufsize: " << client_bufsize <<
       " server_bufsize: " << server_bufsize <<
-      " payload: " << payload.size() << " bytes";
+      " payload: " << input.size() << " bytes";
   }
 
   default_scheduler_t scheduler;
 
-  auto input = std::make_shared<std::string const>(std::move(payload));
-  auto output = std::make_shared<std::string>();
+  auto producer_in = make_nb_string_inbuf(input, client_bufsize);
+
+  std::string output;
+  auto consumer_out = make_nb_string_outbuf(output, client_bufsize);
 
   std::unique_ptr<tcp_connection_t> client_side;
   std::unique_ptr<tcp_connection_t> server_side;
   std::tie(client_side, server_side) = make_connected_pair();
 
-  auto producer_in = make_string_inbuf(input, client_bufsize);
-
   std::unique_ptr<nb_inbuf_t> consumer_in;
   std::unique_ptr<nb_outbuf_t> producer_out;
   std::tie(consumer_in, producer_out) =
     make_tcp_buffers(std::move(client_side), client_bufsize);
-
-  auto consumer_out = make_string_outbuf(output, client_bufsize);
 
   std::unique_ptr<nb_inbuf_t> echoer_in;
   std::unique_ptr<nb_outbuf_t> echoer_out;
@@ -386,7 +361,7 @@ void do_test_tcp_buffers(logging_context_t& context,
   assert(echoer.done());
   assert(consumer.done());
 
-  assert(*input == *output);
+  assert(input == output);
 }
 
 void test_tcp_buffers(logging_context_t& context)
