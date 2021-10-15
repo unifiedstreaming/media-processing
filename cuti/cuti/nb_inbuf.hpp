@@ -21,10 +21,10 @@
 #define CUTI_NB_INBUF_HPP_
 
 #include "callback.hpp"
-#include "cancellation_ticket.hpp"
 #include "eof.hpp"
 #include "linkage.h"
 #include "nb_source.hpp"
+#include "nb_ticket_holder.hpp"
 
 #include <cassert>
 #include <cstddef>
@@ -111,13 +111,8 @@ struct CUTI_ABI nb_inbuf_t
    */
   void cancel_when_readable() noexcept;
 
-  /*
-   * Destroys the buffer, canceling any pending callback.
-   */
-  ~nb_inbuf_t();
-  
 private :
-  void on_readable();
+  void on_readable(scheduler_t& scheduler);
 
 private :
   std::unique_ptr<nb_source_t> source_;
@@ -128,8 +123,7 @@ private :
   bool at_eof_;
   int error_status_;
 
-  cancellation_ticket_t readable_ticket_;
-  scheduler_t* scheduler_;
+  nb_ticket_holder_t<nb_inbuf_t, &nb_inbuf_t::on_readable> holder_;
   callback_t callback_;
 };
 

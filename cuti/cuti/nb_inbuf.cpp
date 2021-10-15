@@ -35,8 +35,7 @@ nb_inbuf_t::nb_inbuf_t(std::unique_ptr<nb_source_t> source,
 , ep_(buf_.data())
 , at_eof_(false)
 , error_status_(0)
-, readable_ticket_()
-, scheduler_(nullptr)
+, holder_(*this)
 , callback_(nullptr)
 { }
 
@@ -62,51 +61,28 @@ void nb_inbuf_t::call_when_readable(scheduler_t& scheduler,
 {
   assert(callback != nullptr);
 
-  this->cancel_when_readable();
+  callback_ = nullptr;
 
   if(this->readable())
   {
-    readable_ticket_ = scheduler.call_alarm(
-      duration_t::zero(), [this] { this->on_readable(); });
+    holder_.call_alarm(scheduler, duration_t::zero());
   }
   else
   {
-    readable_ticket_ = source_->call_when_readable(
-      scheduler, [this] { this->on_readable(); });
+    holder_.call_when_readable(scheduler, *source_);
   }
 
-  scheduler_ = &scheduler;
   callback_ = std::move(callback);
 }
 
 void nb_inbuf_t::cancel_when_readable() noexcept
 {
-  if(!readable_ticket_.empty())
-  {
-    assert(scheduler_ != nullptr);
-    assert(callback_ != nullptr);
-    scheduler_->cancel(readable_ticket_);
-
-    readable_ticket_.clear();
-    scheduler_ = nullptr;
-    callback_ = nullptr;
-  }
+  callback_ = nullptr;
+  holder_.cancel();
 }
 
-nb_inbuf_t::~nb_inbuf_t()
+void nb_inbuf_t::on_readable(scheduler_t& scheduler)
 {
-  this->cancel_when_readable();
-}
-
-void nb_inbuf_t::on_readable()
-{
-  assert(!readable_ticket_.empty());
-  readable_ticket_.clear();
-
-  assert(scheduler_ != nullptr);
-  scheduler_t& scheduler = *scheduler_;
-  scheduler_ = nullptr;
-
   assert(callback_ != nullptr);
   callback_t callback = std::move(callback_);
 
@@ -123,11 +99,8 @@ void nb_inbuf_t::on_readable()
     else if(next == nullptr)
     {
       // spurious wakeup: reschedule
-      readable_ticket_ = source_->call_when_readable(
-        scheduler, [this] { this->on_readable(); });
-      scheduler_ = &scheduler;
+      holder_.call_when_readable(scheduler, *source_);
       callback_ = std::move(callback);
-
       return;
     }
 

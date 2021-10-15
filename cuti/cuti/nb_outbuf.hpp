@@ -21,9 +21,9 @@
 #define CUTI_NB_OUTBUF_HPP_
 
 #include "callback.hpp"
-#include "cancellation_ticket.hpp"
 #include "linkage.h"
 #include "nb_sink.hpp"
+#include "nb_ticket_holder.hpp"
 
 #include <cstddef>
 #include <memory>
@@ -103,13 +103,8 @@ struct CUTI_ABI nb_outbuf_t
    */
   void cancel_when_writable() noexcept;
 
-  /*
-   * Destroys the buffer, canceling any pending callback.
-   */
-  ~nb_outbuf_t();
-
 private :
-  void on_writable();
+  void on_writable(scheduler_t& scheduler);
 
 private :
   std::unique_ptr<nb_sink_t> sink_;
@@ -120,8 +115,7 @@ private :
   char const* limit_;
   int error_status_;
 
-  cancellation_ticket_t writable_ticket_;
-  scheduler_t* scheduler_;
+  nb_ticket_holder_t<nb_outbuf_t, &nb_outbuf_t::on_writable> holder_;
   callback_t callback_;
 };
 

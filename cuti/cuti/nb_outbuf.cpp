@@ -35,8 +35,7 @@ nb_outbuf_t::nb_outbuf_t(std::unique_ptr<nb_sink_t> sink,
 , wp_(buf_.data())
 , limit_(buf_.data() + buf_.size())
 , error_status_(0)
-, writable_ticket_()
-, scheduler_(nullptr)
+, holder_(*this)
 , callback_(nullptr)
 { }
 
@@ -62,51 +61,28 @@ void nb_outbuf_t::call_when_writable(scheduler_t& scheduler,
 {
   assert(callback != nullptr);
 
-  this->cancel_when_writable();
+  callback_ = nullptr;
 
   if(this->writable() || error_status_ != 0)
   {
-    writable_ticket_ = scheduler.call_alarm(
-      duration_t::zero(), [this] { this->on_writable(); });
+    holder_.call_alarm(scheduler, duration_t::zero());
   }
   else
   {
-    writable_ticket_ = sink_->call_when_writable(
-      scheduler, [this] { this->on_writable(); });
+    holder_.call_when_writable(scheduler, *sink_);
   }
 
-  scheduler_ = &scheduler;
   callback_ = std::move(callback);
 }
 
 void nb_outbuf_t::cancel_when_writable() noexcept
 {
-  if(!writable_ticket_.empty())
-  {
-    assert(scheduler_ != nullptr);
-    assert(callback_ != nullptr);
-    scheduler_->cancel(writable_ticket_);
-
-    writable_ticket_.clear();
-    scheduler_ = nullptr;
-    callback_ = nullptr;
-  }
+  callback_ = nullptr;
+  holder_.cancel();
 }
 
-nb_outbuf_t::~nb_outbuf_t()
+void nb_outbuf_t::on_writable(scheduler_t& scheduler)
 {
-  this->cancel_when_writable();
-}
-
-void nb_outbuf_t::on_writable()
-{
-  assert(!writable_ticket_.empty());
-  writable_ticket_.clear();
-
-  assert(scheduler_ != nullptr);
-  scheduler_t& scheduler = *scheduler_;
-  scheduler_ = nullptr;
-
   assert(callback_ != nullptr);
   callback_t callback = std::move(callback_);
 
@@ -128,11 +104,8 @@ void nb_outbuf_t::on_writable()
       if(rp_ != wp_)
       {
         // more to write: reschedule
-        writable_ticket_ = sink_->call_when_writable(
-          scheduler, [this] { this->on_writable(); });
-        scheduler_ = &scheduler;
+        holder_.call_when_writable(scheduler, *sink_);
         callback_ = std::move(callback);
-	
         return;
       }
     }
