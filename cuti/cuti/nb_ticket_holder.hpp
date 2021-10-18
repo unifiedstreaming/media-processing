@@ -46,10 +46,9 @@ struct nb_ticket_holder_t
   
   /*
    * Schedule a call to handler when source is detected to be
-   * readable.  Any previously scheduled call is cancelled.
-   * The ticket holder remains associated with the scheduler until the
-   * handler is called, cancel() is called on the holder, or the
-   * holder or destroyed.
+   * readable, canceling any previously scheduled call.
+   * The ticket holder remains associated with the scheduler while the
+   * call is pending.
    */
   void call_when_readable(scheduler_t& scheduler, nb_source_t& source)
   {
