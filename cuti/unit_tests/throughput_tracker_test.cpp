@@ -79,7 +79,7 @@ void test_low_speed()
     throughput_tracker_t tracker(512, 2, milliseconds_t(1));
 
     await(tracker.next_tick());
-    tracker.is_low(); // could be false (unlikely), but advances next_tick
+    tracker.is_low(); // unlikely, but advances next_tick
 
     await(tracker.next_tick());
     assert(tracker.is_low()); // must be true after second tick
