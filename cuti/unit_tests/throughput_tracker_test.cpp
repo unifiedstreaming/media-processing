@@ -42,9 +42,9 @@ void await(time_point_t until)
 void test_next_tick()
 {
   /*
-   * verify that constructing a tracker, recording a transfer and
+   * Verify that constructing a tracker, recording a transfer and
    * checking for low speed each set the next tick to somewhere in the
-   * future
+   * future.
    */
   auto now = cuti_clock_t::now();
   throughput_tracker_t tracker(1, 1, milliseconds_t(1));

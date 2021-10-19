@@ -33,15 +33,15 @@ struct CUTI_ABI throughput_tracker_t
   /*
    * Constructs a throughput tracker.  The throughput is considered to
    * be low if less than min_bytes_per_tick were transferred for at
-   * least slow_ticks_limit ticks.
+   * least low_ticks_limit ticks.
    */
   throughput_tracker_t(std::size_t min_bytes_per_tick,
-                       unsigned int slow_ticks_limit,
+                       unsigned int low_ticks_limit,
                        duration_t tick_length = seconds_t(1));
 
   /*
    * Reports the time of the next tick, which is a good moment to check
-   * for slowness.
+   * for low throughput.
    */
   time_point_t next_tick() const
   {
@@ -50,13 +50,13 @@ struct CUTI_ABI throughput_tracker_t
 
   /*
    * Records a data transfer.  If the next tick is less than or equal to
-   * the current time, it is advanced.
+   * the current time, it is advanced to somewhere in the future.
    */
   void record_transfer(std::size_t n_bytes);
 
   /*
    * Tells if the throughput is low.  If the next tick is less than or
-   * equal to the current time, it is advanced.
+   * equal to the current time, it is advanced to somewhere in the future.
    */
   bool is_low();
 
@@ -65,11 +65,11 @@ private :
 
 private :
   std::size_t min_bytes_per_tick_;
-  unsigned int slow_ticks_limit_;
+  unsigned int low_ticks_limit_;
   duration_t tick_length_;
   time_point_t next_tick_;
   std::size_t current_tick_bytes_;
-  unsigned int n_slow_ticks_;
+  unsigned int n_low_ticks_;
 };
 
 } // cuti
