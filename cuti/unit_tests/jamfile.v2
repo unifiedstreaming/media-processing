@@ -100,3 +100,7 @@ unit-test tcp_connection_test
 unit-test tcp_socket_test
 : tcp_socket_test.cpp
 ;
+
+unit-test throughput_tracker_test
+: throughput_tracker_test.cpp
+;

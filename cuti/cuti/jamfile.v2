@@ -111,6 +111,7 @@ lib cuti
   tcp_acceptor.cpp
   tcp_connection.cpp
   tcp_socket.cpp
+  throughput_tracker.cpp
   viewbuf.cpp
   advapi32
   ws2_32
