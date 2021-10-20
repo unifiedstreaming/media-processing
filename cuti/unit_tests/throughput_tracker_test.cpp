@@ -19,8 +19,6 @@
 
 #include <cuti/throughput_tracker.hpp>
 
-#include <thread>
-
 #undef NDEBUG
 #include <cassert>
 
@@ -29,16 +27,6 @@ namespace // anonymous
 
 using namespace cuti;
 
-void await(time_point_t until)
-{
-  auto now = cuti_clock_t::now();
-  while(now < until)
-  {
-    std::this_thread::sleep_for(until - now);
-    now = cuti_clock_t::now();
-  }
-}
-    
 void test_next_tick()
 {
   /*
@@ -46,101 +34,131 @@ void test_next_tick()
    * checking for low speed each set the next tick to somewhere in the
    * future.
    */
-  auto now = cuti_clock_t::now();
-  throughput_tracker_t tracker(1, 1, milliseconds_t(1));
+  time_point_t clock = cuti_clock_t::now();
+  throughput_tracker_t<user_clock_object_t> tracker(
+    1, 1, seconds_t(1), user_clock_object_t(clock));
+
   auto next = tracker.next_tick();
-  assert(next > now);
+  assert(next > clock);
 
-  await(next);
-  now = next;
-
+  clock += seconds_t(1);
   tracker.record_transfer(0);
   next = tracker.next_tick();
-  assert(next > now);
+  assert(next > clock);
 
-  await(next);
-  now = next;
-
+  clock += seconds_t(1);
   tracker.is_low();
   next = tracker.next_tick();
-  assert(next > now);
+  assert(next > clock);
 }
   
-void test_low_speed()
+void test_speed()
 {
   {
-    throughput_tracker_t tracker(512, 1, milliseconds_t(1));
+    time_point_t clock = cuti_clock_t::now();
+    throughput_tracker_t<user_clock_object_t> tracker(
+      512, 1, seconds_t(1), user_clock_object_t(clock));
+    assert(!tracker.is_low());
 
-    await(tracker.next_tick());
+    clock += seconds_t(1);
     assert(tracker.is_low());
   }
 
   {
-    throughput_tracker_t tracker(512, 2, milliseconds_t(1));
+    time_point_t clock = cuti_clock_t::now();
+    throughput_tracker_t<user_clock_object_t> tracker(
+      512, 2, seconds_t(1), user_clock_object_t(clock));
+    assert(!tracker.is_low());
 
-    await(tracker.next_tick());
-    tracker.is_low(); // unlikely, but advances next_tick
+    clock += seconds_t(1);
+    assert(!tracker.is_low());
 
-    await(tracker.next_tick());
-    assert(tracker.is_low()); // must be true after second tick
+    clock += seconds_t(1);
+    assert(tracker.is_low());
   }
 
   {
-    throughput_tracker_t tracker(512, 1, milliseconds_t(1));
+    time_point_t clock = cuti_clock_t::now();
+    throughput_tracker_t<user_clock_object_t> tracker(
+      512, 1, seconds_t(1), user_clock_object_t(clock));
     tracker.record_transfer(0);
 
-    await(tracker.next_tick());
+    clock += seconds_t(1);
     assert(tracker.is_low());
   }
 
   {
-    throughput_tracker_t tracker(512, 2, milliseconds_t(1));
+    time_point_t clock = cuti_clock_t::now();
+    throughput_tracker_t<user_clock_object_t> tracker(
+      512, 2, seconds_t(1), user_clock_object_t(clock));
     tracker.record_transfer(0);
+    assert(!tracker.is_low());
 
-    await(tracker.next_tick());
-    tracker.record_transfer(0); // advances next_tick
+    clock += seconds_t(1);
+    tracker.record_transfer(0);
+    assert(!tracker.is_low());
 
-    await(tracker.next_tick());
-    assert(tracker.is_low()); // must be true after second tick
-  }
-
-  {
-    throughput_tracker_t tracker(512, 1, milliseconds_t(1));
-    tracker.record_transfer(511);
-
-    await(tracker.next_tick());
+    clock += seconds_t(1);
     assert(tracker.is_low());
   }
 
   {
-    throughput_tracker_t tracker(512, 2, milliseconds_t(1));
+    time_point_t clock = cuti_clock_t::now();
+    throughput_tracker_t<user_clock_object_t> tracker(
+      512, 1, seconds_t(1), user_clock_object_t(clock));
     tracker.record_transfer(511);
+    assert(!tracker.is_low());
 
-    await(tracker.next_tick());
-    tracker.record_transfer(511); // advances next_tick
-
-    await(tracker.next_tick());
-    assert(tracker.is_low()); // must be true after second tick
+    clock += seconds_t(1);
+    assert(tracker.is_low());
   }
 
   {
-    throughput_tracker_t tracker(512, 1, milliseconds_t(1));
+    time_point_t clock = cuti_clock_t::now();
+    throughput_tracker_t<user_clock_object_t> tracker(
+      512, 2, seconds_t(1), user_clock_object_t(clock));
+    tracker.record_transfer(511);
+    assert(!tracker.is_low());
+
+    clock += seconds_t(1);
+    tracker.record_transfer(511);
+    assert(!tracker.is_low());
+
+    clock += seconds_t(1);
+    assert(tracker.is_low());
+  }
+
+  {
+    time_point_t clock = cuti_clock_t::now();
+    throughput_tracker_t<user_clock_object_t> tracker(
+      512, 1, seconds_t(1), user_clock_object_t(clock));
+    tracker.record_transfer(512);
+    assert(!tracker.is_low());
+
+    clock += seconds_t(1);
+    tracker.record_transfer(511);
+    assert(!tracker.is_low());
+
+    clock += seconds_t(1);
+    assert(tracker.is_low());
+  }
+
+  {
+    time_point_t clock = cuti_clock_t::now();
+    throughput_tracker_t<user_clock_object_t> tracker(
+      512, 120, seconds_t(1), user_clock_object_t(clock));
     tracker.record_transfer(512);
 
-    await(tracker.next_tick());
-    tracker.record_transfer(511); // advances next_tick
+    for(unsigned int i = 0; i != 120; ++i)
+    {
+      tracker.record_transfer(511 - i);
+      clock += seconds_t(1);
+      assert(!tracker.is_low());
+    }
 
-    await(tracker.next_tick());
-    assert(tracker.is_low()); // must be true after second tick
+    clock += seconds_t(1);
+    assert(tracker.is_low());
   }
-}
-
-void test_sufficient_speed()
-{
-  throughput_tracker_t tracker(512, 100000, milliseconds_t(1));
-  tracker.record_transfer(512);
-
-  assert(!tracker.is_low()); // only low if 100 seconds have passed
 }
 
 } // anonymous
@@ -148,8 +166,7 @@ void test_sufficient_speed()
 int main()
 {
   test_next_tick();
-  test_low_speed();
-  test_sufficient_speed();
+  test_speed();
 
   return 0;
 }

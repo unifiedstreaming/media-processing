@@ -68,6 +68,7 @@ lib cuti
   callback.cpp
   circular_buffer.cpp
   client.cpp
+  clock_object.cpp
   cmdline_reader.cpp
   config_file_reader.cpp
   default_backend.cpp
@@ -111,7 +112,6 @@ lib cuti
   tcp_acceptor.cpp
   tcp_connection.cpp
   tcp_socket.cpp
-  throughput_tracker.cpp
   viewbuf.cpp
   advapi32
   ws2_32
