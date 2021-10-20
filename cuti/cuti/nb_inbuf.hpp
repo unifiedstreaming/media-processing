@@ -30,7 +30,6 @@
 #include <cstddef>
 #include <memory>
 #include <string>
-#include <vector>
 
 namespace cuti
 {
@@ -111,20 +110,24 @@ struct CUTI_ABI nb_inbuf_t
    */
   void cancel_when_readable() noexcept;
 
+  ~nb_inbuf_t();
+
 private :
   void on_readable(scheduler_t& scheduler);
 
 private :
   std::unique_ptr<nb_source_t> source_;
 
-  std::vector<char> buf_;
-  char const* rp_;
-  char const* ep_;
-  bool at_eof_;
-  int error_status_;
-
   nb_ticket_holder_t<nb_inbuf_t, &nb_inbuf_t::on_readable> holder_;
   callback_t callback_;
+
+  char* buf_;
+  char const* rp_;
+  char const* ep_;
+  char const* ebuf_;
+
+  bool at_eof_;
+  int error_status_;
 };
 
 } // cuti

@@ -27,7 +27,6 @@
 
 #include <cstddef>
 #include <memory>
-#include <vector>
 
 namespace cuti
 {
@@ -103,20 +102,24 @@ struct CUTI_ABI nb_outbuf_t
    */
   void cancel_when_writable() noexcept;
 
+  ~nb_outbuf_t();
+
 private :
   void on_writable(scheduler_t& scheduler);
 
 private :
   std::unique_ptr<nb_sink_t> sink_;
 
-  std::vector<char> buf_;
+  nb_ticket_holder_t<nb_outbuf_t, &nb_outbuf_t::on_writable> holder_;
+  callback_t callback_;
+
+  char* buf_;
   char const* rp_;
   char* wp_;
   char const* limit_;
+  char const* ebuf_;
+  
   int error_status_;
-
-  nb_ticket_holder_t<nb_outbuf_t, &nb_outbuf_t::on_writable> holder_;
-  callback_t callback_;
 };
 
 } // cuti

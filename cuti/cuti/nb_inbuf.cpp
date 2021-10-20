@@ -30,13 +30,14 @@ namespace cuti
 nb_inbuf_t::nb_inbuf_t(std::unique_ptr<nb_source_t> source,
                        std::size_t bufsize)
 : source_((assert(source != nullptr), std::move(source)))
-, buf_((assert(bufsize != 0), bufsize))
-, rp_(buf_.data())
-, ep_(buf_.data())
-, at_eof_(false)
-, error_status_(0)
 , holder_(*this)
 , callback_(nullptr)
+, buf_((assert(bufsize != 0), new char[bufsize]))
+, rp_(buf_)
+, ep_(buf_)
+, ebuf_(buf_ + bufsize)
+, at_eof_(false)
+, error_status_(0)
 { }
 
 char* nb_inbuf_t::read(char *first, char const* last)
@@ -81,6 +82,11 @@ void nb_inbuf_t::cancel_when_readable() noexcept
   holder_.cancel();
 }
 
+nb_inbuf_t::~nb_inbuf_t()
+{
+  delete[] buf_;
+}
+
 void nb_inbuf_t::on_readable(scheduler_t& scheduler)
 {
   assert(callback_ != nullptr);
@@ -89,14 +95,10 @@ void nb_inbuf_t::on_readable(scheduler_t& scheduler)
   if(!this->readable())
   {
     char *next;
-    error_status_ = source_->read(
-      buf_.data(), buf_.data() + buf_.size(), next);
+    error_status_ = source_->read(buf_, ebuf_, next);
+    assert(error_status_ == 0 || next == buf_);
 
-    if(error_status_ != 0)
-    {
-      next = buf_.data();
-    }
-    else if(next == nullptr)
+    if(next == nullptr)
     {
       // spurious wakeup: reschedule
       holder_.call_when_readable(scheduler, *source_);
@@ -104,9 +106,9 @@ void nb_inbuf_t::on_readable(scheduler_t& scheduler)
       return;
     }
 
-    rp_ = buf_.data();
+    rp_ = buf_;
     ep_ = next;
-    at_eof_ = next == buf_.data();
+    at_eof_ = next == buf_;
   }
 
   callback();

@@ -30,13 +30,14 @@ namespace cuti
 nb_outbuf_t::nb_outbuf_t(std::unique_ptr<nb_sink_t> sink,
                          std::size_t bufsize)
 : sink_((assert(sink != nullptr), std::move(sink)))
-, buf_((assert(bufsize != 0), bufsize))
-, rp_(buf_.data())
-, wp_(buf_.data())
-, limit_(buf_.data() + buf_.size())
-, error_status_(0)
 , holder_(*this)
 , callback_(nullptr)
+, buf_((assert(bufsize != 0), new char[bufsize]))
+, rp_(buf_)
+, wp_(buf_)
+, limit_(buf_ + bufsize)
+, ebuf_(buf_ + bufsize)
+, error_status_(0)
 { }
 
 char const* nb_outbuf_t::write(char const* first, char const* last)
@@ -81,6 +82,11 @@ void nb_outbuf_t::cancel_when_writable() noexcept
   holder_.cancel();
 }
 
+nb_outbuf_t::~nb_outbuf_t()
+{
+  delete[] buf_;
+}
+
 void nb_outbuf_t::on_writable(scheduler_t& scheduler)
 {
   assert(callback_ != nullptr);
@@ -92,11 +98,9 @@ void nb_outbuf_t::on_writable(scheduler_t& scheduler)
     {
       char const* next;
       error_status_ = sink_->write(rp_, wp_, next);
-      if(error_status_ != 0)
-      {
-        rp_ = wp_;
-      }
-      else if(next != nullptr)
+      assert(error_status_ == 0 || next == wp_);
+
+      if(next != nullptr)
       {
         rp_ = next;
       }
@@ -110,9 +114,9 @@ void nb_outbuf_t::on_writable(scheduler_t& scheduler)
       }
     }
 
-    rp_ = buf_.data();
-    wp_ = buf_.data();
-    limit_ = buf_.data() + buf_.size();    
+    rp_ = buf_;
+    wp_ = buf_;
+    limit_ = ebuf_;    
   }
 
   callback();
