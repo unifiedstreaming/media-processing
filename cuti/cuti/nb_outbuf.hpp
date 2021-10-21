@@ -105,19 +105,24 @@ struct CUTI_ABI nb_outbuf_t
   ~nb_outbuf_t();
 
 private :
-  void on_writable(scheduler_t& scheduler);
+  void on_already_writable(scheduler_t& scheduler);
+  void on_sink_writable(scheduler_t& scheduler);
 
 private :
   std::unique_ptr<nb_sink_t> sink_;
 
-  nb_ticket_holder_t<nb_outbuf_t, &nb_outbuf_t::on_writable> holder_;
+  nb_ticket_holder_t<nb_outbuf_t, &nb_outbuf_t::on_already_writable>
+    already_writable_holder_;
+  nb_ticket_holder_t<nb_outbuf_t, &nb_outbuf_t::on_sink_writable>
+    sink_writable_holder_;
+
   callback_t callback_;
 
-  char* buf_;
+  char* const buf_;
   char const* rp_;
   char* wp_;
   char const* limit_;
-  char const* ebuf_;
+  char const* const ebuf_;
   
   int error_status_;
 };

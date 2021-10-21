@@ -30,7 +30,8 @@ namespace cuti
 nb_outbuf_t::nb_outbuf_t(std::unique_ptr<nb_sink_t> sink,
                          std::size_t bufsize)
 : sink_((assert(sink != nullptr), std::move(sink)))
-, holder_(*this)
+, already_writable_holder_(*this)
+, sink_writable_holder_(*this)
 , callback_(nullptr)
 , buf_((assert(bufsize != 0), new char[bufsize]))
 , rp_(buf_)
@@ -62,24 +63,33 @@ void nb_outbuf_t::call_when_writable(scheduler_t& scheduler,
 {
   assert(callback != nullptr);
 
-  callback_ = nullptr;
+  this->cancel_when_writable();
 
-  if(this->writable() || error_status_ != 0)
+  if(this->writable())
   {
-    holder_.call_alarm(scheduler, duration_t::zero());
+    already_writable_holder_.call_alarm(scheduler, duration_t::zero());
+  }
+  else if(rp_ == wp_ || error_status_ != 0)
+  {
+    rp_ = buf_;
+    wp_ = buf_;
+    limit_ = ebuf_;
+
+    already_writable_holder_.call_alarm(scheduler, duration_t::zero());
   }
   else
   {
-    holder_.call_when_writable(scheduler, *sink_);
+    sink_writable_holder_.call_when_writable(scheduler, *sink_);
   }
-
+  
   callback_ = std::move(callback);
 }
 
 void nb_outbuf_t::cancel_when_writable() noexcept
 {
   callback_ = nullptr;
-  holder_.cancel();
+  sink_writable_holder_.cancel();
+  already_writable_holder_.cancel();
 }
 
 nb_outbuf_t::~nb_outbuf_t()
@@ -87,37 +97,49 @@ nb_outbuf_t::~nb_outbuf_t()
   delete[] buf_;
 }
 
-void nb_outbuf_t::on_writable(scheduler_t& scheduler)
+void nb_outbuf_t::on_already_writable(scheduler_t& scheduler)
 {
   assert(callback_ != nullptr);
   callback_t callback = std::move(callback_);
 
   if(!this->writable())
   {
-    if(error_status_ == 0 && rp_ != wp_)
-    {
-      char const* next;
-      error_status_ = sink_->write(rp_, wp_, next);
-      assert(error_status_ == 0 || next == wp_);
-
-      if(next != nullptr)
-      {
-        rp_ = next;
-      }
-
-      if(rp_ != wp_)
-      {
-        // more to write: reschedule
-        holder_.call_when_writable(scheduler, *sink_);
-        callback_ = std::move(callback);
-        return;
-      }
-    }
-
-    rp_ = buf_;
-    wp_ = buf_;
-    limit_ = ebuf_;    
+    // transitioned to non-writable since last call_when_writable()
+    this->call_when_writable(scheduler, std::move(callback));
+    return;
   }
+
+  callback();
+}
+    
+void nb_outbuf_t::on_sink_writable(scheduler_t& scheduler)
+{
+  assert(callback_ != nullptr);
+  callback_t callback = std::move(callback_);
+
+  assert(!this->writable());
+  assert(rp_ != wp_);
+  assert(error_status_ == 0);
+
+  char const* next;
+  error_status_ = sink_->write(rp_, wp_, next);
+  assert(error_status_ == 0 || next == wp_);
+
+  if(next != nullptr)
+  {
+    rp_ = next;
+  }
+
+  if(rp_ != wp_)
+  {
+    // more to write: reschedule
+    this->call_when_writable(scheduler, std::move(callback));
+    return;
+  }
+      
+  rp_ = buf_;
+  wp_ = buf_;
+  limit_ = ebuf_;    
 
   callback();
 }
