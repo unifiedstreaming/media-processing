@@ -74,7 +74,7 @@ private :
   static std::string make_description(tcp_connection_t& conn)
   {
     std::stringstream os;
-    os << conn.local_endpoint() << "<>" << conn.remote_endpoint();
+    os << conn;
     return os.str();
   }
 
