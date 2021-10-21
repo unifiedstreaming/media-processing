@@ -30,7 +30,8 @@ namespace cuti
 nb_inbuf_t::nb_inbuf_t(std::unique_ptr<nb_source_t> source,
                        std::size_t bufsize)
 : source_((assert(source != nullptr), std::move(source)))
-, holder_(*this)
+, already_readable_holder_(*this)
+, source_readable_holder_(*this)
 , callback_(nullptr)
 , buf_((assert(bufsize != 0), new char[bufsize]))
 , rp_(buf_)
@@ -62,15 +63,15 @@ void nb_inbuf_t::call_when_readable(scheduler_t& scheduler,
 {
   assert(callback != nullptr);
 
-  callback_ = nullptr;
+  this->cancel_when_readable();
 
   if(this->readable())
   {
-    holder_.call_alarm(scheduler, duration_t::zero());
+    already_readable_holder_.call_alarm(scheduler, duration_t::zero());
   }
   else
   {
-    holder_.call_when_readable(scheduler, *source_);
+    source_readable_holder_.call_when_readable(scheduler, *source_);
   }
 
   callback_ = std::move(callback);
@@ -79,7 +80,8 @@ void nb_inbuf_t::call_when_readable(scheduler_t& scheduler,
 void nb_inbuf_t::cancel_when_readable() noexcept
 {
   callback_ = nullptr;
-  holder_.cancel();
+  source_readable_holder_.cancel();
+  already_readable_holder_.cancel();
 }
 
 nb_inbuf_t::~nb_inbuf_t()
@@ -87,30 +89,43 @@ nb_inbuf_t::~nb_inbuf_t()
   delete[] buf_;
 }
 
-void nb_inbuf_t::on_readable(scheduler_t& scheduler)
+void nb_inbuf_t::on_already_readable(scheduler_t& scheduler)
 {
   assert(callback_ != nullptr);
   callback_t callback = std::move(callback_);
 
   if(!this->readable())
   {
-    char *next;
-    error_status_ = source_->read(buf_, ebuf_, next);
-    assert(error_status_ == 0 || next == buf_);
-
-    if(next == nullptr)
-    {
-      // spurious wakeup: reschedule
-      holder_.call_when_readable(scheduler, *source_);
-      callback_ = std::move(callback);
-      return;
-    }
-
-    rp_ = buf_;
-    ep_ = next;
-    at_eof_ = next == buf_;
+    // transitioned to non-readable since last call_when_readable()
+    this->call_when_readable(scheduler, std::move(callback));
+    return;
   }
 
+  callback();
+}
+  
+void nb_inbuf_t::on_source_readable(scheduler_t& scheduler)
+{
+  assert(callback_ != nullptr);
+  callback_t callback = std::move(callback_);
+
+  assert(!this->readable());
+
+  char *next;
+  error_status_ = source_->read(buf_, ebuf_, next);
+  assert(error_status_ == 0 || next == buf_);
+
+  if(next == nullptr)
+  {
+    // spurious wakeup: reschedule
+    this->call_when_readable(scheduler, std::move(callback));
+    return;
+  }
+
+  rp_ = buf_;
+  ep_ = next;
+  at_eof_ = rp_ == ep_; 
+    
   callback();
 }
 
