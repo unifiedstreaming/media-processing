@@ -57,6 +57,11 @@ struct nb_string_source_t : nb_source_t
     return scheduler.call_alarm(duration_t::zero(), std::move(callback));
   }
 
+  char const* description() const noexcept override
+  {
+    return "string source";
+  }
+
 private :
   std::string const input_;
   std::string::const_iterator pos_;
@@ -65,9 +70,12 @@ private :
 } // anonymous
 
 std::unique_ptr<nb_inbuf_t>
-make_nb_string_inbuf(std::string input, std::size_t bufsize)
+make_nb_string_inbuf(logging_context_t& context,
+                     std::string input,
+		     std::size_t bufsize)
 {
   return std::make_unique<nb_inbuf_t>(
+    context,
     std::make_unique<nb_string_source_t>(std::move(input)),
     bufsize);
 }

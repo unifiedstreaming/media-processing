@@ -18,6 +18,7 @@
  */
 
 #include <cuti/circular_buffer.hpp>
+#include <cuti/cmdline_reader.hpp>
 #include <cuti/default_scheduler.hpp>
 #include <cuti/logging_context.hpp>
 #include <cuti/nb_inbuf.hpp>
@@ -25,6 +26,7 @@
 #include <cuti/nb_string_inbuf.hpp>
 #include <cuti/nb_string_outbuf.hpp>
 #include <cuti/nb_tcp_buffers.hpp>
+#include <cuti/option_walker.hpp>
 #include <cuti/streambuf_backend.hpp>
 
 #include <iostream>
@@ -225,8 +227,8 @@ void do_test_string_buffers(logging_context_t& context,
 
   for(int i = 0; i != 4; ++i)
   {
-    auto inbuf = make_nb_string_inbuf(input, inbuf_sizes[i]);
-    auto outbuf = make_nb_string_outbuf(outputs[i], outbuf_sizes[i]);
+    auto inbuf = make_nb_string_inbuf(context, input, inbuf_sizes[i]);
+    auto outbuf = make_nb_string_outbuf(context, outputs[i], outbuf_sizes[i]);
 
     copiers[i] = std::make_unique<copier_t<use_bulk_io>>(
       context, scheduler, std::move(inbuf), std::move(outbuf), circ_bufsize);
@@ -302,10 +304,10 @@ void do_test_tcp_buffers(logging_context_t& context,
 
   default_scheduler_t scheduler;
 
-  auto producer_in = make_nb_string_inbuf(input, client_bufsize);
+  auto producer_in = make_nb_string_inbuf(context, input, client_bufsize);
 
   std::string output;
-  auto consumer_out = make_nb_string_outbuf(output, client_bufsize);
+  auto consumer_out = make_nb_string_outbuf(context, output, client_bufsize);
 
   std::unique_ptr<tcp_connection_t> client_side;
   std::unique_ptr<tcp_connection_t> server_side;
@@ -314,12 +316,12 @@ void do_test_tcp_buffers(logging_context_t& context,
   std::unique_ptr<nb_inbuf_t> consumer_in;
   std::unique_ptr<nb_outbuf_t> producer_out;
   std::tie(consumer_in, producer_out) = make_nb_tcp_buffers(
-    std::move(client_side), client_bufsize, client_bufsize);
+    context, std::move(client_side), client_bufsize, client_bufsize);
 
   std::unique_ptr<nb_inbuf_t> echoer_in;
   std::unique_ptr<nb_outbuf_t> echoer_out;
   std::tie(echoer_in, echoer_out) = make_nb_tcp_buffers(
-    std::move(server_side), server_bufsize, server_bufsize);
+    context, std::move(server_side), server_bufsize, server_bufsize);
 
   copier_t<use_bulk_io> producer(context, scheduler,
     std::move(producer_in), std::move(producer_out), circ_bufsize);
@@ -374,14 +376,57 @@ void test_tcp_buffers(logging_context_t& context)
     256 * 1024, 256 * 1024, 256 * 1024, large_payload);
 }
 
-void run_tests(int argc, char const* const*)
+struct options_t
 {
-  logger_t logger(std::make_unique<streambuf_backend_t>(std::cerr));
-  logging_context_t context(
-    logger, argc == 1 ? loglevel_t::error : loglevel_t::info);
+  static loglevel_t constexpr default_loglevel = loglevel_t::error;
 
+  options_t()
+  : loglevel_(default_loglevel)
+  { }
+
+  loglevel_t loglevel_;
+};
+
+void print_usage(std::ostream& os, char const* argv0)
+{
+  os << "usage: " << argv0 << " [<option> ...]\n";
+  os << "options are:\n";
+  os << "  --loglevel <level>       set loglevel " <<
+    "(default: " << loglevel_string(options_t::default_loglevel) << ")\n";
+  os << std::flush;
+}
+
+void read_options(options_t& options, option_walker_t& walker)
+{
+  while(!walker.done())
+  {
+    if(!walker.match("--loglevel", options.loglevel_))
+    {
+      break;
+    }
+  }
+}
+
+int run_tests(int argc, char const* const* argv)
+{
+  options_t options;
+  cmdline_reader_t reader(argc, argv);
+  option_walker_t walker(reader);
+
+  read_options(options, walker);
+  if(!walker.done() || !reader.at_end())
+  {
+    print_usage(std::cerr, argv[0]);
+    return 1;
+  }
+
+  logger_t logger(std::make_unique<streambuf_backend_t>(std::cerr));
+  logging_context_t context(logger, options.loglevel_);
+  
   test_string_buffers(context);
   test_tcp_buffers(context);
+
+  return 0;
 }
 
 } // anonymous
@@ -390,13 +435,12 @@ int main(int argc, char* argv[])
 {
   try
   {
-    run_tests(argc, argv);
+    return run_tests(argc, argv);
   }
   catch(std::exception const& ex)
   {
     std::cerr << argv[0] << ": exception: " << ex.what() << std::endl;
-    throw;
   }
 
-  return 0;
+  return 1;
 }

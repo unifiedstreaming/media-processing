@@ -31,17 +31,27 @@
 namespace cuti
 {
 
+struct logging_context_t;
 struct scheduler_t;
 
 struct CUTI_ABI nb_outbuf_t
 {
   static std::size_t constexpr default_bufsize = 256 * 1024;
 
-  explicit nb_outbuf_t(std::unique_ptr<nb_sink_t> sink,
-                       std::size_t bufsize = default_bufsize);
+  nb_outbuf_t(logging_context_t& context,
+              std::unique_ptr<nb_sink_t> sink,
+              std::size_t bufsize = default_bufsize);
 
   nb_outbuf_t(nb_outbuf_t const&) = delete;
   nb_outbuf_t& operator=(nb_outbuf_t const&) = delete;
+
+  /*
+   * Returns a descriptive name for the buffer.
+   */
+  char const* description() const noexcept
+  {
+    return sink_->description();
+  }
 
   /*
    * Returns the buffer's error status, which is either 0 for no error
@@ -109,6 +119,8 @@ private :
   void on_sink_writable(scheduler_t& scheduler);
 
 private :
+  logging_context_t& context_;
+
   std::unique_ptr<nb_sink_t> sink_;
 
   nb_ticket_holder_t<nb_outbuf_t, &nb_outbuf_t::on_already_writable>

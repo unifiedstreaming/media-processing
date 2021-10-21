@@ -19,7 +19,9 @@
 
 #include "nb_inbuf.hpp"
 
+#include "logging_context.hpp"
 #include "scheduler.hpp"
+#include "system_error.hpp"
 
 #include <algorithm>
 #include <utility>
@@ -27,9 +29,11 @@
 namespace cuti
 {
 
-nb_inbuf_t::nb_inbuf_t(std::unique_ptr<nb_source_t> source,
+nb_inbuf_t::nb_inbuf_t(logging_context_t& context,
+                       std::unique_ptr<nb_source_t> source,
                        std::size_t bufsize)
-: source_((assert(source != nullptr), std::move(source)))
+: context_(context)
+, source_((assert(source != nullptr), std::move(source)))
 , already_readable_holder_(*this)
 , source_readable_holder_(*this)
 , callback_(nullptr)
@@ -115,6 +119,31 @@ void nb_inbuf_t::on_source_readable(scheduler_t& scheduler)
   error_status_ = source_->read(buf_, ebuf_, next);
   assert(error_status_ == 0 || next == buf_);
 
+  if(error_status_ != 0)
+  {
+    if(auto msg = context_.message_at(loglevel_t::error))
+    {
+      *msg << "nb_inbuf[" << this->description() <<
+        "]: " << system_error_string(error_status_);
+    }
+  }
+  else if(next == nullptr)
+  {
+    if(auto msg = context_.message_at(loglevel_t::debug))
+    {
+      *msg << "nb_inbuf[" << this->description() <<
+        "]: can\'t receive yet";
+    }
+  }
+  else
+  {
+    if(auto msg = context_.message_at(loglevel_t::debug))
+    {
+      *msg << "nb_inbuf[" << this->description() <<
+        "]: received " << next - buf_ << " byte(s)";
+    }
+  }   
+    
   if(next == nullptr)
   {
     // spurious wakeup: reschedule

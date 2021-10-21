@@ -57,6 +57,11 @@ struct CUTI_ABI nb_source_t
    */
   virtual cancellation_ticket_t call_when_readable(
     scheduler_t& scheduler, callback_t callback) = 0;
+
+  /*
+   * Returns a description for this source.
+   */
+  virtual char const* description() const noexcept = 0;
    
   virtual ~nb_source_t();
 };

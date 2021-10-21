@@ -34,17 +34,27 @@
 namespace cuti
 {
 
+struct logging_context_t;
 struct scheduler_t;
 
 struct CUTI_ABI nb_inbuf_t
 {
   static std::size_t constexpr default_bufsize = 256 * 1024;
 
-  explicit nb_inbuf_t(std::unique_ptr<nb_source_t> source,
-                      std::size_t bufsize = default_bufsize);
+  nb_inbuf_t(logging_context_t& context,
+             std::unique_ptr<nb_source_t> source,
+             std::size_t bufsize = default_bufsize);
 
   nb_inbuf_t(nb_inbuf_t const&) = delete;
   nb_inbuf_t& operator=(nb_inbuf_t const&) = delete;
+
+  /*
+   * Returns a descriptive name for the buffer.
+   */
+  char const* description() const noexcept
+  {
+    return source_->description();
+  }
 
   /*
    * Returns the buffer's error status, which is either 0 for no error
@@ -117,6 +127,8 @@ private :
   void on_source_readable(scheduler_t& scheduler);
 
 private :
+  logging_context_t& context_;
+
   std::unique_ptr<nb_source_t> source_;
 
   nb_ticket_holder_t<nb_inbuf_t, &nb_inbuf_t::on_already_readable>

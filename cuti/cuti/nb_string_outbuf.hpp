@@ -35,7 +35,8 @@ namespace cuti
  * Please note that the output string must survive the outbuf.
  */
 CUTI_ABI std::unique_ptr<nb_outbuf_t>
-make_nb_string_outbuf(std::string& output,
+make_nb_string_outbuf(logging_context_t& context,
+                      std::string& output,
                       std::size_t bufsize = nb_outbuf_t::default_bufsize);
 
 }

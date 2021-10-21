@@ -34,7 +34,8 @@ namespace cuti
  * Returns an nb_inbuf_t that reads from (a copy of) input.
  */
 CUTI_ABI std::unique_ptr<nb_inbuf_t>
-make_nb_string_inbuf(std::string input,
+make_nb_string_inbuf(logging_context_t& context,
+                     std::string input,
                      std::size_t bufsize = nb_inbuf_t::default_bufsize);
 
 }

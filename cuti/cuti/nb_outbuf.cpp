@@ -19,7 +19,9 @@
 
 #include "nb_outbuf.hpp"
 
+#include "logging_context.hpp"
 #include "scheduler.hpp"
+#include "system_error.hpp"
 
 #include <algorithm>
 #include <utility>
@@ -27,9 +29,11 @@
 namespace cuti
 {
 
-nb_outbuf_t::nb_outbuf_t(std::unique_ptr<nb_sink_t> sink,
+nb_outbuf_t::nb_outbuf_t(logging_context_t& context,
+                         std::unique_ptr<nb_sink_t> sink,
                          std::size_t bufsize)
-: sink_((assert(sink != nullptr), std::move(sink)))
+: context_(context)
+, sink_((assert(sink != nullptr), std::move(sink)))
 , already_writable_holder_(*this)
 , sink_writable_holder_(*this)
 , callback_(nullptr)
@@ -125,6 +129,31 @@ void nb_outbuf_t::on_sink_writable(scheduler_t& scheduler)
   error_status_ = sink_->write(rp_, wp_, next);
   assert(error_status_ == 0 || next == wp_);
 
+  if(error_status_ != 0)
+  {
+    if(auto msg = context_.message_at(loglevel_t::error))
+    {
+      *msg << "nb_outbuf[" << this->description() <<
+        "]: " << system_error_string(error_status_);
+    }
+  }
+  else if(next == nullptr)
+  {
+    if(auto msg = context_.message_at(loglevel_t::debug))
+    {
+      *msg << "nb_outbuf[" << this->description() <<
+        "]: can\'t send yet";
+    }
+  }
+  else
+  {
+    if(auto msg = context_.message_at(loglevel_t::debug))
+    {
+      *msg << "nb_outbuf[" << this->description() <<
+        "]: sent " << next - rp_ << " byte(s)";
+    }
+  }   
+    
   if(next != nullptr)
   {
     rp_ = next;

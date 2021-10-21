@@ -48,6 +48,11 @@ struct nb_string_sink_t : nb_sink_t
     return scheduler.call_alarm(duration_t::zero(), std::move(callback));
   }
 
+  char const* description() const noexcept override
+  {
+    return "string sink";
+  }
+
 private :
   std::string& output_;
 };
@@ -55,9 +60,12 @@ private :
 } // anonymous
 
 std::unique_ptr<nb_outbuf_t>
-make_nb_string_outbuf(std::string& output, std::size_t bufsize)
+make_nb_string_outbuf(logging_context_t& context,
+                      std::string& output,
+		      std::size_t bufsize)
 {
   return std::make_unique<nb_outbuf_t>(
+    context,
     std::make_unique<nb_string_sink_t>(output),
     bufsize);
 }
