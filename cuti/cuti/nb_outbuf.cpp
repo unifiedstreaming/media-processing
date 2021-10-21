@@ -150,7 +150,7 @@ void nb_outbuf_t::on_sink_writable(scheduler_t& scheduler)
     if(auto msg = context_.message_at(loglevel_t::debug))
     {
       *msg << "nb_outbuf[" << this->description() <<
-        "]: sent " << next - rp_ << " byte(s)";
+        "]: " << next - rp_ << " byte(s) sent";
     }
   }   
     

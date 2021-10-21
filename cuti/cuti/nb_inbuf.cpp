@@ -140,7 +140,7 @@ void nb_inbuf_t::on_source_readable(scheduler_t& scheduler)
     if(auto msg = context_.message_at(loglevel_t::debug))
     {
       *msg << "nb_inbuf[" << this->description() <<
-        "]: received " << next - buf_ << " byte(s)";
+        "]: " << next - buf_ << " byte(s) received";
     }
   }   
     
