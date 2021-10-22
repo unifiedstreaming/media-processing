@@ -43,6 +43,15 @@ struct nb_ticket_holder_t
 
   nb_ticket_holder_t(nb_ticket_holder_t const&) = delete;
   nb_ticket_holder_t& operator=(nb_ticket_holder_t const&) = delete;
+
+  /*
+   * Returns a pointer to the current scheduler if a callback is
+   * pending, nullptr otherwise.
+   */
+  scheduler_t* current_scheduler() const
+  {
+    return scheduler_;
+  }
   
   /*
    * Schedule a call to handler when source is detected to be
@@ -108,9 +117,9 @@ struct nb_ticket_holder_t
    */
   void cancel() noexcept
   {
-    if(!ticket_.empty())
+    if(scheduler_ != nullptr)
     {
-      assert(scheduler_ != nullptr);
+      assert(!ticket_.empty());
       scheduler_->cancel(ticket_);
 
       ticket_.clear();
@@ -129,12 +138,12 @@ struct nb_ticket_holder_t
 private :
   void call_handler()
   {
-    assert(!ticket_.empty());
-    ticket_.clear();
-
     assert(scheduler_ != nullptr);
     scheduler_t& scheduler = *scheduler_;
     scheduler_ = nullptr;
+
+    assert(!ticket_.empty());
+    ticket_.clear();
 
     (target_.*handler)(scheduler);
   }
