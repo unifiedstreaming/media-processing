@@ -35,6 +35,11 @@ int last_system_error()
   return GetLastError();
 }
 
+int timeout_system_error()
+{
+  return WSAETIMEDOUT;
+}
+
 std::string system_error_string(int error)
 {
   static const int bufsize = 256;
@@ -68,6 +73,11 @@ namespace cuti
 int last_system_error()
 {
   return errno;
+}
+
+int timeout_system_error()
+{
+  return ETIMEDOUT;
 }
 
 std::string system_error_string(int error)

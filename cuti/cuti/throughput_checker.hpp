@@ -20,8 +20,9 @@
 #ifndef CUTI_THROUGHPUT_CHECKER_HPP_
 #define CUTI_THROUGHPUT_CHECKER_HPP_
 
-#include "clock_object.hpp"
 #include "chrono_types.hpp"
+#include "clock_object.hpp"
+#include "system_error.hpp"
 
 #include <cassert>
 #include <cstddef>
@@ -61,39 +62,14 @@ struct throughput_checker_t
   }
 
   /*
-   * Records a data transfer.  If the next tick is less than or equal
-   * to the clock's current time, it is advanced to somewhere in the
-   * future.
+   * Records a data transfer, returning 0 on success, or a system
+   * error code if the throughput is determined to be too low.
+   * To check for low throughput without recording any data transfer,
+   * specify n_bytes as 0.
+   * If the next tick is less than or equal to the clock's current
+   * time, it is advanced to somewhere in the future.
    */
-  void record_transfer(std::size_t n_bytes)
-  {
-    this->update();
-
-    if(n_bytes < min_bytes_per_tick_ - current_tick_bytes_)
-    {
-      current_tick_bytes_ += n_bytes;
-    }
-    else
-    {
-      n_low_ticks_ = 0;
-      current_tick_bytes_ = min_bytes_per_tick_;
-    }
-  }
-
-  /*
-   * Tells if the throughput is low.  If the next tick is less than or
-   * equal to the clock's current time, it is advanced to somewhere in
-   * the future.
-   */
-  bool is_low()
-  {
-    this->update();
-
-    return n_low_ticks_ >= low_ticks_limit_;
-  }
-  
-private :
-  void update()
+  int record_transfer(std::size_t n_bytes)
   {
     time_point_t now = clock_.now();
     while(next_tick_ <= now)
@@ -107,6 +83,18 @@ private :
       current_tick_bytes_ = 0;
       next_tick_ += tick_length_;
     }
+
+    if(n_bytes < min_bytes_per_tick_ - current_tick_bytes_)
+    {
+      current_tick_bytes_ += n_bytes;
+    }
+    else
+    {
+      n_low_ticks_ = 0;
+      current_tick_bytes_ = min_bytes_per_tick_;
+    }
+
+    return n_low_ticks_ < low_ticks_limit_ ? 0 : timeout_system_error();
   }
 
 private :

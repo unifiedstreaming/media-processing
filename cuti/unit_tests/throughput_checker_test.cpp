@@ -42,12 +42,12 @@ void test_next_tick()
   assert(next > clock);
 
   clock += seconds_t(1);
-  checker.record_transfer(0);
+  checker.record_transfer(512);
   next = checker.next_tick();
   assert(next > clock);
 
   clock += seconds_t(1);
-  checker.is_low();
+  checker.record_transfer(0);
   next = checker.next_tick();
   assert(next > clock);
 }
@@ -58,106 +58,99 @@ void test_speed()
     time_point_t clock = cuti_clock_t::now();
     throughput_checker_t<user_clock_object_t> checker(
       512, 1, seconds_t(1), user_clock_object_t(clock));
-    assert(!checker.is_low());
+    assert(checker.record_transfer(0) == 0);
 
     clock += seconds_t(1);
-    assert(checker.is_low());
+    assert(checker.record_transfer(0) != 0);
   }
 
   {
     time_point_t clock = cuti_clock_t::now();
     throughput_checker_t<user_clock_object_t> checker(
       512, 2, seconds_t(1), user_clock_object_t(clock));
-    assert(!checker.is_low());
+    assert(checker.record_transfer(0) == 0);
 
     clock += seconds_t(1);
-    assert(!checker.is_low());
+    assert(checker.record_transfer(0) == 0);
 
     clock += seconds_t(1);
-    assert(checker.is_low());
+    assert(checker.record_transfer(0) != 0);
   }
 
   {
     time_point_t clock = cuti_clock_t::now();
     throughput_checker_t<user_clock_object_t> checker(
       512, 1, seconds_t(1), user_clock_object_t(clock));
-    checker.record_transfer(0);
+    assert(checker.record_transfer(0) == 0);
 
     clock += seconds_t(1);
-    assert(checker.is_low());
+    assert(checker.record_transfer(0) != 0);
   }
 
   {
     time_point_t clock = cuti_clock_t::now();
     throughput_checker_t<user_clock_object_t> checker(
       512, 2, seconds_t(1), user_clock_object_t(clock));
-    checker.record_transfer(0);
-    assert(!checker.is_low());
+    assert(checker.record_transfer(0) == 0);
 
     clock += seconds_t(1);
-    checker.record_transfer(0);
-    assert(!checker.is_low());
+    assert(checker.record_transfer(0) == 0);
 
     clock += seconds_t(1);
-    assert(checker.is_low());
+    assert(checker.record_transfer(0) != 0);
   }
 
   {
     time_point_t clock = cuti_clock_t::now();
     throughput_checker_t<user_clock_object_t> checker(
       512, 1, seconds_t(1), user_clock_object_t(clock));
-    checker.record_transfer(511);
-    assert(!checker.is_low());
+    assert(checker.record_transfer(511) == 0);
 
     clock += seconds_t(1);
-    assert(checker.is_low());
+    assert(checker.record_transfer(0) != 0);
   }
 
   {
     time_point_t clock = cuti_clock_t::now();
     throughput_checker_t<user_clock_object_t> checker(
       512, 2, seconds_t(1), user_clock_object_t(clock));
-    checker.record_transfer(511);
-    assert(!checker.is_low());
+    assert(checker.record_transfer(511) == 0);
 
     clock += seconds_t(1);
-    checker.record_transfer(511);
-    assert(!checker.is_low());
+    assert(checker.record_transfer(511) == 0);
 
     clock += seconds_t(1);
-    assert(checker.is_low());
+    assert(checker.record_transfer(0) != 0);
   }
 
   {
     time_point_t clock = cuti_clock_t::now();
     throughput_checker_t<user_clock_object_t> checker(
       512, 1, seconds_t(1), user_clock_object_t(clock));
-    checker.record_transfer(512);
-    assert(!checker.is_low());
+    assert(checker.record_transfer(512) == 0);
 
     clock += seconds_t(1);
-    checker.record_transfer(511);
-    assert(!checker.is_low());
+    assert(checker.record_transfer(511) == 0);
 
     clock += seconds_t(1);
-    assert(checker.is_low());
+    assert(checker.record_transfer(0) != 0);
   }
 
   {
     time_point_t clock = cuti_clock_t::now();
     throughput_checker_t<user_clock_object_t> checker(
       512, 120, seconds_t(1), user_clock_object_t(clock));
-    checker.record_transfer(512);
+    assert(checker.record_transfer(512) == 0);
 
     for(unsigned int i = 0; i != 120; ++i)
     {
-      checker.record_transfer(511 - i);
+      assert(checker.record_transfer(511 - i) == 0);
       clock += seconds_t(1);
-      assert(!checker.is_low());
+      assert(checker.record_transfer(0) == 0);
     }
 
     clock += seconds_t(1);
-    assert(checker.is_low());
+    assert(checker.record_transfer(0) != 0);
   }
 }
 
