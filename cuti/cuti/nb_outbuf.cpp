@@ -133,7 +133,7 @@ void nb_outbuf_t::on_sink_writable(scheduler_t& scheduler)
   {
     if(auto msg = context_.message_at(loglevel_t::error))
     {
-      *msg << "nb_outbuf[" << this->description() <<
+      *msg << "nb_outbuf[" << this->name() <<
         "]: " << system_error_string(error_status_);
     }
   }
@@ -141,7 +141,7 @@ void nb_outbuf_t::on_sink_writable(scheduler_t& scheduler)
   {
     if(auto msg = context_.message_at(loglevel_t::debug))
     {
-      *msg << "nb_outbuf[" << this->description() <<
+      *msg << "nb_outbuf[" << this->name() <<
         "]: can\'t send yet";
     }
   }
@@ -149,7 +149,7 @@ void nb_outbuf_t::on_sink_writable(scheduler_t& scheduler)
   {
     if(auto msg = context_.message_at(loglevel_t::debug))
     {
-      *msg << "nb_outbuf[" << this->description() <<
+      *msg << "nb_outbuf[" << this->name() <<
         "]: " << next - rp_ << " byte(s) sent";
     }
   }   

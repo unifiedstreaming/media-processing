@@ -48,9 +48,9 @@ struct CUTI_ABI nb_outbuf_t
   /*
    * Returns a descriptive name for the buffer.
    */
-  char const* description() const noexcept
+  char const* name() const noexcept
   {
-    return sink_->description();
+    return sink_->name();
   }
 
   /*

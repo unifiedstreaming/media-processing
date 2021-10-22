@@ -123,7 +123,7 @@ void nb_inbuf_t::on_source_readable(scheduler_t& scheduler)
   {
     if(auto msg = context_.message_at(loglevel_t::error))
     {
-      *msg << "nb_inbuf[" << this->description() <<
+      *msg << "nb_inbuf[" << this->name() <<
         "]: " << system_error_string(error_status_);
     }
   }
@@ -131,7 +131,7 @@ void nb_inbuf_t::on_source_readable(scheduler_t& scheduler)
   {
     if(auto msg = context_.message_at(loglevel_t::debug))
     {
-      *msg << "nb_inbuf[" << this->description() <<
+      *msg << "nb_inbuf[" << this->name() <<
         "]: can\'t receive yet";
     }
   }
@@ -139,7 +139,7 @@ void nb_inbuf_t::on_source_readable(scheduler_t& scheduler)
   {
     if(auto msg = context_.message_at(loglevel_t::debug))
     {
-      *msg << "nb_inbuf[" << this->description() <<
+      *msg << "nb_inbuf[" << this->name() <<
         "]: " << next - buf_ << " byte(s) received";
     }
   }   

@@ -59,9 +59,9 @@ struct CUTI_ABI nb_source_t
     scheduler_t& scheduler, callback_t callback) = 0;
 
   /*
-   * Returns a description for this source.
+   * Returns a name for this source.
    */
-  virtual char const* description() const noexcept = 0;
+  virtual char const* name() const noexcept = 0;
    
   virtual ~nb_source_t();
 };

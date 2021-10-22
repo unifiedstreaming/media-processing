@@ -60,9 +60,9 @@ struct CUTI_ABI nb_sink_t
     scheduler_t& scheduler, callback_t callback) = 0;
    
   /*
-   * Returns a description for this sink.
+   * Returns a name for this sink.
    */
-  virtual char const* description() const noexcept = 0;
+  virtual char const* name() const noexcept = 0;
    
   virtual ~nb_sink_t();
 };

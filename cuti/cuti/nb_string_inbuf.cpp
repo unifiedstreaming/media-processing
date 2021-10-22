@@ -57,7 +57,7 @@ struct nb_string_source_t : nb_source_t
     return scheduler.call_alarm(duration_t::zero(), std::move(callback));
   }
 
-  char const* description() const noexcept override
+  char const* name() const noexcept override
   {
     return "string source";
   }

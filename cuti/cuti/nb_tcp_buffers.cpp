@@ -33,7 +33,7 @@ struct connection_holder_t
 {
   explicit connection_holder_t(std::unique_ptr<tcp_connection_t> conn)
   : conn_((assert(conn != nullptr), std::move(conn)))
-  , description_(make_description(*conn_))
+  , name_(make_name(*conn_))
   {
     conn_->set_nonblocking();
   }
@@ -65,13 +65,13 @@ struct connection_holder_t
     return conn_->close_write_end();
   }
 
-  char const* description() const noexcept
+  char const* name() const noexcept
   {
-    return description_.c_str();
+    return name_.c_str();
   }
 
 private :
-  static std::string make_description(tcp_connection_t& conn)
+  static std::string make_name(tcp_connection_t& conn)
   {
     std::stringstream os;
     os << conn;
@@ -80,7 +80,7 @@ private :
 
 private :
   std::unique_ptr<tcp_connection_t> conn_;
-  std::string description_;
+  std::string name_;
 };
 
 struct nb_tcp_source_t : nb_source_t
@@ -100,9 +100,9 @@ struct nb_tcp_source_t : nb_source_t
     return holder_->call_when_readable(scheduler, std::move(callback));
   }
 
-  char const* description() const noexcept override
+  char const* name() const noexcept override
   {
-    return holder_->description();
+    return holder_->name();
   }
 
 private :
@@ -126,9 +126,9 @@ struct nb_tcp_sink_t : nb_sink_t
     return holder_->call_when_writable(scheduler, std::move(callback));
   }
 
-  char const* description() const noexcept override
+  char const* name() const noexcept override
   {
-    return holder_->description();
+    return holder_->name();
   }
 
   ~nb_tcp_sink_t() override

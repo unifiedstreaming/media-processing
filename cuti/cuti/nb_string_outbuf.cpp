@@ -48,7 +48,7 @@ struct nb_string_sink_t : nb_sink_t
     return scheduler.call_alarm(duration_t::zero(), std::move(callback));
   }
 
-  char const* description() const noexcept override
+  char const* name() const noexcept override
   {
     return "string sink";
   }
