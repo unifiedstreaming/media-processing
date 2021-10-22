@@ -101,6 +101,6 @@ unit-test tcp_socket_test
 : tcp_socket_test.cpp
 ;
 
-unit-test throughput_tracker_test
-: throughput_tracker_test.cpp
+unit-test throughput_checker_test
+: throughput_checker_test.cpp
 ;

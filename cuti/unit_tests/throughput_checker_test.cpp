@@ -17,7 +17,7 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#include <cuti/throughput_tracker.hpp>
+#include <cuti/throughput_checker.hpp>
 
 #undef NDEBUG
 #include <cassert>
@@ -30,25 +30,25 @@ using namespace cuti;
 void test_next_tick()
 {
   /*
-   * Verify that constructing a tracker, recording a transfer and
+   * Verify that constructing a checker, recording a transfer and
    * checking for low speed each set the next tick to somewhere in the
    * future.
    */
   time_point_t clock = cuti_clock_t::now();
-  throughput_tracker_t<user_clock_object_t> tracker(
+  throughput_checker_t<user_clock_object_t> checker(
     1, 1, seconds_t(1), user_clock_object_t(clock));
 
-  auto next = tracker.next_tick();
+  auto next = checker.next_tick();
   assert(next > clock);
 
   clock += seconds_t(1);
-  tracker.record_transfer(0);
-  next = tracker.next_tick();
+  checker.record_transfer(0);
+  next = checker.next_tick();
   assert(next > clock);
 
   clock += seconds_t(1);
-  tracker.is_low();
-  next = tracker.next_tick();
+  checker.is_low();
+  next = checker.next_tick();
   assert(next > clock);
 }
   
@@ -56,108 +56,108 @@ void test_speed()
 {
   {
     time_point_t clock = cuti_clock_t::now();
-    throughput_tracker_t<user_clock_object_t> tracker(
+    throughput_checker_t<user_clock_object_t> checker(
       512, 1, seconds_t(1), user_clock_object_t(clock));
-    assert(!tracker.is_low());
+    assert(!checker.is_low());
 
     clock += seconds_t(1);
-    assert(tracker.is_low());
+    assert(checker.is_low());
   }
 
   {
     time_point_t clock = cuti_clock_t::now();
-    throughput_tracker_t<user_clock_object_t> tracker(
+    throughput_checker_t<user_clock_object_t> checker(
       512, 2, seconds_t(1), user_clock_object_t(clock));
-    assert(!tracker.is_low());
+    assert(!checker.is_low());
 
     clock += seconds_t(1);
-    assert(!tracker.is_low());
+    assert(!checker.is_low());
 
     clock += seconds_t(1);
-    assert(tracker.is_low());
+    assert(checker.is_low());
   }
 
   {
     time_point_t clock = cuti_clock_t::now();
-    throughput_tracker_t<user_clock_object_t> tracker(
+    throughput_checker_t<user_clock_object_t> checker(
       512, 1, seconds_t(1), user_clock_object_t(clock));
-    tracker.record_transfer(0);
+    checker.record_transfer(0);
 
     clock += seconds_t(1);
-    assert(tracker.is_low());
+    assert(checker.is_low());
   }
 
   {
     time_point_t clock = cuti_clock_t::now();
-    throughput_tracker_t<user_clock_object_t> tracker(
+    throughput_checker_t<user_clock_object_t> checker(
       512, 2, seconds_t(1), user_clock_object_t(clock));
-    tracker.record_transfer(0);
-    assert(!tracker.is_low());
+    checker.record_transfer(0);
+    assert(!checker.is_low());
 
     clock += seconds_t(1);
-    tracker.record_transfer(0);
-    assert(!tracker.is_low());
+    checker.record_transfer(0);
+    assert(!checker.is_low());
 
     clock += seconds_t(1);
-    assert(tracker.is_low());
+    assert(checker.is_low());
   }
 
   {
     time_point_t clock = cuti_clock_t::now();
-    throughput_tracker_t<user_clock_object_t> tracker(
+    throughput_checker_t<user_clock_object_t> checker(
       512, 1, seconds_t(1), user_clock_object_t(clock));
-    tracker.record_transfer(511);
-    assert(!tracker.is_low());
+    checker.record_transfer(511);
+    assert(!checker.is_low());
 
     clock += seconds_t(1);
-    assert(tracker.is_low());
+    assert(checker.is_low());
   }
 
   {
     time_point_t clock = cuti_clock_t::now();
-    throughput_tracker_t<user_clock_object_t> tracker(
+    throughput_checker_t<user_clock_object_t> checker(
       512, 2, seconds_t(1), user_clock_object_t(clock));
-    tracker.record_transfer(511);
-    assert(!tracker.is_low());
+    checker.record_transfer(511);
+    assert(!checker.is_low());
 
     clock += seconds_t(1);
-    tracker.record_transfer(511);
-    assert(!tracker.is_low());
+    checker.record_transfer(511);
+    assert(!checker.is_low());
 
     clock += seconds_t(1);
-    assert(tracker.is_low());
+    assert(checker.is_low());
   }
 
   {
     time_point_t clock = cuti_clock_t::now();
-    throughput_tracker_t<user_clock_object_t> tracker(
+    throughput_checker_t<user_clock_object_t> checker(
       512, 1, seconds_t(1), user_clock_object_t(clock));
-    tracker.record_transfer(512);
-    assert(!tracker.is_low());
+    checker.record_transfer(512);
+    assert(!checker.is_low());
 
     clock += seconds_t(1);
-    tracker.record_transfer(511);
-    assert(!tracker.is_low());
+    checker.record_transfer(511);
+    assert(!checker.is_low());
 
     clock += seconds_t(1);
-    assert(tracker.is_low());
+    assert(checker.is_low());
   }
 
   {
     time_point_t clock = cuti_clock_t::now();
-    throughput_tracker_t<user_clock_object_t> tracker(
+    throughput_checker_t<user_clock_object_t> checker(
       512, 120, seconds_t(1), user_clock_object_t(clock));
-    tracker.record_transfer(512);
+    checker.record_transfer(512);
 
     for(unsigned int i = 0; i != 120; ++i)
     {
-      tracker.record_transfer(511 - i);
+      checker.record_transfer(511 - i);
       clock += seconds_t(1);
-      assert(!tracker.is_low());
+      assert(!checker.is_low());
     }
 
     clock += seconds_t(1);
-    assert(tracker.is_low());
+    assert(checker.is_low());
   }
 }
 

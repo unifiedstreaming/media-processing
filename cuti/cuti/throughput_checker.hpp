@@ -17,8 +17,8 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#ifndef CUTI_THROUGHPUT_TRACKER_HPP_
-#define CUTI_THROUGHPUT_TRACKER_HPP_
+#ifndef CUTI_THROUGHPUT_CHECKER_HPP_
+#define CUTI_THROUGHPUT_CHECKER_HPP_
 
 #include "clock_object.hpp"
 #include "chrono_types.hpp"
@@ -31,14 +31,14 @@ namespace cuti
 {
 
 template<typename ClockObjectT = default_clock_object_t>
-struct throughput_tracker_t
+struct throughput_checker_t
 {
   /*
-   * Constructs a throughput tracker.  The throughput is considered to
+   * Constructs a throughput checker.  The throughput is considered to
    * be low if less than min_bytes_per_tick were transferred for at
    * least low_ticks_limit ticks.
    */
-  throughput_tracker_t(std::size_t min_bytes_per_tick,
+  throughput_checker_t(std::size_t min_bytes_per_tick,
                        unsigned int low_ticks_limit,
                        duration_t tick_length,
                        ClockObjectT clock = ClockObjectT{})
