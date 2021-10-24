@@ -78,8 +78,11 @@ struct CUTI_ABI nb_outbuf_t
   {
     assert(this->writable());
 
-    *wp_ = c;
-    ++wp_;
+    if(error_status_ == 0)
+    {
+      *wp_ = c;
+      ++wp_;
+    }
   }
 
   /*
@@ -96,7 +99,10 @@ struct CUTI_ABI nb_outbuf_t
    */
   void start_flush()
   {
-    limit_ = wp_;
+    if(rp_ != wp_)
+    {
+      limit_ = wp_;
+    }
   }
 
   /*
@@ -115,19 +121,14 @@ struct CUTI_ABI nb_outbuf_t
   ~nb_outbuf_t();
 
 private :
-  void on_already_writable(scheduler_t& scheduler);
-  void on_sink_writable(scheduler_t& scheduler);
+  void check_writable(scheduler_t& scheduler);
 
 private :
   logging_context_t& context_;
 
   std::unique_ptr<nb_sink_t> sink_;
 
-  nb_tickets_holder_t<nb_outbuf_t, &nb_outbuf_t::on_already_writable>
-    already_writable_holder_;
-  nb_tickets_holder_t<nb_outbuf_t, &nb_outbuf_t::on_sink_writable>
-    sink_writable_holder_;
-
+  nb_tickets_holder_t<nb_outbuf_t, &nb_outbuf_t::check_writable> holder_;
   callback_t callback_;
 
   char* const buf_;

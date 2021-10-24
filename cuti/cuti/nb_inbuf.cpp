@@ -130,8 +130,7 @@ void nb_inbuf_t::check_readable(scheduler_t& scheduler)
     if(next == nullptr)
     {
       // spurious wakeup: reschedule
-      holder_.call_when_readable(scheduler, *source_);
-      callback_ = std::move(callback);
+      this->call_when_readable(scheduler, std::move(callback));
       return;
     }
 

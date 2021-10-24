@@ -34,8 +34,7 @@ nb_outbuf_t::nb_outbuf_t(logging_context_t& context,
                          std::size_t bufsize)
 : context_(context)
 , sink_((assert(sink != nullptr), std::move(sink)))
-, already_writable_holder_(*this)
-, sink_writable_holder_(*this)
+, holder_(*this)
 , callback_(nullptr)
 , buf_((assert(bufsize != 0), new char[bufsize]))
 , rp_(buf_)
@@ -50,14 +49,17 @@ char const* nb_outbuf_t::write(char const* first, char const* last)
   assert(this->writable());
 
   std::size_t count = last - first;
-  std::size_t available = limit_ - wp_;
-  if(count > available)
+  if(error_status_ == 0)
   {
-    count = available;
+    std::size_t available = limit_ - wp_;
+    if(count > available)
+    {
+      count = available;
+    }
+    
+    std::copy(first, first + count, wp_);
+    wp_ += count;
   }
-
-  std::copy(first, first + count, wp_);
-  wp_ += count;
 
   return first + count;
 }
@@ -71,19 +73,11 @@ void nb_outbuf_t::call_when_writable(scheduler_t& scheduler,
 
   if(this->writable())
   {
-    already_writable_holder_.call_asap(scheduler);
-  }
-  else if(rp_ == wp_ || error_status_ != 0)
-  {
-    rp_ = buf_;
-    wp_ = buf_;
-    limit_ = ebuf_;
-
-    already_writable_holder_.call_asap(scheduler);
+    holder_.call_asap(scheduler);
   }
   else
   {
-    sink_writable_holder_.call_when_writable(scheduler, *sink_);
+    holder_.call_when_writable(scheduler, *sink_);
   }
   
   callback_ = std::move(callback);
@@ -92,8 +86,7 @@ void nb_outbuf_t::call_when_writable(scheduler_t& scheduler,
 void nb_outbuf_t::cancel_when_writable() noexcept
 {
   callback_ = nullptr;
-  sink_writable_holder_.cancel();
-  already_writable_holder_.cancel();
+  holder_.cancel();
 }
 
 nb_outbuf_t::~nb_outbuf_t()
@@ -101,74 +94,61 @@ nb_outbuf_t::~nb_outbuf_t()
   delete[] buf_;
 }
 
-void nb_outbuf_t::on_already_writable(scheduler_t& scheduler)
+void nb_outbuf_t::check_writable(scheduler_t& scheduler)
 {
   assert(callback_ != nullptr);
   callback_t callback = std::move(callback_);
 
   if(!this->writable())
   {
-    // transitioned to non-writable since last call_when_writable()
-    this->call_when_writable(scheduler, std::move(callback));
-    return;
-  }
+    assert(rp_ != wp_);
+    assert(error_status_ == 0);
 
-  callback();
-}
+    char const* next;
+    error_status_ = sink_->write(rp_, wp_, next);
+    assert(error_status_ == 0 || next == wp_);
+
+    if(error_status_ != 0)
+    {
+      if(auto msg = context_.message_at(loglevel_t::error))
+      {
+        *msg << "nb_outbuf[" << this->name() <<
+          "]: " << system_error_string(error_status_);
+      }
+    }
+    else if(next == nullptr)
+    {
+      if(auto msg = context_.message_at(loglevel_t::debug))
+      {
+        *msg << "nb_outbuf[" << this->name() <<
+          "]: can\'t send yet";
+      }
+    }
+    else
+    {
+      if(auto msg = context_.message_at(loglevel_t::debug))
+      {
+        *msg << "nb_outbuf[" << this->name() <<
+          "]: " << next - rp_ << " byte(s) sent";
+      }
+    }   
     
-void nb_outbuf_t::on_sink_writable(scheduler_t& scheduler)
-{
-  assert(callback_ != nullptr);
-  callback_t callback = std::move(callback_);
-
-  assert(!this->writable());
-  assert(rp_ != wp_);
-  assert(error_status_ == 0);
-
-  char const* next;
-  error_status_ = sink_->write(rp_, wp_, next);
-  assert(error_status_ == 0 || next == wp_);
-
-  if(error_status_ != 0)
-  {
-    if(auto msg = context_.message_at(loglevel_t::error))
+    if(next != nullptr)
     {
-      *msg << "nb_outbuf[" << this->name() <<
-        "]: " << system_error_string(error_status_);
+      rp_ = next;
     }
-  }
-  else if(next == nullptr)
-  {
-    if(auto msg = context_.message_at(loglevel_t::debug))
-    {
-      *msg << "nb_outbuf[" << this->name() <<
-        "]: can\'t send yet";
-    }
-  }
-  else
-  {
-    if(auto msg = context_.message_at(loglevel_t::debug))
-    {
-      *msg << "nb_outbuf[" << this->name() <<
-        "]: " << next - rp_ << " byte(s) sent";
-    }
-  }   
-    
-  if(next != nullptr)
-  {
-    rp_ = next;
-  }
 
-  if(rp_ != wp_)
-  {
-    // more to write: reschedule
-    this->call_when_writable(scheduler, std::move(callback));
-    return;
-  }
+    if(rp_ != wp_)
+    {
+      // more to write: reschedule
+      this->call_when_writable(scheduler, std::move(callback));
+      return;
+    }
       
-  rp_ = buf_;
-  wp_ = buf_;
-  limit_ = ebuf_;    
+    rp_ = buf_;
+    wp_ = buf_;
+    limit_ = ebuf_;
+  }
 
   callback();
 }
