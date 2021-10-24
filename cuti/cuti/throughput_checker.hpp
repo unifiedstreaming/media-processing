@@ -74,10 +74,16 @@ struct throughput_checker_t
     time_point_t now = clock_.now();
     while(next_tick_ <= now)
     {
-      if(current_tick_bytes_ < min_bytes_per_tick_ &&
-         n_low_ticks_ < low_ticks_limit_)
+      if(n_low_ticks_ < low_ticks_limit_)
       {
-        ++n_low_ticks_;
+        if(current_tick_bytes_ < min_bytes_per_tick_)
+        {
+          ++n_low_ticks_;
+        }
+        else
+        {
+          n_low_ticks_ = 0;
+        }
       }
 
       current_tick_bytes_ = 0;
@@ -90,7 +96,6 @@ struct throughput_checker_t
     }
     else
     {
-      n_low_ticks_ = 0;
       current_tick_bytes_ = min_bytes_per_tick_;
     }
 
