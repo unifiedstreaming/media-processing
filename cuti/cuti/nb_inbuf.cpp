@@ -34,8 +34,7 @@ nb_inbuf_t::nb_inbuf_t(logging_context_t& context,
                        std::size_t bufsize)
 : context_(context)
 , source_((assert(source != nullptr), std::move(source)))
-, already_readable_holder_(*this)
-, source_readable_holder_(*this)
+, holder_(*this)
 , callback_(nullptr)
 , buf_((assert(bufsize != 0), new char[bufsize]))
 , rp_(buf_)
@@ -71,11 +70,11 @@ void nb_inbuf_t::call_when_readable(scheduler_t& scheduler,
 
   if(this->readable())
   {
-    already_readable_holder_.call_asap(scheduler);
+    holder_.call_asap(scheduler);
   }
   else
   {
-    source_readable_holder_.call_when_readable(scheduler, *source_);
+    holder_.call_when_readable(scheduler, *source_);
   }
 
   callback_ = std::move(callback);
@@ -84,8 +83,7 @@ void nb_inbuf_t::call_when_readable(scheduler_t& scheduler,
 void nb_inbuf_t::cancel_when_readable() noexcept
 {
   callback_ = nullptr;
-  source_readable_holder_.cancel();
-  already_readable_holder_.cancel();
+  holder_.cancel();
 }
 
 nb_inbuf_t::~nb_inbuf_t()
@@ -93,67 +91,54 @@ nb_inbuf_t::~nb_inbuf_t()
   delete[] buf_;
 }
 
-void nb_inbuf_t::on_already_readable(scheduler_t& scheduler)
+void nb_inbuf_t::check_readable(scheduler_t& scheduler)
 {
   assert(callback_ != nullptr);
   callback_t callback = std::move(callback_);
 
   if(!this->readable())
   {
-    // transitioned to non-readable since last call_when_readable()
-    this->call_when_readable(scheduler, std::move(callback));
-    return;
-  }
+    char *next;
+    error_status_ = source_->read(buf_, ebuf_, next);
+    assert(error_status_ == 0 || next == buf_);
 
-  callback();
-}
-  
-void nb_inbuf_t::on_source_readable(scheduler_t& scheduler)
-{
-  assert(callback_ != nullptr);
-  callback_t callback = std::move(callback_);
-
-  assert(!this->readable());
-
-  char *next;
-  error_status_ = source_->read(buf_, ebuf_, next);
-  assert(error_status_ == 0 || next == buf_);
-
-  if(error_status_ != 0)
-  {
-    if(auto msg = context_.message_at(loglevel_t::error))
+    if(error_status_ != 0)
     {
-      *msg << "nb_inbuf[" << this->name() <<
-        "]: " << system_error_string(error_status_);
+      if(auto msg = context_.message_at(loglevel_t::error))
+      {
+        *msg << "nb_inbuf[" << this->name() <<
+          "]: " << system_error_string(error_status_);
+      }
     }
-  }
-  else if(next == nullptr)
-  {
-    if(auto msg = context_.message_at(loglevel_t::debug))
+    else if(next == nullptr)
     {
-      *msg << "nb_inbuf[" << this->name() <<
+      if(auto msg = context_.message_at(loglevel_t::debug))
+      {
+        *msg << "nb_inbuf[" << this->name() <<
         "]: can\'t receive yet";
+      }
     }
-  }
-  else
-  {
-    if(auto msg = context_.message_at(loglevel_t::debug))
+    else
     {
-      *msg << "nb_inbuf[" << this->name() <<
-        "]: " << next - buf_ << " byte(s) received";
-    }
-  }   
+      if(auto msg = context_.message_at(loglevel_t::debug))
+      {
+        *msg << "nb_inbuf[" << this->name() <<
+          "]: " << next - buf_ << " byte(s) received";
+      }
+    }   
     
-  if(next == nullptr)
-  {
-    // spurious wakeup: reschedule
-    this->call_when_readable(scheduler, std::move(callback));
-    return;
-  }
+    if(next == nullptr)
+    {
+      // spurious wakeup: reschedule
+      holder_.call_when_readable(scheduler, *source_);
+      callback_ = std::move(callback);
+      return;
+    }
 
-  rp_ = buf_;
-  ep_ = next;
-  at_eof_ = rp_ == ep_; 
+    rp_ = buf_;
+    ep_ = next;
+    at_eof_ = rp_ == ep_;
+  }
     
   callback();
 }

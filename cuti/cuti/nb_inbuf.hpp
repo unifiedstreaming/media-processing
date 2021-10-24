@@ -102,7 +102,7 @@ struct CUTI_ABI nb_inbuf_t
    * Reads up to last - first characters, storing them in the range
    * starting at first.
    * Returns the end of the range of the characters read, which is
-   * first on EOF.
+   * first if the buffer is at eof.
    * PRE: this->readable().
    */
   char* read(char* first, char const* last);
@@ -123,18 +123,14 @@ struct CUTI_ABI nb_inbuf_t
   ~nb_inbuf_t();
 
 private :
-  void on_already_readable(scheduler_t& scheduler);
-  void on_source_readable(scheduler_t& scheduler);
+  void check_readable(scheduler_t& scheduler);
 
 private :
   logging_context_t& context_;
 
   std::unique_ptr<nb_source_t> source_;
 
-  nb_tickets_holder_t<nb_inbuf_t, &nb_inbuf_t::on_already_readable>
-    already_readable_holder_;
-  nb_tickets_holder_t<nb_inbuf_t, &nb_inbuf_t::on_source_readable>
-    source_readable_holder_;
+  nb_tickets_holder_t<nb_inbuf_t, &nb_inbuf_t::check_readable> holder_;
   callback_t callback_;
 
   char* const buf_;
