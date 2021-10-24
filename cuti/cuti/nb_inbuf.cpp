@@ -71,7 +71,7 @@ void nb_inbuf_t::call_when_readable(scheduler_t& scheduler,
 
   if(this->readable())
   {
-    already_readable_holder_.call_alarm(scheduler, duration_t::zero());
+    already_readable_holder_.call_asap(scheduler);
   }
   else
   {

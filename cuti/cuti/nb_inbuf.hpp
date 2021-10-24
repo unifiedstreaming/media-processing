@@ -24,7 +24,7 @@
 #include "eof.hpp"
 #include "linkage.h"
 #include "nb_source.hpp"
-#include "nb_ticket_holder.hpp"
+#include "nb_tickets_holder.hpp"
 
 #include <cassert>
 #include <cstddef>
@@ -131,9 +131,9 @@ private :
 
   std::unique_ptr<nb_source_t> source_;
 
-  nb_ticket_holder_t<nb_inbuf_t, &nb_inbuf_t::on_already_readable>
+  nb_tickets_holder_t<nb_inbuf_t, &nb_inbuf_t::on_already_readable>
     already_readable_holder_;
-  nb_ticket_holder_t<nb_inbuf_t, &nb_inbuf_t::on_source_readable>
+  nb_tickets_holder_t<nb_inbuf_t, &nb_inbuf_t::on_source_readable>
     source_readable_holder_;
   callback_t callback_;
 

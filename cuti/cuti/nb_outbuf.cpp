@@ -71,7 +71,7 @@ void nb_outbuf_t::call_when_writable(scheduler_t& scheduler,
 
   if(this->writable())
   {
-    already_writable_holder_.call_alarm(scheduler, duration_t::zero());
+    already_writable_holder_.call_asap(scheduler);
   }
   else if(rp_ == wp_ || error_status_ != 0)
   {
@@ -79,7 +79,7 @@ void nb_outbuf_t::call_when_writable(scheduler_t& scheduler,
     wp_ = buf_;
     limit_ = ebuf_;
 
-    already_writable_holder_.call_alarm(scheduler, duration_t::zero());
+    already_writable_holder_.call_asap(scheduler);
   }
   else
   {

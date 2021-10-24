@@ -23,7 +23,7 @@
 #include "callback.hpp"
 #include "linkage.h"
 #include "nb_sink.hpp"
-#include "nb_ticket_holder.hpp"
+#include "nb_tickets_holder.hpp"
 
 #include <cstddef>
 #include <memory>
@@ -123,9 +123,9 @@ private :
 
   std::unique_ptr<nb_sink_t> sink_;
 
-  nb_ticket_holder_t<nb_outbuf_t, &nb_outbuf_t::on_already_writable>
+  nb_tickets_holder_t<nb_outbuf_t, &nb_outbuf_t::on_already_writable>
     already_writable_holder_;
-  nb_ticket_holder_t<nb_outbuf_t, &nb_outbuf_t::on_sink_writable>
+  nb_tickets_holder_t<nb_outbuf_t, &nb_outbuf_t::on_sink_writable>
     sink_writable_holder_;
 
   callback_t callback_;
