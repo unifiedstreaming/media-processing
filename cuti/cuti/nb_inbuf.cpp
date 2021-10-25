@@ -151,7 +151,7 @@ void nb_inbuf_t::check_readable(scheduler_t& scheduler)
         next = buf_;
       }
     }
-        
+
     if(error_status_ != 0)
     {
       if(auto msg = context_.message_at(loglevel_t::error))

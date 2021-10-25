@@ -432,10 +432,68 @@ void test_inbuf_throughput_checking(logging_context_t& context,
   assert(server_in->error_status() == timeout_system_error());
 }
 
+void flood(scheduler_t& scheduler, nb_outbuf_t& outbuf)
+{
+  while(outbuf.writable() && outbuf.error_status() == 0) 
+  {
+    outbuf.put('*');
+  }
+
+  if(!outbuf.writable())
+  {
+    outbuf.call_when_writable(scheduler, [&] { flood(scheduler, outbuf); });
+  }
+}
+
+void test_outbuf_throughput_checking(logging_context_t& context,
+                                     bool enable_while_running)
+{
+  if(auto msg = context.message_at(loglevel_t::info))
+  {
+    *msg << "test_outbuf_throughput_checking: enable_while_running: " <<
+      enable_while_running;
+  }
+
+  default_scheduler_t scheduler;
+
+  std::unique_ptr<tcp_connection_t> client_side;
+  std::unique_ptr<tcp_connection_t> server_side;
+  std::tie(client_side, server_side) = make_connected_pair();
+
+  std::unique_ptr<nb_inbuf_t> client_in;
+  std::unique_ptr<nb_outbuf_t> client_out;
+  std::tie(client_in, client_out) =
+    make_nb_tcp_buffers(context, std::move(client_side));
+
+  if(enable_while_running)
+  {
+    client_out->call_when_writable(scheduler,
+      [&] { flood(scheduler, *client_out); });
+    client_out->enable_throughput_checking(512, 20, milliseconds_t(1));
+  }
+  else
+  {
+    client_out->enable_throughput_checking(512, 20, milliseconds_t(1));
+    client_out->call_when_writable(scheduler,
+      [&] { flood(scheduler, *client_out); });
+  }
+
+  while(auto cb = scheduler.wait())
+  {
+    cb();
+  }
+
+  assert(client_out->writable());
+  assert(client_out->error_status() == timeout_system_error());
+}
+
 void test_throughput_checking(logging_context_t& context)
 {
   test_inbuf_throughput_checking(context, false);
   test_inbuf_throughput_checking(context, true);
+
+  test_outbuf_throughput_checking(context, false);
+  test_outbuf_throughput_checking(context, true);
 }
   
 struct options_t

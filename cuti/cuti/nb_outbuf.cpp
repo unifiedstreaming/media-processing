@@ -36,6 +36,7 @@ nb_outbuf_t::nb_outbuf_t(logging_context_t& context,
 , sink_((assert(sink != nullptr), std::move(sink)))
 , holder_(*this)
 , callback_(nullptr)
+, checker_(std::nullopt)
 , buf_((assert(bufsize != 0), new char[bufsize]))
 , rp_(buf_)
 , wp_(buf_)
@@ -64,6 +65,35 @@ char const* nb_outbuf_t::write(char const* first, char const* last)
   return first + count;
 }
 
+void nb_outbuf_t::enable_throughput_checking(std::size_t min_bytes_per_tick,
+                                             unsigned int low_ticks_limit,
+                                             duration_t tick_length)
+{
+  this->disable_throughput_checking();
+
+  checker_.emplace(min_bytes_per_tick, low_ticks_limit, tick_length);
+  auto guard = make_scoped_guard([&] { checker_.reset(); });
+
+  if(auto scheduler = holder_.current_scheduler())
+  {
+    assert(callback_ != nullptr);
+    this->call_when_writable(*scheduler, std::move(callback_));
+  }
+
+  guard.dismiss();
+}
+  
+void nb_outbuf_t::disable_throughput_checking()
+{
+  checker_.reset();
+
+  if(auto scheduler = holder_.current_scheduler())
+  {
+    assert(callback_ != nullptr);
+    this->call_when_writable(*scheduler, std::move(callback_));
+  }
+}
+
 void nb_outbuf_t::call_when_writable(scheduler_t& scheduler,
                                      callback_t callback)
 {
@@ -74,6 +104,10 @@ void nb_outbuf_t::call_when_writable(scheduler_t& scheduler,
   if(this->writable())
   {
     holder_.call_asap(scheduler);
+  }
+  else if(checker_ != std::nullopt)
+  {
+    holder_.call_when_writable(scheduler, *sink_, checker_->next_tick());
   }
   else
   {
@@ -107,6 +141,21 @@ void nb_outbuf_t::check_writable(scheduler_t& scheduler)
     char const* next;
     error_status_ = sink_->write(rp_, wp_, next);
     assert(error_status_ == 0 || next == wp_);
+
+    if(error_status_ == 0 && checker_ != std::nullopt)
+    {
+      error_status_ = checker_->record_transfer(
+        next != nullptr ? next - rp_ : 0);
+      if(error_status_ != 0)
+      {
+        if(auto msg = context_.message_at(loglevel_t::error))
+        {
+          *msg << "nb_outbuf[" << this->name() <<
+            "]: insufficient throughput detected";
+        }
+        next = wp_;
+      }
+    }
 
     if(error_status_ != 0)
     {
