@@ -21,6 +21,7 @@
 
 #include "logging_context.hpp"
 #include "scheduler.hpp"
+#include "scoped_guard.hpp"
 #include "system_error.hpp"
 
 #include <algorithm>
@@ -36,6 +37,7 @@ nb_inbuf_t::nb_inbuf_t(logging_context_t& context,
 , source_((assert(source != nullptr), std::move(source)))
 , holder_(*this)
 , callback_(nullptr)
+, checker_(std::nullopt)
 , buf_((assert(bufsize != 0), new char[bufsize]))
 , rp_(buf_)
 , ep_(buf_)
@@ -43,6 +45,35 @@ nb_inbuf_t::nb_inbuf_t(logging_context_t& context,
 , at_eof_(false)
 , error_status_(0)
 { }
+
+void nb_inbuf_t::enable_throughput_checking(std::size_t min_bytes_per_tick,
+                                            unsigned int low_ticks_limit,
+                                            duration_t tick_length)
+{
+  this->disable_throughput_checking();
+
+  checker_.emplace(min_bytes_per_tick, low_ticks_limit, tick_length);
+  auto guard = make_scoped_guard([&] { checker_.reset(); });
+
+  if(auto scheduler = holder_.current_scheduler())
+  {
+    assert(callback_ != nullptr);
+    this->call_when_readable(*scheduler, std::move(callback_));
+  }
+
+  guard.dismiss();
+}
+  
+void nb_inbuf_t::disable_throughput_checking()
+{
+  checker_.reset();
+
+  if(auto scheduler = holder_.current_scheduler())
+  {
+    assert(callback_ != nullptr);
+    this->call_when_readable(*scheduler, std::move(callback_));
+  }
+}
 
 char* nb_inbuf_t::read(char *first, char const* last)
 {
@@ -71,6 +102,10 @@ void nb_inbuf_t::call_when_readable(scheduler_t& scheduler,
   if(this->readable())
   {
     holder_.call_asap(scheduler);
+  }
+  else if(checker_ != std::nullopt)
+  {
+    holder_.call_when_readable(scheduler, *source_, checker_->next_tick());
   }
   else
   {
@@ -102,6 +137,21 @@ void nb_inbuf_t::check_readable(scheduler_t& scheduler)
     error_status_ = source_->read(buf_, ebuf_, next);
     assert(error_status_ == 0 || next == buf_);
 
+    if(error_status_ == 0 && checker_ != std::nullopt)
+    {
+      error_status_ = checker_->record_transfer(
+        next != nullptr ? next - buf_ : 0);
+      if(error_status_ != 0)
+      {
+        if(auto msg = context_.message_at(loglevel_t::error))
+        {
+          *msg << "nb_inbuf[" << this->name() <<
+            "]: insufficient throughput detected";
+        }
+        next = buf_;
+      }
+    }
+        
     if(error_status_ != 0)
     {
       if(auto msg = context_.message_at(loglevel_t::error))

@@ -28,6 +28,7 @@
 #include <cuti/nb_tcp_buffers.hpp>
 #include <cuti/option_walker.hpp>
 #include <cuti/streambuf_backend.hpp>
+#include <cuti/system_error.hpp>
 
 #include <iostream>
 #include <tuple>
@@ -285,7 +286,6 @@ std::string make_large_payload()
   return result;
 }
   
-
 template<bool use_bulk_io>
 void do_test_tcp_buffers(logging_context_t& context,
                          std::size_t circ_bufsize,
@@ -376,6 +376,68 @@ void test_tcp_buffers(logging_context_t& context)
     256 * 1024, 256 * 1024, 256 * 1024, large_payload);
 }
 
+void drain(scheduler_t& scheduler, nb_inbuf_t& inbuf)
+{
+  while(inbuf.readable() && inbuf.peek() != eof) 
+  {
+    inbuf.skip();
+  }
+
+  if(!inbuf.readable())
+  {
+    inbuf.call_when_readable(scheduler, [&] { drain(scheduler, inbuf); });
+  }
+}
+
+void test_inbuf_throughput_checking(logging_context_t& context,
+                                    bool enable_while_running)
+{
+  if(auto msg = context.message_at(loglevel_t::info))
+  {
+    *msg << "test_inbuf_throughput_checking: enable_while_running: " <<
+      enable_while_running;
+  }
+
+  default_scheduler_t scheduler;
+
+  std::unique_ptr<tcp_connection_t> client_side;
+  std::unique_ptr<tcp_connection_t> server_side;
+  std::tie(client_side, server_side) = make_connected_pair();
+
+  std::unique_ptr<nb_inbuf_t> server_in;
+  std::unique_ptr<nb_outbuf_t> server_out;
+  std::tie(server_in, server_out) =
+    make_nb_tcp_buffers(context, std::move(server_side));
+
+  if(enable_while_running)
+  {
+    server_in->call_when_readable(scheduler,
+      [&] { drain(scheduler, *server_in); });
+    server_in->enable_throughput_checking(512, 10, milliseconds_t(1));
+  }
+  else
+  {
+    server_in->enable_throughput_checking(512, 10, milliseconds_t(1));
+    server_in->call_when_readable(scheduler,
+      [&] { drain(scheduler, *server_in); });
+  }
+
+  while(auto cb = scheduler.wait())
+  {
+    cb();
+  }
+
+  assert(server_in->readable());
+  assert(server_in->peek() == eof);
+  assert(server_in->error_status() == timeout_system_error());
+}
+
+void test_throughput_checking(logging_context_t& context)
+{
+  test_inbuf_throughput_checking(context, false);
+  test_inbuf_throughput_checking(context, true);
+}
+  
 struct options_t
 {
   static loglevel_t constexpr default_loglevel = loglevel_t::error;
@@ -425,6 +487,7 @@ int run_tests(int argc, char const* const* argv)
   
   test_string_buffers(context);
   test_tcp_buffers(context);
+  test_throughput_checking(context);
 
   return 0;
 }

@@ -25,10 +25,12 @@
 #include "linkage.h"
 #include "nb_source.hpp"
 #include "nb_tickets_holder.hpp"
+#include "throughput_checker.hpp"
 
 #include <cassert>
 #include <cstddef>
 #include <memory>
+#include <optional>
 #include <string>
 
 namespace cuti
@@ -47,6 +49,19 @@ struct CUTI_ABI nb_inbuf_t
 
   nb_inbuf_t(nb_inbuf_t const&) = delete;
   nb_inbuf_t& operator=(nb_inbuf_t const&) = delete;
+
+  /*
+   * Enable throughput checking, which is disabled by default.  See
+   * throughput_checker.hpp for details.
+   */
+  void enable_throughput_checking(std::size_t min_bytes_per_tick,
+                                  unsigned int low_ticks_limit,
+                                  duration_t tick_length = seconds_t(1));
+
+  /*
+   * Disable throughput checking.
+   */
+  void disable_throughput_checking();  
 
   /*
    * Returns a descriptive name for the buffer.
@@ -132,6 +147,7 @@ private :
 
   nb_tickets_holder_t<nb_inbuf_t, &nb_inbuf_t::check_readable> holder_;
   callback_t callback_;
+  std::optional<throughput_checker_t<>> checker_;
 
   char* const buf_;
   char const* rp_;
