@@ -148,7 +148,7 @@ void nb_outbuf_t::check_writable(scheduler_t& scheduler)
         next != nullptr ? next - rp_ : 0);
       if(error_status_ != 0)
       {
-        if(auto msg = context_.message_at(loglevel_t::error))
+        if(auto msg = context_.message_at(loglevel_t::warning))
         {
           *msg << "nb_outbuf[" << this->name() <<
             "]: insufficient throughput detected";
@@ -159,7 +159,7 @@ void nb_outbuf_t::check_writable(scheduler_t& scheduler)
 
     if(error_status_ != 0)
     {
-      if(auto msg = context_.message_at(loglevel_t::error))
+      if(auto msg = context_.message_at(loglevel_t::warning))
       {
         *msg << "nb_outbuf[" << this->name() <<
           "]: " << system_error_string(error_status_);

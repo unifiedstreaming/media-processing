@@ -143,7 +143,7 @@ void nb_inbuf_t::check_readable(scheduler_t& scheduler)
         next != nullptr ? next - buf_ : 0);
       if(error_status_ != 0)
       {
-        if(auto msg = context_.message_at(loglevel_t::error))
+        if(auto msg = context_.message_at(loglevel_t::warning))
         {
           *msg << "nb_inbuf[" << this->name() <<
             "]: insufficient throughput detected";
@@ -154,7 +154,7 @@ void nb_inbuf_t::check_readable(scheduler_t& scheduler)
 
     if(error_status_ != 0)
     {
-      if(auto msg = context_.message_at(loglevel_t::error))
+      if(auto msg = context_.message_at(loglevel_t::warning))
       {
         *msg << "nb_inbuf[" << this->name() <<
           "]: " << system_error_string(error_status_);
