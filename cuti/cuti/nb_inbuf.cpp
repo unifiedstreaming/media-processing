@@ -66,7 +66,7 @@ void nb_inbuf_t::call_when_readable(scheduler_t& scheduler,
 {
   assert(callback != nullptr);
 
-  this->cancel_when_readable();
+  callback_ = nullptr;
 
   if(this->readable())
   {

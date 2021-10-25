@@ -69,7 +69,7 @@ void nb_outbuf_t::call_when_writable(scheduler_t& scheduler,
 {
   assert(callback != nullptr);
 
-  this->cancel_when_writable();
+  callback_ = nullptr;
 
   if(this->writable())
   {
