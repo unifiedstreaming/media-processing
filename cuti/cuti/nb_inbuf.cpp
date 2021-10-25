@@ -145,7 +145,7 @@ void nb_inbuf_t::check_readable(scheduler_t& scheduler)
       {
         if(auto msg = context_.message_at(loglevel_t::warning))
         {
-          *msg << "nb_inbuf[" << this->name() <<
+          *msg << "nb_inbuf[" << *this <<
             "]: insufficient throughput detected";
         }
         next = buf_;
@@ -156,7 +156,7 @@ void nb_inbuf_t::check_readable(scheduler_t& scheduler)
     {
       if(auto msg = context_.message_at(loglevel_t::warning))
       {
-        *msg << "nb_inbuf[" << this->name() <<
+        *msg << "nb_inbuf[" << *this <<
           "]: " << system_error_string(error_status_);
       }
     }
@@ -164,7 +164,7 @@ void nb_inbuf_t::check_readable(scheduler_t& scheduler)
     {
       if(auto msg = context_.message_at(loglevel_t::debug))
       {
-        *msg << "nb_inbuf[" << this->name() <<
+        *msg << "nb_inbuf[" << *this <<
         "]: can\'t receive yet";
       }
     }
@@ -172,7 +172,7 @@ void nb_inbuf_t::check_readable(scheduler_t& scheduler)
     {
       if(auto msg = context_.message_at(loglevel_t::debug))
       {
-        *msg << "nb_inbuf[" << this->name() <<
+        *msg << "nb_inbuf[" << *this <<
           "]: " << next - buf_ << " byte(s) received";
       }
     }   

@@ -24,6 +24,8 @@
 #include "cancellation_ticket.hpp"
 #include "linkage.h"
 
+#include <iosfwd>
+
 namespace cuti
 {
 
@@ -59,11 +61,8 @@ struct CUTI_ABI nb_sink_t
   virtual cancellation_ticket_t call_when_writable(
     scheduler_t& scheduler, callback_t callback) = 0;
    
-  /*
-   * Returns a name for this sink.
-   */
-  virtual char const* name() const noexcept = 0;
-   
+  virtual void print(std::ostream& os) const = 0;
+
   virtual ~nb_sink_t();
 };
 

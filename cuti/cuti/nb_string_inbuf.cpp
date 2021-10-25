@@ -22,6 +22,8 @@
 #include "nb_source.hpp"
 #include "scheduler.hpp"
 
+#include <ostream>
+
 namespace cuti
 {
 
@@ -57,9 +59,9 @@ struct nb_string_source_t : nb_source_t
     return scheduler.call_alarm(duration_t::zero(), std::move(callback));
   }
 
-  char const* name() const noexcept override
+  void print(std::ostream& os) const override
   {
-    return "string source";
+    os << "string source";
   }
 
 private :

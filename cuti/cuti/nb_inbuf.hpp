@@ -29,6 +29,7 @@
 
 #include <cassert>
 #include <cstddef>
+#include <iosfwd>
 #include <memory>
 #include <optional>
 #include <string>
@@ -62,14 +63,6 @@ struct CUTI_ABI nb_inbuf_t
    * Disable throughput checking.
    */
   void disable_throughput_checking();  
-
-  /*
-   * Returns a descriptive name for the buffer.
-   */
-  char const* name() const noexcept
-  {
-    return source_->name();
-  }
 
   /*
    * Returns the buffer's error status, which is either 0 for no error
@@ -137,6 +130,12 @@ struct CUTI_ABI nb_inbuf_t
 
   ~nb_inbuf_t();
 
+  friend std::ostream& operator<<(std::ostream& os, nb_inbuf_t const& buf)
+  {
+    buf.source_->print(os);
+    return os;
+  }
+    
 private :
   void check_readable(scheduler_t& scheduler);
 

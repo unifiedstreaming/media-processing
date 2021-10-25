@@ -150,7 +150,7 @@ void nb_outbuf_t::check_writable(scheduler_t& scheduler)
       {
         if(auto msg = context_.message_at(loglevel_t::warning))
         {
-          *msg << "nb_outbuf[" << this->name() <<
+          *msg << "nb_outbuf[" << *this <<
             "]: insufficient throughput detected";
         }
         next = wp_;
@@ -161,7 +161,7 @@ void nb_outbuf_t::check_writable(scheduler_t& scheduler)
     {
       if(auto msg = context_.message_at(loglevel_t::warning))
       {
-        *msg << "nb_outbuf[" << this->name() <<
+        *msg << "nb_outbuf[" << *this <<
           "]: " << system_error_string(error_status_);
       }
     }
@@ -169,7 +169,7 @@ void nb_outbuf_t::check_writable(scheduler_t& scheduler)
     {
       if(auto msg = context_.message_at(loglevel_t::debug))
       {
-        *msg << "nb_outbuf[" << this->name() <<
+        *msg << "nb_outbuf[" << *this <<
           "]: can\'t send yet";
       }
     }
@@ -177,7 +177,7 @@ void nb_outbuf_t::check_writable(scheduler_t& scheduler)
     {
       if(auto msg = context_.message_at(loglevel_t::debug))
       {
-        *msg << "nb_outbuf[" << this->name() <<
+        *msg << "nb_outbuf[" << *this <<
           "]: " << next - rp_ << " byte(s) sent";
       }
     }   

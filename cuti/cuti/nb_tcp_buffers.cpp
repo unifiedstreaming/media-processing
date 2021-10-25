@@ -29,115 +29,61 @@ namespace cuti
 namespace // anonymous
 {
 
-struct connection_holder_t
+struct nb_tcp_source_t : nb_source_t
 {
-  explicit connection_holder_t(std::unique_ptr<tcp_connection_t> conn)
+  explicit nb_tcp_source_t(std::shared_ptr<tcp_connection_t> conn)
   : conn_((assert(conn != nullptr), std::move(conn)))
-  , name_(make_name(*conn_))
-  {
-    conn_->set_nonblocking();
-  }
+  { }
 
-  int read(char* first, char const* last, char*& next)
+  int read(char* first, char const* last, char*& next) override
   {
     return conn_->read(first, last, next);
   }
 
   cancellation_ticket_t
-  call_when_readable(scheduler_t& scheduler, callback_t callback)
+  call_when_readable(scheduler_t& scheduler, callback_t callback) override
   {
     return conn_->call_when_readable(scheduler, std::move(callback));
   }
 
-  int write(char const* first, char const* last, char const*& next)
+  void print(std::ostream& os) const override
+  {
+    os << *conn_;
+  }
+
+private :
+  std::shared_ptr<tcp_connection_t> conn_;
+};
+
+struct nb_tcp_sink_t : nb_sink_t
+{
+  explicit nb_tcp_sink_t(std::shared_ptr<tcp_connection_t> conn)
+  : conn_((assert(conn != nullptr), std::move(conn)))
+  { }
+
+  int write(char const* first, char const* last, char const*& next) override
   {
     return conn_->write(first, last, next);
   }
 
   cancellation_ticket_t
-  call_when_writable(scheduler_t& scheduler, callback_t callback)
+  call_when_writable(scheduler_t& scheduler, callback_t callback) override
   {
     return conn_->call_when_writable(scheduler, std::move(callback));
   }
 
-  int close_write_end()
+  void print(std::ostream& os) const override
   {
-    return conn_->close_write_end();
-  }
-
-  char const* name() const noexcept
-  {
-    return name_.c_str();
-  }
-
-private :
-  static std::string make_name(tcp_connection_t& conn)
-  {
-    std::stringstream os;
-    os << conn;
-    return os.str();
-  }
-
-private :
-  std::unique_ptr<tcp_connection_t> conn_;
-  std::string name_;
-};
-
-struct nb_tcp_source_t : nb_source_t
-{
-  explicit nb_tcp_source_t(std::shared_ptr<connection_holder_t> holder)
-  : holder_((assert(holder != nullptr), std::move(holder)))
-  { }
-
-  int read(char* first, char const* last, char*& next) override
-  {
-    return holder_->read(first, last, next);
-  }
-
-  cancellation_ticket_t
-  call_when_readable(scheduler_t& scheduler, callback_t callback) override
-  {
-    return holder_->call_when_readable(scheduler, std::move(callback));
-  }
-
-  char const* name() const noexcept override
-  {
-    return holder_->name();
-  }
-
-private :
-  std::shared_ptr<connection_holder_t> holder_;
-};
-
-struct nb_tcp_sink_t : nb_sink_t
-{
-  explicit nb_tcp_sink_t(std::shared_ptr<connection_holder_t> holder)
-  : holder_((assert(holder != nullptr), std::move(holder)))
-  { }
-
-  int write(char const* first, char const* last, char const*& next) override
-  {
-    return holder_->write(first, last, next);
-  }
-
-  cancellation_ticket_t
-  call_when_writable(scheduler_t& scheduler, callback_t callback) override
-  {
-    return holder_->call_when_writable(scheduler, std::move(callback));
-  }
-
-  char const* name() const noexcept override
-  {
-    return holder_->name();
+    os << *conn_;
   }
 
   ~nb_tcp_sink_t() override
   {
-    holder_->close_write_end();
+    conn_->close_write_end();
   }
 
 private :
-  std::shared_ptr<connection_holder_t> holder_;
+  std::shared_ptr<tcp_connection_t> conn_;
 };
    
 } // anonymous
@@ -150,10 +96,12 @@ make_nb_tcp_buffers(logging_context_t& context,
 {
   assert(conn != nullptr);
 
-  auto holder = std::make_shared<connection_holder_t>(std::move(conn));
+  conn->set_nonblocking();
 
-  auto source = std::make_unique<nb_tcp_source_t>(holder);
-  auto sink = std::make_unique<nb_tcp_sink_t>(std::move(holder));
+  auto shared_conn = std::shared_ptr<tcp_connection_t>(std::move(conn));
+
+  auto source = std::make_unique<nb_tcp_source_t>(shared_conn);
+  auto sink = std::make_unique<nb_tcp_sink_t>(std::move(shared_conn));
 
   return std::make_pair(
     std::make_unique<nb_inbuf_t>(context, std::move(source), inbufsize),

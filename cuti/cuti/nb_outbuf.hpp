@@ -26,8 +26,10 @@
 #include "nb_tickets_holder.hpp"
 #include "throughput_checker.hpp"
 
+#include <cassert>
 #include <cstddef>
 #include <memory>
+#include <iosfwd>
 #include <optional>
 
 namespace cuti
@@ -59,14 +61,6 @@ struct CUTI_ABI nb_outbuf_t
    * Disable throughput checking.
    */
   void disable_throughput_checking();  
-
-  /*
-   * Returns a descriptive name for the buffer.
-   */
-  char const* name() const noexcept
-  {
-    return sink_->name();
-  }
 
   /*
    * Returns the buffer's error status, which is either 0 for no error
@@ -135,6 +129,12 @@ struct CUTI_ABI nb_outbuf_t
 
   ~nb_outbuf_t();
 
+  friend std::ostream& operator<<(std::ostream& os, nb_outbuf_t const& buf)
+  {
+    buf.sink_->print(os);
+    return os;
+  }
+    
 private :
   void check_writable(scheduler_t& scheduler);
 

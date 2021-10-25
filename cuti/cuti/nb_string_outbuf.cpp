@@ -22,6 +22,8 @@
 #include "nb_sink.hpp"
 #include "scheduler.hpp"
 
+#include <ostream>
+
 namespace cuti
 {
 
@@ -48,9 +50,9 @@ struct nb_string_sink_t : nb_sink_t
     return scheduler.call_alarm(duration_t::zero(), std::move(callback));
   }
 
-  char const* name() const noexcept override
+  void print(std::ostream& os) const override
   {
-    return "string sink";
+    os << "string sink";
   }
 
 private :
