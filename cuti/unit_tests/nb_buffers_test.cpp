@@ -413,11 +413,11 @@ void test_inbuf_throughput_checking(logging_context_t& context,
   {
     server_in->call_when_readable(scheduler,
       [&] { drain(scheduler, *server_in); });
-    server_in->enable_throughput_checking(512, 10, milliseconds_t(1));
+    server_in->enable_throughput_checking(512, 20, milliseconds_t(1));
   }
   else
   {
-    server_in->enable_throughput_checking(512, 10, milliseconds_t(1));
+    server_in->enable_throughput_checking(512, 20, milliseconds_t(1));
     server_in->call_when_readable(scheduler,
       [&] { drain(scheduler, *server_in); });
   }
