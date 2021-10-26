@@ -467,11 +467,11 @@ void test_inbuf_throughput_checking(logging_context_t& context,
     server_in->call_when_readable(scheduler,
       [&] { drain(scheduler, *server_in); });
 
-    server_in->enable_throughput_checking(512, 20, milliseconds_t(1));
+    server_in->enable_throughput_checking(512, 10, milliseconds_t(10));
   }
   else
   {
-    server_in->enable_throughput_checking(512, 20, milliseconds_t(1));
+    server_in->enable_throughput_checking(512, 10, milliseconds_t(10));
 
     client_out->call_when_writable(scheduler,
       [&] { flood_n(scheduler, *client_out, 1234567); });
@@ -523,16 +523,16 @@ void test_outbuf_throughput_checking(logging_context_t& context,
     server_in->call_when_readable(scheduler,
       [&] { drain_n(scheduler, *server_in, 1234567); });
 
-    client_out->enable_throughput_checking(512, 20, milliseconds_t(1));
+    client_out->enable_throughput_checking(512, 10, milliseconds_t(10));
   }
   else
   {
-    client_out->enable_throughput_checking(512, 20, milliseconds_t(1));
+    client_out->enable_throughput_checking(512, 10, milliseconds_t(10));
 
     client_out->call_when_writable(scheduler,
       [&] { flood(scheduler, *client_out); });
     server_in->call_when_readable(scheduler,
-      [&] { drain_n(scheduler, *server_in, 1234567); });
+      [&] { drain_n(scheduler, *server_in, 123456); });
   }
 
   while(client_out->error_status() == 0)
