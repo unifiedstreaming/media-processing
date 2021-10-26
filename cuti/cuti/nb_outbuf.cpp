@@ -69,15 +69,21 @@ void nb_outbuf_t::enable_throughput_checking(std::size_t min_bytes_per_tick,
                                              unsigned int low_ticks_limit,
                                              duration_t tick_length)
 {
-  this->disable_throughput_checking();
+  auto guard = make_scoped_guard([this]
+  {
+    checker_.reset();
+    callback_ = nullptr;
+    holder_.cancel();
+  });
 
   checker_.emplace(min_bytes_per_tick, low_ticks_limit, tick_length);
-  auto guard = make_scoped_guard([&] { checker_.reset(); });
 
-  if(auto scheduler = holder_.current_scheduler())
+  scheduler_t* scheduler = holder_.current_scheduler();
+  if(scheduler != nullptr && !this->writable())
   {
+    // Schedule timeout on next tick
     assert(callback_ != nullptr);
-    this->call_when_writable(*scheduler, std::move(callback_));
+    holder_.call_when_writable(*scheduler, *sink_, checker_->next_tick());
   }
 
   guard.dismiss();
@@ -86,12 +92,21 @@ void nb_outbuf_t::enable_throughput_checking(std::size_t min_bytes_per_tick,
 void nb_outbuf_t::disable_throughput_checking()
 {
   checker_.reset();
-
-  if(auto scheduler = holder_.current_scheduler())
+  auto guard = make_scoped_guard([this]
   {
+    callback_ = nullptr;
+    holder_.cancel();
+  });
+
+  scheduler_t* scheduler = holder_.current_scheduler();
+  if(scheduler != nullptr && !this->writable())
+  {
+    // Cancel timeout on next tick
     assert(callback_ != nullptr);
-    this->call_when_writable(*scheduler, std::move(callback_));
+    holder_.call_when_writable(*scheduler, *sink_);
   }
+
+  guard.dismiss();
 }
 
 void nb_outbuf_t::call_when_writable(scheduler_t& scheduler,
@@ -190,7 +205,15 @@ void nb_outbuf_t::check_writable(scheduler_t& scheduler)
     if(rp_ != wp_)
     {
       // more to write: reschedule
-      this->call_when_writable(scheduler, std::move(callback));
+      if(checker_ != std::nullopt)
+      {
+        holder_.call_when_writable(scheduler, *sink_, checker_->next_tick());
+      }
+      else
+      {
+        holder_.call_when_writable(scheduler, *sink_);
+      }
+      callback_ = std::move(callback);
       return;
     }
       

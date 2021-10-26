@@ -50,15 +50,21 @@ void nb_inbuf_t::enable_throughput_checking(std::size_t min_bytes_per_tick,
                                             unsigned int low_ticks_limit,
                                             duration_t tick_length)
 {
-  this->disable_throughput_checking();
+  auto guard = make_scoped_guard([this]
+  {
+    checker_.reset();
+    callback_ = nullptr;
+    holder_.cancel();
+  });
 
   checker_.emplace(min_bytes_per_tick, low_ticks_limit, tick_length);
-  auto guard = make_scoped_guard([&] { checker_.reset(); });
 
-  if(auto scheduler = holder_.current_scheduler())
+  scheduler_t* scheduler = holder_.current_scheduler();
+  if(scheduler != nullptr && !this->readable())
   {
+    // Schedule timeout on next tick
     assert(callback_ != nullptr);
-    this->call_when_readable(*scheduler, std::move(callback_));
+    holder_.call_when_readable(*scheduler, *source_, checker_->next_tick());
   }
 
   guard.dismiss();
@@ -67,12 +73,21 @@ void nb_inbuf_t::enable_throughput_checking(std::size_t min_bytes_per_tick,
 void nb_inbuf_t::disable_throughput_checking()
 {
   checker_.reset();
-
-  if(auto scheduler = holder_.current_scheduler())
+  auto guard = make_scoped_guard([this]
   {
+    callback_ = nullptr;
+    holder_.cancel();
+  });
+
+  scheduler_t* scheduler = holder_.current_scheduler();
+  if(scheduler != nullptr && !this->readable())
+  {
+    // Cancel timeout on next tick
     assert(callback_ != nullptr);
-    this->call_when_readable(*scheduler, std::move(callback_));
+    holder_.call_when_readable(*scheduler, *source_);
   }
+
+  guard.dismiss();
 }
 
 char* nb_inbuf_t::read(char *first, char const* last)
@@ -180,7 +195,15 @@ void nb_inbuf_t::check_readable(scheduler_t& scheduler)
     if(next == nullptr)
     {
       // spurious wakeup: reschedule
-      this->call_when_readable(scheduler, std::move(callback));
+      if(checker_ != std::nullopt)
+      {
+        holder_.call_when_readable(scheduler, *source_, checker_->next_tick());
+      }
+      else
+      {
+        holder_.call_when_readable(scheduler, *source_);
+      }
+      callback_ = std::move(callback);
       return;
     }
 
