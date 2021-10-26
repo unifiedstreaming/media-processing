@@ -532,7 +532,7 @@ void test_outbuf_throughput_checking(logging_context_t& context,
     client_out->call_when_writable(scheduler,
       [&] { flood(scheduler, *client_out); });
     server_in->call_when_readable(scheduler,
-      [&] { drain_n(scheduler, *server_in, 123456); });
+      [&] { drain_n(scheduler, *server_in, 1234567); });
   }
 
   while(client_out->error_status() == 0)
