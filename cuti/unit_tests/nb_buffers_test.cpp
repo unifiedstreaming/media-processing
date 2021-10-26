@@ -389,6 +389,52 @@ void drain(scheduler_t& scheduler, nb_inbuf_t& inbuf)
   }
 }
 
+void drain_n(scheduler_t& scheduler, nb_inbuf_t& inbuf, std::size_t n)
+{
+  while(n != 0 && inbuf.readable() && inbuf.peek() != eof) 
+  {
+    inbuf.skip();
+    --n;
+  }
+
+  if(n != 0 && !inbuf.readable())
+  {
+    inbuf.call_when_readable(scheduler,
+      [&, n] { drain_n(scheduler, inbuf, n); });
+  }
+}
+
+void flood(scheduler_t& scheduler, nb_outbuf_t& outbuf)
+{
+  while(outbuf.writable() && outbuf.error_status() == 0) 
+  {
+    outbuf.put('*');
+  }
+
+  if(!outbuf.writable())
+  {
+    outbuf.call_when_writable(scheduler, [&] { flood(scheduler, outbuf); });
+  }
+}
+
+void flood_n(scheduler_t& scheduler, nb_outbuf_t& outbuf, std::size_t n)
+{
+  while(n != 0 && outbuf.writable() && outbuf.error_status() == 0) 
+  {
+    outbuf.put('*');
+    if(--n == 0)
+    {
+      outbuf.start_flush();
+    }
+  }
+
+  if(!outbuf.writable())
+  {
+    outbuf.call_when_writable(scheduler,
+      [&, n] { flood_n(scheduler, outbuf, n); });
+  }
+}
+
 void test_inbuf_throughput_checking(logging_context_t& context,
                                     bool enable_while_running)
 {
@@ -404,6 +450,11 @@ void test_inbuf_throughput_checking(logging_context_t& context,
   std::unique_ptr<tcp_connection_t> server_side;
   std::tie(client_side, server_side) = make_connected_pair();
 
+  std::unique_ptr<nb_inbuf_t> client_in;
+  std::unique_ptr<nb_outbuf_t> client_out;
+  std::tie(client_in, client_out) =
+    make_nb_tcp_buffers(context, std::move(client_side));
+
   std::unique_ptr<nb_inbuf_t> server_in;
   std::unique_ptr<nb_outbuf_t> server_out;
   std::tie(server_in, server_out) =
@@ -411,38 +462,33 @@ void test_inbuf_throughput_checking(logging_context_t& context,
 
   if(enable_while_running)
   {
+    client_out->call_when_writable(scheduler,
+      [&] { flood_n(scheduler, *client_out, 1234567); });
     server_in->call_when_readable(scheduler,
       [&] { drain(scheduler, *server_in); });
+
     server_in->enable_throughput_checking(512, 20, milliseconds_t(1));
   }
   else
   {
     server_in->enable_throughput_checking(512, 20, milliseconds_t(1));
+
+    client_out->call_when_writable(scheduler,
+      [&] { flood_n(scheduler, *client_out, 1234567); });
     server_in->call_when_readable(scheduler,
       [&] { drain(scheduler, *server_in); });
   }
 
-  while(auto cb = scheduler.wait())
+  while(server_in->error_status() == 0)
   {
+    auto cb = scheduler.wait();
+    assert(cb != nullptr);
     cb();
   }
 
   assert(server_in->readable());
   assert(server_in->peek() == eof);
   assert(server_in->error_status() == timeout_system_error());
-}
-
-void flood(scheduler_t& scheduler, nb_outbuf_t& outbuf)
-{
-  while(outbuf.writable() && outbuf.error_status() == 0) 
-  {
-    outbuf.put('*');
-  }
-
-  if(!outbuf.writable())
-  {
-    outbuf.call_when_writable(scheduler, [&] { flood(scheduler, outbuf); });
-  }
 }
 
 void test_outbuf_throughput_checking(logging_context_t& context,
@@ -465,21 +511,34 @@ void test_outbuf_throughput_checking(logging_context_t& context,
   std::tie(client_in, client_out) =
     make_nb_tcp_buffers(context, std::move(client_side));
 
+  std::unique_ptr<nb_inbuf_t> server_in;
+  std::unique_ptr<nb_outbuf_t> server_out;
+  std::tie(server_in, server_out) =
+    make_nb_tcp_buffers(context, std::move(server_side));
+
   if(enable_while_running)
   {
     client_out->call_when_writable(scheduler,
       [&] { flood(scheduler, *client_out); });
+    server_in->call_when_readable(scheduler,
+      [&] { drain_n(scheduler, *server_in, 1234567); });
+
     client_out->enable_throughput_checking(512, 20, milliseconds_t(1));
   }
   else
   {
     client_out->enable_throughput_checking(512, 20, milliseconds_t(1));
+
     client_out->call_when_writable(scheduler,
       [&] { flood(scheduler, *client_out); });
+    server_in->call_when_readable(scheduler,
+      [&] { drain_n(scheduler, *server_in, 1234567); });
   }
 
-  while(auto cb = scheduler.wait())
+  while(client_out->error_status() == 0)
   {
+    auto cb = scheduler.wait();
+    assert(cb != nullptr);
     cb();
   }
 
