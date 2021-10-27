@@ -34,6 +34,7 @@ default_scheduler_t::default_scheduler_t()
 default_scheduler_t::default_scheduler_t(selector_factory_t const& factory)
 : alarms_()
 , selector_(factory())
+, poll_first_(false)
 { }
 
 callback_t default_scheduler_t::wait()
@@ -49,16 +50,29 @@ callback_t default_scheduler_t::wait()
       auto now = cuti_clock_t::now();
       if(now >= limit)
       {
-        result = std::move(alarms_.value(alarm_id));
-	assert(result != nullptr);
-	alarms_.remove_element(alarm_id);
+        if(poll_first_ && selector_->has_work())
+        {
+          // poll for I/O
+          poll_first_ = false;
+          result = selector_->select(duration_t::zero());
+        }
+        else
+        {
+          // select alarm_id
+          poll_first_ = true;
+          result = std::move(alarms_.value(alarm_id));
+          assert(result != nullptr);
+          alarms_.remove_element(alarm_id);
+        }
       }
       else if(selector_->has_work())
       {
+        // wait for I/O until limit
         result = selector_->select(limit - now);
       }
       else
       {
+        // sleep until limit
         std::this_thread::sleep_for(limit - now);
       }
     } while(result == nullptr);
@@ -67,6 +81,7 @@ callback_t default_scheduler_t::wait()
   {
     do
     {
+      // wait for I/O
       result = selector_->select(duration_t(-1));
     } while(result == nullptr);
   }

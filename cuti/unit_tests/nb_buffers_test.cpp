@@ -436,15 +436,16 @@ void flood_n(scheduler_t& scheduler, nb_outbuf_t& outbuf, std::size_t n)
 }
 
 void test_inbuf_throughput_checking(logging_context_t& context,
-                                    bool enable_while_running)
+                                    bool enable_while_running,
+                                    selector_factory_t const& factory)
 {
   if(auto msg = context.message_at(loglevel_t::info))
   {
     *msg << "test_inbuf_throughput_checking: enable_while_running: " <<
-      enable_while_running;
+      enable_while_running << " selector: " << factory;
   }
 
-  default_scheduler_t scheduler;
+  default_scheduler_t scheduler(factory);
 
   std::unique_ptr<tcp_connection_t> client_side;
   std::unique_ptr<tcp_connection_t> server_side;
@@ -467,11 +468,11 @@ void test_inbuf_throughput_checking(logging_context_t& context,
     server_in->call_when_readable(scheduler,
       [&] { drain(scheduler, *server_in); });
 
-    server_in->enable_throughput_checking(512, 10, milliseconds_t(10));
+    server_in->enable_throughput_checking(512, 20, milliseconds_t(1));
   }
   else
   {
-    server_in->enable_throughput_checking(512, 10, milliseconds_t(10));
+    server_in->enable_throughput_checking(512, 20, milliseconds_t(1));
 
     client_out->call_when_writable(scheduler,
       [&] { flood_n(scheduler, *client_out, 1234567); });
@@ -492,15 +493,16 @@ void test_inbuf_throughput_checking(logging_context_t& context,
 }
 
 void test_outbuf_throughput_checking(logging_context_t& context,
-                                     bool enable_while_running)
+                                     bool enable_while_running,
+                                     selector_factory_t const& factory)
 {
   if(auto msg = context.message_at(loglevel_t::info))
   {
     *msg << "test_outbuf_throughput_checking: enable_while_running: " <<
-      enable_while_running;
+      enable_while_running << " selector: " << factory;
   }
 
-  default_scheduler_t scheduler;
+  default_scheduler_t scheduler(factory);
 
   std::unique_ptr<tcp_connection_t> client_side;
   std::unique_ptr<tcp_connection_t> server_side;
@@ -523,11 +525,11 @@ void test_outbuf_throughput_checking(logging_context_t& context,
     server_in->call_when_readable(scheduler,
       [&] { drain_n(scheduler, *server_in, 1234567); });
 
-    client_out->enable_throughput_checking(512, 10, milliseconds_t(10));
+    client_out->enable_throughput_checking(512, 20, milliseconds_t(1));
   }
   else
   {
-    client_out->enable_throughput_checking(512, 10, milliseconds_t(10));
+    client_out->enable_throughput_checking(512, 20, milliseconds_t(1));
 
     client_out->call_when_writable(scheduler,
       [&] { flood(scheduler, *client_out); });
@@ -548,11 +550,14 @@ void test_outbuf_throughput_checking(logging_context_t& context,
 
 void test_throughput_checking(logging_context_t& context)
 {
-  test_inbuf_throughput_checking(context, false);
-  test_inbuf_throughput_checking(context, true);
+  for(auto const& factory : available_selector_factories())
+  {
+    test_inbuf_throughput_checking(context, false, factory);
+    test_inbuf_throughput_checking(context, true, factory);
 
-  test_outbuf_throughput_checking(context, false);
-  test_outbuf_throughput_checking(context, true);
+    test_outbuf_throughput_checking(context, false, factory);
+    test_outbuf_throughput_checking(context, true, factory);
+  }
 }
   
 struct options_t

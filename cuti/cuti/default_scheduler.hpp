@@ -68,6 +68,7 @@ private :
   indexed_heap_t<time_point_t, callback_t,
     std::greater<time_point_t>> alarms_; // std::greater results in minheap
   std::unique_ptr<selector_t> selector_;
+  bool poll_first_;
 };
 
 }
