@@ -52,7 +52,7 @@ struct nb_string_sink_t : nb_sink_t
 
   void print(std::ostream& os) const override
   {
-    os << "string sink";
+    os << "string sink@" << this;
   }
 
 private :

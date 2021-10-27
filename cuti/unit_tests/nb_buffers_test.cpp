@@ -31,6 +31,7 @@
 #include <cuti/system_error.hpp>
 
 #include <iostream>
+#include <sstream>
 #include <tuple>
 
 #undef NDEBUG
@@ -55,6 +56,7 @@ struct copier_t
   , outbuf_((assert(outbuf != nullptr), std::move(outbuf)))
   , circbuf_((assert(circ_bufsize != 0), circ_bufsize))
   , eof_seen_(false)
+  , name_(make_name(*inbuf_, *outbuf_))
   { }
 
   copier_t(copier_t const&) = delete;
@@ -114,7 +116,7 @@ private :
 
     if(auto msg = context_.message_at(loglevel_t::info))
     {
-      *msg << "copier@" << this << "::read_data(): " << bytes <<
+      *msg << "copier[" << *this << "]::read_data(): " << bytes <<
         " byte(s) read (eof_seen_: " << eof_seen_ << ")";
     }
 
@@ -155,7 +157,7 @@ private :
 
     if(auto msg = context_.message_at(loglevel_t::info))
     {
-      *msg << "copier@" << this << "::write_data(): " << bytes <<
+      *msg << "copier[" << *this << "]::write_data(): " << bytes <<
         " byte(s) written (eof_seen_: " << eof_seen_ << ")";
     }
 
@@ -182,7 +184,7 @@ private :
 
     if(auto msg = context_.message_at(loglevel_t::info))
     {
-      *msg << "copier@" << this << "::await_flush(): done: " << done;
+      *msg << "copier[" << *this << "]::await_flush(): done: " << done;
     }
 
     if(!done)
@@ -194,6 +196,20 @@ private :
       outbuf_ = nullptr;
     }
   }
+
+  friend std::ostream& operator<<(std::ostream& os, copier_t const& copier)
+  {
+    os << copier.name_;
+    return os;
+  }
+
+private :
+  static std::string make_name(nb_inbuf_t const& inbuf, nb_outbuf_t& outbuf)
+  {
+    std::ostringstream os;
+    os << inbuf << " -> " << outbuf;
+    return os.str();
+  }
   
 private :
   logging_context_t& context_;
@@ -202,6 +218,7 @@ private :
   std::unique_ptr<nb_outbuf_t> outbuf_;
   circular_buffer_t circbuf_;
   bool eof_seen_;
+  std::string name_;
 };
 
 template<bool use_bulk_io>
@@ -236,7 +253,7 @@ void do_test_string_buffers(logging_context_t& context,
 
     if(auto msg = context.message_at(loglevel_t::info))
     {
-      *msg << "copier@" << copiers[i].get() << ": inbufsize: " <<
+      *msg << "copier[" << *copiers[i] << "]: inbufsize: " <<
         inbuf_sizes[i] << " outbufsize: " << outbuf_sizes[i];
     }
   }
@@ -332,9 +349,9 @@ void do_test_tcp_buffers(logging_context_t& context,
 
   if(auto msg = context.message_at(loglevel_t::info))
   {
-    *msg << "producer: copier@" << &producer <<
-      " echoer: copier@" << &echoer <<
-      " consumer: copier@" << &consumer;
+    *msg << "producer: copier[" << producer <<
+      "] echoer: copier[" << echoer <<
+      "] consumer: copier[" << consumer << "]";
   }
 
   producer.start();

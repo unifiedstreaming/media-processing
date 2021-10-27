@@ -61,7 +61,7 @@ struct nb_string_source_t : nb_source_t
 
   void print(std::ostream& os) const override
   {
-    os << "string source";
+    os << "string source@" << this;
   }
 
 private :
