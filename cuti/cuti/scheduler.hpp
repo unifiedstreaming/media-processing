@@ -111,8 +111,27 @@ struct CUTI_ABI scheduler_t
   /*
    * Cancels a callback before it is invoked.
    */
-  void cancel(cancellation_ticket_t ticket) noexcept;
-    
+  void cancel(cancellation_ticket_t ticket) noexcept
+  {
+    assert(!ticket.empty());
+
+    switch(ticket.type())
+    {
+    case cancellation_ticket_t::type_t::alarm :
+      this->do_cancel_alarm(ticket.id());
+      break;
+    case cancellation_ticket_t::type_t::writable :
+      this->do_cancel_when_writable(ticket.id());
+      break;
+    case cancellation_ticket_t::type_t::readable :
+      this->do_cancel_when_readable(ticket.id());
+      break;
+    default :
+      assert(!"expected ticket type");
+      break;
+    }
+  }
+
   virtual ~scheduler_t();
 
 private :
