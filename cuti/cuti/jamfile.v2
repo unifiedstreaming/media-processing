@@ -115,6 +115,7 @@ lib cuti
   tcp_connection.cpp
   tcp_socket.cpp
   viewbuf.cpp
+  whitespace_skipper.cpp
   advapi32
   ws2_32
 :
