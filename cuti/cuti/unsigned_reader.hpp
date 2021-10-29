@@ -17,16 +17,18 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#ifndef CUTI_UNSIGNED_IO_HPP_
-#define CUTI_UNSIGNED_IO_HPP_
+#ifndef CUTI_UNSIGNED_READER_HPP_
+#define CUTI_UNSIGNED_READER_HPP_
 
 #include "bound_inbuf.hpp"
-#include "charclass.hpp"
-#include "parse_error.hpp"
+#include "digits_reader.hpp"
 #include "result.hpp"
+#include "subreader.hpp"
+#include "whitespace_skipper.hpp"
 
 #include <limits>
 #include <type_traits>
+#include <utility>
 
 namespace cuti
 {
@@ -36,9 +38,12 @@ struct unsigned_reader_t
 {
   static_assert(std::is_unsigned_v<T>);
 
+  using value_t = T;
+
   unsigned_reader_t(result_t<T>& result, bound_inbuf_t& buf)
   : result_(result)
-  , buf_(buf)
+  , whitespace_skipper_(*this, &unsigned_reader_t::on_exception, buf)
+  , digits_reader_(*this, &unsigned_reader_t::on_exception, buf)
   { }
 
   unsigned_reader_t(unsigned_reader_t const&) = delete;
@@ -46,70 +51,30 @@ struct unsigned_reader_t
 
   void start()
   {
-    digit_seen_ = false;
-    value_ = 0;
-    this->skip_spaces();
+    whitespace_skipper_.start(&unsigned_reader_t::on_whitespace_skipped);
   }
 
 private :
-  void skip_spaces()
+  void on_whitespace_skipped(no_value_t)
   {
-    while(buf_.readable() && is_whitespace(buf_.peek()))
-    {
-      buf_.skip();
-    }
-
-    if(!buf_.readable())
-    {
-      buf_.call_when_readable([this] { this->skip_spaces(); });
-      return;
-    }
-
-    this->read_digits();
+    digits_reader_.start(
+      &unsigned_reader_t::on_digits, std::numeric_limits<T>::max());
   }
 
-  void read_digits()
+  void on_digits(T value)
   {
-    static T constexpr max_value = std::numeric_limits<T>::max();
+    result_.set_value(value);
+  }
 
-    int dval{};
-    while(buf_.readable() && (dval = digit_value(buf_.peek())) >= 0)
-    {
-      digit_seen_ = true;
-
-      T udval = static_cast<T>(dval);
-      if(value_ > max_value / 10 || udval > max_value - 10 * value_)
-      {
-        result_.set_exception(parse_error_t("unsigned integral overflow"));
-        return;
-      }
-
-      value_ *= 10;
-      value_ += udval;
-
-      buf_.skip();
-    }
-
-    if(!buf_.readable())
-    {
-      buf_.call_when_readable([this] { this->read_digits(); });
-      return;
-    }
-
-    if(!digit_seen_)
-    {
-      result_.set_exception(parse_error_t("digit expected"));
-      return;
-    }
-  
-    result_.set_value(value_);
+  void on_exception(std::exception_ptr ex)
+  {
+    result_.set_exception(std::move(ex));
   }
 
 private :
   result_t<T>& result_;
-  bound_inbuf_t& buf_;
-  bool digit_seen_;
-  T value_;
+  subreader_t<unsigned_reader_t, whitespace_skipper_t> whitespace_skipper_;
+  subreader_t<unsigned_reader_t, digits_reader_t<T>> digits_reader_;
 };
 
 } // cuti

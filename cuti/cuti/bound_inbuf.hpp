@@ -42,6 +42,9 @@ struct CUTI_ABI bound_inbuf_t
   , scheduler_(scheduler)
   { }
 
+  bound_inbuf_t(bound_inbuf_t const&) = delete;
+  bound_inbuf_t& operator=(bound_inbuf_t const&) = delete;
+  
   bool readable() const
   {
     return inbuf_.readable();
@@ -65,6 +68,11 @@ struct CUTI_ABI bound_inbuf_t
   void call_when_readable(callback_t callback)
   {
     inbuf_.call_when_readable(scheduler_, std::move(callback));
+  }
+
+  void cancel_when_readable() noexcept
+  {
+    inbuf_.cancel_when_readable();
   }
 
 private :
