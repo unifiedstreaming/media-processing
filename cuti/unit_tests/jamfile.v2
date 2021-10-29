@@ -104,3 +104,7 @@ unit-test tcp_socket_test
 unit-test throughput_checker_test
 : throughput_checker_test.cpp
 ;
+
+unit-test unsigned_io_test
+: unsigned_io_test.cpp
+;
