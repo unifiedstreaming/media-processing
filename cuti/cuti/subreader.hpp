@@ -20,7 +20,7 @@
 #ifndef CUTI_SUBREADER_HPP_
 #define CUTI_SUBREADER_HPP_
 
-#include "result.hpp"
+#include "subresult.hpp"
 
 #include <cassert>
 #include <utility>
@@ -33,12 +33,12 @@ struct subreader_t
 {
   using value_t = typename Child::value_t;
 
-  template<typename... OtherArgs>
+  template<typename... ChildArgs>
   subreader_t(Parent& parent,
               void (Parent::*on_failure)(std::exception_ptr),
-              OtherArgs&&... other_args)
+              ChildArgs&&... child_args)
   : subresult_(parent, (assert(on_failure != nullptr), on_failure))
-  , child_(subresult_, std::forward<OtherArgs>(other_args)...)
+  , child_(subresult_, std::forward<ChildArgs>(child_args)...)
   { }
 
   subreader_t(subreader_t const&) = delete;
@@ -55,43 +55,7 @@ struct subreader_t
   }
     
 private :
-  struct subresult_t : result_t<value_t>
-  {
-    subresult_t(Parent& parent,
-                void (Parent::*on_failure)(std::exception_ptr))
-    : parent_(parent)
-    , on_success_(nullptr)
-    , on_failure_(on_failure)
-    { }
-
-    template<typename... OtherArgs>
-    void start_child(void (Parent::*on_success)(value_t),
-                     Child& child,
-                     OtherArgs&&... other_args)
-    {
-      on_success_ = on_success;
-      child.start(std::forward<OtherArgs>(other_args)...);
-    }
-    
-  private :
-    void do_submit(value_t value) override
-    {
-      (parent_.*on_success_)(std::move(value));
-    }
-
-    void do_fail(std::exception_ptr ex) override
-    {
-      (parent_.*on_failure_)(std::move(ex));
-    }
-
-  private :
-    Parent& parent_;
-    void (Parent::*on_success_)(value_t);
-    void (Parent::*on_failure_)(std::exception_ptr);
-  };
-
-private :
-  subresult_t subresult_;
+  subresult_t<Parent, value_t> subresult_;
   Child child_;
 };
 
