@@ -116,7 +116,7 @@ void do_test_successful_read(logging_context_t& context,
 
   assert(value_result.value() == expected);
   
-  final_result_t<> eof_result;
+  final_result_t<no_value_t> eof_result;
   eof_reader_t eof_reader(eof_result, bit);
   eof_reader.start();
 

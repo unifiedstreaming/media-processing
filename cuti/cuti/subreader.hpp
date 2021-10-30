@@ -35,9 +35,9 @@ struct subreader_t
 
   template<typename... OtherArgs>
   subreader_t(Parent& parent,
-              void (Parent::*on_exception)(std::exception_ptr),
+              void (Parent::*on_failure)(std::exception_ptr),
               OtherArgs&&... other_args)
-  : subresult_(parent, (assert(on_exception != nullptr), on_exception))
+  : subresult_(parent, (assert(on_failure != nullptr), on_failure))
   , child_(subresult_, std::forward<OtherArgs>(other_args)...)
   { }
 
@@ -45,49 +45,49 @@ struct subreader_t
   subreader_t& operator=(subreader_t const&) = delete;
   
   template<typename... OtherArgs>
-  void start(void (Parent::*on_value)(value_t),
+  void start(void (Parent::*on_success)(value_t),
              OtherArgs&&... other_args)
   {
-    assert(on_value != nullptr);
+    assert(on_success != nullptr);
 
     subresult_.start_child(
-      on_value, child_, std::forward<OtherArgs>(other_args)...);
+      on_success, child_, std::forward<OtherArgs>(other_args)...);
   }
     
 private :
   struct subresult_t : result_t<value_t>
   {
     subresult_t(Parent& parent,
-                void (Parent::*on_exception)(std::exception_ptr))
+                void (Parent::*on_failure)(std::exception_ptr))
     : parent_(parent)
-    , on_value_(nullptr)
-    , on_exception_(on_exception)
+    , on_success_(nullptr)
+    , on_failure_(on_failure)
     { }
 
     template<typename... OtherArgs>
-    void start_child(void (Parent::*on_value)(value_t),
+    void start_child(void (Parent::*on_success)(value_t),
                      Child& child,
                      OtherArgs&&... other_args)
     {
-      on_value_ = on_value;
+      on_success_ = on_success;
       child.start(std::forward<OtherArgs>(other_args)...);
     }
     
   private :
-    void do_set_value(value_t value) override
+    void do_submit(value_t value) override
     {
-      (parent_.*on_value_)(std::move(value));
+      (parent_.*on_success_)(std::move(value));
     }
 
-    void do_set_exception(std::exception_ptr ex) override
+    void do_fail(std::exception_ptr ex) override
     {
-      (parent_.*on_exception_)(std::move(ex));
+      (parent_.*on_failure_)(std::move(ex));
     }
 
   private :
     Parent& parent_;
-    void (Parent::*on_value_)(value_t);
-    void (Parent::*on_exception_)(std::exception_ptr);
+    void (Parent::*on_success_)(value_t);
+    void (Parent::*on_failure_)(std::exception_ptr);
   };
 
 private :

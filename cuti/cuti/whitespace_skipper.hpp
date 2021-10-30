@@ -32,7 +32,7 @@ struct CUTI_ABI whitespace_skipper_t
 {
   using value_t = no_value_t;
 
-  whitespace_skipper_t(result_t<>& result, bound_inbuf_t& buf)
+  whitespace_skipper_t(result_t<no_value_t>& result, bound_inbuf_t& buf)
   : result_(result)
   , buf_(buf)
   { }
@@ -53,11 +53,11 @@ struct CUTI_ABI whitespace_skipper_t
       return;
     }
 
-    result_.set_value();
+    result_.submit();
   }
 
 private :
-  result_t<>& result_;
+  result_t<no_value_t>& result_;
   bound_inbuf_t& buf_;
 };
 

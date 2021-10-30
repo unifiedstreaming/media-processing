@@ -25,7 +25,7 @@
 namespace cuti
 {
 
-eof_reader_t::eof_reader_t(result_t<>& result, bound_inbuf_t& buf)
+eof_reader_t::eof_reader_t(result_t<no_value_t>& result, bound_inbuf_t& buf)
 : result_(result)
 , buf_(buf)
 { }
@@ -40,11 +40,11 @@ void eof_reader_t::start()
 
   if(buf_.peek() != eof)
   {
-    result_.set_exception(parse_error_t("<eof> expected"));
+    result_.fail(parse_error_t("<eof> expected"));
     return;
   }
 
-  result_.set_value();
+  result_.submit();
 }
 
 } // cuti

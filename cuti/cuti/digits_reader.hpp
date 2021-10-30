@@ -69,7 +69,7 @@ private :
       T udval = static_cast<T>(dval);
       if(value_ > max_ / 10 || udval > max_ - 10 * value_)
       {
-        result_.set_exception(parse_error_t("integer overflow"));
+        result_.fail(parse_error_t("integer overflow"));
         return;
       }
 
@@ -87,11 +87,11 @@ private :
 
     if(!digit_seen_)
     {
-      result_.set_exception(parse_error_t("digit expected"));
+      result_.fail(parse_error_t("digit expected"));
       return;
     }
   
-    result_.set_value(value_);
+    result_.submit(value_);
   }
 
 private :

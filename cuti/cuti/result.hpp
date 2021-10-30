@@ -36,7 +36,7 @@ struct CUTI_ABI no_value_t { };
 /*
  * Interface for reporting the result of an asynchronous operation.
  */
-template<typename T = no_value_t>
+template<typename T>
 struct result_t
 {
   result_t()
@@ -45,29 +45,29 @@ struct result_t
   result_t(result_t const&) = delete;
   result_t& operator=(result_t const&) = delete;
   
-  void set_value(T value = no_value_t{})
+  void submit(T value = no_value_t{})
   {
-    this->do_set_value(std::move(value));
+    this->do_submit(std::move(value));
   }
 
-  void set_exception(std::exception_ptr ex)
+  void fail(std::exception_ptr ex)
   {
     assert(ex != nullptr);
-    this->do_set_exception(std::move(ex));
+    this->do_fail(std::move(ex));
   }
 
   template<typename Ex>
-  void set_exception(Ex&& ex)
+  void fail(Ex&& ex)
   {
-    this->do_set_exception(std::make_exception_ptr(std::forward<Ex>(ex)));
+    this->do_fail(std::make_exception_ptr(std::forward<Ex>(ex)));
   }
   
   virtual ~result_t()
   { }
 
 private :
-  virtual void do_set_value(T value) = 0;
-  virtual void do_set_exception(std::exception_ptr ex) = 0;
+  virtual void do_submit(T value) = 0;
+  virtual void do_fail(std::exception_ptr ex) = 0;
 };
 
 } // cuti

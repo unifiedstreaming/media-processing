@@ -29,7 +29,7 @@
 namespace cuti
 {
 
-template<typename T = no_value_t>
+template<typename T>
 struct final_result_t : result_t<T>
 {
   bool available() const
@@ -57,14 +57,14 @@ struct final_result_t : result_t<T>
   }
     
 private :
-  void do_set_value(T value) override
+  void do_submit(T value) override
   {
     assert(!this->available());
 
     state_.template emplace<1>(std::move(value));
   }
 
-  void do_set_exception(std::exception_ptr ex) override
+  void do_fail(std::exception_ptr ex) override
   {
     assert(!this->available());
 

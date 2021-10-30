@@ -42,8 +42,8 @@ struct unsigned_reader_t
 
   unsigned_reader_t(result_t<T>& result, bound_inbuf_t& buf)
   : result_(result)
-  , whitespace_skipper_(*this, &unsigned_reader_t::on_exception, buf)
-  , digits_reader_(*this, &unsigned_reader_t::on_exception, buf)
+  , whitespace_skipper_(*this, &unsigned_reader_t::on_failure, buf)
+  , digits_reader_(*this, &unsigned_reader_t::on_failure, buf)
   { }
 
   unsigned_reader_t(unsigned_reader_t const&) = delete;
@@ -58,17 +58,17 @@ private :
   void on_whitespace_skipped(no_value_t)
   {
     digits_reader_.start(
-      &unsigned_reader_t::on_digits, std::numeric_limits<T>::max());
+      &unsigned_reader_t::on_digits_read, std::numeric_limits<T>::max());
   }
 
-  void on_digits(T value)
+  void on_digits_read(T value)
   {
-    result_.set_value(value);
+    result_.submit(value);
   }
 
-  void on_exception(std::exception_ptr ex)
+  void on_failure(std::exception_ptr ex)
   {
-    result_.set_exception(std::move(ex));
+    result_.fail(std::move(ex));
   }
 
 private :
