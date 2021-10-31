@@ -55,7 +55,7 @@ struct unsigned_reader_t
   }
 
 private :
-  void on_whitespace_skipped(no_value_t)
+  void on_whitespace_skipped()
   {
     digits_reader_.start(
       &unsigned_reader_t::on_digits_read, std::numeric_limits<T>::max());

@@ -30,9 +30,9 @@ namespace cuti
 
 struct CUTI_ABI whitespace_skipper_t
 {
-  using value_t = no_value_t;
+  using value_t = void;
 
-  whitespace_skipper_t(result_t<no_value_t>& result, bound_inbuf_t& buf)
+  whitespace_skipper_t(result_t<void>& result, bound_inbuf_t& buf)
   : result_(result)
   , buf_(buf)
   { }
@@ -57,7 +57,7 @@ struct CUTI_ABI whitespace_skipper_t
   }
 
 private :
-  result_t<no_value_t>& result_;
+  result_t<void>& result_;
   bound_inbuf_t& buf_;
 };
 

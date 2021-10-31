@@ -34,18 +34,35 @@ namespace cuti
 struct CUTI_ABI no_value_t { };
 
 /*
+ * Helper to deal with result_t<void>.
+ */
+template<typename T>
+struct result_helper_t
+{
+  using submit_arg_t = T;
+};
+
+template<>
+struct result_helper_t<void>
+{
+  using submit_arg_t = no_value_t;
+};
+
+/*
  * Interface for reporting the result of an asynchronous operation.
  */
 template<typename T>
 struct result_t
 {
+  using submit_arg_t = typename result_helper_t<T>::submit_arg_t;
+
   result_t()
   { }
 
   result_t(result_t const&) = delete;
   result_t& operator=(result_t const&) = delete;
   
-  void submit(T value = no_value_t{})
+  void submit(submit_arg_t value = no_value_t{})
   {
     this->do_submit(std::move(value));
   }
@@ -66,7 +83,7 @@ struct result_t
   { }
 
 private :
-  virtual void do_submit(T value) = 0;
+  virtual void do_submit(submit_arg_t value) = 0;
   virtual void do_fail(std::exception_ptr ex) = 0;
 };
 

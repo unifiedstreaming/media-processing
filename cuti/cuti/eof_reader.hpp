@@ -29,7 +29,9 @@ namespace cuti
 
 struct CUTI_ABI eof_reader_t
 {
-  eof_reader_t(result_t<no_value_t>& result, bound_inbuf_t& inbuf);
+  using value_t = void;
+
+  eof_reader_t(result_t<void>& result, bound_inbuf_t& inbuf);
 
   eof_reader_t(eof_reader_t const&) = delete;
   eof_reader_t& operator=(eof_reader_t const&) = delete;
@@ -37,7 +39,7 @@ struct CUTI_ABI eof_reader_t
   void start();
 
 private :
-  result_t<no_value_t>& result_;
+  result_t<void>& result_;
   bound_inbuf_t& buf_;
 };
 

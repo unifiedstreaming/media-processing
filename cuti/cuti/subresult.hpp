@@ -23,26 +23,58 @@
 #include "result.hpp"
 
 #include <cassert>
+#include <utility>
 
 namespace cuti
 {
 
+/*
+ * Helper to deal with subresult_t<Parent, void>
+ */
+template<typename Parent, typename T>
+struct subresult_helper_t
+{
+  using on_success_t = void (Parent::*)(T);
+
+  template<typename TT>
+  static void report_success(
+    Parent& parent, on_success_t on_success, TT&& value)
+  {
+    (parent.*on_success)(std::forward<TT>(value));
+  }
+};
+    
+template<typename Parent>
+struct subresult_helper_t<Parent, void>
+{
+  using on_success_t = void (Parent::*)();
+
+  template<typename TT>
+  static void report_success(
+    Parent& parent, on_success_t on_success, TT&& /*ignored */)
+  {
+    (parent.*on_success)();
+  }
+};
+
+/*
+ * Result type for an asynchronous suboperation.
+ */
 template<typename Parent, typename T>
 struct subresult_t : result_t<T>
 {
-  using value_t = T;
+  using submit_arg_t = typename result_t<T>::submit_arg_t;
+  using on_success_t = typename subresult_helper_t<Parent, T>::on_success_t;
+  using on_failure_t = void (Parent::*)(std::exception_ptr);
 
-  subresult_t(Parent& parent,
-              void (Parent::*on_failure)(std::exception_ptr))
+  subresult_t(Parent& parent, on_failure_t on_failure)
   : parent_(parent)
   , on_success_(nullptr)
   , on_failure_((assert(on_failure != nullptr), on_failure))
   { }
 
   template<typename Child, typename... Args>
-  void start_child(void (Parent::*on_success)(value_t),
-                   Child& child,
-                   Args&&... args)
+  void start_child(on_success_t on_success, Child& child, Args&&... args)
   {
     assert(on_success != nullptr);
     on_success_ = on_success;
@@ -50,10 +82,11 @@ struct subresult_t : result_t<T>
   }
     
 private :
-  void do_submit(value_t value) override
+  void do_submit(submit_arg_t value) override
   {
     assert(on_success_ != nullptr);
-    (parent_.*on_success_)(std::move(value));
+    subresult_helper_t<Parent, T>::report_success(
+      parent_, on_success_, std::move(value));
   }
 
   void do_fail(std::exception_ptr ex) override
@@ -63,8 +96,8 @@ private :
 
 private :
   Parent& parent_;
-  void (Parent::*on_success_)(value_t);
-  void (Parent::*on_failure_)(std::exception_ptr);
+  on_success_t on_success_;
+  on_failure_t on_failure_;
 };
 
 } // cuti

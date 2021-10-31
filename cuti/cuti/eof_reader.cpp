@@ -25,7 +25,7 @@
 namespace cuti
 {
 
-eof_reader_t::eof_reader_t(result_t<no_value_t>& result, bound_inbuf_t& buf)
+eof_reader_t::eof_reader_t(result_t<void>& result, bound_inbuf_t& buf)
 : result_(result)
 , buf_(buf)
 { }
@@ -48,5 +48,3 @@ void eof_reader_t::start()
 }
 
 } // cuti
-
-    

@@ -32,26 +32,25 @@ template<typename Parent, typename Child>
 struct subreader_t
 {
   using value_t = typename Child::value_t;
-
+  using on_success_t = typename subresult_t<Parent, value_t>::on_success_t;
+  using on_failure_t = typename subresult_t<Parent, value_t>::on_failure_t;
+  
   template<typename... ChildArgs>
   subreader_t(Parent& parent,
-              void (Parent::*on_failure)(std::exception_ptr),
+              on_failure_t on_failure,
               ChildArgs&&... child_args)
-  : subresult_(parent, (assert(on_failure != nullptr), on_failure))
+  : subresult_(parent, on_failure)
   , child_(subresult_, std::forward<ChildArgs>(child_args)...)
   { }
 
   subreader_t(subreader_t const&) = delete;
   subreader_t& operator=(subreader_t const&) = delete;
   
-  template<typename... OtherArgs>
-  void start(void (Parent::*on_success)(value_t),
-             OtherArgs&&... other_args)
+  template<typename... Args>
+  void start(on_success_t on_success, Args&&... args)
   {
-    assert(on_success != nullptr);
-
     subresult_.start_child(
-      on_success, child_, std::forward<OtherArgs>(other_args)...);
+      on_success, child_, std::forward<Args>(args)...);
   }
     
 private :

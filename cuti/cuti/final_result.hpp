@@ -32,12 +32,18 @@ namespace cuti
 template<typename T>
 struct final_result_t : result_t<T>
 {
+  using submit_arg_t = typename result_t<T>::submit_arg_t;
+
+  final_result_t()
+  : state_()
+  { }
+
   bool available() const
   {
     return state_.index() != 0;
   }
 
-  const T& value() const
+  submit_arg_t const& value() const
   {
     assert(this->available());
 
@@ -57,7 +63,7 @@ struct final_result_t : result_t<T>
   }
     
 private :
-  void do_submit(T value) override
+  void do_submit(submit_arg_t value) override
   {
     assert(!this->available());
 
@@ -72,7 +78,7 @@ private :
   }    
 
 private :
-  std::variant<std::monostate, T, std::exception_ptr> state_;
+  std::variant<std::monostate, submit_arg_t, std::exception_ptr> state_;
 };
 
 } // cuti
