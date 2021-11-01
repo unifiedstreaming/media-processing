@@ -21,10 +21,10 @@
 #define CUTI_UNSIGNED_READER_HPP_
 
 #include "bound_inbuf.hpp"
+#include "charclass.hpp"
 #include "digits_reader.hpp"
 #include "result.hpp"
 #include "subreader.hpp"
-#include "whitespace_skipper.hpp"
 
 #include <limits>
 #include <type_traits>
@@ -42,7 +42,7 @@ struct unsigned_reader_t
 
   unsigned_reader_t(result_t<T>& result, bound_inbuf_t& buf)
   : result_(result)
-  , whitespace_skipper_(*this, &unsigned_reader_t::on_failure, buf)
+  , buf_(buf)
   , digits_reader_(*this, &unsigned_reader_t::on_failure, buf)
   { }
 
@@ -51,15 +51,26 @@ struct unsigned_reader_t
 
   void start()
   {
-    whitespace_skipper_.start(&unsigned_reader_t::on_whitespace_skipped);
+    this->skip_spaces();
   }
 
 private :
-  void on_whitespace_skipped()
+  void skip_spaces()
   {
+    while(buf_.readable() && is_whitespace(buf_.peek()))
+    {
+      buf_.skip();
+    }
+
+    if(!buf_.readable())
+    {
+      buf_.call_when_readable([this] { this->skip_spaces(); });
+      return;
+    }
+
     digits_reader_.start(
       &unsigned_reader_t::on_digits_read, std::numeric_limits<T>::max());
-  }
+  }    
 
   void on_digits_read(T value)
   {
@@ -73,7 +84,7 @@ private :
 
 private :
   result_t<T>& result_;
-  subreader_t<unsigned_reader_t, whitespace_skipper_t> whitespace_skipper_;
+  bound_inbuf_t& buf_;
   subreader_t<unsigned_reader_t, digits_reader_t<T>> digits_reader_;
 };
 
