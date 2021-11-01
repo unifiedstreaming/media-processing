@@ -17,8 +17,8 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#ifndef CUTI_SUBREADER_HPP_
-#define CUTI_SUBREADER_HPP_
+#ifndef CUTI_SUBROUTINE_HPP_
+#define CUTI_SUBROUTINE_HPP_
 
 #include "subresult.hpp"
 
@@ -28,23 +28,27 @@
 namespace cuti
 {
 
+/*
+ * subroutine_t links a single asynchronous child routine to some
+ * invoking parent.
+ */
 template<typename Parent, typename Child>
-struct subreader_t
+struct subroutine_t
 {
   using value_t = typename Child::value_t;
   using on_success_t = typename subresult_t<Parent, value_t>::on_success_t;
   using on_failure_t = typename subresult_t<Parent, value_t>::on_failure_t;
   
   template<typename... ChildArgs>
-  subreader_t(Parent& parent,
-              on_failure_t on_failure,
-              ChildArgs&&... child_args)
+  subroutine_t(Parent& parent,
+               on_failure_t on_failure,
+               ChildArgs&&... child_args)
   : subresult_(parent, on_failure)
   , child_(subresult_, std::forward<ChildArgs>(child_args)...)
   { }
 
-  subreader_t(subreader_t const&) = delete;
-  subreader_t& operator=(subreader_t const&) = delete;
+  subroutine_t(subroutine_t const&) = delete;
+  subroutine_t& operator=(subroutine_t const&) = delete;
   
   template<typename... Args>
   void start(on_success_t on_success, Args&&... args)

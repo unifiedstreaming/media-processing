@@ -24,7 +24,7 @@
 #include "charclass.hpp"
 #include "digits_reader.hpp"
 #include "result.hpp"
-#include "subreader.hpp"
+#include "subroutine.hpp"
 
 #include <limits>
 #include <type_traits>
@@ -85,7 +85,7 @@ private :
 private :
   result_t<T>& result_;
   bound_inbuf_t& buf_;
-  subreader_t<unsigned_reader_t, digits_reader_t<T>> digits_reader_;
+  subroutine_t<unsigned_reader_t, digits_reader_t<T>> digits_reader_;
 };
 
 } // cuti
