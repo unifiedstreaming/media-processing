@@ -80,6 +80,7 @@ lib cuti
   eof_reader.cpp
   epoll_selector.cpp
   file_backend.cpp
+  flusher.cpp
   fs_utils.cpp
   format.cpp
   kqueue_selector.cpp

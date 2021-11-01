@@ -17,30 +17,33 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#ifndef CUTI_EOF_READER_HPP_
-#define CUTI_EOF_READER_HPP_
+#ifndef CUTI_FLUSHER_HPP_
+#define CUTI_FLUSHER_HPP_
 
-#include "bound_inbuf.hpp"
+#include "bound_outbuf.hpp"
 #include "linkage.h"
 #include "result.hpp"
 
 namespace cuti
 {
 
-struct CUTI_ABI eof_reader_t
+struct CUTI_ABI flusher_t
 {
   using value_t = void;
 
-  eof_reader_t(result_t<void>& result, bound_inbuf_t& buf);
+  flusher_t(result_t<void>& result, bound_outbuf_t& buf);
 
-  eof_reader_t(eof_reader_t const&) = delete;
-  eof_reader_t& operator=(eof_reader_t const&) = delete;
+  flusher_t(flusher_t const&) = delete;
+  flusher_t& operator=(flusher_t const&) = delete;
   
   void start();
 
 private :
+  void check_flushed();
+
+private :
   result_t<void>& result_;
-  bound_inbuf_t& buf_;
+  bound_outbuf_t& buf_;
 };
 
 } // of namespace cuti

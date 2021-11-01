@@ -17,16 +17,14 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#ifndef CUTI_UNSIGNED_READER_HPP_
-#define CUTI_UNSIGNED_READER_HPP_
+#ifndef CUTI_UNSIGNED_WRITER_HPP_
+#define CUTI_UNSIGNED_WRITER_HPP_
 
-#include "bound_inbuf.hpp"
-#include "charclass.hpp"
-#include "digits_reader.hpp"
+#include "bound_outbuf.hpp"
+#include "digits_writer.hpp"
 #include "result.hpp"
 #include "subroutine.hpp"
 
-#include <limits>
 #include <type_traits>
 #include <utility>
 
@@ -34,47 +32,44 @@ namespace cuti
 {
 
 template<typename T>
-struct unsigned_reader_t
+struct unsigned_writer_t
 {
   static_assert(std::is_unsigned_v<T>);
 
-  using value_t = T;
+  using value_t = void;
 
-  unsigned_reader_t(result_t<T>& result, bound_inbuf_t& buf)
+  unsigned_writer_t(result_t<void>& result, bound_outbuf_t& buf)
   : result_(result)
   , buf_(buf)
-  , digits_reader_(*this, &unsigned_reader_t::on_failure, buf_)
+  , digits_writer_(*this, &unsigned_writer_t::on_failure, buf_)
+  , value_()
   { }
 
-  unsigned_reader_t(unsigned_reader_t const&) = delete;
-  unsigned_reader_t& operator=(unsigned_reader_t const&) = delete;
+  unsigned_writer_t(unsigned_writer_t const&);
+  unsigned_writer_t& operator=(unsigned_writer_t const&);
 
-  void start()
+  void start(T value)
   {
-    this->skip_spaces();
+    value_ = value;
+    this->write_space();
   }
 
 private :
-  void skip_spaces()
+  void write_space()
   {
-    while(buf_.readable() && is_whitespace(buf_.peek()))
+    if(!buf_.writable())
     {
-      buf_.skip();
-    }
-
-    if(!buf_.readable())
-    {
-      buf_.call_when_readable([this] { this->skip_spaces(); });
+      buf_.call_when_writable([this] { this->write_space(); });
       return;
     }
 
-    digits_reader_.start(
-      &unsigned_reader_t::on_digits_read, std::numeric_limits<T>::max());
-  }    
+    buf_.put(' ');
+    digits_writer_.start(&unsigned_writer_t::on_digits_written, value_);
+  }
 
-  void on_digits_read(T value)
+  void on_digits_written()
   {
-    result_.submit(value);
+    result_.submit();
   }
 
   void on_failure(std::exception_ptr ex)
@@ -83,9 +78,10 @@ private :
   }
 
 private :
-  result_t<T>& result_;
-  bound_inbuf_t& buf_;
-  subroutine_t<unsigned_reader_t, digits_reader_t<T>> digits_reader_;
+  result_t<void>& result_;
+  bound_outbuf_t& buf_;
+  subroutine_t<unsigned_writer_t, digits_writer_t<T>> digits_writer_;
+  T value_;
 };
 
 } // cuti

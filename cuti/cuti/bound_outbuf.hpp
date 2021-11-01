@@ -60,6 +60,11 @@ struct CUTI_ABI bound_outbuf_t
     return outbuf_.write(first, last);
   }
 
+  void start_flush()
+  {
+    outbuf_.start_flush();
+  }
+
   void call_when_writable(callback_t callback)
   {
     outbuf_.call_when_writable(scheduler_, std::move(callback));

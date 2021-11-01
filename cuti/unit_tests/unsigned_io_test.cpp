@@ -18,14 +18,17 @@
  */
 
 #include <cuti/unsigned_reader.hpp>
+#include <cuti/unsigned_writer.hpp>
 
 #include <cuti/cmdline_reader.hpp>
 #include <cuti/default_scheduler.hpp>
 #include <cuti/eof_reader.hpp>
 #include <cuti/final_result.hpp>
+#include <cuti/flusher.hpp>
 #include <cuti/logger.hpp>
 #include <cuti/logging_context.hpp>
 #include <cuti/nb_string_inbuf.hpp>
+#include <cuti/nb_string_outbuf.hpp>
 #include <cuti/option_walker.hpp>
 #include <cuti/quoted_string.hpp>
 #include <cuti/streambuf_backend.hpp>
@@ -86,20 +89,12 @@ std::string plus_one(T value)
 }
 
 template<typename T>
-void do_test_successful_read(logging_context_t& context,
-                             T expected,
-                             std::string input,
-                             std::size_t bufsize)
+void verify_input(logging_context_t& context,
+                  default_scheduler_t& scheduler,
+                  T expected,
+                  std::string input,
+                  std::size_t bufsize)
 {
-  if(auto msg = context.message_at(loglevel_t::info))
-  {
-    *msg << __func__ << '<' << typeid(T).name() << '>' <<
-      ": expected: " << expected <<
-      " input: " << quoted_string(input) << " bufsize: " << bufsize;
-  }
-
-  default_scheduler_t scheduler;
-
   auto inbuf = make_nb_string_inbuf(context, std::move(input), bufsize);
   bound_inbuf_t bit(*inbuf, scheduler);
 
@@ -128,6 +123,23 @@ void do_test_successful_read(logging_context_t& context,
   }
 
   eof_result.value();
+}
+
+template<typename T>
+void do_test_successful_read(logging_context_t& context,
+                             T expected,
+                             std::string input,
+                             std::size_t bufsize)
+{
+  if(auto msg = context.message_at(loglevel_t::info))
+  {
+    *msg << __func__ << '<' << typeid(T).name() << '>' <<
+      ": expected: " << expected <<
+      " input: " << quoted_string(input) << " bufsize: " << bufsize;
+  }
+
+  default_scheduler_t scheduler;
+  verify_input(context, scheduler,expected, std::move(input), bufsize);
 }
 
 template<typename T>
@@ -169,6 +181,58 @@ void do_test_failing_read(logging_context_t& context,
     caught = true;
   }
   assert(caught);
+}
+
+template<typename T>
+void do_test_roundtrip(logging_context_t& context,
+                       T value,
+                       std::size_t bufsize)
+{
+  if(auto msg = context.message_at(loglevel_t::info))
+  {
+    *msg << __func__ << '<' << typeid(T).name() << '>' <<
+      ": value: " << value << " bufsize: " << bufsize;
+  }
+
+  default_scheduler_t scheduler;
+
+  std::string serialized;
+  auto outbuf = make_nb_string_outbuf(context, serialized, bufsize);
+  bound_outbuf_t bot(*outbuf, scheduler);
+
+  final_result_t<void> write_result;
+  unsigned_writer_t<T> value_writer(write_result, bot);
+  value_writer.start(value);
+
+  while(!write_result.available())
+  {
+    auto cb = scheduler.wait();
+    assert(cb != nullptr);
+    cb();
+  }
+
+  write_result.value();
+
+  final_result_t<void> flush_result;
+  flusher_t flusher(flush_result, bot);
+  flusher.start();
+
+  while(!flush_result.available())
+  {
+    auto cb = scheduler.wait();
+    assert(cb != nullptr);
+    cb();
+  }
+
+  flush_result.value();
+
+  if(auto msg = context.message_at(loglevel_t::info))
+  {
+    *msg << __func__ << '<' << typeid(T).name() << '>' <<
+      ": serialized form: " << quoted_string(serialized);
+  }
+
+  verify_input(context, scheduler, value, std::move(serialized), bufsize);
 }
 
 template<typename T>
@@ -238,6 +302,21 @@ void test_overflow(logging_context_t& context)
   }
 }
 
+template<typename T>
+void test_roundtrip(logging_context_t& context)
+{
+  static T constexpr values[] =
+    { 0, 9, 10, 11, 99, 100, 101, 4711, std::numeric_limits<T>::max() };
+
+  for(auto value : values)
+  {
+    for(auto bufsize : bufsizes)
+    {
+      do_test_roundtrip<T>(context, value, bufsize);
+    }
+  }
+}
+
 struct options_t
 {
   static loglevel_t constexpr default_loglevel = loglevel_t::error;
@@ -300,6 +379,11 @@ int run_tests(int argc, char const* const* argv)
   test_overflow<unsigned long>(context);
   test_overflow<unsigned long long>(context);
 
+  test_roundtrip<unsigned short>(context);
+  test_roundtrip<unsigned int>(context);
+  test_roundtrip<unsigned long>(context);
+  test_roundtrip<unsigned long long>(context);
+  
   return 0;
 }
   
