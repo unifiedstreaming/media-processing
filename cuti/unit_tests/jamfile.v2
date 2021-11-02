@@ -49,6 +49,10 @@ unit-test indexed_heap_test
 : indexed_heap_test.cpp
 ;
 
+unit-test integral_io_test
+: integral_io_test.cpp
+;
+
 unit-test list_arena_test
 : list_arena_test.cpp
 ;
@@ -103,8 +107,4 @@ unit-test tcp_socket_test
 
 unit-test throughput_checker_test
 : throughput_checker_test.cpp
-;
-
-unit-test unsigned_io_test
-: unsigned_io_test.cpp
 ;
