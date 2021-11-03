@@ -37,7 +37,7 @@ inline bool is_whitespace(int c)
 CUTI_ABI
 inline bool is_printable(int c)
 {
-  return c >= 0x20 && c <= 0x7F;
+  return c >= 0x20 && c <= 0x7E;
 }
 
 CUTI_ABI
