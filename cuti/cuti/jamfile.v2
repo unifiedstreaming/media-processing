@@ -112,6 +112,8 @@ lib cuti
   signal_handler.cpp
   socket_nifty.cpp
   streambuf_backend.cpp
+  string_reader.cpp
+  string_writer.cpp
   syslog_backend.cpp
   system_error.cpp
   tcp_acceptor.cpp

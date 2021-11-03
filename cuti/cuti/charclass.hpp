@@ -23,7 +23,7 @@
 #include "linkage.h"
 
 /*
- * Some character classification utilities
+ * Some character (classification) utilities
  */
 namespace cuti
 {
@@ -43,8 +43,23 @@ inline bool is_printable(int c)
 CUTI_ABI
 inline int digit_value(int c)
 {
-  return c >= '0' && c <= '9' ? c - '0' : -1;
+  return c >= '0' && c <= '9' ? c - '0' :
+         -1;
 }
+
+CUTI_ABI
+inline int hex_digit_value(int c)
+{
+  return c >= '0' && c <= '9' ? c - '0' :
+         c >= 'A' && c <= 'F' ? c - 'A' + 10 :
+         c >= 'a' && c <= 'f' ? c - 'a' + 10 :
+         -1;
+}
+
+char constexpr hex_digits[] = {
+  '0', '1', '2', '3', '4', '5', '6', '7',
+  '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'
+};
 
 } // cuti
 

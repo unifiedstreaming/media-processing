@@ -93,6 +93,10 @@ unit-test streambuf_backend_test
 : streambuf_backend_test.cpp
 ;
 
+unit-test string_io_test
+: string_io_test.cpp
+;
+
 unit-test tcp_acceptor_test
 : tcp_acceptor_test.cpp
 ;

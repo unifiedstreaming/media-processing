@@ -28,11 +28,6 @@ namespace cuti
 
 void quoted_string_t::print(std::streambuf& sb) const &&
 {
-  static char constexpr hex_digits[] = {
-    '0', '1', '2', '3', '4', '5', '6', '7',
-    '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'
-  };
-
   sb.sputc('\"');
 
   for(const char* p = first_; p != last_; ++p)
