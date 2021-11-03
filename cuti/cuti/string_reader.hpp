@@ -42,7 +42,7 @@ struct CUTI_ABI string_reader_t
   void start();
 
 private :
-  struct hex_digits_reader_t
+  struct CUTI_ABI hex_digits_reader_t
   {
     using value_t = char;
 
