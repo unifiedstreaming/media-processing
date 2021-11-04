@@ -102,6 +102,7 @@ lib cuti
   poll_selector.cpp
   process.cpp
   quoted_string.cpp
+  reader.cpp
   resolver.cpp
   scheduler.cpp
   scoped_thread.cpp
@@ -112,14 +113,13 @@ lib cuti
   signal_handler.cpp
   socket_nifty.cpp
   streambuf_backend.cpp
-  string_reader.cpp
-  string_writer.cpp
   syslog_backend.cpp
   system_error.cpp
   tcp_acceptor.cpp
   tcp_connection.cpp
   tcp_socket.cpp
   viewbuf.cpp
+  writer.cpp
   advapi32
   ws2_32
 :

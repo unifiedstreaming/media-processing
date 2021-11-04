@@ -17,7 +17,7 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#include "string_writer.hpp"
+#include "writer.hpp"
 
 #include "charclass.hpp"
 
@@ -25,6 +25,9 @@
 #include <utility>
 
 namespace cuti
+{
+
+namespace detail
 {
 
 string_writer_t::hex_digits_writer_t::hex_digits_writer_t(
@@ -191,5 +194,7 @@ void string_writer_t::on_exception(std::exception_ptr ex)
 {
   result_.fail(std::move(ex));
 }
+
+} // detail
 
 } // cuti

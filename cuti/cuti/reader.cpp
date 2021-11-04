@@ -17,7 +17,7 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#include "string_reader.hpp"
+#include "reader.hpp"
 
 #include "charclass.hpp"
 #include "parse_error.hpp"
@@ -26,6 +26,9 @@
 #include <utility>
 
 namespace cuti
+{
+
+namespace detail
 {
 
 string_reader_t::hex_digits_reader_t::hex_digits_reader_t(
@@ -205,4 +208,6 @@ void string_reader_t::on_exception(std::exception_ptr ex)
   result_.fail(std::move(ex));
 }
   
+} // detail
+
 } // cuti

@@ -17,8 +17,8 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#include <cuti/string_reader.hpp>
-#include <cuti/string_writer.hpp>
+#include <cuti/reader.hpp>
+#include <cuti/writer.hpp>
 
 #include <cuti/bound_inbuf.hpp>
 #include <cuti/bound_outbuf.hpp>
@@ -63,7 +63,7 @@ void test_failing_read(logging_context_t& context,
   bound_inbuf_t bit(*inbuf, scheduler);
 
   final_result_t<std::string> read_result;
-  string_reader_t reader(read_result, bit);
+  reader_t<std::string> reader(read_result, bit);
   reader.start();
 
   unsigned int n_read_callbacks = 0;
@@ -115,7 +115,7 @@ void test_roundtrip(logging_context_t& context,
   bound_outbuf_t bot(*outbuf, scheduler);
 
   final_result_t<void> write_result;
-  string_writer_t writer(write_result, bot);
+  writer_t<std::string> writer(write_result, bot);
   writer.start(input);
 
   unsigned int n_write_callbacks = 0;
@@ -164,7 +164,7 @@ void test_roundtrip(logging_context_t& context,
   bound_inbuf_t bit(*inbuf, scheduler);
 
   final_result_t<std::string> read_result;
-  string_reader_t reader(read_result, bit);
+  reader_t<std::string> reader(read_result, bit);
   reader.start();
 
   unsigned int n_read_callbacks = 0;

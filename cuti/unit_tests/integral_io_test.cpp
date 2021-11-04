@@ -17,10 +17,8 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#include <cuti/signed_reader.hpp>
-#include <cuti/signed_writer.hpp>
-#include <cuti/unsigned_reader.hpp>
-#include <cuti/unsigned_writer.hpp>
+#include <cuti/reader.hpp>
+#include <cuti/writer.hpp>
 
 #include <cuti/bound_inbuf.hpp>
 #include <cuti/bound_outbuf.hpp>
@@ -49,82 +47,6 @@ namespace // anonymous
 {
 
 using namespace cuti;
-
-template<typename T>
-struct reader_traits_t;
-
-template<typename T>
-using reader_t = typename reader_traits_t<T>::type;
-
-template<>
-struct reader_traits_t<short>
-{ using type = signed_reader_t<short>; };
-
-template<>
-struct reader_traits_t<int>
-{ using type = signed_reader_t<int>; };
-
-template<>
-struct reader_traits_t<long>
-{ using type = signed_reader_t<long>; };
-
-template<>
-struct reader_traits_t<long long>
-{ using type = signed_reader_t<long long>; };
-
-template<>
-struct reader_traits_t<unsigned short>
-{ using type = unsigned_reader_t<unsigned short>; };
-
-template<>
-struct reader_traits_t<unsigned int>
-{ using type = unsigned_reader_t<unsigned int>; };
-
-template<>
-struct reader_traits_t<unsigned long>
-{ using type = unsigned_reader_t<unsigned long>; };
-
-template<>
-struct reader_traits_t<unsigned long long>
-{ using type = unsigned_reader_t<unsigned long long>; };
-
-template<typename T>
-struct writer_traits_t;
-
-template<typename T>
-using writer_t = typename writer_traits_t<T>::type;
-
-template<>
-struct writer_traits_t<short>
-{ using type = signed_writer_t<short>; };
-
-template<>
-struct writer_traits_t<int>
-{ using type = signed_writer_t<int>; };
-
-template<>
-struct writer_traits_t<long>
-{ using type = signed_writer_t<long>; };
-
-template<>
-struct writer_traits_t<long long>
-{ using type = signed_writer_t<long long>; };
-
-template<>
-struct writer_traits_t<unsigned short>
-{ using type = unsigned_writer_t<unsigned short>; };
-
-template<>
-struct writer_traits_t<unsigned int>
-{ using type = unsigned_writer_t<unsigned int>; };
-
-template<>
-struct writer_traits_t<unsigned long>
-{ using type = unsigned_writer_t<unsigned long>; };
-
-template<>
-struct writer_traits_t<unsigned long long>
-{ using type = unsigned_writer_t<unsigned long long>; };
 
 template<typename T>
 std::string times_ten(T value)
