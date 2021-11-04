@@ -22,8 +22,8 @@
 
 #include "bound_inbuf.hpp"
 #include "charclass.hpp"
-#include "digits_reader.hpp"
 #include "linkage.h"
+#include "parse_error.hpp"
 #include "result.hpp"
 #include "subroutine.hpp"
 
@@ -43,6 +43,77 @@ using reader_t = typename reader_traits_t<T>::type;
 
 namespace detail
 {
+
+template<typename T>
+struct digits_reader_t
+{
+  static_assert(std::is_unsigned_v<T>);
+
+  using value_t = T;
+
+  digits_reader_t(result_t<T>& result, bound_inbuf_t& buf)
+  : result_(result)
+  , buf_(buf)
+  , max_()
+  , digit_seen_()
+  , value_()
+  { }
+
+  digits_reader_t(digits_reader_t const&) = delete;
+  digits_reader_t& operator=(digits_reader_t const&) = delete;
+
+  void start(T max)
+  {
+    max_ = max;
+    digit_seen_ = false;
+    value_ = 0;
+
+    this->read_digits();
+  }
+
+private :
+  void read_digits()
+  {
+    int dval{};
+    while(buf_.readable() && (dval = digit_value(buf_.peek())) >= 0)
+    {
+      digit_seen_ = true;
+
+      T udval = static_cast<T>(dval);
+      if(value_ > max_ / 10 || udval > max_ - 10 * value_)
+      {
+        result_.fail(parse_error_t("integer overflow"));
+        return;
+      }
+
+      value_ *= 10;
+      value_ += udval;
+
+      buf_.skip();
+    }
+
+    if(!buf_.readable())
+    {
+      buf_.call_when_readable([this] { this->read_digits(); });
+      return;
+    }
+
+    if(!digit_seen_)
+    {
+      result_.fail(parse_error_t("digit expected"));
+      return;
+    }
+  
+    result_.submit(value_);
+  }
+
+private :
+  result_t<T>& result_;
+  bound_inbuf_t& buf_;
+  T max_;
+  bool digit_seen_;
+  T value_;
+};
 
 template<typename T>
 struct unsigned_reader_t
