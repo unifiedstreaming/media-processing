@@ -42,43 +42,19 @@ struct CUTI_ABI string_writer_t
   void start(std::string value);
 
 private :
-  struct CUTI_ABI char_escape_writer_t
+  struct CUTI_ABI hex_digits_writer_t
   {
     using value_t = void;
 
-    char_escape_writer_t(result_t<void>& result_, bound_outbuf_t& buf);
+    hex_digits_writer_t(result_t<void>& result_, bound_outbuf_t& buf);
 
-    char_escape_writer_t(char_escape_writer_t const&) = delete;
-    char_escape_writer_t& operator=(char_escape_writer_t const&) = delete;
-
-    void start(char value);
-
-  private :
-    void write_backslash();
-    void write_value();
-
-  private :
-    result_t<void>& result_;
-    bound_outbuf_t& buf_;
-
-    char value_;
-  };
-    
-  struct CUTI_ABI hex_escape_writer_t
-  {
-    using value_t = void;
-
-    hex_escape_writer_t(result_t<void>& result_, bound_outbuf_t& buf);
-
-    hex_escape_writer_t(hex_escape_writer_t const&) = delete;
-    hex_escape_writer_t& operator=(hex_escape_writer_t const&) = delete;
+    hex_digits_writer_t(hex_digits_writer_t const&) = delete;
+    hex_digits_writer_t& operator=(hex_digits_writer_t const&) = delete;
 
     void start(int value);
 
   private :
-    void write_backslash();
-    void write_x();
-    void write_hex_digits();
+    void write_digits();
 
   private :
     result_t<void>& result_;
@@ -92,14 +68,14 @@ private :
   void write_space();
   void write_opening_dq();
   void write_contents();
+  void write_escaped();
   void write_closing_dq();
   void on_exception(std::exception_ptr ex);
 
 private :
   result_t<void>& result_;
   bound_outbuf_t& buf_;
-  subroutine_t<string_writer_t, char_escape_writer_t> char_escape_writer_;
-  subroutine_t<string_writer_t, hex_escape_writer_t> hex_escape_writer_;
+  subroutine_t<string_writer_t, hex_digits_writer_t> hex_digits_writer_;
   
   std::string value_;
   char const* rp_;

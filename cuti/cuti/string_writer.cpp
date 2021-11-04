@@ -27,45 +27,7 @@
 namespace cuti
 {
 
-string_writer_t::char_escape_writer_t::char_escape_writer_t(
-  result_t<void>& result, bound_outbuf_t& buf)
-: result_(result)
-, buf_(buf)
-, value_()
-{ }
-
-void string_writer_t::char_escape_writer_t::start(char value)
-{
-  value_ = value;
-
-  this->write_backslash();
-}
-
-void string_writer_t::char_escape_writer_t::write_backslash()
-{
-  if(!buf_.writable())
-  {
-    buf_.call_when_writable([this] { this->write_backslash(); });
-    return;
-  }
-  buf_.put('\\');
-
-  this->write_value();
-}
-
-void string_writer_t::char_escape_writer_t::write_value()
-{
-  if(!buf_.writable())
-  {
-    buf_.call_when_writable([this] { this->write_value(); });
-    return;
-  }
-  buf_.put(value_);
-
-  result_.submit();
-}
-
-string_writer_t::hex_escape_writer_t::hex_escape_writer_t(
+string_writer_t::hex_digits_writer_t::hex_digits_writer_t(
   result_t<void>& result, bound_outbuf_t& buf)
 : result_(result)
 , buf_(buf)
@@ -73,39 +35,15 @@ string_writer_t::hex_escape_writer_t::hex_escape_writer_t(
 , shift_()
 { }
 
-void string_writer_t::hex_escape_writer_t::start(int value)
+void string_writer_t::hex_digits_writer_t::start(int value)
 {
   value_ = value;
   shift_ = 8;
 
-  this->write_backslash();
+  this->write_digits();
 }
 
-void string_writer_t::hex_escape_writer_t::write_backslash()
-{
-  if(!buf_.writable())
-  {
-    buf_.call_when_writable([this] { this->write_backslash(); });
-    return;
-  }
-  buf_.put('\\');
-
-  this->write_x();
-}
-
-void string_writer_t::hex_escape_writer_t::write_x()
-{
-  if(!buf_.writable())
-  {
-    buf_.call_when_writable([this] { this->write_x(); });
-    return;
-  }
-  buf_.put('x');
-
-  this->write_hex_digits();
-}
-
-void string_writer_t::hex_escape_writer_t::write_hex_digits()
+void string_writer_t::hex_digits_writer_t::write_digits()
 {
   assert(shift_ % 4 == 0);
 
@@ -117,7 +55,7 @@ void string_writer_t::hex_escape_writer_t::write_hex_digits()
 
   if(shift_ != 0)
   {
-    buf_.call_when_writable([this] { this->write_hex_digits(); });
+    buf_.call_when_writable([this] { this->write_digits(); });
     return;
   }
 
@@ -127,8 +65,7 @@ void string_writer_t::hex_escape_writer_t::write_hex_digits()
 string_writer_t::string_writer_t(result_t<void>& result, bound_outbuf_t& buf)
 : result_(result)
 , buf_(buf)
-, char_escape_writer_(*this, &string_writer_t::on_exception, buf_)
-, hex_escape_writer_(*this, &string_writer_t::on_exception, buf_)
+, hex_digits_writer_(*this, &string_writer_t::on_exception, buf_)
 , value_()
 , rp_()
 , ep_()
@@ -176,37 +113,15 @@ void string_writer_t::write_contents()
   while(rp_ != ep_ && buf_.writable() && recursion_ != 100)
   {
     int c = std::char_traits<char>::to_int_type(*rp_);
-    ++rp_;
-
-    switch(c)
+    if(!is_printable(c) || c == '\"' || c == '\'' || c == '\\')
     {
-    case '\t' :
-      char_escape_writer_.start(&string_writer_t::write_contents, 't');
+      buf_.put('\\');
+      this->write_escaped();
       return;
-    case '\n' :
-      char_escape_writer_.start(&string_writer_t::write_contents, 'n');
-      return;
-    case '\r' :
-      char_escape_writer_.start(&string_writer_t::write_contents, 'r');
-      return;
-    case '\"' :
-      char_escape_writer_.start(&string_writer_t::write_contents, '\"');
-      return;
-    case '\'' :
-      char_escape_writer_.start(&string_writer_t::write_contents, '\'');
-      return;
-    case '\\' :
-      char_escape_writer_.start(&string_writer_t::write_contents, '\\');
-      return;
-    default :
-      if(!is_printable(c))
-      {
-        hex_escape_writer_.start(&string_writer_t::write_contents, c);
-        return;
-      }
-      buf_.put(static_cast<char>(c));
-      break;
     }
+
+    buf_.put(static_cast<char>(c));
+    ++rp_;
   }
 
   if(rp_ != ep_)
@@ -218,7 +133,48 @@ void string_writer_t::write_contents()
 
   this->write_closing_dq();
 }
-  
+
+void string_writer_t::write_escaped()
+{
+  if(!buf_.writable())
+  {
+    buf_.call_when_writable([this] { this->write_escaped(); });
+    return;
+  }
+    
+  assert(rp_ != ep_);
+  int c = std::char_traits<char>::to_int_type(*rp_);
+  ++rp_;
+
+  switch(c)
+  {
+  case '\t' :
+    buf_.put('t');
+    break;
+  case '\n' :
+    buf_.put('n');
+    break;
+  case '\r' :
+    buf_.put('r');
+    break;
+  case '\"' :
+    buf_.put('\"');
+    break;
+  case '\'' :
+    buf_.put('\'');
+    break;
+  case '\\' :
+    buf_.put('\\');
+    break;
+  default :
+    buf_.put('x');
+    hex_digits_writer_.start(&string_writer_t::write_contents, c);
+    return;
+  }
+
+  this->write_contents();
+}
+
 void string_writer_t::write_closing_dq()
 {
   if(!buf_.writable())
