@@ -115,6 +115,27 @@ private :
   T value_;
 };
 
+struct CUTI_ABI hex_digits_reader_t
+{
+  using value_t = char;
+
+  hex_digits_reader_t(result_t<char>& result, bound_inbuf_t& buf);
+
+  hex_digits_reader_t(hex_digits_reader_t const&) = delete;
+  hex_digits_reader_t& operator=(hex_digits_reader_t const&) = delete;
+
+  void start();
+
+private :
+  void read_digits();
+
+private :
+  result_t<char>& result_;
+  bound_inbuf_t& buf_;
+  int shift_;
+  char value_;
+};
+    
 template<typename T>
 struct unsigned_reader_t
 {
@@ -262,27 +283,6 @@ struct CUTI_ABI string_reader_t
   void start();
 
 private :
-  struct CUTI_ABI hex_digits_reader_t
-  {
-    using value_t = char;
-
-    hex_digits_reader_t(result_t<char>& result, bound_inbuf_t& buf);
-
-    hex_digits_reader_t(hex_digits_reader_t const&) = delete;
-    hex_digits_reader_t& operator=(hex_digits_reader_t const&) = delete;
-
-    void start();
-
-  private :
-    void read_digits();
-
-  private :
-    result_t<char>& result_;
-    bound_inbuf_t& buf_;
-    int shift_;
-    char value_;
-  };
-    
   void read_opening_dq();
   void read_contents();
   void read_escaped();

@@ -31,7 +31,7 @@ namespace cuti
 namespace detail
 {
 
-string_reader_t::hex_digits_reader_t::hex_digits_reader_t(
+hex_digits_reader_t::hex_digits_reader_t(
   result_t<char>& result, bound_inbuf_t& buf)
 : result_(result)
 , buf_(buf)
@@ -39,7 +39,7 @@ string_reader_t::hex_digits_reader_t::hex_digits_reader_t(
 , value_()
 { }
 
-void string_reader_t::hex_digits_reader_t::start()
+void hex_digits_reader_t::start()
 {
   shift_ = 8;
   value_ = 0;
@@ -47,7 +47,7 @@ void string_reader_t::hex_digits_reader_t::start()
   this->read_digits();
 }
 
-void string_reader_t::hex_digits_reader_t::read_digits()
+void hex_digits_reader_t::read_digits()
 {
   assert(shift_ % 4 == 0);
 

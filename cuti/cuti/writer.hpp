@@ -100,6 +100,28 @@ private :
   T divisor_;
 };
 
+struct CUTI_ABI hex_digits_writer_t
+{
+  using value_t = void;
+
+  hex_digits_writer_t(result_t<void>& result_, bound_outbuf_t& buf);
+
+  hex_digits_writer_t(hex_digits_writer_t const&) = delete;
+  hex_digits_writer_t& operator=(hex_digits_writer_t const&) = delete;
+
+  void start(int value);
+
+private :
+  void write_digits();
+
+private :
+  result_t<void>& result_;
+  bound_outbuf_t& buf_;
+
+  int value_;
+  int shift_;
+};
+    
 template<typename T>
 struct unsigned_writer_t
 {
@@ -246,28 +268,6 @@ struct CUTI_ABI string_writer_t
   void start(std::string value);
 
 private :
-  struct CUTI_ABI hex_digits_writer_t
-  {
-    using value_t = void;
-
-    hex_digits_writer_t(result_t<void>& result_, bound_outbuf_t& buf);
-
-    hex_digits_writer_t(hex_digits_writer_t const&) = delete;
-    hex_digits_writer_t& operator=(hex_digits_writer_t const&) = delete;
-
-    void start(int value);
-
-  private :
-    void write_digits();
-
-  private :
-    result_t<void>& result_;
-    bound_outbuf_t& buf_;
-
-    int value_;
-    int shift_;
-  };
-    
 private :
   void write_space();
   void write_opening_dq();

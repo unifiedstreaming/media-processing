@@ -30,7 +30,7 @@ namespace cuti
 namespace detail
 {
 
-string_writer_t::hex_digits_writer_t::hex_digits_writer_t(
+hex_digits_writer_t::hex_digits_writer_t(
   result_t<void>& result, bound_outbuf_t& buf)
 : result_(result)
 , buf_(buf)
@@ -38,7 +38,7 @@ string_writer_t::hex_digits_writer_t::hex_digits_writer_t(
 , shift_()
 { }
 
-void string_writer_t::hex_digits_writer_t::start(int value)
+void hex_digits_writer_t::start(int value)
 {
   value_ = value;
   shift_ = 8;
@@ -46,7 +46,7 @@ void string_writer_t::hex_digits_writer_t::start(int value)
   this->write_digits();
 }
 
-void string_writer_t::hex_digits_writer_t::write_digits()
+void hex_digits_writer_t::write_digits()
 {
   assert(shift_ % 4 == 0);
 
