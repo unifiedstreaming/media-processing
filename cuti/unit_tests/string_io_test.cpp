@@ -25,7 +25,7 @@
 #include <cuti/charclass.hpp>
 #include <cuti/cmdline_reader.hpp>
 #include <cuti/default_scheduler.hpp>
-#include <cuti/eof_reader.hpp>
+#include <cuti/eof_checker.hpp>
 #include <cuti/final_result.hpp>
 #include <cuti/flusher.hpp>
 #include <cuti/logger.hpp>
@@ -184,8 +184,8 @@ void test_roundtrip(logging_context_t& context,
   assert(read_result.value() == input);
 
   final_result_t<void> eof_result;
-  eof_reader_t eof_reader(eof_result, bit);
-  eof_reader.start();
+  eof_checker_t eof_checker(eof_result, bit);
+  eof_checker.start();
 
   unsigned int n_eof_callbacks = 0;
   while(!eof_result.available())

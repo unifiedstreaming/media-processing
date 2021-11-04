@@ -24,7 +24,7 @@
 #include <cuti/bound_outbuf.hpp>
 #include <cuti/cmdline_reader.hpp>
 #include <cuti/default_scheduler.hpp>
-#include <cuti/eof_reader.hpp>
+#include <cuti/eof_checker.hpp>
 #include <cuti/final_result.hpp>
 #include <cuti/flusher.hpp>
 #include <cuti/logger.hpp>
@@ -107,8 +107,8 @@ void verify_input(logging_context_t& context,
   assert(value_result.value() == expected);
   
   final_result_t<void> eof_result;
-  eof_reader_t eof_reader(eof_result, bit);
-  eof_reader.start();
+  eof_checker_t eof_checker(eof_result, bit);
+  eof_checker.start();
 
   while(!eof_result.available())
   {

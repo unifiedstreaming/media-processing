@@ -17,34 +17,32 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#include "eof_reader.hpp"
+#ifndef CUTI_EOF_CHECKER_HPP_
+#define CUTI_EOF_CHECKER_HPP_
 
-#include "eof.hpp"
-#include "parse_error.hpp"
+#include "bound_inbuf.hpp"
+#include "linkage.h"
+#include "result.hpp"
 
 namespace cuti
 {
 
-eof_reader_t::eof_reader_t(result_t<void>& result, bound_inbuf_t& buf)
-: result_(result)
-, buf_(buf)
-{ }
-
-void eof_reader_t::start()
+struct CUTI_ABI eof_checker_t
 {
-  if(!buf_.readable())
-  {
-    buf_.call_when_readable([this] { this->start(); });
-    return;
-  }
+  using value_t = void;
 
-  if(buf_.peek() != eof)
-  {
-    result_.fail(parse_error_t("<eof> expected"));
-    return;
-  }
+  eof_checker_t(result_t<void>& result, bound_inbuf_t& buf);
 
-  result_.submit();
-}
+  eof_checker_t(eof_checker_t const&) = delete;
+  eof_checker_t& operator=(eof_checker_t const&) = delete;
+  
+  void start();
 
-} // cuti
+private :
+  result_t<void>& result_;
+  bound_inbuf_t& buf_;
+};
+
+} // of namespace cuti
+
+#endif

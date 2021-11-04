@@ -77,7 +77,7 @@ lib cuti
   default_scheduler.cpp
   dispatcher.cpp
   endpoint.cpp
-  eof_reader.cpp
+  eof_checker.cpp
   epoll_selector.cpp
   file_backend.cpp
   flusher.cpp
