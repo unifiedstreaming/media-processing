@@ -252,7 +252,7 @@ struct writer_traits_t<unsigned long>
 template<>
 struct writer_traits_t<unsigned long long>
 {
-  using type = detail::unsigned_writer_t<unsigned long>;
+  using type = detail::unsigned_writer_t<unsigned long long>;
 };
 
 template<>
