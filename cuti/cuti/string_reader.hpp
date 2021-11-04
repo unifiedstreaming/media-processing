@@ -59,7 +59,7 @@ private :
   private :
     result_t<char>& result_;
     bound_inbuf_t& buf_;
-    int count_;
+    int shift_;
     char value_;
   };
     

@@ -22,6 +22,7 @@
 #include "charclass.hpp"
 #include "parse_error.hpp"
 
+#include <cassert>
 #include <utility>
 
 namespace cuti
@@ -31,13 +32,13 @@ string_reader_t::hex_digits_reader_t::hex_digits_reader_t(
   result_t<char>& result, bound_inbuf_t& buf)
 : result_(result)
 , buf_(buf)
-, count_()
+, shift_()
 , value_()
 { }
 
 void string_reader_t::hex_digits_reader_t::start()
 {
-  count_ = 2;
+  shift_ = 8;
   value_ = 0;
 
   this->read_digits();
@@ -45,7 +46,9 @@ void string_reader_t::hex_digits_reader_t::start()
 
 void string_reader_t::hex_digits_reader_t::read_digits()
 {
-  while(count_ != 0 && buf_.readable())
+  assert(shift_ % 4 == 0);
+
+  while(shift_ != 0 && buf_.readable())
   {
     int dval = hex_digit_value(buf_.peek());
     if(dval == -1)
@@ -54,14 +57,13 @@ void string_reader_t::hex_digits_reader_t::read_digits()
       return;
     }
 
-    value_ <<= 4;
-    value_ |= static_cast<char>(dval);
+    shift_ -= 4;
+    value_ |= static_cast<char>(dval << shift_);
 
-    --count_;
     buf_.skip();
   }
 
-  if(count_ != 0)
+  if(shift_ != 0)
   {
     buf_.call_when_readable([this] { this->read_digits(); });
     return;
