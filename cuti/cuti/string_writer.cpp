@@ -70,13 +70,13 @@ string_writer_t::hex_escape_writer_t::hex_escape_writer_t(
 : result_(result)
 , buf_(buf)
 , value_()
-, bits_()
+, shift_()
 { }
 
 void string_writer_t::hex_escape_writer_t::start(int value)
 {
   value_ = value;
-  bits_ = 8;
+  shift_ = 8;
 
   this->write_backslash();
 }
@@ -107,15 +107,15 @@ void string_writer_t::hex_escape_writer_t::write_x()
 
 void string_writer_t::hex_escape_writer_t::write_hex_digits()
 {
-  assert(bits_ % 4 == 0);
+  assert(shift_ % 4 == 0);
 
-  while(bits_ != 0 && buf_.writable())
+  while(shift_ != 0 && buf_.writable())
   {
-    bits_ -= 4;
-    buf_.put(hex_digits[(value_ >> bits_) & 0x0F]);
+    shift_ -= 4;
+    buf_.put(hex_digits[(value_ >> shift_) & 0x0F]);
   }
 
-  if(bits_ != 0)
+  if(shift_ != 0)
   {
     buf_.call_when_writable([this] { this->write_hex_digits(); });
     return;

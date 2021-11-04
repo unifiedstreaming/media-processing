@@ -85,7 +85,7 @@ private :
     bound_outbuf_t& buf_;
 
     int value_;
-    int bits_;
+    int shift_;
   };
     
 private :
