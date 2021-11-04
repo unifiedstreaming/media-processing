@@ -62,21 +62,28 @@ void test_failing_read(logging_context_t& context,
   auto inbuf = make_nb_string_inbuf(context, std::move(input), bufsize);
   bound_inbuf_t bit(*inbuf, scheduler);
 
-  final_result_t<std::string> result;
-  string_reader_t reader(result, bit);
+  final_result_t<std::string> read_result;
+  string_reader_t reader(read_result, bit);
   reader.start();
 
-  while(!result.available())
+  unsigned int n_read_callbacks = 0;
+  while(!read_result.available())
   {
     auto cb = scheduler.wait();
     assert(cb != nullptr);
     cb();
+    ++n_read_callbacks;
+  }
+
+  if(auto msg = context.message_at(loglevel_t::info))
+  {
+    *msg << __func__ << ": n_read_callbacks: " << n_read_callbacks;
   }
 
   bool caught = false;
   try
   {
-    result.value();
+    read_result.value();
   }
   catch(std::exception const& ex)
   {
@@ -110,23 +117,41 @@ void test_roundtrip(logging_context_t& context,
   final_result_t<void> write_result;
   string_writer_t writer(write_result, bot);
   writer.start(input);
+
+  unsigned int n_write_callbacks = 0;
   while(!write_result.available())
   {
     auto cb = scheduler.wait();
     assert(cb != nullptr);
     cb();
+    ++n_write_callbacks;
   }
+
+  if(auto msg = context.message_at(loglevel_t::info))
+  {
+    *msg << __func__ << ": n_write_callbacks: " << n_write_callbacks;
+  }
+
   write_result.value();
 
   final_result_t<void> flush_result;
   flusher_t flusher(flush_result, bot);
   flusher.start();
+
+  unsigned int n_flush_callbacks = 0;
   while(!flush_result.available())
   {
     auto cb = scheduler.wait();
     assert(cb != nullptr);
     cb();
+    ++n_flush_callbacks;
   }
+
+  if(auto msg = context.message_at(loglevel_t::info))
+  {
+    *msg << __func__ << ": n_flush_callbacks: " << n_flush_callbacks;
+  }
+
   flush_result.value();
 
   if(auto msg = context.message_at(loglevel_t::info))
@@ -141,23 +166,41 @@ void test_roundtrip(logging_context_t& context,
   final_result_t<std::string> read_result;
   string_reader_t reader(read_result, bit);
   reader.start();
+
+  unsigned int n_read_callbacks = 0;
   while(!read_result.available())
   {
     auto cb = scheduler.wait();
     assert(cb != nullptr);
     cb();
+    ++n_read_callbacks;
   }
+
+  if(auto msg = context.message_at(loglevel_t::info))
+  {
+    *msg << __func__ << ": n_read_callbacks: " << n_read_callbacks;
+  }
+
   assert(read_result.value() == input);
 
   final_result_t<void> eof_result;
   eof_reader_t eof_reader(eof_result, bit);
   eof_reader.start();
+
+  unsigned int n_eof_callbacks = 0;
   while(!eof_result.available())
   {
     auto cb = scheduler.wait();
     assert(cb != nullptr);
     cb();
+    ++n_eof_callbacks;
   }
+
+  if(auto msg = context.message_at(loglevel_t::info))
+  {
+    *msg << __func__ << ": n_eof_callbacks: " << n_eof_callbacks;
+  }
+
   eof_result.value();
 }
 
