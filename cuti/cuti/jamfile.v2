@@ -126,7 +126,7 @@ lib cuti
   <toolset>msvc:<cxxflags>/wd4251 # class needs to have dll-interface 
   <toolset>msvc:<cxxflags>/wd4275 # non dll-interface class used as base
   <toolset>msvc:<cxxflags>/wd4910 # dllexport on extern template
-  <toolset>msvc:<cxxflags>/bigobj
+# <toolset>msvc:<cxxflags>/bigobj
   <define>BUILDING_CUTI
   <link>shared
   <target-os>linux:<linkflags>-Wl,--enable-new-dtags
