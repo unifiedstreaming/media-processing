@@ -40,6 +40,28 @@ using reader_t = typename reader_traits_t<T>::type;
 namespace detail
 {
 
+struct CUTI_ABI token_finder_t
+{
+  using value_t = int;
+
+  token_finder_t(result_t<int>& result, bound_inbuf_t& buf);
+
+  token_finder_t(token_finder_t const&) = delete;
+  token_finder_t& operator=(token_finder_t const&) = delete;
+
+  /*
+   * Skips whitespace and eventually submits the first non-whitespace
+   * character from buf (which could be eof).  At that position in
+   * buf, buf.readable() will be true and buf.peek() will equal the
+   * submitted value.
+   */
+  void start();
+
+private :
+  result_t<int>& result_;
+  bound_inbuf_t& buf_;
+};
+
 template<typename T>
 struct CUTI_ABI digits_reader_t
 {
@@ -106,13 +128,13 @@ struct CUTI_ABI unsigned_reader_t
   void start();
 
 private :
-  void skip_spaces();
+  void on_begin_token(int c);
   void on_digits_read(T value);
   void on_failure(std::exception_ptr ex);
 
 private :
   result_t<T>& result_;
-  bound_inbuf_t& buf_;
+  subroutine_t<unsigned_reader_t, token_finder_t> finder_;
   subroutine_t<unsigned_reader_t, digits_reader_t<T>> digits_reader_;
 };
 
@@ -139,15 +161,17 @@ struct CUTI_ABI signed_reader_t
 private :
   using UT = std::make_unsigned_t<T>;
 
-  void skip_spaces_and_check_minus();
+  void on_begin_token(int c);
   void on_digits_read(UT unsigned_value);
   void on_failure(std::exception_ptr ex);
     
 private :
   result_t<T>& result_;
   bound_inbuf_t& buf_;
-  bool negative_;
+  subroutine_t<signed_reader_t, token_finder_t> finder_;
   subroutine_t<signed_reader_t, digits_reader_t<UT>> digits_reader_;
+
+  bool negative_;
 };
 
 extern template struct signed_reader_t<short>;
@@ -167,7 +191,7 @@ struct CUTI_ABI string_reader_t
   void start();
 
 private :
-  void read_opening_dq();
+  void on_begin_token(int c);
   void read_contents();
   void read_escaped();
   void on_hex_digits(char c);
@@ -176,6 +200,7 @@ private :
 private :
   result_t<std::string>& result_;
   bound_inbuf_t& buf_;
+  subroutine_t<string_reader_t, token_finder_t> finder_;
   subroutine_t<string_reader_t, hex_digits_reader_t> hex_digits_reader_;
 
   std::string value_;

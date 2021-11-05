@@ -32,6 +32,31 @@ namespace cuti
 namespace detail
 {
 
+token_finder_t::token_finder_t(result_t<int>& result,
+                               bound_inbuf_t& buf)
+: result_(result)
+, buf_(buf)
+{ }
+
+void token_finder_t::start()
+{
+  int c{};
+  while(buf_.readable() && is_whitespace(c = buf_.peek()))
+  {
+    buf_.skip();
+  }
+
+  if(!buf_.readable())
+  {
+    buf_.call_when_readable([this] { this->start(); });
+    return;
+  }
+
+  // TODO: check for inline exception in buf_ and fail if so 
+
+  result_.submit(c);
+}
+  
 template<typename T>
 digits_reader_t<T>::digits_reader_t(result_t<T>& result, bound_inbuf_t& buf)
 : result_(result)
@@ -140,30 +165,19 @@ template<typename T>
 unsigned_reader_t<T>::unsigned_reader_t(result_t<T>& result,
                                         bound_inbuf_t& buf)
 : result_(result)
-, buf_(buf)
-, digits_reader_(*this, &unsigned_reader_t::on_failure, buf_)
+, finder_(*this, &unsigned_reader_t::on_failure, buf)
+, digits_reader_(*this, &unsigned_reader_t::on_failure, buf)
 { }
 
 template<typename T>
 void unsigned_reader_t<T>::start()
 {
-  this->skip_spaces();
+  finder_.start(&unsigned_reader_t::on_begin_token);
 }
 
 template<typename T>
-void unsigned_reader_t<T>::skip_spaces()
+void unsigned_reader_t<T>::on_begin_token(int)
 {
-  while(buf_.readable() && is_whitespace(buf_.peek()))
-  {
-    buf_.skip();
-  }
-
-  if(!buf_.readable())
-  {
-    buf_.call_when_readable([this] { this->skip_spaces(); });
-    return;
-  }
-
   digits_reader_.start(
     &unsigned_reader_t::on_digits_read, std::numeric_limits<T>::max());
 }    
@@ -189,31 +203,23 @@ template<typename T>
 signed_reader_t<T>::signed_reader_t(result_t<T>& result, bound_inbuf_t& buf)
 : result_(result)
 , buf_(buf)
-, negative_()
+, finder_(*this, &signed_reader_t::on_failure, buf_)
 , digits_reader_(*this, &signed_reader_t::on_failure, buf_)
+, negative_()
 { }
 
 template<typename T>
 void signed_reader_t<T>::start()
 {
   negative_ = false;
-  this->skip_spaces_and_check_minus();
+  finder_.start(&signed_reader_t::on_begin_token);
 }
 
 template<typename T>
-void signed_reader_t<T>::skip_spaces_and_check_minus()
+void signed_reader_t<T>::on_begin_token(int c)
 {
-  int c{};
-  while(buf_.readable() && is_whitespace(c = buf_.peek()))
-  {
-    buf_.skip();
-  }
-
-  if(!buf_.readable())
-  {
-    buf_.call_when_readable([this] { this->skip_spaces_and_check_minus(); });
-    return;
-  }
+  assert(buf_.readable());
+  assert(c == buf_.peek());
 
   UT max = std::numeric_limits<T>::max();
   if(c == '-')
@@ -261,6 +267,7 @@ string_reader_t::string_reader_t(
   result_t<std::string>& result, bound_inbuf_t& buf)
 : result_(result)
 , buf_(buf)
+, finder_(*this, &string_reader_t::on_exception, buf_)
 , hex_digits_reader_(*this, &string_reader_t::on_exception, buf_)
 , value_()
 , recursion_()
@@ -271,22 +278,13 @@ void string_reader_t::start()
   value_.clear();
   recursion_ = 0;
 
-  this->read_opening_dq();
+  finder_.start(&string_reader_t::on_begin_token);
 }
 
-void string_reader_t::read_opening_dq()
+void string_reader_t::on_begin_token(int c)
 {
-  int c{};
-  while(buf_.readable() && is_whitespace(c = buf_.peek()))
-  {
-    buf_.skip();
-  }
-
-  if(!buf_.readable())
-  {
-    buf_.call_when_readable([this] { this->read_opening_dq(); });
-    return;
-  }
+  assert(buf_.readable());
+  assert(buf_.peek() == c);
 
   if(c != '\"')
   {
