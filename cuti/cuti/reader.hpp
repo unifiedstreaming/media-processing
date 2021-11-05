@@ -21,16 +21,12 @@
 #define CUTI_READER_HPP_
 
 #include "bound_inbuf.hpp"
-#include "charclass.hpp"
 #include "linkage.h"
-#include "parse_error.hpp"
 #include "result.hpp"
 #include "subroutine.hpp"
 
-#include <limits>
 #include <string>
 #include <type_traits>
-#include <utility>
 
 namespace cuti
 {
@@ -45,67 +41,21 @@ namespace detail
 {
 
 template<typename T>
-struct digits_reader_t
+struct CUTI_ABI digits_reader_t
 {
   static_assert(std::is_unsigned_v<T>);
 
   using value_t = T;
 
-  digits_reader_t(result_t<T>& result, bound_inbuf_t& buf)
-  : result_(result)
-  , buf_(buf)
-  , max_()
-  , digit_seen_()
-  , value_()
-  { }
+  digits_reader_t(result_t<T>& result, bound_inbuf_t& buf);
 
   digits_reader_t(digits_reader_t const&) = delete;
   digits_reader_t& operator=(digits_reader_t const&) = delete;
 
-  void start(T max)
-  {
-    max_ = max;
-    digit_seen_ = false;
-    value_ = 0;
-
-    this->read_digits();
-  }
+  void start(T max);
 
 private :
-  void read_digits()
-  {
-    int dval{};
-    while(buf_.readable() && (dval = digit_value(buf_.peek())) >= 0)
-    {
-      digit_seen_ = true;
-
-      T udval = static_cast<T>(dval);
-      if(value_ > max_ / 10 || udval > max_ - 10 * value_)
-      {
-        result_.fail(parse_error_t("integer overflow"));
-        return;
-      }
-
-      value_ *= 10;
-      value_ += udval;
-
-      buf_.skip();
-    }
-
-    if(!buf_.readable())
-    {
-      buf_.call_when_readable([this] { this->read_digits(); });
-      return;
-    }
-
-    if(!digit_seen_)
-    {
-      result_.fail(parse_error_t("digit expected"));
-      return;
-    }
-  
-    result_.submit(value_);
-  }
+  void read_digits();
 
 private :
   result_t<T>& result_;
@@ -114,6 +64,11 @@ private :
   bool digit_seen_;
   T value_;
 };
+
+extern template struct digits_reader_t<unsigned short>;
+extern template struct digits_reader_t<unsigned int>;
+extern template struct digits_reader_t<unsigned long>;
+extern template struct digits_reader_t<unsigned long long>;
 
 struct CUTI_ABI hex_digits_reader_t
 {
@@ -137,53 +92,23 @@ private :
 };
     
 template<typename T>
-struct unsigned_reader_t
+struct CUTI_ABI unsigned_reader_t
 {
   static_assert(std::is_unsigned_v<T>);
 
   using value_t = T;
 
-  unsigned_reader_t(result_t<T>& result, bound_inbuf_t& buf)
-  : result_(result)
-  , buf_(buf)
-  , digits_reader_(*this, &unsigned_reader_t::on_failure, buf_)
-  { }
+  unsigned_reader_t(result_t<T>& result, bound_inbuf_t& buf);
 
   unsigned_reader_t(unsigned_reader_t const&) = delete;
   unsigned_reader_t& operator=(unsigned_reader_t const&) = delete;
 
-  void start()
-  {
-    this->skip_spaces();
-  }
+  void start();
 
 private :
-  void skip_spaces()
-  {
-    while(buf_.readable() && is_whitespace(buf_.peek()))
-    {
-      buf_.skip();
-    }
-
-    if(!buf_.readable())
-    {
-      buf_.call_when_readable([this] { this->skip_spaces(); });
-      return;
-    }
-
-    digits_reader_.start(
-      &unsigned_reader_t::on_digits_read, std::numeric_limits<T>::max());
-  }    
-
-  void on_digits_read(T value)
-  {
-    result_.submit(value);
-  }
-
-  void on_failure(std::exception_ptr ex)
-  {
-    result_.fail(std::move(ex));
-  }
+  void skip_spaces();
+  void on_digits_read(T value);
+  void on_failure(std::exception_ptr ex);
 
 private :
   result_t<T>& result_;
@@ -191,78 +116,32 @@ private :
   subroutine_t<unsigned_reader_t, digits_reader_t<T>> digits_reader_;
 };
 
+extern template struct unsigned_reader_t<unsigned short>;
+extern template struct unsigned_reader_t<unsigned int>;
+extern template struct unsigned_reader_t<unsigned long>;
+extern template struct unsigned_reader_t<unsigned long long>;
+
 template<typename T>
-struct signed_reader_t
+struct CUTI_ABI signed_reader_t
 {
   static_assert(std::is_signed_v<T>);
   static_assert(std::is_integral_v<T>);
 
   using value_t = T;
 
-  signed_reader_t(result_t<T>& result, bound_inbuf_t& buf)
-  : result_(result)
-  , buf_(buf)
-  , negative_()
-  , digits_reader_(*this, &signed_reader_t::on_failure, buf_)
-  { }
+  signed_reader_t(result_t<T>& result, bound_inbuf_t& buf);
 
-  void start()
-  {
-    negative_ = false;
-    this->skip_spaces_and_check_minus();
-  }
+  signed_reader_t(signed_reader_t const&) = delete;
+  signed_reader_t& operator=(signed_reader_t const&) = delete;
+
+  void start();
 
 private :
   using UT = std::make_unsigned_t<T>;
 
-  void skip_spaces_and_check_minus()
-  {
-    int c{};
-    while(buf_.readable() && is_whitespace(c = buf_.peek()))
-    {
-      buf_.skip();
-    }
-
-    if(!buf_.readable())
-    {
-      buf_.call_when_readable([this] { this->skip_spaces_and_check_minus(); });
-      return;
-    }
-
-    UT max = std::numeric_limits<T>::max();
-    if(c == '-')
-    {
-      negative_ = true;
-      ++max;
-      buf_.skip();
-    }
-
-    digits_reader_.start(&signed_reader_t::on_digits_read, max);
-  }
-
-  void on_digits_read(UT unsigned_value)
-  {
-    T signed_value;
-
-    if(!negative_ || unsigned_value == 0)
-    {
-      signed_value = unsigned_value;
-    }
-    else
-    {
-      --unsigned_value;
-      signed_value = unsigned_value;
-      signed_value = -signed_value;
-      --signed_value;
-    }
-
-    result_.submit(signed_value);
-  }
-
-  void on_failure(std::exception_ptr ex)
-  {
-    result_.fail(std::move(ex));
-  }
+  void skip_spaces_and_check_minus();
+  void on_digits_read(UT unsigned_value);
+  void on_failure(std::exception_ptr ex);
     
 private :
   result_t<T>& result_;
@@ -270,6 +149,11 @@ private :
   bool negative_;
   subroutine_t<signed_reader_t, digits_reader_t<UT>> digits_reader_;
 };
+
+extern template struct signed_reader_t<short>;
+extern template struct signed_reader_t<int>;
+extern template struct signed_reader_t<long>;
+extern template struct signed_reader_t<long long>;
 
 struct CUTI_ABI string_reader_t
 {
