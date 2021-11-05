@@ -245,8 +245,8 @@ void do_test_string_buffers(logging_context_t& context,
 
   for(int i = 0; i != 4; ++i)
   {
-    auto inbuf = make_nb_string_inbuf(context, input, inbuf_sizes[i]);
-    auto outbuf = make_nb_string_outbuf(context, outputs[i], outbuf_sizes[i]);
+    auto inbuf = make_nb_string_inbuf(input, inbuf_sizes[i]);
+    auto outbuf = make_nb_string_outbuf(outputs[i], outbuf_sizes[i]);
 
     copiers[i] = std::make_unique<copier_t<use_bulk_io>>(
       context, scheduler, std::move(inbuf), std::move(outbuf), circ_bufsize);
@@ -321,10 +321,10 @@ void do_test_tcp_buffers(logging_context_t& context,
 
   default_scheduler_t scheduler;
 
-  auto producer_in = make_nb_string_inbuf(context, input, client_bufsize);
+  auto producer_in = make_nb_string_inbuf(input, client_bufsize);
 
   std::string output;
-  auto consumer_out = make_nb_string_outbuf(context, output, client_bufsize);
+  auto consumer_out = make_nb_string_outbuf(output, client_bufsize);
 
   std::unique_ptr<tcp_connection_t> client_side;
   std::unique_ptr<tcp_connection_t> server_side;
@@ -333,12 +333,12 @@ void do_test_tcp_buffers(logging_context_t& context,
   std::unique_ptr<nb_inbuf_t> consumer_in;
   std::unique_ptr<nb_outbuf_t> producer_out;
   std::tie(consumer_in, producer_out) = make_nb_tcp_buffers(
-    context, std::move(client_side), client_bufsize, client_bufsize);
+    std::move(client_side), client_bufsize, client_bufsize);
 
   std::unique_ptr<nb_inbuf_t> echoer_in;
   std::unique_ptr<nb_outbuf_t> echoer_out;
   std::tie(echoer_in, echoer_out) = make_nb_tcp_buffers(
-    context, std::move(server_side), server_bufsize, server_bufsize);
+    std::move(server_side), server_bufsize, server_bufsize);
 
   copier_t<use_bulk_io> producer(context, scheduler,
     std::move(producer_in), std::move(producer_out), circ_bufsize);
@@ -471,12 +471,12 @@ void test_inbuf_throughput_checking(logging_context_t& context,
   std::unique_ptr<nb_inbuf_t> client_in;
   std::unique_ptr<nb_outbuf_t> client_out;
   std::tie(client_in, client_out) =
-    make_nb_tcp_buffers(context, std::move(client_side));
+    make_nb_tcp_buffers(std::move(client_side));
 
   std::unique_ptr<nb_inbuf_t> server_in;
   std::unique_ptr<nb_outbuf_t> server_out;
   std::tie(server_in, server_out) =
-    make_nb_tcp_buffers(context, std::move(server_side));
+    make_nb_tcp_buffers(std::move(server_side));
 
   if(enable_while_running)
   {
@@ -528,12 +528,12 @@ void test_outbuf_throughput_checking(logging_context_t& context,
   std::unique_ptr<nb_inbuf_t> client_in;
   std::unique_ptr<nb_outbuf_t> client_out;
   std::tie(client_in, client_out) =
-    make_nb_tcp_buffers(context, std::move(client_side));
+    make_nb_tcp_buffers(std::move(client_side));
 
   std::unique_ptr<nb_inbuf_t> server_in;
   std::unique_ptr<nb_outbuf_t> server_out;
   std::tie(server_in, server_out) =
-    make_nb_tcp_buffers(context, std::move(server_side));
+    make_nb_tcp_buffers(std::move(server_side));
 
   if(enable_while_running)
   {

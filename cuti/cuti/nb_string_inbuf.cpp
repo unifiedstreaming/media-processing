@@ -72,12 +72,9 @@ private :
 } // anonymous
 
 std::unique_ptr<nb_inbuf_t>
-make_nb_string_inbuf(logging_context_t& context,
-                     std::string input,
-		     std::size_t bufsize)
+make_nb_string_inbuf(std::string input, std::size_t bufsize)
 {
   return std::make_unique<nb_inbuf_t>(
-    context,
     std::make_unique<nb_string_source_t>(std::move(input)),
     bufsize);
 }

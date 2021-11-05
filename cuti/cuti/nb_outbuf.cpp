@@ -19,7 +19,6 @@
 
 #include "nb_outbuf.hpp"
 
-#include "logging_context.hpp"
 #include "scheduler.hpp"
 #include "system_error.hpp"
 
@@ -29,11 +28,9 @@
 namespace cuti
 {
 
-nb_outbuf_t::nb_outbuf_t(logging_context_t& context,
-                         std::unique_ptr<nb_sink_t> sink,
+nb_outbuf_t::nb_outbuf_t(std::unique_ptr<nb_sink_t> sink,
                          std::size_t bufsize)
-: context_(context)
-, sink_((assert(sink != nullptr), std::move(sink)))
+: sink_((assert(sink != nullptr), std::move(sink)))
 , holder_(*this)
 , callback_(nullptr)
 , checker_(std::nullopt)
@@ -163,40 +160,10 @@ void nb_outbuf_t::check_writable(scheduler_t& scheduler)
         next != nullptr ? next - rp_ : 0);
       if(error_status_ != 0)
       {
-        if(auto msg = context_.message_at(loglevel_t::warning))
-        {
-          *msg << "nb_outbuf[" << *this <<
-            "]: insufficient throughput detected";
-        }
         next = wp_;
       }
     }
 
-    if(error_status_ != 0)
-    {
-      if(auto msg = context_.message_at(loglevel_t::warning))
-      {
-        *msg << "nb_outbuf[" << *this <<
-          "]: " << system_error_string(error_status_);
-      }
-    }
-    else if(next == nullptr)
-    {
-      if(auto msg = context_.message_at(loglevel_t::debug))
-      {
-        *msg << "nb_outbuf[" << *this <<
-          "]: can\'t send yet";
-      }
-    }
-    else
-    {
-      if(auto msg = context_.message_at(loglevel_t::debug))
-      {
-        *msg << "nb_outbuf[" << *this <<
-          "]: " << next - rp_ << " byte(s) sent";
-      }
-    }   
-    
     if(next != nullptr)
     {
       rp_ = next;

@@ -37,8 +37,7 @@ namespace cuti
  */
 CUTI_ABI
 std::pair<std::unique_ptr<nb_inbuf_t>, std::unique_ptr<nb_outbuf_t>>
-make_nb_tcp_buffers(logging_context_t& context,
-                    std::unique_ptr<tcp_connection_t> conn,
+make_nb_tcp_buffers(std::unique_ptr<tcp_connection_t> conn,
                     std::size_t inbufsize = nb_inbuf_t::default_bufsize,
                     std::size_t outbufsize = nb_outbuf_t::default_bufsize);
 

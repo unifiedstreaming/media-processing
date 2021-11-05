@@ -90,7 +90,7 @@ void verify_input(logging_context_t& context,
                   std::string input,
                   std::size_t bufsize)
 {
-  auto inbuf = make_nb_string_inbuf(context, std::move(input), bufsize);
+  auto inbuf = make_nb_string_inbuf(std::move(input), bufsize);
   bound_inbuf_t bit(*inbuf, scheduler);
 
   final_result_t<T> value_result;
@@ -127,7 +127,7 @@ void do_test_successful_read(logging_context_t& context,
                              std::size_t bufsize)
 {
   default_scheduler_t scheduler;
-  verify_input(context, scheduler,expected, std::move(input), bufsize);
+  verify_input(context, scheduler, expected, std::move(input), bufsize);
 }
 
 template<typename T>
@@ -137,7 +137,7 @@ void do_test_failing_read(logging_context_t& context,
 {
   default_scheduler_t scheduler;
 
-  auto inbuf = make_nb_string_inbuf(context, std::move(input), bufsize);
+  auto inbuf = make_nb_string_inbuf(std::move(input), bufsize);
   bound_inbuf_t bit(*inbuf, scheduler);
 
   final_result_t<T> result;
@@ -173,7 +173,7 @@ void do_test_roundtrip(logging_context_t& context,
   default_scheduler_t scheduler;
 
   std::string serialized;
-  auto outbuf = make_nb_string_outbuf(context, serialized, bufsize);
+  auto outbuf = make_nb_string_outbuf(serialized, bufsize);
   bound_outbuf_t bot(*outbuf, scheduler);
 
   final_result_t<void> write_result;

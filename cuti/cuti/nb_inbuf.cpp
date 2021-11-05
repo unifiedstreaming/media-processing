@@ -19,7 +19,6 @@
 
 #include "nb_inbuf.hpp"
 
-#include "logging_context.hpp"
 #include "scheduler.hpp"
 #include "scoped_guard.hpp"
 #include "system_error.hpp"
@@ -30,11 +29,9 @@
 namespace cuti
 {
 
-nb_inbuf_t::nb_inbuf_t(logging_context_t& context,
-                       std::unique_ptr<nb_source_t> source,
+nb_inbuf_t::nb_inbuf_t(std::unique_ptr<nb_source_t> source,
                        std::size_t bufsize)
-: context_(context)
-, source_((assert(source != nullptr), std::move(source)))
+: source_((assert(source != nullptr), std::move(source)))
 , holder_(*this)
 , callback_(nullptr)
 , checker_(std::nullopt)
@@ -158,40 +155,10 @@ void nb_inbuf_t::check_readable(scheduler_t& scheduler)
         next != nullptr ? next - buf_ : 0);
       if(error_status_ != 0)
       {
-        if(auto msg = context_.message_at(loglevel_t::warning))
-        {
-          *msg << "nb_inbuf[" << *this <<
-            "]: insufficient throughput detected";
-        }
         next = buf_;
       }
     }
 
-    if(error_status_ != 0)
-    {
-      if(auto msg = context_.message_at(loglevel_t::warning))
-      {
-        *msg << "nb_inbuf[" << *this <<
-          "]: " << system_error_string(error_status_);
-      }
-    }
-    else if(next == nullptr)
-    {
-      if(auto msg = context_.message_at(loglevel_t::debug))
-      {
-        *msg << "nb_inbuf[" << *this <<
-        "]: can\'t receive yet";
-      }
-    }
-    else
-    {
-      if(auto msg = context_.message_at(loglevel_t::debug))
-      {
-        *msg << "nb_inbuf[" << *this <<
-          "]: " << next - buf_ << " byte(s) received";
-      }
-    }   
-    
     if(next == nullptr)
     {
       // spurious wakeup: reschedule

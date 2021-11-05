@@ -89,8 +89,7 @@ private :
 } // anonymous
 
 std::pair<std::unique_ptr<nb_inbuf_t>, std::unique_ptr<nb_outbuf_t>>
-make_nb_tcp_buffers(logging_context_t& context,
-                    std::unique_ptr<tcp_connection_t> conn,
+make_nb_tcp_buffers(std::unique_ptr<tcp_connection_t> conn,
                     std::size_t inbufsize,
                     std::size_t outbufsize)
 {
@@ -104,8 +103,8 @@ make_nb_tcp_buffers(logging_context_t& context,
   auto sink = std::make_unique<nb_tcp_sink_t>(std::move(shared_conn));
 
   return std::make_pair(
-    std::make_unique<nb_inbuf_t>(context, std::move(source), inbufsize),
-    std::make_unique<nb_outbuf_t>(context, std::move(sink), outbufsize));
+    std::make_unique<nb_inbuf_t>(std::move(source), inbufsize),
+    std::make_unique<nb_outbuf_t>(std::move(sink), outbufsize));
 }
 
 } // cuti
