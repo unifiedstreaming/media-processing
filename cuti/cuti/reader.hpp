@@ -170,7 +170,7 @@ private :
   void read_opening_dq();
   void read_contents();
   void read_escaped();
-  void on_char_value(char c);
+  void on_hex_digits(char c);
   void on_exception(std::exception_ptr ex);
   
 private :

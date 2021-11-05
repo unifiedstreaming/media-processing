@@ -359,7 +359,7 @@ void string_reader_t::read_escaped()
     break;
   case 'x' :
     buf_.skip();
-    hex_digits_reader_.start(&string_reader_t::on_char_value);
+    hex_digits_reader_.start(&string_reader_t::on_hex_digits);
     return;
   case '\"' :
     value_ += '\"';
@@ -379,7 +379,7 @@ void string_reader_t::read_escaped()
   this->read_contents();
 }
 
-void string_reader_t::on_char_value(char c)
+void string_reader_t::on_hex_digits(char c)
 {
   value_ += c;
   this->read_contents();
