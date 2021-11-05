@@ -32,8 +32,7 @@ namespace cuti
 namespace detail
 {
 
-token_finder_t::token_finder_t(result_t<int>& result,
-                               bound_inbuf_t& buf)
+token_finder_t::token_finder_t(result_t<int>& result, bound_inbuf_t& buf)
 : result_(result)
 , buf_(buf)
 { }
@@ -118,7 +117,7 @@ template struct digits_reader_t<unsigned long>;
 template struct digits_reader_t<unsigned long long>;
 
 hex_digits_reader_t::hex_digits_reader_t(
-  result_t<char>& result, bound_inbuf_t& buf)
+  result_t<int>& result, bound_inbuf_t& buf)
 : result_(result)
 , buf_(buf)
 , shift_()
@@ -140,14 +139,14 @@ void hex_digits_reader_t::read_digits()
   while(shift_ != 0 && buf_.readable())
   {
     int dval = hex_digit_value(buf_.peek());
-    if(dval == -1)
+    if(dval < 0)
     {
       result_.fail(parse_error_t("hex digit expected"));
       return;
     }
 
     shift_ -= 4;
-    value_ |= static_cast<char>(dval << shift_);
+    value_ |= dval << shift_;
 
     buf_.skip();
   }
@@ -377,9 +376,9 @@ void string_reader_t::read_escaped()
   this->read_contents();
 }
 
-void string_reader_t::on_hex_digits(char c)
+void string_reader_t::on_hex_digits(int c)
 {
-  value_ += c;
+  value_ += static_cast<char>(c);
   this->read_contents();
 }
 

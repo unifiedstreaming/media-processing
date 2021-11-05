@@ -94,9 +94,9 @@ extern template struct digits_reader_t<unsigned long long>;
 
 struct CUTI_ABI hex_digits_reader_t
 {
-  using value_t = char;
+  using value_t = int;
 
-  hex_digits_reader_t(result_t<char>& result, bound_inbuf_t& buf);
+  hex_digits_reader_t(result_t<int>& result, bound_inbuf_t& buf);
 
   hex_digits_reader_t(hex_digits_reader_t const&) = delete;
   hex_digits_reader_t& operator=(hex_digits_reader_t const&) = delete;
@@ -107,10 +107,10 @@ private :
   void read_digits();
 
 private :
-  result_t<char>& result_;
+  result_t<int>& result_;
   bound_inbuf_t& buf_;
   int shift_;
-  char value_;
+  int value_;
 };
     
 template<typename T>
@@ -194,7 +194,7 @@ private :
   void on_begin_token(int c);
   void read_contents();
   void read_escaped();
-  void on_hex_digits(char c);
+  void on_hex_digits(int c);
   void on_exception(std::exception_ptr ex);
   
 private :
