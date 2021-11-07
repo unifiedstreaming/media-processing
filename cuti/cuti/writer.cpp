@@ -241,6 +241,7 @@ string_writer_t::string_writer_t(result_t<void>& result, bound_outbuf_t& buf)
 , value_()
 , rp_()
 , ep_()
+, recursion_(0)
 { }
 
 void string_writer_t::start(std::string value)
@@ -248,6 +249,7 @@ void string_writer_t::start(std::string value)
   value_ = std::move(value);
   rp_ = value_.data();
   ep_ = rp_ + value_.size();
+  recursion_ = 0;
     
   this->write_space();
 }
@@ -278,7 +280,9 @@ void string_writer_t::write_opening_dq()
 
 void string_writer_t::write_contents()
 {
-  while(rp_ != ep_ && buf_.writable())
+  ++recursion_;
+
+  while(rp_ != ep_ && buf_.writable() && recursion_ != 100)
   {
     int c = std::char_traits<char>::to_int_type(*rp_);
     if(!is_printable(c) || c == '\"' || c == '\'' || c == '\\')
@@ -294,6 +298,7 @@ void string_writer_t::write_contents()
 
   if(rp_ != ep_)
   {
+    recursion_ = 0;
     buf_.call_when_writable([this] { this->write_contents(); });
     return;
   }
@@ -335,13 +340,7 @@ void string_writer_t::write_escaped()
     break;
   default :
     buf_.put('x');
-    hex_digits_writer_.start(&string_writer_t::on_hex_digits_written, c);
-    return;
-  }
-
-  if(buf_.stack_could_overflow())
-  {
-    buf_.call_when_writable([this] { this->write_contents(); });
+    hex_digits_writer_.start(&string_writer_t::write_contents, c);
     return;
   }
 
@@ -357,19 +356,7 @@ void string_writer_t::write_closing_dq()
   }
   buf_.put('\"');
 
-  value_.clear();
   result_.submit();
-}
-
-void string_writer_t::on_hex_digits_written()
-{
-  if(buf_.stack_could_overflow())
-  {
-    buf_.call_when_writable([this] { this->write_contents(); });
-    return;
-  }
-
-  this->write_contents();
 }
 
 void string_writer_t::on_exception(std::exception_ptr ex)

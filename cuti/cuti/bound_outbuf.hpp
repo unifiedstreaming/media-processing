@@ -23,7 +23,6 @@
 #include "callback.hpp"
 #include "linkage.h"
 #include "nb_outbuf.hpp"
-#include "stack_watcher.hpp"
 
 #include <utility>
 
@@ -41,7 +40,6 @@ struct CUTI_ABI bound_outbuf_t
   bound_outbuf_t(nb_outbuf_t& outbuf, scheduler_t& scheduler)
   : outbuf_(outbuf)
   , scheduler_(scheduler)
-  , watcher_()
   { }
 
   bound_outbuf_t(bound_outbuf_t const&) = delete;
@@ -50,11 +48,6 @@ struct CUTI_ABI bound_outbuf_t
   bool writable() const
   {
     return outbuf_.writable();
-  }
-
-  bool stack_could_overflow() const
-  {
-    return watcher_.could_overflow();
   }
 
   void put(char c) const
@@ -85,7 +78,6 @@ struct CUTI_ABI bound_outbuf_t
 private :
   nb_outbuf_t& outbuf_;
   scheduler_t& scheduler_;
-  stack_watcher_t watcher_;
 };
 
 } // cuti

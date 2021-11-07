@@ -269,11 +269,13 @@ string_reader_t::string_reader_t(
 , finder_(*this, &string_reader_t::on_exception, buf_)
 , hex_digits_reader_(*this, &string_reader_t::on_exception, buf_)
 , value_()
+, recursion_()
 { }
 
 void string_reader_t::start()
 {
   value_.clear();
+  recursion_ = 0;
 
   finder_.start(&string_reader_t::on_begin_token);
 }
@@ -295,15 +297,16 @@ void string_reader_t::on_begin_token(int c)
 
 void string_reader_t::read_contents()
 {
+  ++recursion_;
+
   int c{};
-  while(buf_.readable() && (c = buf_.peek()) != '\"')
+  while(buf_.readable() && recursion_ != 100 && (c = buf_.peek()) != '\"')
   {
     switch(c)
     {
     case eof :
     case '\n' :
-      result_.fail(parse_error_t(
-        "missing closing double quote (\'\"\') at end of string"));
+      result_.fail(parse_error_t("closing double quote (\'\"\') missing"));
       return;
     case '\\' :
       buf_.skip();
@@ -321,8 +324,9 @@ void string_reader_t::read_contents()
     }
   }
 
-  if(!buf_.readable())
+  if(!buf_.readable() || recursion_ == 100)
   {
+    recursion_ = 0;
     buf_.call_when_readable([this] { this->read_contents(); });
     return;
   }
@@ -369,26 +373,12 @@ void string_reader_t::read_escaped()
   }
 
   buf_.skip();
-
-  if(buf_.stack_could_overflow())
-  {
-    buf_.call_when_readable([this] { this->read_contents(); });
-    return;
-  }
-
   this->read_contents();
 }
 
 void string_reader_t::on_hex_digits(int c)
 {
   value_ += static_cast<char>(c);
-
-  if(buf_.stack_could_overflow())
-  {
-    buf_.call_when_readable([this] { this->read_contents(); });
-    return;
-  }
-
   this->read_contents();
 }
 

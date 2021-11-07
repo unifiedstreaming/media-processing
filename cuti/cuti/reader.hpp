@@ -210,6 +210,7 @@ private :
   subroutine_t<string_reader_t, hex_digits_reader_t> hex_digits_reader_;
 
   std::string value_;
+  int recursion_;
 };
 
 template<typename T>
@@ -286,14 +287,7 @@ private :
   void on_element_read(T element)
   {
     value_.push_back(std::move(element));
-
-    if(buf_.stack_could_overflow())
-    {
-      buf_.call_when_readable([this] { this->read_elements(); });
-      return;
-    }
-
-    this->read_elements();
+    buf_.call_when_readable([this] { this->read_elements(); });
   }
 
   void on_exception(std::exception_ptr ex)
