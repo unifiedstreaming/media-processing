@@ -252,7 +252,20 @@ std::vector<int> big_int_vector()
 
   return result;
 }
-  
+
+std::vector<std::string> vector_of_strings()
+{
+  std::vector<std::string> result;
+  result.reserve(1000);
+
+  for(int i = 0; i != 1000; ++i)
+  {
+    result.push_back("string\t#" + std::to_string(i));
+  }
+
+  return result;
+}
+   
 std::vector<std::vector<int>> vector_of_int_vectors()
 {
   std::vector<std::vector<int>> result;
@@ -272,6 +285,7 @@ void test_roundtrips(logging_context_t& context, std::size_t bufsize)
   test_roundtrip(context, std::vector<int>{ 42 }, bufsize);
   test_roundtrip(context, medium_int_vector(), bufsize);
   test_roundtrip(context, big_int_vector(), bufsize);
+  test_roundtrip(context, vector_of_strings(), bufsize);
   test_roundtrip(context, vector_of_int_vectors(), bufsize);
 }
 
