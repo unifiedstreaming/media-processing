@@ -176,6 +176,7 @@ private :
   void write_contents();
   void write_escaped();
   void write_closing_dq();
+  void on_hex_digits_written();
   void on_exception(std::exception_ptr ex);
 
 private :
@@ -186,7 +187,6 @@ private :
   std::string value_;
   char const* rp_;
   char const* ep_;
-  int recursion_;
 };
 
 template<typename T>
@@ -281,7 +281,13 @@ private :
 
   void on_element_written()
   {
-    buf_.call_when_writable([this] { this->write_elements(); });
+    if(buf_.stack_could_overflow())
+    {
+      buf_.call_when_writable([this] { this->write_elements(); });
+      return;
+    }
+
+    this->write_elements();
   }
 
   void on_exception(std::exception_ptr ex)
