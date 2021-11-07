@@ -19,6 +19,11 @@
 
 #include "stack_watcher.hpp"
 
+#if defined(_MSC_VER)
+#pragma warning(disable:4172)
+  // returning address of local variable or temporary
+#endif
+
 namespace cuti
 {
 
