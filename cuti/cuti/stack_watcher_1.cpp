@@ -24,6 +24,11 @@ namespace cuti
 
 std::uintptr_t stack_watcher_t::approx_sp()
 {
+  /*
+   * Call helper in separate source file to stop the compiler from
+   * concluding that the address of c is invalid outside of this
+   * function's scope.
+   */
   char c{};
   return address(c);
 }
