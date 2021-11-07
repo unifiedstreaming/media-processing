@@ -112,3 +112,8 @@ unit-test tcp_socket_test
 unit-test throughput_checker_test
 : throughput_checker_test.cpp
 ;
+
+unit-test vector_io_test
+: vector_io_test.cpp
+;
+

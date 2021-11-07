@@ -27,6 +27,8 @@
 
 #include <type_traits>
 #include <string>
+#include <vector>
+#include <utility>
 
 namespace cuti
 {
@@ -169,12 +171,12 @@ struct CUTI_ABI string_writer_t
   void start(std::string value);
 
 private :
-private :
   void write_space();
   void write_opening_dq();
   void write_contents();
   void write_escaped();
   void write_closing_dq();
+  void on_hex_digits_written();
   void on_exception(std::exception_ptr ex);
 
 private :
@@ -185,7 +187,122 @@ private :
   std::string value_;
   char const* rp_;
   char const* ep_;
-  int recursion_;
+};
+
+template<typename T>
+struct vector_writer_t
+{
+  using value_t = void;
+
+  vector_writer_t(result_t<void>& result, bound_outbuf_t& buf)
+  : result_(result)
+  , buf_(buf)
+  , element_writer_(*this, &vector_writer_t::on_exception, buf_)
+  , value_()
+  , rp_()
+  , ep_()
+  { }
+
+  vector_writer_t(vector_writer_t const&) = delete;
+  vector_writer_t& operator=(vector_writer_t const&) = delete;
+  
+  void start(std::vector<T> value)
+  {
+    value_ = std::move(value);
+    rp_ = value_.data();
+    ep_ = rp_ + value_.size();
+
+    this->write_opening_space();
+  }
+
+private :
+  void write_opening_space()
+  {
+    if(!buf_.writable())
+    {
+      buf_.call_when_writable([this] { this->write_opening_space(); });
+      return;
+    }
+    buf_.put(' ');
+
+    this->write_opening_bracket();
+  }
+
+  void write_opening_bracket()
+  {
+    if(!buf_.writable())
+    {
+      buf_.call_when_writable([this] { this->write_opening_bracket(); });
+      return;
+    }
+    buf_.put('[');
+
+    this->write_elements();
+  }
+
+  void write_elements()
+  {
+    if(rp_ != ep_)
+    {
+      T& elem = *rp_;
+      ++rp_;
+      element_writer_.start(
+        &vector_writer_t::on_element_written, std::move(elem));
+      return;
+    }
+
+    this->write_closing_space();
+  }
+      
+  void write_closing_space()
+  {
+    if(!buf_.writable())
+    {
+      buf_.call_when_writable([this] { this->write_closing_space(); });
+      return;
+    }
+    buf_.put(' ');
+
+    this->write_closing_bracket();
+  }
+
+  void write_closing_bracket()
+  {
+    if(!buf_.writable())
+    {
+      buf_.call_when_writable([this] { this->write_closing_bracket(); });
+      return;
+    }
+    buf_.put(']');
+
+    value_.clear();
+    result_.submit();
+  }
+
+  void on_element_written()
+  {
+    if(buf_.stack_could_overflow())
+    {
+      buf_.call_when_writable([this] { this->write_elements(); });
+      return;
+    }
+
+    this->write_elements();
+  }
+
+  void on_exception(std::exception_ptr ex)
+  {
+    result_.fail(std::move(ex));
+  }
+
+private :
+  result_t<void>& result_;
+  bound_outbuf_t& buf_;
+  subroutine_t<vector_writer_t, writer_t<T>> element_writer_;
+
+  std::vector<T> value_;
+  T* rp_;
+  T* ep_;
 };
 
 } // detail
@@ -242,6 +359,12 @@ template<>
 struct writer_traits_t<std::string>
 {
   using type = detail::string_writer_t;
+};
+
+template<typename T>
+struct writer_traits_t<std::vector<T>>
+{
+  using type = detail::vector_writer_t<T>;
 };
 
 } // cuti

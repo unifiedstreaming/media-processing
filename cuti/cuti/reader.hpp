@@ -21,12 +21,18 @@
 #define CUTI_READER_HPP_
 
 #include "bound_inbuf.hpp"
+#include "charclass.hpp"
+#include "eof.hpp"
 #include "linkage.h"
+#include "parse_error.hpp"
 #include "result.hpp"
 #include "subroutine.hpp"
 
+#include <cassert>
 #include <string>
 #include <type_traits>
+#include <utility>
+#include <vector>
 
 namespace cuti
 {
@@ -204,7 +210,104 @@ private :
   subroutine_t<string_reader_t, hex_digits_reader_t> hex_digits_reader_;
 
   std::string value_;
-  int recursion_;
+};
+
+template<typename T>
+struct vector_reader_t
+{
+  using value_t = std::vector<T>;
+
+  vector_reader_t(result_t<std::vector<T>>& result, bound_inbuf_t& buf)
+  : result_(result)
+  , buf_(buf)
+  , finder_(*this, &vector_reader_t::on_exception, buf)
+  , element_reader_(*this, &vector_reader_t::on_exception, buf)
+  , value_()
+  { }
+
+  void start()
+  {
+    value_.clear();
+    finder_.start(&vector_reader_t::on_begin_token);
+  }
+
+private :
+  void on_begin_token(int c)
+  {
+    assert(buf_.readable());
+    assert(buf_.peek() == c);
+
+    if(c != '[')
+    {
+      result_.fail(parse_error_t("\'[\' expected"));
+      return;
+    }
+    buf_.skip();
+
+    this->read_elements();
+  }
+
+  void read_elements()
+  {
+    int c{};
+    while(buf_.readable() && is_whitespace(c = buf_.peek()))
+    {
+      /*
+       * Direct whitespace skipping (not using a token finder) is OK
+       * here because the element reader should use a token finder to
+       * check for inline exceptions in buf_.
+       */
+      buf_.skip();
+    }
+
+    if(!buf_.readable())
+    {
+      buf_.call_when_readable([this] { this->read_elements(); });
+      return;
+    }
+
+    switch(c)
+    {
+    case ']' :
+      break;
+    case eof :
+    case '\n' :
+      result_.fail(parse_error_t("missing \']\' at end of list"));
+      return;
+    default :
+      element_reader_.start(&vector_reader_t::on_element_read);
+      return;
+    }
+      
+    buf_.skip();
+    result_.submit(std::move(value_));
+  }
+    
+  void on_element_read(T element)
+  {
+    value_.push_back(std::move(element));
+
+    if(buf_.stack_could_overflow())
+    {
+      buf_.call_when_readable([this] { this->read_elements(); });
+      return;
+    }
+
+    this->read_elements();
+  }
+
+  void on_exception(std::exception_ptr ex)
+  {
+    result_.fail(std::move(ex));
+  }
+
+private :
+  result_t<std::vector<T>>& result_;
+  bound_inbuf_t& buf_;
+  subroutine_t<vector_reader_t, token_finder_t> finder_;
+  subroutine_t<vector_reader_t, reader_t<T>> element_reader_;
+
+  std::vector<T> value_;
 };
 
 } // detail
@@ -261,6 +364,12 @@ template<>
 struct reader_traits_t<std::string>
 {
   using type = detail::string_reader_t;
+};
+
+template<typename T>
+struct reader_traits_t<std::vector<T>>
+{
+  using type = detail::vector_reader_t<T>;
 };
 
 } // cuti
