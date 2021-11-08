@@ -269,11 +269,11 @@ std::vector<std::string> vector_of_strings()
 std::vector<std::vector<int>> vector_of_int_vectors()
 {
   std::vector<std::vector<int>> result;
-  result.reserve(1000);
+  result.reserve(100);
 
-  for(int i = 0; i != 1000; ++i)
+  for(int i = 0; i != 100; ++i)
   {
-    result.push_back(big_int_vector());
+    result.push_back(medium_int_vector());
   }
 
   return result;
