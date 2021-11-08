@@ -370,26 +370,28 @@ void string_reader_t::read_escaped()
 
   buf_.skip();
 
-  if(buf_.stack_could_overflow())
+  stack_marker_t marker;
+  if(marker.in_range(buf_.base_marker()))
   {
-    buf_.call_when_readable([this] { this->read_contents(); });
+    this->read_contents();
     return;
   }
 
-  this->read_contents();
+  buf_.call_when_readable([this] { this->read_contents(); });
 }
 
 void string_reader_t::on_hex_digits(int c)
 {
   value_ += static_cast<char>(c);
 
-  if(buf_.stack_could_overflow())
+  stack_marker_t marker;
+  if(marker.in_range(buf_.base_marker()))
   {
-    buf_.call_when_readable([this] { this->read_contents(); });
+    this->read_contents();
     return;
   }
 
-  this->read_contents();
+  buf_.call_when_readable([this] { this->read_contents(); });
 }
 
 void string_reader_t::on_exception(std::exception_ptr ex)

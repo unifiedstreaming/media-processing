@@ -17,15 +17,14 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#include "stack_watcher.hpp"
+#include "stack_marker.hpp"
 
 namespace cuti
 {
 
-std::uintptr_t stack_watcher_t::address(char& c)
+std::uintptr_t stack_marker_t::address() const
 {
-  return reinterpret_cast<std::uintptr_t>(&c);
+  return reinterpret_cast<std::uintptr_t>(this);
 }
 
 } // cuti
-

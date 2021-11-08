@@ -287,13 +287,14 @@ private :
   {
     value_.push_back(std::move(element));
 
-    if(buf_.stack_could_overflow())
+    stack_marker_t marker;
+    if(marker.in_range(buf_.base_marker()))
     {
-      buf_.call_when_readable([this] { this->read_elements(); });
+      this->read_elements();
       return;
     }
 
-    this->read_elements();
+    buf_.call_when_readable([this] { this->read_elements(); });
   }
 
   void on_exception(std::exception_ptr ex)

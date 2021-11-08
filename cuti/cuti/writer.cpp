@@ -339,13 +339,14 @@ void string_writer_t::write_escaped()
     return;
   }
 
-  if(buf_.stack_could_overflow())
+  stack_marker_t marker;
+  if(marker.in_range(buf_.base_marker()))
   {
-    buf_.call_when_writable([this] { this->write_contents(); });
+    this->write_contents();
     return;
   }
 
-  this->write_contents();
+  buf_.call_when_writable([this] { this->write_contents(); });
 }
 
 void string_writer_t::write_closing_dq()
@@ -363,13 +364,14 @@ void string_writer_t::write_closing_dq()
 
 void string_writer_t::on_hex_digits_written()
 {
-  if(buf_.stack_could_overflow())
+  stack_marker_t marker;
+  if(marker.in_range(buf_.base_marker()))
   {
-    buf_.call_when_writable([this] { this->write_contents(); });
+    this->write_contents();
     return;
   }
 
-  this->write_contents();
+  buf_.call_when_writable([this] { this->write_contents(); });
 }
 
 void string_writer_t::on_exception(std::exception_ptr ex)

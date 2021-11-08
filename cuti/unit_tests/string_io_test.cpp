@@ -58,9 +58,10 @@ void test_failing_read(logging_context_t& context,
   }
 
   default_scheduler_t scheduler;
+  stack_marker_t base_marker;
 
   auto inbuf = make_nb_string_inbuf(std::move(input), bufsize);
-  bound_inbuf_t bit(*inbuf, scheduler);
+  bound_inbuf_t bit(base_marker, *inbuf, scheduler);
 
   final_result_t<std::string> read_result;
   reader_t<std::string> reader(read_result, bit);
@@ -108,11 +109,12 @@ void test_roundtrip(logging_context_t& context,
   }
 
   default_scheduler_t scheduler;
+  stack_marker_t base_marker;
 
   std::string serialized_form;
 
   auto outbuf = make_nb_string_outbuf(serialized_form, bufsize);
-  bound_outbuf_t bot(*outbuf, scheduler);
+  bound_outbuf_t bot(base_marker, *outbuf, scheduler);
 
   final_result_t<void> write_result;
   writer_t<std::string> writer(write_result, bot);
@@ -161,7 +163,7 @@ void test_roundtrip(logging_context_t& context,
   }
   
   auto inbuf = make_nb_string_inbuf(serialized_form, bufsize);
-  bound_inbuf_t bit(*inbuf, scheduler);
+  bound_inbuf_t bit(base_marker, *inbuf, scheduler);
 
   final_result_t<std::string> read_result;
   reader_t<std::string> reader(read_result, bit);

@@ -90,8 +90,9 @@ void verify_input(logging_context_t& context,
                   std::string input,
                   std::size_t bufsize)
 {
+  stack_marker_t base_marker;
   auto inbuf = make_nb_string_inbuf(std::move(input), bufsize);
-  bound_inbuf_t bit(*inbuf, scheduler);
+  bound_inbuf_t bit(base_marker, *inbuf, scheduler);
 
   final_result_t<T> value_result;
   reader_t<T> value_reader(value_result, bit);
@@ -136,9 +137,10 @@ void do_test_failing_read(logging_context_t& context,
                           std::size_t bufsize)
 {
   default_scheduler_t scheduler;
+  stack_marker_t base_marker;
 
   auto inbuf = make_nb_string_inbuf(std::move(input), bufsize);
-  bound_inbuf_t bit(*inbuf, scheduler);
+  bound_inbuf_t bit(base_marker, *inbuf, scheduler);
 
   final_result_t<T> result;
   reader_t<T> reader(result, bit);
@@ -171,10 +173,12 @@ void do_test_roundtrip(logging_context_t& context,
                        std::size_t bufsize)
 {
   default_scheduler_t scheduler;
-
   std::string serialized;
+
+  stack_marker_t base_marker;
+
   auto outbuf = make_nb_string_outbuf(serialized, bufsize);
-  bound_outbuf_t bot(*outbuf, scheduler);
+  bound_outbuf_t bot(base_marker, *outbuf, scheduler);
 
   final_result_t<void> write_result;
   writer_t<T> value_writer(write_result, bot);

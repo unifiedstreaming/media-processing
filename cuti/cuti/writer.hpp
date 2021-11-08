@@ -281,13 +281,14 @@ private :
 
   void on_element_written()
   {
-    if(buf_.stack_could_overflow())
+    stack_marker_t marker;
+    if(marker.in_range(buf_.base_marker()))
     {
-      buf_.call_when_writable([this] { this->write_elements(); });
+      this->write_elements();
       return;
     }
 
-    this->write_elements();
+    buf_.call_when_writable([this] { this->write_elements(); });
   }
 
   void on_exception(std::exception_ptr ex)
