@@ -54,8 +54,8 @@ struct CUTI_ABI stack_marker_t
   {
     auto addr1 = this->address();
     auto addr2 = other.address();
-    return addr1 <= addr2 ? addr2 - addr1 <= threshold
-                          : addr1 - addr2 <= threshold;
+    return addr1 <= addr2 ? addr2 - addr1 < threshold
+                          : addr1 - addr2 < threshold;
   }
 };
 
