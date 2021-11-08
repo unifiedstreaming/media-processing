@@ -24,7 +24,7 @@ namespace cuti
 
 std::uintptr_t stack_watcher_t::address(char& c)
 {
-  return std::uintptr_t(&c);
+  return reinterpret_cast<std::uintptr_t>(&c);
 }
 
 } // cuti
