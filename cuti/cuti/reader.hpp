@@ -30,6 +30,7 @@
 
 #include <cassert>
 #include <string>
+#include <tuple>
 #include <type_traits>
 #include <utility>
 #include <vector>
@@ -311,6 +312,166 @@ private :
   std::vector<T> value_;
 };
 
+template<typename T, std::size_t Remaining = std::tuple_size_v<T>>
+struct tuple_elements_reader_t;
+
+template<typename T>
+struct tuple_elements_reader_t<T, 0>
+{
+  using value_t = void;
+
+  tuple_elements_reader_t(result_t<void>& result, bound_inbuf_t&)
+  : result_(result)
+  { }
+
+  tuple_elements_reader_t(tuple_elements_reader_t const&) = delete;
+  tuple_elements_reader_t& operator=(tuple_elements_reader_t const&) = delete;
+  
+  void start(T&)
+  {
+    result_.submit();
+  }
+  
+private :
+  result_t<void>& result_;
+};
+
+template<typename T, std::size_t Remaining>
+struct tuple_elements_reader_t
+{
+  using value_t = void;
+
+  static std::size_t constexpr index = std::tuple_size_v<T> - Remaining;
+  using element_t = std::tuple_element_t<index, T>;
+  using delegate_t = tuple_elements_reader_t<T, Remaining - 1>;
+
+  tuple_elements_reader_t(result_t<void>& result, bound_inbuf_t& buf)
+  : result_(result)
+  , buf_(buf)
+  , element_reader_(*this, &tuple_elements_reader_t::on_exception, buf_)
+  , delegate_(*this, &tuple_elements_reader_t::on_exception, buf_)
+  , value_()
+  { }
+
+  tuple_elements_reader_t(tuple_elements_reader_t const&) = delete;
+  tuple_elements_reader_t& operator=(tuple_elements_reader_t const&) = delete;
+  
+  void start(T& value)
+  {
+    value_ = &value;
+    element_reader_.start(&tuple_elements_reader_t::on_element_read);
+  }
+
+private :
+  void on_element_read(element_t element)
+  {
+    std::get<index>(*value_) = std::move(element);
+
+    stack_marker_t marker;
+    if(marker.in_range(buf_.base_marker()))
+    {
+      delegate_.start(
+        &tuple_elements_reader_t::on_delegate_done, *value_);
+      return;
+    }
+
+    buf_.call_when_readable([this]
+    {
+      this->delegate_.start(
+        &tuple_elements_reader_t::on_delegate_done, *this->value_);
+    });
+  }
+
+  void on_delegate_done()
+  {
+    result_.submit();
+  }
+
+  void on_exception(std::exception_ptr ex)
+  {
+    result_.fail(std::move(ex));
+  }
+
+private :
+  result_t<void>& result_;
+  bound_inbuf_t& buf_;
+  subroutine_t<tuple_elements_reader_t, reader_t<element_t>> element_reader_;
+  subroutine_t<tuple_elements_reader_t, delegate_t> delegate_;
+
+  T* value_;
+};
+
+template<typename T>
+struct tuple_reader_t
+{
+  using value_t = T;
+
+  tuple_reader_t(result_t<T>& result, bound_inbuf_t& buf)
+  : result_(result)
+  , buf_(buf)
+  , finder_(*this, &tuple_reader_t::on_exception, buf_)
+  , elements_reader_(*this, &tuple_reader_t::on_exception, buf_)
+  , value_()
+  { }
+
+  tuple_reader_t(tuple_reader_t const&) = delete;
+  tuple_reader_t& operator=(tuple_reader_t const&) = delete;
+
+  void start()
+  {
+    finder_.start(&tuple_reader_t::on_first_token);
+  }
+
+private :
+  void on_first_token(int c)
+  {
+    assert(buf_.readable());
+    assert(buf_.peek() == c);
+
+    if(c != '{')
+    {
+      result_.fail(parse_error_t("\'{\' expected"));
+      return;
+    }
+    buf_.skip();
+
+    elements_reader_.start(&tuple_reader_t::on_elements_read, value_);
+  }
+
+  void on_elements_read()
+  {
+    finder_.start(&tuple_reader_t::on_last_token);
+  }
+
+  void on_last_token(int c)
+  {
+    assert(buf_.readable());
+    assert(buf_.peek() == c);
+
+    if(c != '}')
+    {
+      result_.fail(parse_error_t("\'}\' expected"));
+      return;
+    }
+    buf_.skip();
+
+    result_.submit(std::move(value_));
+  }
+
+  void on_exception(std::exception_ptr ex)
+  {
+    result_.fail(std::move(ex));
+  }
+
+private :
+  result_t<T>& result_;
+  bound_inbuf_t& buf_;
+  subroutine_t<tuple_reader_t, token_finder_t> finder_;
+  subroutine_t<tuple_reader_t, tuple_elements_reader_t<T>> elements_reader_;
+
+  T value_;
+};
+
 } // detail
 
 template<>
@@ -371,6 +532,18 @@ template<typename T>
 struct reader_traits_t<std::vector<T>>
 {
   using type = detail::vector_reader_t<T>;
+};
+
+template<typename... Types>
+struct reader_traits_t<std::tuple<Types...>>
+{
+  using type = detail::tuple_reader_t<std::tuple<Types...>>;
+};
+
+template<typename T1, typename T2>
+struct reader_traits_t<std::pair<T1, T2>>
+{
+  using type = detail::tuple_reader_t<std::pair<T1, T2>>;
 };
 
 } // cuti
