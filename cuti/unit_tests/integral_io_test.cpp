@@ -18,7 +18,7 @@
  */
 
 #include <cuti/integral_readers.hpp>
-#include <cuti/writer.hpp>
+#include <cuti/integral_writers.hpp>
 
 #include <cuti/bound_inbuf.hpp>
 #include <cuti/bound_outbuf.hpp>

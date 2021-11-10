@@ -84,6 +84,7 @@ lib cuti
   fs_utils.cpp
   format.cpp
   integral_readers.cpp
+  integral_writers.cpp
   kqueue_selector.cpp
   listener.cpp
   logger.cpp
@@ -117,15 +118,18 @@ lib cuti
   stack_marker.cpp
   streambuf_backend.cpp
   string_reader.cpp
+  string_writer.cpp
   syslog_backend.cpp
   system_error.cpp
   tcp_acceptor.cpp
   tcp_connection.cpp
   tcp_socket.cpp
   tuple_reader.cpp
+  tuple_writer.cpp
   vector_reader.cpp
+  vector_writer.cpp
   viewbuf.cpp
-  writer.cpp
+  writer_traits.cpp
   advapi32
   ws2_32
 :

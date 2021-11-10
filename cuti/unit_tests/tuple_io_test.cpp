@@ -18,7 +18,7 @@
  */
 
 #include <cuti/tuple_reader.hpp>
-#include <cuti/writer.hpp>
+#include <cuti/tuple_writer.hpp>
 
 #include <cuti/bound_inbuf.hpp>
 #include <cuti/bound_outbuf.hpp>
@@ -28,6 +28,7 @@
 #include <cuti/final_result.hpp>
 #include <cuti/flusher.hpp>
 #include <cuti/integral_readers.hpp>
+#include <cuti/integral_writers.hpp>
 #include <cuti/logger.hpp>
 #include <cuti/logging_context.hpp>
 #include <cuti/nb_string_inbuf.hpp>
@@ -36,7 +37,9 @@
 #include <cuti/quoted_string.hpp>
 #include <cuti/streambuf_backend.hpp>
 #include <cuti/string_reader.hpp>
+#include <cuti/string_writer.hpp>
 #include <cuti/vector_reader.hpp>
+#include <cuti/vector_writer.hpp>
 
 #include <iostream>
 #include <typeinfo>
