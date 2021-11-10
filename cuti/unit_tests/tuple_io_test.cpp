@@ -171,8 +171,18 @@ void test_roundtrip(logging_context_t& context,
 
   if(auto msg = context.message_at(loglevel_t::info))
   {
-    *msg << __func__ << '<' << typeid(T).name() <<
-      ">: serialized form: " << quoted_string(serialized_form);
+    if(serialized_form.size() < 256)
+    {
+      *msg << __func__ << '<' << typeid(T).name() <<
+        ">: serialized form (size: " << serialized_form.size() <<
+	"): " << quoted_string(serialized_form);
+    }
+    else
+    {
+      *msg << __func__ << '<' << typeid(T).name() <<
+        ">: serialized form not logged (size: " <<
+	serialized_form.size() << ')';
+    }
   }
   
   auto inbuf = make_nb_string_inbuf(serialized_form, bufsize);
@@ -277,6 +287,21 @@ auto reverse_marx_family()
   return family_t{{karl}, heinrich, henriette};
 }
 
+template<std::size_t N>
+auto marx_families()
+{
+  using T = decltype(marx_family());
+  std::vector<T> result;
+
+  result.reserve(N);
+  for(std::size_t i = 0; i != N; ++i)
+  {
+    result.push_back(marx_family());
+  }
+
+  return result;
+}
+    
 void test_roundtrips(logging_context_t& context, std::size_t bufsize)
 {
   test_roundtrip(context, std::tuple<>{}, bufsize);
@@ -286,6 +311,7 @@ void test_roundtrips(logging_context_t& context, std::size_t bufsize)
   test_roundtrip(context, tuple_of_tuples(), bufsize);
   test_roundtrip(context, marx_family(), bufsize);
   test_roundtrip(context, reverse_marx_family(), bufsize);
+  test_roundtrip(context, marx_families<1000>(), bufsize);
 }
 
 struct options_t
