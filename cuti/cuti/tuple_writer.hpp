@@ -37,11 +37,12 @@ namespace cuti
 namespace detail
 {
 
-template<typename T, std::size_t Remaining = std::tuple_size_v<T>>
+template<typename T,
+         typename = std::make_index_sequence<std::tuple_size_v<T>>>
 struct tuple_elements_writer_t;
 
 template<typename T>
-struct tuple_elements_writer_t<T, 0>
+struct tuple_elements_writer_t<T, std::index_sequence<>>
 {
   using value_t = void;
 
@@ -61,14 +62,13 @@ private :
   result_t<void>& result_;
 };
 
-template<typename T, std::size_t Remaining>
-struct tuple_elements_writer_t
+template<typename T, std::size_t First, std::size_t... Rest>
+struct tuple_elements_writer_t<T, std::index_sequence<First, Rest...>>
 {
   using value_t = void;
 
-  static std::size_t constexpr index = std::tuple_size_v<T> - Remaining;
-  using element_t = std::tuple_element_t<index, T>;
-  using delegate_t = tuple_elements_writer_t<T, Remaining - 1>;
+  using element_t = std::tuple_element_t<First, T>;
+  using delegate_t = tuple_elements_writer_t<T, std::index_sequence<Rest...>>;
 
   tuple_elements_writer_t(result_t<void>& result, bound_outbuf_t& buf)
   : result_(result)
@@ -85,7 +85,7 @@ struct tuple_elements_writer_t
   {
     value_ = &value;
     element_writer_.start(&tuple_elements_writer_t::on_element_written,
-                          std::move(std::get<index>(*value_)));
+                          std::move(std::get<First>(*value_)));
   }
 
 private :

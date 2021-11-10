@@ -40,11 +40,12 @@ namespace cuti
 namespace detail
 {
 
-template<typename T, std::size_t Remaining = std::tuple_size_v<T>>
+template<typename T,
+         typename = std::make_index_sequence<std::tuple_size_v<T>>>
 struct tuple_elements_reader_t;
 
 template<typename T>
-struct tuple_elements_reader_t<T, 0>
+struct tuple_elements_reader_t<T, std::index_sequence<>>
 {
   using value_t = void;
 
@@ -64,14 +65,13 @@ private :
   result_t<void>& result_;
 };
 
-template<typename T, std::size_t Remaining>
-struct tuple_elements_reader_t
+template<typename T, std::size_t First, std::size_t... Rest>
+struct tuple_elements_reader_t<T, std::index_sequence<First, Rest...>>
 {
   using value_t = void;
 
-  static std::size_t constexpr index = std::tuple_size_v<T> - Remaining;
-  using element_t = std::tuple_element_t<index, T>;
-  using delegate_t = tuple_elements_reader_t<T, Remaining - 1>;
+  using element_t = std::tuple_element_t<First, T>;
+  using delegate_t = tuple_elements_reader_t<T, std::index_sequence<Rest...>>;
 
   tuple_elements_reader_t(result_t<void>& result, bound_inbuf_t& buf)
   : result_(result)
@@ -93,7 +93,7 @@ struct tuple_elements_reader_t
 private :
   void on_element_read(element_t element)
   {
-    std::get<index>(*value_) = std::move(element);
+    std::get<First>(*value_) = std::move(element);
 
     stack_marker_t marker;
     if(marker.in_range(buf_.base_marker()))
