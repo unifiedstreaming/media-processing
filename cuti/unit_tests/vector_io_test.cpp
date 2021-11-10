@@ -17,7 +17,7 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#include <cuti/reader.hpp>
+#include <cuti/vector_reader.hpp>
 #include <cuti/writer.hpp>
 
 #include <cuti/bound_inbuf.hpp>
@@ -28,6 +28,7 @@
 #include <cuti/eof_checker.hpp>
 #include <cuti/final_result.hpp>
 #include <cuti/flusher.hpp>
+#include <cuti/integral_readers.hpp>
 #include <cuti/logger.hpp>
 #include <cuti/logging_context.hpp>
 #include <cuti/nb_string_inbuf.hpp>
@@ -35,6 +36,7 @@
 #include <cuti/option_walker.hpp>
 #include <cuti/quoted_string.hpp>
 #include <cuti/streambuf_backend.hpp>
+#include <cuti/string_reader.hpp>
 
 #include <iostream>
 #include <typeinfo>

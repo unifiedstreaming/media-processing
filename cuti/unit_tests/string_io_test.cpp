@@ -17,7 +17,7 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#include <cuti/reader.hpp>
+#include <cuti/string_reader.hpp>
 #include <cuti/writer.hpp>
 
 #include <cuti/bound_inbuf.hpp>

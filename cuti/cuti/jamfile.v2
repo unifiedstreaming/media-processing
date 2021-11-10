@@ -83,6 +83,7 @@ lib cuti
   flusher.cpp
   fs_utils.cpp
   format.cpp
+  integral_readers.cpp
   kqueue_selector.cpp
   listener.cpp
   logger.cpp
@@ -102,7 +103,8 @@ lib cuti
   poll_selector.cpp
   process.cpp
   quoted_string.cpp
-  reader.cpp
+  reader_traits.cpp
+  reader_utils.cpp
   resolver.cpp
   scheduler.cpp
   scoped_thread.cpp
@@ -114,11 +116,14 @@ lib cuti
   socket_nifty.cpp
   stack_marker.cpp
   streambuf_backend.cpp
+  string_reader.cpp
   syslog_backend.cpp
   system_error.cpp
   tcp_acceptor.cpp
   tcp_connection.cpp
   tcp_socket.cpp
+  tuple_reader.cpp
+  vector_reader.cpp
   viewbuf.cpp
   writer.cpp
   advapi32
