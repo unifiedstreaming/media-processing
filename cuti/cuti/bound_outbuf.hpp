@@ -33,7 +33,7 @@ namespace cuti
 struct scheduler_t;
 
 /*
- * A scoping vehicle for managing the assocation between an nl_outbuf_t
+ * A scoping vehicle for managing the assocation between an nb_outbuf_t
  * and a scheduler.
  */
 struct CUTI_ABI bound_outbuf_t
