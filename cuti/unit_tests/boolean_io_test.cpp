@@ -17,8 +17,8 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#include <cuti/boolean_readers.cpp>
-#include <cuti/boolean_writers.cpp>
+#include <cuti/boolean_readers.hpp>
+#include <cuti/boolean_writers.hpp>
 
 #include <cuti/bound_inbuf.hpp>
 #include <cuti/bound_outbuf.hpp>
