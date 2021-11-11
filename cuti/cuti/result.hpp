@@ -22,6 +22,7 @@
 
 #include "linkage.h"
 
+#include <cassert>
 #include <exception>
 #include <utility>
 

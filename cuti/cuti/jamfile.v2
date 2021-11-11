@@ -68,6 +68,9 @@ lib cuti
   bound_inbuf.cpp
   bound_outbuf.cpp
   callback.cpp
+  cancellation_ticket.cpp
+  charclass.cpp
+  chrono_types.cpp
   circular_buffer.cpp
   client.cpp
   clock_object.cpp
@@ -77,15 +80,22 @@ lib cuti
   default_scheduler.cpp
   dispatcher.cpp
   endpoint.cpp
+  eof.cpp
   eof_checker.cpp
   epoll_selector.cpp
+  exception_builder.cpp
   file_backend.cpp
+  final_result.cpp
+  flag.cpp
   flusher.cpp
   fs_utils.cpp
   format.cpp
+  indexed_heap.cpp
   integral_readers.cpp
   integral_writers.cpp
   kqueue_selector.cpp
+  linkage.cpp
+  list_arena.cpp
   listener.cpp
   logger.cpp
   logging_backend.cpp
@@ -99,6 +109,7 @@ lib cuti
   nb_string_inbuf.cpp
   nb_string_outbuf.cpp
   nb_tcp_buffers.cpp
+  nb_tickets_holder.cpp
   option_walker.cpp
   parse_error.cpp
   poll_selector.cpp
@@ -107,7 +118,9 @@ lib cuti
   reader_traits.cpp
   reader_utils.cpp
   resolver.cpp
+  result.cpp
   scheduler.cpp
+  scoped_guard.cpp
   scoped_thread.cpp
   select_selector.cpp
   selector.cpp
@@ -119,11 +132,14 @@ lib cuti
   streambuf_backend.cpp
   string_reader.cpp
   string_writer.cpp
+  subresult.cpp
+  subroutine.cpp
   syslog_backend.cpp
   system_error.cpp
   tcp_acceptor.cpp
   tcp_connection.cpp
   tcp_socket.cpp
+  throughput_checker.cpp
   tuple_reader.cpp
   tuple_writer.cpp
   vector_reader.cpp
