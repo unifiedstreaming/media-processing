@@ -17,73 +17,76 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#include <cuti/vector_reader.hpp>
-#include <cuti/vector_writer.hpp>
+#include <cuti/boolean_readers.cpp>
+#include <cuti/boolean_writers.cpp>
 
 #include <cuti/bound_inbuf.hpp>
 #include <cuti/bound_outbuf.hpp>
-#include <cuti/charclass.hpp>
 #include <cuti/cmdline_reader.hpp>
 #include <cuti/default_scheduler.hpp>
 #include <cuti/eof_checker.hpp>
 #include <cuti/final_result.hpp>
 #include <cuti/flusher.hpp>
-#include <cuti/integral_readers.hpp>
-#include <cuti/integral_writers.hpp>
-#include <cuti/logger.hpp>
+#include <cuti/loglevel.hpp>
 #include <cuti/logging_context.hpp>
+#include <cuti/option_walker.hpp>
 #include <cuti/nb_string_inbuf.hpp>
 #include <cuti/nb_string_outbuf.hpp>
-#include <cuti/option_walker.hpp>
 #include <cuti/quoted_string.hpp>
+#include <cuti/stack_marker.hpp>
 #include <cuti/streambuf_backend.hpp>
-#include <cuti/string_reader.hpp>
-#include <cuti/string_writer.hpp>
+#include <cuti/vector_reader.hpp>
+#include <cuti/vector_writer.hpp>
 
+#include <cstddef>
 #include <iostream>
+#include <stdexcept>
+#include <string>
 #include <typeinfo>
-#include <utility>
+#include <vector>
 
 #undef NDEBUG
 #include <cassert>
 
-namespace // anoymous
+namespace // anonymous
 {
 
 using namespace cuti;
 
-void test_failing_read(logging_context_t& context,
-                       std::string input,
-                       std::size_t bufsize)
+template<typename T>
+void test_failing_read(logging_context_t& context, std::size_t bufsize,
+                       std::string input)
 {
   if(auto msg = context.message_at(loglevel_t::info))
   {
-    *msg << __func__ << ": input: " << quoted_string(input) <<
-      " bufsize: " << bufsize;
+    *msg << __func__ << '<' << typeid(T).name() <<
+      ">: bufsize: " << bufsize <<
+      " input: " << quoted_string(input);
   }
 
   default_scheduler_t scheduler;
-  stack_marker_t base_marker;
+  stack_marker_t marker;
 
   auto inbuf = make_nb_string_inbuf(std::move(input), bufsize);
-  bound_inbuf_t bit(base_marker, *inbuf, scheduler);
+  bound_inbuf_t bit(marker, *inbuf, scheduler);
 
-  final_result_t<std::vector<int>> read_result;
-  reader_t<std::vector<int>> reader(read_result, bit);
+  final_result_t<T> read_result;
+  reader_t<T> reader(read_result, bit);
   reader.start();
 
-  unsigned int n_read_callbacks = 0;
+  std::size_t n_reading_callbacks = 0;
   while(!read_result.available())
   {
     auto cb = scheduler.wait();
     assert(cb != nullptr);
     cb();
-    ++n_read_callbacks;
+    ++n_reading_callbacks;
   }
 
   if(auto msg = context.message_at(loglevel_t::info))
   {
-    *msg << __func__ << ": n_read_callbacks: " << n_read_callbacks;
+    *msg << __func__ << '<' << typeid(T).name() <<
+      ">: n_reading_callbacks: " << n_reading_callbacks;
   }
 
   bool caught = false;
@@ -95,7 +98,8 @@ void test_failing_read(logging_context_t& context,
   {
     if(auto msg = context.message_at(loglevel_t::info))
     {
-      *msg << __func__ << ": caught exception: " << ex.what();
+      *msg << __func__ << '<' << typeid(T).name() <<
+        ">: caught exception: " << ex.what();
     }
     caught = true;
   }
@@ -104,197 +108,169 @@ void test_failing_read(logging_context_t& context,
 }
 
 template<typename T>
-void test_roundtrip(logging_context_t& context,
-                    std::vector<T> input,
-                    std::size_t bufsize)
+void test_roundtrip(logging_context_t& context, std::size_t bufsize, T value)
 {
   if(auto msg = context.message_at(loglevel_t::info))
   {
     *msg << __func__ << '<' << typeid(T).name() <<
-      ">: input count: " << input.size() <<
-      " bufsize: " << bufsize;
+      ">: bufsize: " << bufsize;
   }
 
   default_scheduler_t scheduler;
+  stack_marker_t marker;
+
   std::string serialized_form;
-
-  stack_marker_t base_marker;
-
   auto outbuf = make_nb_string_outbuf(serialized_form, bufsize);
-  bound_outbuf_t bot(base_marker, *outbuf, scheduler);
+  bound_outbuf_t bot(marker, *outbuf, scheduler);
 
   final_result_t<void> write_result;
-  writer_t<std::vector<T>> writer(write_result, bot);
-  writer.start(input);
+  writer_t<T> writer(write_result, bot);
+  writer.start(value);
 
-  unsigned int n_write_callbacks = 0;
+  std::size_t n_writing_callbacks = 0;
   while(!write_result.available())
   {
     auto cb = scheduler.wait();
     assert(cb != nullptr);
     cb();
-    ++n_write_callbacks;
+    ++n_writing_callbacks;
   }
 
   if(auto msg = context.message_at(loglevel_t::info))
   {
     *msg << __func__ << '<' << typeid(T).name() <<
-      ">: n_write_callbacks: " << n_write_callbacks;
+      ">: n_writing_callbacks: " << n_writing_callbacks;
   }
-
-  write_result.value();
 
   final_result_t<void> flush_result;
   flusher_t flusher(flush_result, bot);
   flusher.start();
 
-  unsigned int n_flush_callbacks = 0;
+  std::size_t n_flushing_callbacks = 0;
   while(!flush_result.available())
   {
     auto cb = scheduler.wait();
     assert(cb != nullptr);
     cb();
-    ++n_flush_callbacks;
+    ++n_flushing_callbacks;
   }
 
   if(auto msg = context.message_at(loglevel_t::info))
   {
     *msg << __func__ << '<' << typeid(T).name() <<
-      ">: n_flush_callbacks: " << n_flush_callbacks;
+      ">: n_flushing_callbacks: " << n_flushing_callbacks;
   }
-
-  flush_result.value();
 
   if(auto msg = context.message_at(loglevel_t::info))
   {
-    *msg << __func__ << '<' << typeid(T).name() <<
-      ">: serialized form length: " << serialized_form.length();
-  }
-  
-  auto inbuf = make_nb_string_inbuf(serialized_form, bufsize);
-  bound_inbuf_t bit(base_marker, *inbuf, scheduler);
+    auto size = serialized_form.size();
 
-  final_result_t<std::vector<T>> read_result;
-  reader_t<std::vector<T>> reader(read_result, bit);
+    *msg << __func__ << '<' << typeid(T).name() <<
+      ">: serialized form (size: " << size << "): ";
+
+    if(size <= 80)
+    {
+      *msg << quoted_string(serialized_form);
+    }
+    else
+    {
+      *msg << "<not printed>";
+    }
+  }
+
+  auto inbuf = make_nb_string_inbuf(std::move(serialized_form), bufsize);
+
+  bound_inbuf_t bit(marker, *inbuf, scheduler);
+
+  final_result_t<T> read_result;
+  reader_t<T> reader(read_result, bit);
   reader.start();
 
-  unsigned int n_read_callbacks = 0;
+  std::size_t n_reading_callbacks = 0;
   while(!read_result.available())
   {
     auto cb = scheduler.wait();
     assert(cb != nullptr);
     cb();
-    ++n_read_callbacks;
+    ++n_reading_callbacks;
   }
 
   if(auto msg = context.message_at(loglevel_t::info))
   {
     *msg << __func__ << '<' << typeid(T).name() <<
-      ">: n_read_callbacks: " << n_read_callbacks;
+      ">: n_reading_callbacks: " << n_reading_callbacks;
   }
 
-  assert(read_result.value() == input);
+  assert(read_result.value() == value);
 
-  final_result_t<void> eof_result;
-  eof_checker_t eof_checker(eof_result, bit);
-  eof_checker.start();
+  final_result_t<void> checker_result;
+  eof_checker_t checker(checker_result, bit);
+  checker.start();
 
-  unsigned int n_eof_callbacks = 0;
-  while(!eof_result.available())
+  std::size_t n_checking_callbacks = 0;
+  while(!checker_result.available())
   {
     auto cb = scheduler.wait();
     assert(cb != nullptr);
     cb();
-    ++n_eof_callbacks;
+    ++n_checking_callbacks;
   }
 
   if(auto msg = context.message_at(loglevel_t::info))
   {
     *msg << __func__ << '<' << typeid(T).name() <<
-      ">: n_eof_callbacks: " << n_eof_callbacks;
+      ">: n_checking_callbacks: " << n_checking_callbacks;
   }
-
-  eof_result.value();
 }
 
-void test_failing_reads(logging_context_t& context, std::size_t bufsize)
+template<typename T>
+void do_test_failing_reads(logging_context_t& context, std::size_t bufsize)
 {
-  // missing opening bracket
-  test_failing_read(context, "", bufsize);
-  test_failing_read(context, "\t\r ", bufsize);
+  // unexpected eof
+  test_failing_read<T>(context, bufsize, "");
+  test_failing_read<T>(context, bufsize, "\t\r ");
 
-  // missing closing bracket
-  test_failing_read(context, "[", bufsize);
-  test_failing_read(context, "[ \n]", bufsize);
-  test_failing_read(context, "[ 100", bufsize);
-  test_failing_read(context, "[ 100\n", bufsize);
+  // unexpected eol
+  test_failing_read<T>(context, bufsize, "\n*");
+  test_failing_read<T>(context, bufsize, "\t\r \n*");
 
-  // error in element
-  test_failing_read(context, "[ \"Hello world\" ]", bufsize);
-}
+  // wrong type
+  test_failing_read<T>(context, bufsize, "42");
+  test_failing_read<T>(context, bufsize, "\t\r 42");
+} 
 
-std::vector<int> medium_int_vector()
+template<typename T>
+std::vector<T> make_vector()
 {
-  std::vector<int> result;
+  std::vector<T> result;
   result.reserve(100);
 
   for(int i = 0; i != 100; ++i)
   {
-    result.push_back(i - 50);
+    result.push_back(i % 2 == 0);
   }
 
   return result;
 }
-  
-std::vector<int> big_int_vector()
+
+template<typename T>
+void do_test_roundtrips(logging_context_t& context, std::size_t bufsize)
 {
-  std::vector<int> result;
-  result.reserve(1000);
-
-  for(int i = 0; i != 1000; ++i)
-  {
-    result.push_back(i - 500);
-  }
-
-  return result;
+  test_roundtrip(context, bufsize, T(false));
+  test_roundtrip(context, bufsize, T(true));
+  test_roundtrip(context, bufsize, make_vector<T>());
 }
 
-std::vector<std::string> vector_of_strings()
+void test_failing_reads(logging_context_t& context, std::size_t bufsize)
 {
-  std::vector<std::string> result;
-  result.reserve(1000);
-
-  for(int i = 0; i != 1000; ++i)
-  {
-    // use a somewhat longer string to avoid SSO
-    result.push_back("Hello there, Wolfgang Amadeus Mozart(" +
-      std::to_string(i) + ")");
-  }
-
-  return result;
+  do_test_failing_reads<bool>(context, bufsize);
+  do_test_failing_reads<flag_t>(context, bufsize);
 }
-   
-std::vector<std::vector<int>> vector_of_int_vectors()
-{
-  std::vector<std::vector<int>> result;
-  result.reserve(1000);
 
-  for(int i = 0; i != 1000; ++i)
-  {
-    result.push_back(medium_int_vector());
-  }
-
-  return result;
-}
-  
 void test_roundtrips(logging_context_t& context, std::size_t bufsize)
 {
-  test_roundtrip(context, std::vector<int>{}, bufsize);
-  test_roundtrip(context, std::vector<int>{ 42 }, bufsize);
-  test_roundtrip(context, medium_int_vector(), bufsize);
-  test_roundtrip(context, big_int_vector(), bufsize);
-  test_roundtrip(context, vector_of_strings(), bufsize);
-  test_roundtrip(context, vector_of_int_vectors(), bufsize);
+  do_test_roundtrips<bool>(context, bufsize);
+  do_test_roundtrips<flag_t>(context, bufsize);
 }
 
 struct options_t

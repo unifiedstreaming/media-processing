@@ -65,6 +65,8 @@ rule cuti-dll-name ( name : type ? : properties * )
 lib cuti
 :
   args_reader.cpp
+  boolean_readers.cpp
+  boolean_writers.cpp
   bound_inbuf.cpp
   bound_outbuf.cpp
   callback.cpp

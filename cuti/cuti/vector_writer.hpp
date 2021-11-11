@@ -46,8 +46,8 @@ struct vector_writer_t
   , buf_(buf)
   , element_writer_(*this, &vector_writer_t::on_exception, buf_)
   , value_()
-  , rp_()
-  , ep_()
+  , ri_()
+  , ei_()
   { }
 
   vector_writer_t(vector_writer_t const&) = delete;
@@ -56,8 +56,8 @@ struct vector_writer_t
   void start(std::vector<T> value)
   {
     value_ = std::move(value);
-    rp_ = value_.data();
-    ep_ = rp_ + value_.size();
+    ri_ = value_.begin();
+    ei_ = value_.end();
 
     this->write_opening_space();
   }
@@ -89,10 +89,10 @@ private :
 
   void write_elements()
   {
-    if(rp_ != ep_)
+    if(ri_ != ei_)
     {
-      T& elem = *rp_;
-      ++rp_;
+      T elem = std::move(*ri_);
+      ++ri_;
       element_writer_.start(
         &vector_writer_t::on_element_written, std::move(elem));
       return;
@@ -149,8 +149,8 @@ private :
   subroutine_t<vector_writer_t, writer_t<T>> element_writer_;
 
   std::vector<T> value_;
-  T* rp_;
-  T* ep_;
+  typename std::vector<T>::iterator ri_;
+  typename std::vector<T>::iterator ei_;
 };
 
 } // detail

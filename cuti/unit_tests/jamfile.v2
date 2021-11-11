@@ -25,6 +25,10 @@ project
   <library>../cuti//cuti
 ;
 
+unit-test boolean_io_test
+: boolean_io_test.cpp
+;
+
 unit-test callback_test
 : callback_test.cpp
 ;
