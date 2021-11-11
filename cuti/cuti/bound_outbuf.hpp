@@ -33,8 +33,8 @@ namespace cuti
 struct scheduler_t;
 
 /*
- * A vehicle for referencing an nb_outbuf_t and its currently associated
- * scheduler.
+ * A scoping vehicle for managing the assocation between an nl_outbuf_t
+ * and a scheduler.
  */
 struct CUTI_ABI bound_outbuf_t
 {
@@ -82,6 +82,11 @@ struct CUTI_ABI bound_outbuf_t
   void cancel_when_writable() noexcept
   {
     outbuf_.cancel_when_writable();
+  }
+
+  ~bound_outbuf_t()
+  {
+    this->cancel_when_writable();
   }
 
 private :

@@ -33,8 +33,8 @@ namespace cuti
 struct scheduler_t;
 
 /*
- * A vehicle for referencing an nb_inbuf_t and its currently associated
- * scheduler.
+ * A scoping vehicle for managing the assocation between an nl_inbuf_t
+ * and a scheduler.
  */
 struct CUTI_ABI bound_inbuf_t
 {
@@ -82,6 +82,11 @@ struct CUTI_ABI bound_inbuf_t
   void cancel_when_readable() noexcept
   {
     inbuf_.cancel_when_readable();
+  }
+
+  ~bound_inbuf_t()
+  {
+    this->cancel_when_readable();
   }
 
 private :
