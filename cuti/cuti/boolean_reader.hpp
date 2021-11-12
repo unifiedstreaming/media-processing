@@ -17,8 +17,8 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#ifndef CUTI_BOOLEAN_READERS_HPP_
-#define CUTI_BOOLEAN_READERS_HPP_
+#ifndef CUTI_BOOLEAN_READER_HPP_
+#define CUTI_BOOLEAN_READER_HPP_
 
 #include "bound_inbuf.hpp"
 #include "flag.hpp"

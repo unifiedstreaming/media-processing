@@ -17,7 +17,7 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#include "integral_writers.hpp"
+#include "integral_writer.hpp"
 
 #include <cassert>
 #include <limits>

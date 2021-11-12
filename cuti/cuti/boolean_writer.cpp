@@ -17,7 +17,7 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#include "boolean_writers.hpp"
+#include "boolean_writer.hpp"
 
 namespace cuti
 {

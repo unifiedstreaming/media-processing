@@ -19,8 +19,8 @@
 
 #include "io_test_utils.hpp"
 
-#include <cuti/boolean_readers.hpp>
-#include <cuti/boolean_writers.hpp>
+#include <cuti/boolean_reader.hpp>
+#include <cuti/boolean_writer.hpp>
 
 #include <cuti/cmdline_reader.hpp>
 #include <cuti/option_walker.hpp>

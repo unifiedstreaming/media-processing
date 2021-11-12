@@ -17,8 +17,8 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#ifndef CUTI_INTEGRAL_WRITERS_HPP_
-#define CUTI_INTEGRAL_WRITERS_HPP_
+#ifndef CUTI_INTEGRAL_WRITER_HPP_
+#define CUTI_INTEGRAL_WRITER_HPP_
 
 #include "bound_outbuf.hpp"
 #include "linkage.h"

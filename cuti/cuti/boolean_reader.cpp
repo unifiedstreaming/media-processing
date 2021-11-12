@@ -17,7 +17,7 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#include "boolean_readers.hpp"
+#include "boolean_reader.hpp"
 
 #include "parse_error.hpp"
 

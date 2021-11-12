@@ -17,8 +17,8 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#ifndef CUTI_INTEGRAL_READERS_HPP_
-#define CUTI_INTEGRAL_READERS_HPP_
+#ifndef CUTI_INTEGRAL_READER_HPP_
+#define CUTI_INTEGRAL_READER_HPP_
 
 #include "bound_inbuf.hpp"
 #include "linkage.h"

@@ -65,8 +65,8 @@ rule cuti-dll-name ( name : type ? : properties * )
 lib cuti
 :
   args_reader.cpp
-  boolean_readers.cpp
-  boolean_writers.cpp
+  boolean_reader.cpp
+  boolean_writer.cpp
   bound_inbuf.cpp
   bound_outbuf.cpp
   callback.cpp
@@ -93,8 +93,8 @@ lib cuti
   fs_utils.cpp
   format.cpp
   indexed_heap.cpp
-  integral_readers.cpp
-  integral_writers.cpp
+  integral_reader.cpp
+  integral_writer.cpp
   kqueue_selector.cpp
   linkage.cpp
   list_arena.cpp

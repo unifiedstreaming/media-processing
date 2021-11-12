@@ -23,8 +23,8 @@
 #include <cuti/vector_writer.hpp>
 
 #include <cuti/cmdline_reader.hpp>
-#include <cuti/integral_readers.hpp>
-#include <cuti/integral_writers.hpp>
+#include <cuti/integral_reader.hpp>
+#include <cuti/integral_writer.hpp>
 #include <cuti/option_walker.hpp>
 #include <cuti/streambuf_backend.hpp>
 #include <cuti/string_reader.hpp>

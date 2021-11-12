@@ -17,8 +17,8 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#ifndef CUTI_BOOLEAN_WRITERS_HPP_
-#define CUTI_BOOLEAN_WRITERS_HPP_
+#ifndef CUTI_BOOLEAN_WRITER_HPP_
+#define CUTI_BOOLEAN_WRITER_HPP_
 
 #include "bound_outbuf.hpp"
 #include "flag.hpp"

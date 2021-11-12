@@ -17,7 +17,7 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#include "integral_readers.hpp"
+#include "integral_reader.hpp"
 
 #include "charclass.hpp"
 #include "parse_error.hpp"
