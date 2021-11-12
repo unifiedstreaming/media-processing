@@ -39,7 +39,7 @@ namespace detail
 template<typename T>
 struct CUTI_ABI boolean_writer_t
 {
-  using value_t = void;
+  using result_value_t = void;
 
   boolean_writer_t(result_t<void>& result, bound_outbuf_t& buf);
 

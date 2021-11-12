@@ -43,7 +43,7 @@ namespace detail
 template<typename T>
 struct vector_reader_t
 {
-  using value_t = std::vector<T>;
+  using result_value_t = std::vector<T>;
 
   vector_reader_t(result_t<std::vector<T>>& result, bound_inbuf_t& buf)
   : result_(result)

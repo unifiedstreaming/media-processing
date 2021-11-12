@@ -38,7 +38,7 @@ namespace detail
 
 struct CUTI_ABI hex_digits_reader_t
 {
-  using value_t = int;
+  using result_value_t = int;
 
   hex_digits_reader_t(result_t<int>& result, bound_inbuf_t& buf);
 
@@ -59,7 +59,7 @@ private :
     
 struct CUTI_ABI string_reader_t
 {
-  using value_t = std::string;
+  using result_value_t = std::string;
 
   string_reader_t(result_t<std::string>& result, bound_inbuf_t& buf);
 

@@ -41,7 +41,7 @@ struct CUTI_ABI digits_writer_t
 {
   static_assert(std::is_unsigned_v<T>);
 
-  using value_t = void;
+  using result_value_t = void;
 
   digits_writer_t(result_t<void>& result, bound_outbuf_t& buf);
 
@@ -70,7 +70,7 @@ struct CUTI_ABI unsigned_writer_t
 {
   static_assert(std::is_unsigned_v<T>);
 
-  using value_t = void;
+  using result_value_t = void;
 
   unsigned_writer_t(result_t<void>& result, bound_outbuf_t& buf);
 
@@ -102,7 +102,7 @@ struct CUTI_ABI signed_writer_t
   static_assert(std::is_signed_v<T>);
   static_assert(std::is_integral_v<T>);
 
-  using value_t = void;
+  using result_value_t = void;
 
   signed_writer_t(result_t<void>& result, bound_outbuf_t& buf);
 

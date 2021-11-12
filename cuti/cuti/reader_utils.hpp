@@ -32,7 +32,7 @@ namespace detail
 
 struct CUTI_ABI token_finder_t
 {
-  using value_t = int;
+  using result_value_t = int;
 
   token_finder_t(result_t<int>& result, bound_inbuf_t& buf);
 

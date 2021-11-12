@@ -38,7 +38,7 @@ namespace detail
 
 struct CUTI_ABI hex_digits_writer_t
 {
-  using value_t = void;
+  using result_value_t = void;
 
   hex_digits_writer_t(result_t<void>& result_, bound_outbuf_t& buf);
 
@@ -60,7 +60,7 @@ private :
     
 struct CUTI_ABI string_writer_t
 {
-  using value_t = void;
+  using result_value_t = void;
 
   string_writer_t(result_t<void>& result, bound_outbuf_t& buf);
 

@@ -29,7 +29,7 @@ namespace cuti
 
 struct CUTI_ABI flusher_t
 {
-  using value_t = void;
+  using result_value_t = void;
 
   flusher_t(result_t<void>& result, bound_outbuf_t& buf);
 

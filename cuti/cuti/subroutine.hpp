@@ -35,9 +35,11 @@ namespace cuti
 template<typename Parent, typename Child>
 struct subroutine_t
 {
-  using value_t = typename Child::value_t;
-  using on_success_t = typename subresult_t<Parent, value_t>::on_success_t;
-  using on_failure_t = typename subresult_t<Parent, value_t>::on_failure_t;
+  using result_value_t = typename Child::result_value_t;
+  using on_success_t =
+    typename subresult_t<Parent, result_value_t>::on_success_t;
+  using on_failure_t =
+    typename subresult_t<Parent, result_value_t>::on_failure_t;
   
   template<typename... ChildArgs>
   subroutine_t(Parent& parent,
@@ -58,7 +60,7 @@ struct subroutine_t
   }
     
 private :
-  subresult_t<Parent, value_t> subresult_;
+  subresult_t<Parent, result_value_t> subresult_;
   Child child_;
 };
 

@@ -40,7 +40,7 @@ namespace detail
 template<typename T>
 struct vector_writer_t
 {
-  using value_t = void;
+  using result_value_t = void;
 
   vector_writer_t(result_t<void>& result, bound_outbuf_t& buf)
   : result_(result)

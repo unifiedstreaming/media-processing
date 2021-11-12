@@ -45,7 +45,7 @@ struct tuple_elements_writer_t;
 template<typename T>
 struct tuple_elements_writer_t<T, std::index_sequence<>>
 {
-  using value_t = void;
+  using result_value_t = void;
 
   tuple_elements_writer_t(result_t<void>& result, bound_outbuf_t&)
   : result_(result)
@@ -66,7 +66,7 @@ private :
 template<typename T, std::size_t First, std::size_t... Rest>
 struct tuple_elements_writer_t<T, std::index_sequence<First, Rest...>>
 {
-  using value_t = void;
+  using result_value_t = void;
 
   using element_t = std::tuple_element_t<First, T>;
   using delegate_t = tuple_elements_writer_t<T, std::index_sequence<Rest...>>;
@@ -129,7 +129,7 @@ private :
 template<typename T>
 struct tuple_writer_t
 {
-  using value_t = void;
+  using result_value_t = void;
 
   tuple_writer_t(result_t<void>& result, bound_outbuf_t& buf)
   : result_(result)

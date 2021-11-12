@@ -34,7 +34,7 @@ namespace detail
 
 struct CUTI_ABI literal_writer_t
 {
-  using value_t = void;
+  using result_value_t = void;
 
   literal_writer_t(result_t<void>& result, bound_outbuf_t& buf);
 

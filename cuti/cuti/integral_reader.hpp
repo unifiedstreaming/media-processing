@@ -41,7 +41,7 @@ struct CUTI_ABI digits_reader_t
 {
   static_assert(std::is_unsigned_v<T>);
 
-  using value_t = T;
+  using result_value_t = T;
 
   digits_reader_t(result_t<T>& result, bound_inbuf_t& buf);
 
@@ -71,7 +71,7 @@ struct CUTI_ABI unsigned_reader_t
 {
   static_assert(std::is_unsigned_v<T>);
 
-  using value_t = T;
+  using result_value_t = T;
 
   unsigned_reader_t(result_t<T>& result, bound_inbuf_t& buf);
 
@@ -102,7 +102,7 @@ struct CUTI_ABI signed_reader_t
   static_assert(std::is_signed_v<T>);
   static_assert(std::is_integral_v<T>);
 
-  using value_t = T;
+  using result_value_t = T;
 
   signed_reader_t(result_t<T>& result, bound_inbuf_t& buf);
 

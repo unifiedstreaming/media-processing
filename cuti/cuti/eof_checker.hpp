@@ -29,7 +29,7 @@ namespace cuti
 
 struct CUTI_ABI eof_checker_t
 {
-  using value_t = void;
+  using result_value_t = void;
 
   eof_checker_t(result_t<void>& result, bound_inbuf_t& buf);
 

@@ -39,7 +39,7 @@ namespace detail
 template<typename T>
 struct CUTI_ABI boolean_reader_t
 {
-  using value_t = T;
+  using result_value_t = T;
 
   boolean_reader_t(result_t<T>& result, bound_inbuf_t& buf);
 
