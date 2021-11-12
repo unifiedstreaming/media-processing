@@ -17,28 +17,18 @@
  * <http://www.gnu.org/licenses/>.
  */
 
+#include "io_test_utils.hpp"
+
 #include <cuti/integral_readers.hpp>
 #include <cuti/integral_writers.hpp>
 
-#include <cuti/bound_inbuf.hpp>
-#include <cuti/bound_outbuf.hpp>
 #include <cuti/cmdline_reader.hpp>
-#include <cuti/default_scheduler.hpp>
-#include <cuti/eof_checker.hpp>
-#include <cuti/final_result.hpp>
-#include <cuti/flusher.hpp>
-#include <cuti/logger.hpp>
-#include <cuti/logging_context.hpp>
-#include <cuti/nb_string_inbuf.hpp>
-#include <cuti/nb_string_outbuf.hpp>
 #include <cuti/option_walker.hpp>
-#include <cuti/quoted_string.hpp>
 #include <cuti/streambuf_backend.hpp>
 
 #include <algorithm>
 #include <iostream>
 #include <limits>
-#include <typeinfo>
 
 #undef NDEBUG
 #include <cassert>
@@ -47,6 +37,7 @@ namespace // anonymous
 {
 
 using namespace cuti;
+using namespace cuti::io_test_utils;
 
 template<typename T>
 std::string times_ten(T value)
@@ -83,137 +74,6 @@ std::string plus_one(T value)
   return result;
 }
 
-template<typename T>
-void verify_input(logging_context_t& context,
-                  default_scheduler_t& scheduler,
-                  T expected,
-                  std::string input,
-                  std::size_t bufsize)
-{
-  stack_marker_t base_marker;
-  auto inbuf = make_nb_string_inbuf(std::move(input), bufsize);
-  bound_inbuf_t bit(base_marker, *inbuf, scheduler);
-
-  final_result_t<T> value_result;
-  reader_t<T> value_reader(value_result, bit);
-  value_reader.start();
-
-  while(!value_result.available())
-  {
-    auto cb = scheduler.wait();
-    assert(cb != nullptr);
-    cb();
-  }
-
-  assert(value_result.value() == expected);
-  
-  final_result_t<void> eof_result;
-  eof_checker_t eof_checker(eof_result, bit);
-  eof_checker.start();
-
-  while(!eof_result.available())
-  {
-    auto cb = scheduler.wait();
-    assert(cb != nullptr);
-    cb();
-  }
-
-  eof_result.value();
-}
-
-template<typename T>
-void do_test_successful_read(logging_context_t& context,
-                             T expected,
-                             std::string input,
-                             std::size_t bufsize)
-{
-  default_scheduler_t scheduler;
-  verify_input(context, scheduler, expected, std::move(input), bufsize);
-}
-
-template<typename T>
-void do_test_failing_read(logging_context_t& context,
-                          std::string input,
-                          std::size_t bufsize)
-{
-  default_scheduler_t scheduler;
-  stack_marker_t base_marker;
-
-  auto inbuf = make_nb_string_inbuf(std::move(input), bufsize);
-  bound_inbuf_t bit(base_marker, *inbuf, scheduler);
-
-  final_result_t<T> result;
-  reader_t<T> reader(result, bit);
-  reader.start();
-
-  while(auto cb = scheduler.wait())
-  {
-    cb();
-  }
-
-  bool caught = false;
-  try
-  {
-    result.value();
-  }
-  catch(std::exception const& ex)
-  {
-    if(auto msg = context.message_at(loglevel_t::info))
-    {
-      *msg << "caught exception: " << ex.what();
-    }
-    caught = true;
-  }
-  assert(caught);
-}
-
-template<typename T>
-void do_test_roundtrip(logging_context_t& context,
-                       T value,
-                       std::size_t bufsize)
-{
-  default_scheduler_t scheduler;
-  std::string serialized;
-
-  stack_marker_t base_marker;
-
-  auto outbuf = make_nb_string_outbuf(serialized, bufsize);
-  bound_outbuf_t bot(base_marker, *outbuf, scheduler);
-
-  final_result_t<void> write_result;
-  writer_t<T> value_writer(write_result, bot);
-  value_writer.start(value);
-
-  while(!write_result.available())
-  {
-    auto cb = scheduler.wait();
-    assert(cb != nullptr);
-    cb();
-  }
-
-  write_result.value();
-
-  final_result_t<void> flush_result;
-  flusher_t flusher(flush_result, bot);
-  flusher.start();
-
-  while(!flush_result.available())
-  {
-    auto cb = scheduler.wait();
-    assert(cb != nullptr);
-    cb();
-  }
-
-  flush_result.value();
-
-  if(auto msg = context.message_at(loglevel_t::info))
-  {
-    *msg << "serialized form: " << quoted_string(serialized);
-  }
-
-  verify_input(context, scheduler, value, std::move(serialized), bufsize);
-}
-
 constexpr char const* prefixes[] = { "", "\t", "\r", " ", "\t\r " };
 
 template<typename T>
@@ -237,29 +97,6 @@ std::vector<T> testing_values()
       std::numeric_limits<T>::max()
     };
   }      
-}
-
-template<typename T>
-void test_successful_read(logging_context_t& context, std::size_t bufsize)
-{
-  auto values = testing_values<T>();
-
-  for(auto value : values)
-  {
-    for(auto const& prefix : prefixes)
-    {
-      std::string input = prefix + std::to_string(value);
-
-      if(auto msg = context.message_at(loglevel_t::info))
-      {
-        *msg << __func__ << '<' << typeid(T).name() << '>' <<
-          ": expected: " << value <<
-          " input: " << quoted_string(input) << " bufsize: " << bufsize;
-      }
-
-      do_test_successful_read<T>(context, value, input, bufsize);
-    }
-  }
 }
 
 template<typename T>
@@ -289,14 +126,7 @@ void test_digit_expected(logging_context_t& context, std::size_t bufsize)
     for(auto const& suffix : inputs)
     {
       std::string input = prefix + suffix;
-
-      if(auto msg = context.message_at(loglevel_t::info))
-      {
-        *msg << __func__ << '<' << typeid(T).name() << '>' <<
-          " input: " << quoted_string(input) << " bufsize: " << bufsize;
-      }
-
-      do_test_failing_read<T>(context, input, bufsize);
+      test_failing_read<T>(context, bufsize, input);
     }
   }
 }
@@ -326,43 +156,28 @@ void test_overflow(logging_context_t& context, std::size_t bufsize)
     for(auto const& suffix : inputs)
     {
       auto input = prefix + suffix;
-
-      if(auto msg = context.message_at(loglevel_t::info))
-      {
-        *msg << __func__ << '<' << typeid(T).name() << '>' <<
-          " input: " << quoted_string(input) << " bufsize: " << bufsize;
-      }
-
-      do_test_failing_read<T>(context, input, bufsize);
+      test_failing_read<T>(context, bufsize, input);
     }
   }
 }
 
 template<typename T>
-void test_roundtrip(logging_context_t& context, std::size_t bufsize)
+void test_roundtrips(logging_context_t& context, std::size_t bufsize)
 {
   auto values = testing_values<T>();
 
   for(auto value : values)
   {
-
-    if(auto msg = context.message_at(loglevel_t::info))
-    {
-      *msg << __func__ << '<' << typeid(T).name() << '>' <<
-      ": value: " << value << " bufsize: " << bufsize;
-    }
-
-    do_test_roundtrip<T>(context, value, bufsize);
+    test_roundtrip<T>(context, bufsize, value);
   }
 }
 
 template<typename T>
 void run_tests_for(logging_context_t& context, std::size_t bufsize)
 {
-  test_successful_read<T>(context, bufsize);
   test_digit_expected<T>(context, bufsize);
   test_overflow<T>(context, bufsize);
-  test_roundtrip<T>(context, bufsize);
+  test_roundtrips<T>(context, bufsize);
 }
 
 struct options_t

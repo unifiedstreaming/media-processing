@@ -17,24 +17,15 @@
  * <http://www.gnu.org/licenses/>.
  */
 
+#include "io_test_utils.hpp"
+
 #include <cuti/tuple_reader.hpp>
 #include <cuti/tuple_writer.hpp>
 
-#include <cuti/bound_inbuf.hpp>
-#include <cuti/bound_outbuf.hpp>
 #include <cuti/cmdline_reader.hpp>
-#include <cuti/default_scheduler.hpp>
-#include <cuti/eof_checker.hpp>
-#include <cuti/final_result.hpp>
-#include <cuti/flusher.hpp>
 #include <cuti/integral_readers.hpp>
 #include <cuti/integral_writers.hpp>
-#include <cuti/logger.hpp>
-#include <cuti/logging_context.hpp>
-#include <cuti/nb_string_inbuf.hpp>
-#include <cuti/nb_string_outbuf.hpp>
 #include <cuti/option_walker.hpp>
-#include <cuti/quoted_string.hpp>
 #include <cuti/streambuf_backend.hpp>
 #include <cuti/string_reader.hpp>
 #include <cuti/string_writer.hpp>
@@ -52,205 +43,28 @@ namespace // anoymous
 {
 
 using namespace cuti;
-
-template<typename T>
-void test_failing_read(logging_context_t& context,
-                       std::string input,
-                       std::size_t bufsize)
-{
-  if(auto msg = context.message_at(loglevel_t::info))
-  {
-    *msg << __func__ << '<' << typeid(T).name() <<
-      ">: input: " << quoted_string(input) <<
-      " bufsize: " << bufsize;
-  }
-
-  default_scheduler_t scheduler;
-  stack_marker_t base_marker;
-
-  auto inbuf = make_nb_string_inbuf(std::move(input), bufsize);
-  bound_inbuf_t bit(base_marker, *inbuf, scheduler);
-
-  final_result_t<T> read_result;
-  reader_t<T> reader(read_result, bit);
-  reader.start();
-
-  unsigned int n_read_callbacks = 0;
-  while(!read_result.available())
-  {
-    auto cb = scheduler.wait();
-    assert(cb != nullptr);
-    cb();
-    ++n_read_callbacks;
-  }
-
-  if(auto msg = context.message_at(loglevel_t::info))
-  {
-    *msg << __func__ << '<' << typeid(T).name() <<
-      ">: n_read_callbacks: " << n_read_callbacks;
-  }
-
-  bool caught = false;
-  try
-  {
-    read_result.value();
-  }
-  catch(std::exception const& ex)
-  {
-    if(auto msg = context.message_at(loglevel_t::info))
-    {
-      *msg << __func__ << '<' << typeid(T).name() <<
-        ">: caught exception: " << ex.what();
-    }
-    caught = true;
-  }
-
-  assert(caught);
-}
-
-template<typename T>
-void test_roundtrip(logging_context_t& context,
-                    T input,
-                    std::size_t bufsize)
-{
-  if(auto msg = context.message_at(loglevel_t::info))
-  {
-    *msg << __func__ << '<' << typeid(T).name() <<
-      "> bufsize: " << bufsize;
-  }
-
-  default_scheduler_t scheduler;
-  std::string serialized_form;
-
-  stack_marker_t base_marker;
-
-  auto outbuf = make_nb_string_outbuf(serialized_form, bufsize);
-  bound_outbuf_t bot(base_marker, *outbuf, scheduler);
-
-  final_result_t<void> write_result;
-  writer_t<T> writer(write_result, bot);
-  writer.start(input);
-
-  unsigned int n_write_callbacks = 0;
-  while(!write_result.available())
-  {
-    auto cb = scheduler.wait();
-    assert(cb != nullptr);
-    cb();
-    ++n_write_callbacks;
-  }
-
-  if(auto msg = context.message_at(loglevel_t::info))
-  {
-    *msg << __func__ << '<' << typeid(T).name() <<
-      ">: n_write_callbacks: " << n_write_callbacks;
-  }
-
-  write_result.value();
-
-  final_result_t<void> flush_result;
-  flusher_t flusher(flush_result, bot);
-  flusher.start();
-
-  unsigned int n_flush_callbacks = 0;
-  while(!flush_result.available())
-  {
-    auto cb = scheduler.wait();
-    assert(cb != nullptr);
-    cb();
-    ++n_flush_callbacks;
-  }
-
-  if(auto msg = context.message_at(loglevel_t::info))
-  {
-    *msg << __func__ << '<' << typeid(T).name() <<
-      ">: n_flush_callbacks: " << n_flush_callbacks;
-  }
-
-  flush_result.value();
-
-  if(auto msg = context.message_at(loglevel_t::info))
-  {
-    if(serialized_form.size() < 256)
-    {
-      *msg << __func__ << '<' << typeid(T).name() <<
-        ">: serialized form (size: " << serialized_form.size() <<
-	"): " << quoted_string(serialized_form);
-    }
-    else
-    {
-      *msg << __func__ << '<' << typeid(T).name() <<
-        ">: serialized form not logged (size: " <<
-	serialized_form.size() << ')';
-    }
-  }
-  
-  auto inbuf = make_nb_string_inbuf(serialized_form, bufsize);
-  bound_inbuf_t bit(base_marker, *inbuf, scheduler);
-
-  final_result_t<T> read_result;
-  reader_t<T> reader(read_result, bit);
-  reader.start();
-
-  unsigned int n_read_callbacks = 0;
-  while(!read_result.available())
-  {
-    auto cb = scheduler.wait();
-    assert(cb != nullptr);
-    cb();
-    ++n_read_callbacks;
-  }
-
-  if(auto msg = context.message_at(loglevel_t::info))
-  {
-    *msg << __func__ << '<' << typeid(T).name() <<
-      ">: n_read_callbacks: " << n_read_callbacks;
-  }
-
-  assert(read_result.value() == input);
-
-  final_result_t<void> eof_result;
-  eof_checker_t eof_checker(eof_result, bit);
-  eof_checker.start();
-
-  unsigned int n_eof_callbacks = 0;
-  while(!eof_result.available())
-  {
-    auto cb = scheduler.wait();
-    assert(cb != nullptr);
-    cb();
-    ++n_eof_callbacks;
-  }
-
-  if(auto msg = context.message_at(loglevel_t::info))
-  {
-    *msg << __func__ << '<' << typeid(T).name() <<
-      ">: n_eof_callbacks: " << n_eof_callbacks;
-  }
-
-  eof_result.value();
-}
+using namespace cuti::io_test_utils;
 
 void test_failing_reads(logging_context_t& context, std::size_t bufsize)
 {
   // missing opening curly
-  test_failing_read<std::tuple<>>(context, "", bufsize);
-  test_failing_read<std::tuple<>>(context, "\t\r ", bufsize);
-  test_failing_read<std::pair<int, int>>(context, "", bufsize);
-  test_failing_read<std::pair<int, int>>(context, "\t\r ", bufsize);
+  test_failing_read<std::tuple<>>(context, bufsize, "");
+  test_failing_read<std::tuple<>>(context, bufsize, "\t\r ");
+  test_failing_read<std::pair<int, int>>(context, bufsize, "");
+  test_failing_read<std::pair<int, int>>(context, bufsize, "\t\r ");
 
   // missing closing curly
-  test_failing_read<std::tuple<>>(context, "{", bufsize);
-  test_failing_read<std::tuple<>>(context, "{ \n}", bufsize);
-  test_failing_read<std::tuple<int>>(context, "{ 100", bufsize);
-  test_failing_read<std::tuple<int>>(context, "{ 100\n}", bufsize);
-  test_failing_read<std::pair<int, int>>(context, "{ 100 101", bufsize);
-  test_failing_read<std::pair<int, int>>(context, "{ 100 101\n}", bufsize);
+  test_failing_read<std::tuple<>>(context, bufsize, "{");
+  test_failing_read<std::tuple<>>(context, bufsize, "{ \n}");
+  test_failing_read<std::tuple<int>>(context, bufsize, "{ 100");
+  test_failing_read<std::tuple<int>>(context, bufsize, "{ 100\n}");
+  test_failing_read<std::pair<int, int>>(context, bufsize, "{ 100 101");
+  test_failing_read<std::pair<int, int>>(context, bufsize, "{ 100 101\n}");
 
   // error in element
-  test_failing_read<std::tuple<int>>(context, "{ \"Hello world\" }", bufsize);
-  test_failing_read<std::tuple<int, std::string>>(context, "{ 1 2 }", bufsize);
-  test_failing_read<std::pair<int, std::string>>(context, "{ 1 2 }", bufsize);
+  test_failing_read<std::tuple<int>>(context, bufsize, "{ \"Hello world\" }");
+  test_failing_read<std::tuple<int, std::string>>(context, bufsize, "{ 1 2 }");
+  test_failing_read<std::pair<int, std::string>>(context, bufsize, "{ 1 2 }");
 }
 
 auto tuple_of_tuples()
@@ -304,14 +118,14 @@ auto marx_families()
     
 void test_roundtrips(logging_context_t& context, std::size_t bufsize)
 {
-  test_roundtrip(context, std::tuple<>{}, bufsize);
-  test_roundtrip(context, std::tuple<int>{42}, bufsize);
-  test_roundtrip(context, std::tuple<int, int>{42, 4711}, bufsize);
-  test_roundtrip(context, std::tuple<int, std::string>{42, "Alice"}, bufsize);
-  test_roundtrip(context, tuple_of_tuples(), bufsize);
-  test_roundtrip(context, marx_family(), bufsize);
-  test_roundtrip(context, reverse_marx_family(), bufsize);
-  test_roundtrip(context, marx_families<1000>(), bufsize);
+  test_roundtrip(context, bufsize, std::tuple<>{});
+  test_roundtrip(context, bufsize, std::tuple<int>{42});
+  test_roundtrip(context, bufsize, std::tuple<int, int>{42, 4711});
+  test_roundtrip(context, bufsize, std::tuple<int, std::string>{42, "Alice"});
+  test_roundtrip(context, bufsize, tuple_of_tuples());
+  test_roundtrip(context, bufsize, marx_family());
+  test_roundtrip(context, bufsize, reverse_marx_family());
+  test_roundtrip(context, bufsize, marx_families<1000>());
 }
 
 struct options_t

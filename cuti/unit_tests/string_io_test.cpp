@@ -17,23 +17,14 @@
  * <http://www.gnu.org/licenses/>.
  */
 
+#include "io_test_utils.hpp"
+
 #include <cuti/string_reader.hpp>
 #include <cuti/string_writer.hpp>
 
-#include <cuti/bound_inbuf.hpp>
-#include <cuti/bound_outbuf.hpp>
 #include <cuti/charclass.hpp>
 #include <cuti/cmdline_reader.hpp>
-#include <cuti/default_scheduler.hpp>
-#include <cuti/eof_checker.hpp>
-#include <cuti/final_result.hpp>
-#include <cuti/flusher.hpp>
-#include <cuti/logger.hpp>
-#include <cuti/logging_context.hpp>
-#include <cuti/nb_string_inbuf.hpp>
-#include <cuti/nb_string_outbuf.hpp>
 #include <cuti/option_walker.hpp>
-#include <cuti/quoted_string.hpp>
 #include <cuti/streambuf_backend.hpp>
 
 #include <iostream>
@@ -46,190 +37,34 @@ namespace // anoymous
 {
 
 using namespace cuti;
-
-void test_failing_read(logging_context_t& context,
-                       std::string input,
-                       std::size_t bufsize)
-{
-  if(auto msg = context.message_at(loglevel_t::info))
-  {
-    *msg << __func__ << ": input: " << quoted_string(input) <<
-      " bufsize: " << bufsize;
-  }
-
-  default_scheduler_t scheduler;
-  stack_marker_t base_marker;
-
-  auto inbuf = make_nb_string_inbuf(std::move(input), bufsize);
-  bound_inbuf_t bit(base_marker, *inbuf, scheduler);
-
-  final_result_t<std::string> read_result;
-  reader_t<std::string> reader(read_result, bit);
-  reader.start();
-
-  unsigned int n_read_callbacks = 0;
-  while(!read_result.available())
-  {
-    auto cb = scheduler.wait();
-    assert(cb != nullptr);
-    cb();
-    ++n_read_callbacks;
-  }
-
-  if(auto msg = context.message_at(loglevel_t::info))
-  {
-    *msg << __func__ << ": n_read_callbacks: " << n_read_callbacks;
-  }
-
-  bool caught = false;
-  try
-  {
-    read_result.value();
-  }
-  catch(std::exception const& ex)
-  {
-    if(auto msg = context.message_at(loglevel_t::info))
-    {
-      *msg << __func__ << ": caught exception: " << ex.what();
-    }
-    caught = true;
-  }
-
-  assert(caught);
-}
-
-void test_roundtrip(logging_context_t& context,
-                    std::string input,
-                    std::size_t bufsize)
-{
-  if(auto msg = context.message_at(loglevel_t::info))
-  {
-    *msg << __func__ << ": input: " << quoted_string(input) <<
-      " bufsize: " << bufsize;
-  }
-
-  default_scheduler_t scheduler;
-  stack_marker_t base_marker;
-
-  std::string serialized_form;
-
-  auto outbuf = make_nb_string_outbuf(serialized_form, bufsize);
-  bound_outbuf_t bot(base_marker, *outbuf, scheduler);
-
-  final_result_t<void> write_result;
-  writer_t<std::string> writer(write_result, bot);
-  writer.start(input);
-
-  unsigned int n_write_callbacks = 0;
-  while(!write_result.available())
-  {
-    auto cb = scheduler.wait();
-    assert(cb != nullptr);
-    cb();
-    ++n_write_callbacks;
-  }
-
-  if(auto msg = context.message_at(loglevel_t::info))
-  {
-    *msg << __func__ << ": n_write_callbacks: " << n_write_callbacks;
-  }
-
-  write_result.value();
-
-  final_result_t<void> flush_result;
-  flusher_t flusher(flush_result, bot);
-  flusher.start();
-
-  unsigned int n_flush_callbacks = 0;
-  while(!flush_result.available())
-  {
-    auto cb = scheduler.wait();
-    assert(cb != nullptr);
-    cb();
-    ++n_flush_callbacks;
-  }
-
-  if(auto msg = context.message_at(loglevel_t::info))
-  {
-    *msg << __func__ << ": n_flush_callbacks: " << n_flush_callbacks;
-  }
-
-  flush_result.value();
-
-  if(auto msg = context.message_at(loglevel_t::info))
-  {
-    *msg << __func__ << ": serialized form: " <<
-      quoted_string(serialized_form);
-  }
-  
-  auto inbuf = make_nb_string_inbuf(serialized_form, bufsize);
-  bound_inbuf_t bit(base_marker, *inbuf, scheduler);
-
-  final_result_t<std::string> read_result;
-  reader_t<std::string> reader(read_result, bit);
-  reader.start();
-
-  unsigned int n_read_callbacks = 0;
-  while(!read_result.available())
-  {
-    auto cb = scheduler.wait();
-    assert(cb != nullptr);
-    cb();
-    ++n_read_callbacks;
-  }
-
-  if(auto msg = context.message_at(loglevel_t::info))
-  {
-    *msg << __func__ << ": n_read_callbacks: " << n_read_callbacks;
-  }
-
-  assert(read_result.value() == input);
-
-  final_result_t<void> eof_result;
-  eof_checker_t eof_checker(eof_result, bit);
-  eof_checker.start();
-
-  unsigned int n_eof_callbacks = 0;
-  while(!eof_result.available())
-  {
-    auto cb = scheduler.wait();
-    assert(cb != nullptr);
-    cb();
-    ++n_eof_callbacks;
-  }
-
-  if(auto msg = context.message_at(loglevel_t::info))
-  {
-    *msg << __func__ << ": n_eof_callbacks: " << n_eof_callbacks;
-  }
-
-  eof_result.value();
-}
+using namespace cuti::io_test_utils;
 
 void test_failing_reads(logging_context_t& context, std::size_t bufsize)
 {
+  using T = std::string;
+
   // missing opening double quote
-  test_failing_read(context, "", bufsize);
-  test_failing_read(context, "\t\r ", bufsize);
+  test_failing_read<T>(context, bufsize, "");
+  test_failing_read<T>(context, bufsize, "\t\r ");
 
   // missing closing double quote
-  test_failing_read(context, "\"", bufsize);
-  test_failing_read(context, "\"\n\"", bufsize);
-  test_failing_read(context, "\"Bonkers", bufsize);
-  test_failing_read(context, "\"Bonkers\n", bufsize);
+  test_failing_read<T>(context, bufsize, "\"");
+  test_failing_read<T>(context, bufsize, "\"\n\"");
+  test_failing_read<T>(context, bufsize, "\"Bonkers");
+  test_failing_read<T>(context, bufsize, "\"Bonkers\n");
 
   // non-printable in string value
-  test_failing_read(context, "\"Hello\tWorld\"", bufsize);
-  test_failing_read(context, "\"G\xffs de Gabber\"", bufsize);
+  test_failing_read<T>(context, bufsize, "\"Hello\tWorld\"");
+  test_failing_read<T>(context, bufsize, "\"G\xffs de Gabber\"");
 
   // unknown escape sequence
-  test_failing_read(context, "\"What\\0\"", bufsize);
-  test_failing_read(context, "\"What\\?\"", bufsize);
+  test_failing_read<T>(context, bufsize, "\"What\\0\"");
+  test_failing_read<T>(context, bufsize, "\"What\\?\"");
 
   // hex digit expected
-  test_failing_read(context, "\"\\x\"", bufsize);
-  test_failing_read(context, "\"\\xg\"", bufsize);
-  test_failing_read(context, "\"\\xa\"", bufsize);
+  test_failing_read<T>(context, bufsize, "\"\\x\"");
+  test_failing_read<T>(context, bufsize, "\"\\xg\"");
+  test_failing_read<T>(context, bufsize, "\"\\xa\"");
 }
 
 std::string printables()
@@ -270,10 +105,10 @@ std::string all_characters()
 
 void test_roundtrips(logging_context_t& context, std::size_t bufsize)
 {
-  test_roundtrip(context, "", bufsize);
-  test_roundtrip(context, printables(), bufsize);
-  test_roundtrip(context, non_printables(), bufsize);
-  test_roundtrip(context, all_characters(), bufsize);
+  test_roundtrip(context, bufsize, std::string());
+  test_roundtrip(context, bufsize, printables());
+  test_roundtrip(context, bufsize, non_printables());
+  test_roundtrip(context, bufsize, all_characters());
 }
 
 struct options_t

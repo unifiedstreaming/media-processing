@@ -17,25 +17,15 @@
  * <http://www.gnu.org/licenses/>.
  */
 
+#include "io_test_utils.hpp"
+
 #include <cuti/vector_reader.hpp>
 #include <cuti/vector_writer.hpp>
 
-#include <cuti/bound_inbuf.hpp>
-#include <cuti/bound_outbuf.hpp>
-#include <cuti/charclass.hpp>
 #include <cuti/cmdline_reader.hpp>
-#include <cuti/default_scheduler.hpp>
-#include <cuti/eof_checker.hpp>
-#include <cuti/final_result.hpp>
-#include <cuti/flusher.hpp>
 #include <cuti/integral_readers.hpp>
 #include <cuti/integral_writers.hpp>
-#include <cuti/logger.hpp>
-#include <cuti/logging_context.hpp>
-#include <cuti/nb_string_inbuf.hpp>
-#include <cuti/nb_string_outbuf.hpp>
 #include <cuti/option_walker.hpp>
-#include <cuti/quoted_string.hpp>
 #include <cuti/streambuf_backend.hpp>
 #include <cuti/string_reader.hpp>
 #include <cuti/string_writer.hpp>
@@ -51,186 +41,24 @@ namespace // anoymous
 {
 
 using namespace cuti;
-
-void test_failing_read(logging_context_t& context,
-                       std::string input,
-                       std::size_t bufsize)
-{
-  if(auto msg = context.message_at(loglevel_t::info))
-  {
-    *msg << __func__ << ": input: " << quoted_string(input) <<
-      " bufsize: " << bufsize;
-  }
-
-  default_scheduler_t scheduler;
-  stack_marker_t base_marker;
-
-  auto inbuf = make_nb_string_inbuf(std::move(input), bufsize);
-  bound_inbuf_t bit(base_marker, *inbuf, scheduler);
-
-  final_result_t<std::vector<int>> read_result;
-  reader_t<std::vector<int>> reader(read_result, bit);
-  reader.start();
-
-  unsigned int n_read_callbacks = 0;
-  while(!read_result.available())
-  {
-    auto cb = scheduler.wait();
-    assert(cb != nullptr);
-    cb();
-    ++n_read_callbacks;
-  }
-
-  if(auto msg = context.message_at(loglevel_t::info))
-  {
-    *msg << __func__ << ": n_read_callbacks: " << n_read_callbacks;
-  }
-
-  bool caught = false;
-  try
-  {
-    read_result.value();
-  }
-  catch(std::exception const& ex)
-  {
-    if(auto msg = context.message_at(loglevel_t::info))
-    {
-      *msg << __func__ << ": caught exception: " << ex.what();
-    }
-    caught = true;
-  }
-
-  assert(caught);
-}
-
-template<typename T>
-void test_roundtrip(logging_context_t& context,
-                    std::vector<T> input,
-                    std::size_t bufsize)
-{
-  if(auto msg = context.message_at(loglevel_t::info))
-  {
-    *msg << __func__ << '<' << typeid(T).name() <<
-      ">: input count: " << input.size() <<
-      " bufsize: " << bufsize;
-  }
-
-  default_scheduler_t scheduler;
-  std::string serialized_form;
-
-  stack_marker_t base_marker;
-
-  auto outbuf = make_nb_string_outbuf(serialized_form, bufsize);
-  bound_outbuf_t bot(base_marker, *outbuf, scheduler);
-
-  final_result_t<void> write_result;
-  writer_t<std::vector<T>> writer(write_result, bot);
-  writer.start(input);
-
-  unsigned int n_write_callbacks = 0;
-  while(!write_result.available())
-  {
-    auto cb = scheduler.wait();
-    assert(cb != nullptr);
-    cb();
-    ++n_write_callbacks;
-  }
-
-  if(auto msg = context.message_at(loglevel_t::info))
-  {
-    *msg << __func__ << '<' << typeid(T).name() <<
-      ">: n_write_callbacks: " << n_write_callbacks;
-  }
-
-  write_result.value();
-
-  final_result_t<void> flush_result;
-  flusher_t flusher(flush_result, bot);
-  flusher.start();
-
-  unsigned int n_flush_callbacks = 0;
-  while(!flush_result.available())
-  {
-    auto cb = scheduler.wait();
-    assert(cb != nullptr);
-    cb();
-    ++n_flush_callbacks;
-  }
-
-  if(auto msg = context.message_at(loglevel_t::info))
-  {
-    *msg << __func__ << '<' << typeid(T).name() <<
-      ">: n_flush_callbacks: " << n_flush_callbacks;
-  }
-
-  flush_result.value();
-
-  if(auto msg = context.message_at(loglevel_t::info))
-  {
-    *msg << __func__ << '<' << typeid(T).name() <<
-      ">: serialized form length: " << serialized_form.length();
-  }
-  
-  auto inbuf = make_nb_string_inbuf(serialized_form, bufsize);
-  bound_inbuf_t bit(base_marker, *inbuf, scheduler);
-
-  final_result_t<std::vector<T>> read_result;
-  reader_t<std::vector<T>> reader(read_result, bit);
-  reader.start();
-
-  unsigned int n_read_callbacks = 0;
-  while(!read_result.available())
-  {
-    auto cb = scheduler.wait();
-    assert(cb != nullptr);
-    cb();
-    ++n_read_callbacks;
-  }
-
-  if(auto msg = context.message_at(loglevel_t::info))
-  {
-    *msg << __func__ << '<' << typeid(T).name() <<
-      ">: n_read_callbacks: " << n_read_callbacks;
-  }
-
-  assert(read_result.value() == input);
-
-  final_result_t<void> eof_result;
-  eof_checker_t eof_checker(eof_result, bit);
-  eof_checker.start();
-
-  unsigned int n_eof_callbacks = 0;
-  while(!eof_result.available())
-  {
-    auto cb = scheduler.wait();
-    assert(cb != nullptr);
-    cb();
-    ++n_eof_callbacks;
-  }
-
-  if(auto msg = context.message_at(loglevel_t::info))
-  {
-    *msg << __func__ << '<' << typeid(T).name() <<
-      ">: n_eof_callbacks: " << n_eof_callbacks;
-  }
-
-  eof_result.value();
-}
+using namespace cuti::io_test_utils;
 
 void test_failing_reads(logging_context_t& context, std::size_t bufsize)
 {
+  using T = std::vector<int>;
+
   // missing opening bracket
-  test_failing_read(context, "", bufsize);
-  test_failing_read(context, "\t\r ", bufsize);
+  test_failing_read<T>(context, bufsize, "");
+  test_failing_read<T>(context, bufsize, "\t\r ");
 
   // missing closing bracket
-  test_failing_read(context, "[", bufsize);
-  test_failing_read(context, "[ \n]", bufsize);
-  test_failing_read(context, "[ 100", bufsize);
-  test_failing_read(context, "[ 100\n", bufsize);
+  test_failing_read<T>(context, bufsize, "[");
+  test_failing_read<T>(context, bufsize, "[ \n]");
+  test_failing_read<T>(context, bufsize, "[ 100");
+  test_failing_read<T>(context, bufsize, "[ 100\n");
 
-  // error in element
-  test_failing_read(context, "[ \"Hello world\" ]", bufsize);
+  // bad element type
+  test_failing_read<T>(context, bufsize, "[ \"YYZ\" ]");
 }
 
 std::vector<int> medium_int_vector()
@@ -267,7 +95,7 @@ std::vector<std::string> vector_of_strings()
   for(int i = 0; i != 1000; ++i)
   {
     // use a somewhat longer string to avoid SSO
-    result.push_back("Hello there, Wolfgang Amadeus Mozart(" +
+    result.push_back("Eine kleine Wolfgang Amadeus Mozart(" +
       std::to_string(i) + ")");
   }
 
@@ -289,12 +117,12 @@ std::vector<std::vector<int>> vector_of_int_vectors()
   
 void test_roundtrips(logging_context_t& context, std::size_t bufsize)
 {
-  test_roundtrip(context, std::vector<int>{}, bufsize);
-  test_roundtrip(context, std::vector<int>{ 42 }, bufsize);
-  test_roundtrip(context, medium_int_vector(), bufsize);
-  test_roundtrip(context, big_int_vector(), bufsize);
-  test_roundtrip(context, vector_of_strings(), bufsize);
-  test_roundtrip(context, vector_of_int_vectors(), bufsize);
+  test_roundtrip(context, bufsize, std::vector<int>{});
+  test_roundtrip(context, bufsize, std::vector<int>{ 42 });
+  test_roundtrip(context, bufsize, medium_int_vector());
+  test_roundtrip(context, bufsize, big_int_vector());
+  test_roundtrip(context, bufsize, vector_of_strings());
+  test_roundtrip(context, bufsize, vector_of_int_vectors());
 }
 
 struct options_t
