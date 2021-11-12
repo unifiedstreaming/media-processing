@@ -17,9 +17,7 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#include "boolean_writer.hpp"
-
-#include <utility>
+#include "writer_utils.hpp"
 
 namespace cuti
 {
@@ -27,40 +25,27 @@ namespace cuti
 namespace detail
 {
 
-template<typename T>
-boolean_writer_t<T>::boolean_writer_t(
-  result_t<void>& result, bound_outbuf_t& buf)
+literal_writer_t::literal_writer_t(result_t<void>& result, bound_outbuf_t& buf)
 : result_(result)
-, literal_writer_(*this, &boolean_writer_t::on_exception, buf)
+, buf_(buf)
 { }
 
-template<typename T>
-void boolean_writer_t<T>::start(T value)
+void literal_writer_t::write_chars()
 {
-  if(value)
+  while(first_ != last_ && buf_.writable())
   {
-    literal_writer_.start(&boolean_writer_t::on_literal_written, " *");
+    buf_.put(*first_);
+    ++first_;
   }
-  else
-  {
-    literal_writer_.start(&boolean_writer_t::on_literal_written, " !");
-  }
-}
 
-template<typename T>
-void boolean_writer_t<T>::on_literal_written()
-{
+  if(first_ != last_)
+  {
+    buf_.call_when_writable([this] { this->write_chars(); });
+    return;
+  }
+
   result_.submit();
 }
-
-template<typename T>
-void boolean_writer_t<T>::on_exception(std::exception_ptr ex)
-{
-  result_.fail(std::move(ex));
-}
-
-template struct boolean_writer_t<bool>;
-template struct boolean_writer_t<flag_t>;
 
 } // detail
 

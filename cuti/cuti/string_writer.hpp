@@ -25,6 +25,7 @@
 #include "result.hpp"
 #include "subroutine.hpp"
 #include "writer_traits.hpp"
+#include "writer_utils.hpp"
 
 #include <exception>
 #include <string>
@@ -69,22 +70,21 @@ struct CUTI_ABI string_writer_t
   void start(std::string value);
 
 private :
-  void write_space();
-  void write_opening_dq();
   void write_contents();
   void write_escaped();
   void write_closing_dq();
-  void on_hex_digits_written();
+  void on_escaped_written();
   void on_exception(std::exception_ptr ex);
 
 private :
   result_t<void>& result_;
   bound_outbuf_t& buf_;
+  subroutine_t<string_writer_t, literal_writer_t> prefix_writer_;
   subroutine_t<string_writer_t, hex_digits_writer_t> hex_digits_writer_;
   
   std::string value_;
-  char const* rp_;
-  char const* ep_;
+  char const* first_;
+  char const* last_;
 };
 
 } // detail

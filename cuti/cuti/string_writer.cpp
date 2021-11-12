@@ -23,6 +23,7 @@
 #include "stack_marker.hpp"
 
 #include <cassert>
+#include <utility>
 
 namespace cuti
 {
@@ -68,50 +69,27 @@ void hex_digits_writer_t::write_digits()
 string_writer_t::string_writer_t(result_t<void>& result, bound_outbuf_t& buf)
 : result_(result)
 , buf_(buf)
+, prefix_writer_(*this, &string_writer_t::on_exception, buf_)
 , hex_digits_writer_(*this, &string_writer_t::on_exception, buf_)
 , value_()
-, rp_()
-, ep_()
+, first_()
+, last_()
 { }
 
 void string_writer_t::start(std::string value)
 {
   value_ = std::move(value);
-  rp_ = value_.data();
-  ep_ = rp_ + value_.size();
+  first_ = value_.data();
+  last_ = first_ + value_.size();
     
-  this->write_space();
-}
-
-void string_writer_t::write_space()
-{
-  if(!buf_.writable())
-  {
-    buf_.call_when_writable([this] { this->write_space(); });
-    return;
-  }
-  buf_.put(' ');
-
-  this->write_opening_dq();
-}
-
-void string_writer_t::write_opening_dq()
-{
-  if(!buf_.writable())
-  {
-    buf_.call_when_writable([this] { this->write_opening_dq(); });
-    return;
-  }
-  buf_.put('\"');
-
-  this->write_contents();
+  prefix_writer_.start(&string_writer_t::write_contents, " \"");
 }
 
 void string_writer_t::write_contents()
 {
-  while(rp_ != ep_ && buf_.writable())
+  while(first_ != last_ && buf_.writable())
   {
-    int c = std::char_traits<char>::to_int_type(*rp_);
+    int c = std::char_traits<char>::to_int_type(*first_);
     if(!is_printable(c) || c == '\"' || c == '\'' || c == '\\')
     {
       buf_.put('\\');
@@ -120,10 +98,10 @@ void string_writer_t::write_contents()
     }
 
     buf_.put(static_cast<char>(c));
-    ++rp_;
+    ++first_;
   }
 
-  if(rp_ != ep_)
+  if(first_ != last_)
   {
     buf_.call_when_writable([this] { this->write_contents(); });
     return;
@@ -140,9 +118,9 @@ void string_writer_t::write_escaped()
     return;
   }
     
-  assert(rp_ != ep_);
-  int c = std::char_traits<char>::to_int_type(*rp_);
-  ++rp_;
+  assert(first_ != last_);
+  int c = std::char_traits<char>::to_int_type(*first_);
+  ++first_;
 
   switch(c)
   {
@@ -166,18 +144,11 @@ void string_writer_t::write_escaped()
     break;
   default :
     buf_.put('x');
-    hex_digits_writer_.start(&string_writer_t::on_hex_digits_written, c);
+    hex_digits_writer_.start(&string_writer_t::on_escaped_written, c);
     return;
   }
 
-  stack_marker_t marker;
-  if(marker.in_range(buf_.base_marker()))
-  {
-    this->write_contents();
-    return;
-  }
-
-  buf_.call_when_writable([this] { this->write_contents(); });
+  this->on_escaped_written();
 }
 
 void string_writer_t::write_closing_dq()
@@ -193,7 +164,7 @@ void string_writer_t::write_closing_dq()
   result_.submit();
 }
 
-void string_writer_t::on_hex_digits_written()
+void string_writer_t::on_escaped_written()
 {
   stack_marker_t marker;
   if(marker.in_range(buf_.base_marker()))

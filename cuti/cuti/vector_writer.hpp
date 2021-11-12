@@ -25,6 +25,7 @@
 #include "stack_marker.hpp"
 #include "subroutine.hpp"
 #include "writer_traits.hpp"
+#include "writer_utils.hpp"
 
 #include <exception>
 #include <utility>
@@ -44,10 +45,11 @@ struct vector_writer_t
   vector_writer_t(result_t<void>& result, bound_outbuf_t& buf)
   : result_(result)
   , buf_(buf)
+  , literal_writer_(*this, &vector_writer_t::on_exception, buf_)
   , element_writer_(*this, &vector_writer_t::on_exception, buf_)
   , value_()
-  , ri_()
-  , ei_()
+  , first_()
+  , last_()
   { }
 
   vector_writer_t(vector_writer_t const&) = delete;
@@ -56,72 +58,29 @@ struct vector_writer_t
   void start(std::vector<T> value)
   {
     value_ = std::move(value);
-    ri_ = value_.begin();
-    ei_ = value_.end();
+    first_ = value_.begin();
+    last_ = value_.end();
 
-    this->write_opening_space();
+    literal_writer_.start(&vector_writer_t::write_elements, " [");
   }
 
 private :
-  void write_opening_space()
-  {
-    if(!buf_.writable())
-    {
-      buf_.call_when_writable([this] { this->write_opening_space(); });
-      return;
-    }
-    buf_.put(' ');
-
-    this->write_opening_bracket();
-  }
-
-  void write_opening_bracket()
-  {
-    if(!buf_.writable())
-    {
-      buf_.call_when_writable([this] { this->write_opening_bracket(); });
-      return;
-    }
-    buf_.put('[');
-
-    this->write_elements();
-  }
-
   void write_elements()
   {
-    if(ri_ != ei_)
+    if(first_ != last_)
     {
-      T elem = std::move(*ri_);
-      ++ri_;
+      T elem = std::move(*first_);
+      ++first_;
       element_writer_.start(
         &vector_writer_t::on_element_written, std::move(elem));
       return;
     }
 
-    this->write_closing_space();
+    literal_writer_.start(&vector_writer_t::on_suffix_written, " ]");
   }
       
-  void write_closing_space()
+  void on_suffix_written()
   {
-    if(!buf_.writable())
-    {
-      buf_.call_when_writable([this] { this->write_closing_space(); });
-      return;
-    }
-    buf_.put(' ');
-
-    this->write_closing_bracket();
-  }
-
-  void write_closing_bracket()
-  {
-    if(!buf_.writable())
-    {
-      buf_.call_when_writable([this] { this->write_closing_bracket(); });
-      return;
-    }
-    buf_.put(']');
-
     value_.clear();
     result_.submit();
   }
@@ -146,11 +105,12 @@ private :
 private :
   result_t<void>& result_;
   bound_outbuf_t& buf_;
+  subroutine_t<vector_writer_t, literal_writer_t> literal_writer_;
   subroutine_t<vector_writer_t, writer_t<T>> element_writer_;
 
   std::vector<T> value_;
-  typename std::vector<T>::iterator ri_;
-  typename std::vector<T>::iterator ei_;
+  typename std::vector<T>::iterator first_;
+  typename std::vector<T>::iterator last_;
 };
 
 } // detail

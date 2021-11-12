@@ -17,18 +17,14 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#ifndef CUTI_BOOLEAN_WRITER_HPP_
-#define CUTI_BOOLEAN_WRITER_HPP_
+#ifndef CUTI_WRITER_UTILS_HPP_
+#define CUTI_WRITER_UTILS_HPP_
 
 #include "bound_outbuf.hpp"
-#include "flag.hpp"
 #include "linkage.h"
 #include "result.hpp"
-#include "subroutine.hpp"
-#include "writer_traits.hpp"
-#include "writer_utils.hpp"
 
-#include <exception>
+#include <cstddef>
 
 namespace cuti
 {
@@ -36,43 +32,38 @@ namespace cuti
 namespace detail
 {
 
-template<typename T>
-struct CUTI_ABI boolean_writer_t
+struct CUTI_ABI literal_writer_t
 {
   using value_t = void;
 
-  boolean_writer_t(result_t<void>& result, bound_outbuf_t& buf);
+  literal_writer_t(result_t<void>& result, bound_outbuf_t& buf);
 
-  boolean_writer_t(boolean_writer_t const&) = delete;
-  boolean_writer_t& operator=(boolean_writer_t const&) = delete;
-  
-  void start(T value);
+  literal_writer_t(literal_writer_t const&) = delete;
+  literal_writer_t& operator=(literal_writer_t const&) = delete;
+
+  template<std::size_t N>
+  void start(char const (&literal)[N])
+  {
+    static_assert(N > 0);
+
+    first_ = literal;
+    last_ = literal + N - 1;
+
+    this->write_chars();
+  }
 
 private :
-  void on_literal_written();
-  void on_exception(std::exception_ptr ex);
+  void write_chars();
 
 private :
   result_t<void>& result_;
-  subroutine_t<boolean_writer_t, literal_writer_t> literal_writer_;
-};
+  bound_outbuf_t& buf_;
 
-extern template struct boolean_writer_t<bool>;
-extern template struct boolean_writer_t<flag_t>;
+  char const* first_;
+  char const* last_;
+};
 
 } // detail
-
-template<>
-struct writer_traits_t<bool>
-{
-  using type = detail::boolean_writer_t<bool>;
-};
-
-template<>
-struct writer_traits_t<flag_t>
-{
-  using type = detail::boolean_writer_t<flag_t>;
-};
 
 } // cuti
 

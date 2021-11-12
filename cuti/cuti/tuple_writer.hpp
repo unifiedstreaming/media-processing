@@ -25,6 +25,7 @@
 #include "stack_marker.hpp"
 #include "subroutine.hpp"
 #include "writer_traits.hpp"
+#include "writer_utils.hpp"
 
 #include <cstddef>
 #include <exception>
@@ -132,8 +133,8 @@ struct tuple_writer_t
 
   tuple_writer_t(result_t<void>& result, bound_outbuf_t& buf)
   : result_(result)
-  , buf_(buf)
-  , elements_writer_(*this, &tuple_writer_t::on_exception, buf_)
+  , literal_writer_(*this, &tuple_writer_t::on_exception, buf)
+  , elements_writer_(*this, &tuple_writer_t::on_exception, buf)
   , value_()
   { }
 
@@ -143,55 +144,22 @@ struct tuple_writer_t
   void start(T value)
   {
     value_ = std::move(value);
-    this->write_opening_space();
+    literal_writer_.start(&tuple_writer_t::on_prefix_written, " {");
   }
 
 private :
-  void write_opening_space()
+  void on_prefix_written()
   {
-    if(!buf_.writable())
-    {
-      buf_.call_when_writable([this] { this->write_opening_space(); });
-      return;
-    }
-    buf_.put(' ');
-
-    this->write_opening_curly();
-  }
-
-  void write_opening_curly()
-  {
-    if(!buf_.writable())
-    {
-      buf_.call_when_writable([this] { this->write_opening_curly(); });
-      return;
-    }
-    buf_.put('{');
-
-    elements_writer_.start(&tuple_writer_t::write_closing_space, value_);
+    elements_writer_.start(&tuple_writer_t::on_elements_written, value_);
   }
     
-  void write_closing_space()
+  void on_elements_written()
   {
-    if(!buf_.writable())
-    {
-      buf_.call_when_writable([this] { this->write_closing_space(); });
-      return;
-    }
-    buf_.put(' ');
-
-    this->write_closing_curly();
+    literal_writer_.start(&tuple_writer_t::on_suffix_written, " }");
   }
 
-  void write_closing_curly()
+  void on_suffix_written()
   {
-    if(!buf_.writable())
-    {
-      buf_.call_when_writable([this] { this->write_closing_curly(); });
-      return;
-    }
-    buf_.put('}');
-
     result_.submit();
   }
 
@@ -202,7 +170,7 @@ private :
 
 private :
   result_t<void>& result_;
-  bound_outbuf_t& buf_;
+  subroutine_t<tuple_writer_t, literal_writer_t> literal_writer_;
   subroutine_t<tuple_writer_t, tuple_elements_writer_t<T>> elements_writer_;
 
   T value_;

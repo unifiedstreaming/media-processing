@@ -148,6 +148,7 @@ lib cuti
   vector_writer.cpp
   viewbuf.cpp
   writer_traits.cpp
+  writer_utils.cpp
   advapi32
   ws2_32
 :

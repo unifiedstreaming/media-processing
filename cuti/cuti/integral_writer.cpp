@@ -21,6 +21,7 @@
 
 #include <cassert>
 #include <limits>
+#include <utility>
 
 namespace cuti
 {
@@ -80,8 +81,8 @@ template<typename T>
 unsigned_writer_t<T>::unsigned_writer_t(result_t<void>& result,
                                         bound_outbuf_t& buf)
 : result_(result)
-, buf_(buf)
-, digits_writer_(*this, &unsigned_writer_t::on_failure, buf_)
+, prefix_writer_(*this, &unsigned_writer_t::on_failure, buf)
+, digits_writer_(*this, &unsigned_writer_t::on_failure, buf)
 , value_()
 { }
 
@@ -89,19 +90,12 @@ template<typename T>
 void unsigned_writer_t<T>::start(T value)
 {
   value_ = value;
-  this->write_space();
+  prefix_writer_.start(&unsigned_writer_t::on_prefix_written, " ");
 }
 
 template<typename T>
-void unsigned_writer_t<T>::write_space()
+void unsigned_writer_t<T>::on_prefix_written()
 {
-  if(!buf_.writable())
-  {
-    buf_.call_when_writable([this] { this->write_space(); });
-    return;
-  }
-    buf_.put(' ');
-
   digits_writer_.start(&unsigned_writer_t::on_digits_written, value_);
 }
 
@@ -125,58 +119,35 @@ template struct unsigned_writer_t<unsigned long long>;
 template<typename T>
 signed_writer_t<T>::signed_writer_t(result_t<void>& result, bound_outbuf_t& buf)
 : result_(result)
-, buf_(buf)
-, digits_writer_(*this, &signed_writer_t::on_failure, buf_)
-, value_()
+, prefix_writer_(*this, &signed_writer_t::on_failure, buf)
+, digits_writer_(*this, &signed_writer_t::on_failure, buf)
+, unsigned_value_()
 { }
 
 template<typename T>
 void signed_writer_t<T>::start(T value)
 {
-  value_ = value;
-  this->write_space();
-}
-
-template<typename T>
-void signed_writer_t<T>::write_space()
-{
-  if(!buf_.writable())
+  if(value >= 0)
   {
-    buf_.call_when_writable([this] { this->write_space(); });
-    return;
-  }
-  buf_.put(' ');
+    unsigned_value_ = value;
 
-  if(value_ < 0)
-  {
-    this->write_minus();
+    prefix_writer_.start(&signed_writer_t::on_prefix_written, " ");
   }
   else
   {
-    UT unsigned_value = value_;
-    digits_writer_.start(
-      &signed_writer_t::on_digits_written, unsigned_value);
-  }
+    ++value;
+    value = -value;
+    unsigned_value_ = value;
+    ++unsigned_value_;
+
+    prefix_writer_.start(&signed_writer_t::on_prefix_written, " -");
+  }  
 }
 
 template<typename T>
-void signed_writer_t<T>::write_minus()
+void signed_writer_t<T>::on_prefix_written()
 {
-  if(!buf_.writable())
-  {
-    buf_.call_when_writable([this] { this->write_minus(); });
-    return;
-  }
-  buf_.put('-');
-  
-  assert(value_ < 0);
-  T signed_value = value_ + 1;
-  signed_value = -signed_value;
-  UT unsigned_value = signed_value;
-  ++unsigned_value;
-
-  digits_writer_.start(
-    &signed_writer_t::on_digits_written, unsigned_value);
+  digits_writer_.start(&signed_writer_t::on_digits_written, unsigned_value_);
 }
 
 template<typename T>

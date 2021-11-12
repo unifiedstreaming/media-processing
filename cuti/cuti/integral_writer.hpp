@@ -25,6 +25,7 @@
 #include "result.hpp"
 #include "subroutine.hpp"
 #include "writer_traits.hpp"
+#include "writer_utils.hpp"
 
 #include <exception>
 #include <type_traits>
@@ -79,13 +80,13 @@ struct CUTI_ABI unsigned_writer_t
   void start(T value);
 
 private :
-  void write_space();
+  void on_prefix_written();
   void on_digits_written();
   void on_failure(std::exception_ptr ex);
 
 private :
   result_t<void>& result_;
-  bound_outbuf_t& buf_;
+  subroutine_t<unsigned_writer_t, literal_writer_t> prefix_writer_;
   subroutine_t<unsigned_writer_t, digits_writer_t<T>> digits_writer_;
   T value_;
 };
@@ -113,16 +114,16 @@ struct CUTI_ABI signed_writer_t
 private :
   using UT = std::make_unsigned_t<T>;
 
-  void write_space();
-  void write_minus();
+  void on_prefix_written();
   void on_digits_written();
   void on_failure(std::exception_ptr ex);
 
 private :
   result_t<void>& result_;
-  bound_outbuf_t& buf_;
+  subroutine_t<signed_writer_t, literal_writer_t> prefix_writer_;
   subroutine_t<signed_writer_t, digits_writer_t<UT>> digits_writer_;
-  T value_;
+
+  UT unsigned_value_;
 };
 
 extern template struct signed_writer_t<short>;
