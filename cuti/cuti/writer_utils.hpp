@@ -95,8 +95,13 @@ extern template struct digits_writer_t<unsigned int>;
 extern template struct digits_writer_t<unsigned long>;
 extern template struct digits_writer_t<unsigned long long>;
 
+template<typename T>
 struct CUTI_ABI chunk_writer_t
 {
+  static_assert(std::is_same_v<T, char> ||
+                std::is_same_v<T, signed char> ||
+                std::is_same_v<T, unsigned char>);
+
   using result_value_t = void;
 
   chunk_writer_t(result_t<void>& result, bound_outbuf_t& buf);
@@ -104,7 +109,7 @@ struct CUTI_ABI chunk_writer_t
   chunk_writer_t(chunk_writer_t const&) = delete;
   chunk_writer_t& operator=(chunk_writer_t const&) = delete;
 
-  void start(char const* first, char const* last);
+  void start(T const* first, T const* last);
   
 private :
   void write_size();
@@ -122,6 +127,10 @@ private :
   char const* first_;
   char const* last_;
 };
+
+extern template struct chunk_writer_t<char>;
+extern template struct chunk_writer_t<signed char>;
+extern template struct chunk_writer_t<unsigned char>;
 
 } // detail
 

@@ -99,7 +99,8 @@ template struct digits_writer_t<unsigned int>;
 template struct digits_writer_t<unsigned long>;
 template struct digits_writer_t<unsigned long long>;
 
-chunk_writer_t::chunk_writer_t(result_t<void>& result, bound_outbuf_t& buf)
+template<typename T>
+chunk_writer_t<T>::chunk_writer_t(result_t<void>& result, bound_outbuf_t& buf)
 : result_(result)
 , buf_(buf)
 , literal_writer_(*this, &chunk_writer_t::on_exception, buf_)
@@ -108,21 +109,24 @@ chunk_writer_t::chunk_writer_t(result_t<void>& result, bound_outbuf_t& buf)
 , last_()
 { }
 
-void chunk_writer_t::start(char const* first, char const* last)
+template<typename T>
+void chunk_writer_t<T>::start(T const* first, T const* last)
 {
-  first_ = first;
-  last_ = last;
+  first_ = reinterpret_cast<char const *>(first);
+  last_ = reinterpret_cast<char const *>(last);
 
   literal_writer_.start(&chunk_writer_t::write_size, " <");
 }
 
-void chunk_writer_t::write_size()
+template<typename T>
+void chunk_writer_t<T>::write_size()
 {
   std::size_t size = last_ - first_;
   digits_writer_.start(&chunk_writer_t::write_gt, size);
 }
 
-void chunk_writer_t::write_gt()
+template<typename T>
+void chunk_writer_t<T>::write_gt()
 {
   if(!buf_.writable())
   {
@@ -134,7 +138,8 @@ void chunk_writer_t::write_gt()
   this->write_data();
 }
 
-void chunk_writer_t::write_data()
+template<typename T>
+void chunk_writer_t<T>::write_data()
 {
   while(first_ != last_ && buf_.writable())
   {
@@ -152,11 +157,16 @@ void chunk_writer_t::write_data()
   result_.submit();
 }
   
-void chunk_writer_t::on_exception(std::exception_ptr ex)
+template<typename T>
+void chunk_writer_t<T>::on_exception(std::exception_ptr ex)
 {
   result_.fail(std::move(ex));
 }
   
+template struct chunk_writer_t<char>;
+template struct chunk_writer_t<signed char>;
+template struct chunk_writer_t<unsigned char>;
+
 } // detail
 
 } // cuti

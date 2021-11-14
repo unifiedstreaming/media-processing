@@ -116,30 +116,28 @@ template struct digits_reader_t<unsigned int>;
 template struct digits_reader_t<unsigned long>;
 template struct digits_reader_t<unsigned long long>;
 
-chunk_reader_t::chunk_reader_t(
-  result_t<std::pair<char const*, char const*>>& result,
-  bound_inbuf_t& buf)
+template<typename T>
+chunk_reader_t<T>::chunk_reader_t(result_t<std::size_t>& result,
+                                  bound_inbuf_t& buf)
 : result_(result)
 , buf_(buf)
 , finder_(*this, &chunk_reader_t::on_exception, buf_)
 , digits_reader_(*this, &chunk_reader_t::on_exception, buf_)
-, data_(nullptr)
-, next_(nullptr)
-, last_(nullptr)
-, edata_(nullptr)
+, target_()
+, first_()
+, next_()
+, last_()
 { }
 
-void chunk_reader_t::start()
+template<typename T>
+void chunk_reader_t<T>::start(std::vector<T>& target)
 {
+  target_ = &target;
   finder_.start(&chunk_reader_t::read_lt);
 }
 
-chunk_reader_t::~chunk_reader_t()
-{
-  delete[] data_;
-}
-
-void chunk_reader_t::read_lt(int c)
+template<typename T>
+void chunk_reader_t<T>::read_lt(int c)
 {
   assert(buf_.readable());
   assert(buf_.peek() == c);
@@ -155,40 +153,35 @@ void chunk_reader_t::read_lt(int c)
                        std::numeric_limits<std::size_t>::max());
 }
 
-void chunk_reader_t::on_chunk_size(std::size_t chunk_size)
+template<typename T>
+void chunk_reader_t<T>::on_chunk_size(std::size_t chunk_size)
 {
   if(chunk_size > max_chunk_size)
   {
-    result_.fail(parse_error_t(
-     "maximum chunk size (" + std::to_string(max_chunk_size) + ") exceeded"));
+    result_.fail(parse_error_t("maximum chunk size (" +
+      std::to_string(max_chunk_size) + ") exceeded"));
     return;
   }
 
-  std::size_t data_size = edata_ - data_;
-  if(data_size < chunk_size)
+  std::size_t initial_size = target_->size();
+  if(chunk_size > target_->max_size() - initial_size)
   {
-    data_size =
-      data_size <= max_chunk_size / 2 ? data_size * 2 : max_chunk_size;
-    data_size =
-      data_size <= max_chunk_size - 15 ? data_size + 15 : max_chunk_size;
-    if(data_size < chunk_size)
-    {
-      data_size = chunk_size;
-    }
-
-    char* new_data = new char[data_size];
-    delete[] data_;
-    data_ = new_data;
-    edata_ = data_ + data_size;
+    result_.fail(parse_error_t("maximum vector size (" +
+      std::to_string(target_->max_size()) + ") exceeded"));
+    return;
   }
 
-  next_ = data_;
-  last_ = data_ + chunk_size;
+  target_->resize(initial_size + chunk_size);
+
+  first_ = reinterpret_cast<char*>(target_->data()) + initial_size;
+  next_ = first_;
+  last_ = next_ + chunk_size;
 
   this->read_gt();
 }
 
-void chunk_reader_t::read_gt()
+template<typename T>
+void chunk_reader_t<T>::read_gt()
 {
   if(!buf_.readable())
   {
@@ -206,7 +199,8 @@ void chunk_reader_t::read_gt()
   this->read_data();
 }
 
-void chunk_reader_t::read_data()
+template<typename T>
+void chunk_reader_t<T>::read_data()
 {
   while(next_ != last_ && buf_.readable())
   {
@@ -226,13 +220,18 @@ void chunk_reader_t::read_data()
     return;
   }
 
-  result_.submit(std::make_pair(data_, last_));
+  result_.submit(last_ - first_);
 }
 
-void chunk_reader_t::on_exception(std::exception_ptr ex)
+template<typename T>
+void chunk_reader_t<T>::on_exception(std::exception_ptr ex)
 {
   result_.fail(std::move(ex));
 }
+
+template struct chunk_reader_t<char>;
+template struct chunk_reader_t<signed char>;
+template struct chunk_reader_t<unsigned char>;
 
 } // detail
 
