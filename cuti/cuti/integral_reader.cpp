@@ -19,9 +19,6 @@
 
 #include "integral_reader.hpp"
 
-#include "charclass.hpp"
-#include "parse_error.hpp"
-
 #include <limits>
 
 namespace cuti
@@ -29,66 +26,6 @@ namespace cuti
 
 namespace detail
 {
-
-template<typename T>
-digits_reader_t<T>::digits_reader_t(result_t<T>& result, bound_inbuf_t& buf)
-: result_(result)
-, buf_(buf)
-, max_()
-, digit_seen_()
-, value_()
-{ }
-
-template<typename T>
-void digits_reader_t<T>::start(T max)
-{
-  max_ = max;
-  digit_seen_ = false;
-  value_ = 0;
-
-  this->read_digits();
-}
-
-template<typename T>
-void digits_reader_t<T>::read_digits()
-{
-  int dval{};
-  while(buf_.readable() && (dval = digit_value(buf_.peek())) >= 0)
-  {
-    digit_seen_ = true;
-
-    T udval = static_cast<T>(dval);
-    if(value_ > max_ / 10 || udval > max_ - 10 * value_)
-    {
-      result_.fail(parse_error_t("integral type overflow"));
-      return;
-    }
-
-    value_ *= 10;
-    value_ += udval;
-
-    buf_.skip();
-  }
-
-  if(!buf_.readable())
-  {
-    buf_.call_when_readable([this] { this->read_digits(); });
-    return;
-  }
-
-  if(!digit_seen_)
-  {
-    result_.fail(parse_error_t("digit expected"));
-    return;
-  }
-  
-  result_.submit(value_);
-}
-
-template struct digits_reader_t<unsigned short>;
-template struct digits_reader_t<unsigned int>;
-template struct digits_reader_t<unsigned long>;
-template struct digits_reader_t<unsigned long long>;
 
 template<typename T>
 unsigned_reader_t<T>::unsigned_reader_t(result_t<T>& result,

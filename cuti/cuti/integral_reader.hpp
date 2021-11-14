@@ -37,36 +37,6 @@ namespace detail
 {
 
 template<typename T>
-struct CUTI_ABI digits_reader_t
-{
-  static_assert(std::is_unsigned_v<T>);
-
-  using result_value_t = T;
-
-  digits_reader_t(result_t<T>& result, bound_inbuf_t& buf);
-
-  digits_reader_t(digits_reader_t const&) = delete;
-  digits_reader_t& operator=(digits_reader_t const&) = delete;
-
-  void start(T max);
-
-private :
-  void read_digits();
-
-private :
-  result_t<T>& result_;
-  bound_inbuf_t& buf_;
-  T max_;
-  bool digit_seen_;
-  T value_;
-};
-
-extern template struct digits_reader_t<unsigned short>;
-extern template struct digits_reader_t<unsigned int>;
-extern template struct digits_reader_t<unsigned long>;
-extern template struct digits_reader_t<unsigned long long>;
-
-template<typename T>
 struct CUTI_ABI unsigned_reader_t
 {
   static_assert(std::is_unsigned_v<T>);

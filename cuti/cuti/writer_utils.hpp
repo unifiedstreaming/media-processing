@@ -25,6 +25,7 @@
 #include "result.hpp"
 
 #include <cstddef>
+#include <type_traits>
 
 namespace cuti
 {
@@ -62,6 +63,35 @@ private :
   char const* first_;
   char const* last_;
 };
+
+template<typename T>
+struct CUTI_ABI digits_writer_t
+{
+  static_assert(std::is_unsigned_v<T>);
+
+  using result_value_t = void;
+
+  digits_writer_t(result_t<void>& result, bound_outbuf_t& buf);
+
+  digits_writer_t(digits_writer_t const&) = delete;
+  digits_writer_t& operator=(digits_writer_t const&) = delete;
+  
+  void start(T value);
+
+private :
+  void write_digits();
+
+private :
+  result_t<void>& result_;
+  bound_outbuf_t& buf_;
+  T value_;
+  T divisor_;
+};
+
+extern template struct digits_writer_t<unsigned short>;
+extern template struct digits_writer_t<unsigned int>;
+extern template struct digits_writer_t<unsigned long>;
+extern template struct digits_writer_t<unsigned long long>;
 
 } // detail
 
