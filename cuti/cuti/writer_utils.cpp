@@ -19,7 +19,9 @@
 
 #include "writer_utils.hpp"
 
+#include <cassert>
 #include <limits>
+#include <utility>
 
 namespace cuti
 {
@@ -97,6 +99,64 @@ template struct digits_writer_t<unsigned int>;
 template struct digits_writer_t<unsigned long>;
 template struct digits_writer_t<unsigned long long>;
 
+chunk_writer_t::chunk_writer_t(result_t<void>& result, bound_outbuf_t& buf)
+: result_(result)
+, buf_(buf)
+, literal_writer_(*this, &chunk_writer_t::on_exception, buf_)
+, digits_writer_(*this, &chunk_writer_t::on_exception, buf_)
+, first_()
+, last_()
+{ }
+
+void chunk_writer_t::start(char const* first, char const* last)
+{
+  first_ = first;
+  last_ = last;
+
+  literal_writer_.start(&chunk_writer_t::write_size, " <");
+}
+
+void chunk_writer_t::write_size()
+{
+  std::size_t size = last_ - first_;
+  digits_writer_.start(&chunk_writer_t::write_gt, size);
+}
+
+void chunk_writer_t::write_gt()
+{
+  if(!buf_.writable())
+  {
+    buf_.call_when_writable([this] { this->write_gt(); });
+    return;
+  }
+  buf_.put('>');
+
+  this->write_data();
+}
+
+void chunk_writer_t::write_data()
+{
+  while(first_ != last_ && buf_.writable())
+  {
+    char const* next = buf_.write(first_, last_);
+    assert(next != first_);
+    first_ = next;
+  }
+
+  if(first_ != last_)
+  {
+    buf_.call_when_writable([this] { this->write_data(); });
+    return;
+  }
+
+  result_.submit();
+}
+  
+void chunk_writer_t::on_exception(std::exception_ptr ex)
+{
+  result_.fail(std::move(ex));
+}
+  
 } // detail
 
 } // cuti

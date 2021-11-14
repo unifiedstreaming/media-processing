@@ -23,8 +23,10 @@
 #include "bound_outbuf.hpp"
 #include "linkage.h"
 #include "result.hpp"
+#include "subroutine.hpp"
 
 #include <cstddef>
+#include <exception>
 #include <type_traits>
 
 namespace cuti
@@ -92,6 +94,34 @@ extern template struct digits_writer_t<unsigned short>;
 extern template struct digits_writer_t<unsigned int>;
 extern template struct digits_writer_t<unsigned long>;
 extern template struct digits_writer_t<unsigned long long>;
+
+struct CUTI_ABI chunk_writer_t
+{
+  using result_value_t = void;
+
+  chunk_writer_t(result_t<void>& result, bound_outbuf_t& buf);
+
+  chunk_writer_t(chunk_writer_t const&) = delete;
+  chunk_writer_t& operator=(chunk_writer_t const&) = delete;
+
+  void start(char const* first, char const* last);
+  
+private :
+  void write_size();
+  void write_gt();
+  void write_data();
+
+  void on_exception(std::exception_ptr ex);
+
+private :
+  result_t<void>& result_;
+  bound_outbuf_t& buf_;
+  subroutine_t<chunk_writer_t, literal_writer_t> literal_writer_;
+  subroutine_t<chunk_writer_t, digits_writer_t<std::size_t>> digits_writer_;
+
+  char const* first_;
+  char const* last_;
+};
 
 } // detail
 

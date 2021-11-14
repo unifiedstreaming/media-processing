@@ -23,8 +23,12 @@
 #include "bound_inbuf.hpp"
 #include "linkage.h"
 #include "result.hpp"
+#include "subroutine.hpp"
 
+#include <cstddef>
+#include <exception>
 #include <type_traits>
+#include <utility>
 
 namespace cuti
 {
@@ -84,6 +88,41 @@ extern template struct digits_reader_t<unsigned int>;
 extern template struct digits_reader_t<unsigned long>;
 extern template struct digits_reader_t<unsigned long long>;
 
+struct CUTI_ABI chunk_reader_t
+{
+  using result_value_t = std::pair<char const*, char const*>;
+
+  static std::size_t constexpr max_chunk_size = 256 * 1024;
+
+  chunk_reader_t(result_t<std::pair<char const*, char const*>>& result,
+                 bound_inbuf_t& buf);
+
+  chunk_reader_t(chunk_reader_t const&) = delete;
+  chunk_reader_t& operator=(chunk_reader_t const&) = delete;
+
+  void start();
+  
+  ~chunk_reader_t();
+
+private :
+  void read_lt(int c);
+  void on_chunk_size(std::size_t chunk_size);
+  void read_gt();
+  void read_data();
+  void on_exception(std::exception_ptr ex);
+
+private :
+  result_t<std::pair<char const*, char const*>>& result_;
+  bound_inbuf_t& buf_;
+  subroutine_t<chunk_reader_t, token_finder_t> finder_;
+  subroutine_t<chunk_reader_t, digits_reader_t<std::size_t>> digits_reader_;
+
+  char* data_;
+  char* next_;
+  char* last_;
+  char* edata_;
+};
+  
 } // detail
 
 } // cuti
