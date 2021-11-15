@@ -23,6 +23,7 @@
 #include "bound_inbuf.hpp"
 #include "charclass.hpp"
 #include "eof.hpp"
+#include "linkage.h"
 #include "parse_error.hpp"
 #include "reader_traits.hpp"
 #include "reader_utils.hpp"
@@ -31,6 +32,7 @@
 #include "subroutine.hpp"
 
 #include <cassert>
+#include <cstddef>
 #include <utility>
 #include <vector>
 
@@ -139,12 +141,65 @@ private :
   std::vector<T> value_;
 };
 
+template<typename T>
+struct CUTI_ABI bulk_reader_t
+{
+  static_assert(std::is_same_v<T, char> ||
+                std::is_same_v<T, signed char> ||
+                std::is_same_v<T, unsigned char>);
+
+  using result_value_t = std::vector<T>;
+
+  static auto constexpr max_chunksize = chunk_reader_t<T>::max_chunksize;
+
+  bulk_reader_t(result_t<std::vector<T>>& result, bound_inbuf_t& buf);
+
+  bulk_reader_t(bulk_reader_t const&) = delete;
+  bulk_reader_t& operator=(bulk_reader_t const&) = delete;
+
+  void start();
+
+private :
+  void read_chunks();
+  void on_chunk_read(std::size_t size);
+  void on_exception(std::exception_ptr ex);
+
+private :
+  result_t<std::vector<T>>& result_;
+  bound_inbuf_t& buf_;
+  subroutine_t<bulk_reader_t, chunk_reader_t<T>> chunk_reader_;
+
+  std::vector<T> value_;
+};
+
+extern template struct bulk_reader_t<char>;
+extern template struct bulk_reader_t<signed char>;
+extern template struct bulk_reader_t<unsigned char>;
+
 } // detail
 
 template<typename T>
 struct reader_traits_t<std::vector<T>>
 {
   using type = detail::vector_reader_t<T>;
+};
+
+template<>
+struct reader_traits_t<std::vector<char>>
+{
+  using type = detail::bulk_reader_t<char>;
+};
+
+template<>
+struct reader_traits_t<std::vector<signed char>>
+{
+  using type = detail::bulk_reader_t<signed char>;
+};
+
+template<>
+struct reader_traits_t<std::vector<unsigned char>>
+{
+  using type = detail::bulk_reader_t<unsigned char>;
 };
 
 } // cuti

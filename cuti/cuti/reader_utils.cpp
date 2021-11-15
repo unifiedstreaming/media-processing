@@ -149,33 +149,33 @@ void chunk_reader_t<T>::read_lt(int c)
   }
   buf_.skip();
 
-  digits_reader_.start(&chunk_reader_t::on_chunk_size,
+  digits_reader_.start(&chunk_reader_t::on_chunksize,
                        std::numeric_limits<std::size_t>::max());
 }
 
 template<typename T>
-void chunk_reader_t<T>::on_chunk_size(std::size_t chunk_size)
+void chunk_reader_t<T>::on_chunksize(std::size_t chunksize)
 {
-  if(chunk_size > max_chunk_size)
+  if(chunksize > max_chunksize)
   {
     result_.fail(parse_error_t("maximum chunk size (" +
-      std::to_string(max_chunk_size) + ") exceeded"));
+      std::to_string(max_chunksize) + ") exceeded"));
     return;
   }
 
   std::size_t initial_size = target_->size();
-  if(chunk_size > target_->max_size() - initial_size)
+  if(chunksize > target_->max_size() - initial_size)
   {
     result_.fail(parse_error_t("maximum vector size (" +
       std::to_string(target_->max_size()) + ") exceeded"));
     return;
   }
 
-  target_->resize(initial_size + chunk_size);
+  target_->resize(initial_size + chunksize);
 
   first_ = reinterpret_cast<char*>(target_->data()) + initial_size;
   next_ = first_;
-  last_ = next_ + chunk_size;
+  last_ = next_ + chunksize;
 
   this->read_gt();
 }

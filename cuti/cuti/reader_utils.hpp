@@ -96,7 +96,7 @@ struct CUTI_ABI chunk_reader_t
                 std::is_same_v<T, signed char> ||
                 std::is_same_v<T, unsigned char>);
 
-  static std::size_t constexpr max_chunk_size = 256 * 1024;
+  static std::size_t constexpr max_chunksize = 256 * 1024;
   using result_value_t = std::size_t;
 
   chunk_reader_t(result_t<std::size_t>& result, bound_inbuf_t& buf);
@@ -112,7 +112,7 @@ struct CUTI_ABI chunk_reader_t
   
 private :
   void read_lt(int c);
-  void on_chunk_size(std::size_t chunk_size);
+  void on_chunksize(std::size_t chunksize);
   void read_gt();
   void read_data();
   void on_exception(std::exception_ptr ex);

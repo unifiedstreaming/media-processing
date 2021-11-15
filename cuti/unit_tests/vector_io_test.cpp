@@ -45,20 +45,43 @@ using namespace cuti::io_test_utils;
 
 void test_failing_reads(logging_context_t& context, std::size_t bufsize)
 {
-  using T = std::vector<int>;
+  using VI = std::vector<int>;
 
-  // missing opening bracket
-  test_failing_read<T>(context, bufsize, "");
-  test_failing_read<T>(context, bufsize, "\t\r ");
+  // missing '['
+  test_failing_read<VI>(context, bufsize, "");
+  test_failing_read<VI>(context, bufsize, "\t\r ");
 
-  // missing closing bracket
-  test_failing_read<T>(context, bufsize, "[");
-  test_failing_read<T>(context, bufsize, "[ \n]");
-  test_failing_read<T>(context, bufsize, "[ 100");
-  test_failing_read<T>(context, bufsize, "[ 100\n");
+  // missing ']'
+  test_failing_read<VI>(context, bufsize, "[");
+  test_failing_read<VI>(context, bufsize, "[ \n]");
+  test_failing_read<VI>(context, bufsize, "[ 100");
+  test_failing_read<VI>(context, bufsize, "[ 100\n");
 
   // bad element type
-  test_failing_read<T>(context, bufsize, "[ \"YYZ\" ]");
+  test_failing_read<VI>(context, bufsize, "[ \"YYZ\" ]");
+
+  using VC = std::vector<char>;
+
+  // missing '<'
+  test_failing_read<VC>(context, bufsize, "");
+  test_failing_read<VC>(context, bufsize, "\t\r ");
+
+  // missing digits
+  test_failing_read<VC>(context, bufsize, "<>");
+  
+  // missing '>' at end of  chunk
+  test_failing_read<VC>(context, bufsize, "<123");
+
+  // excessive chunk size
+  test_failing_read<VC>(context, bufsize,
+    "<" + std::to_string(reader_t<VC>::max_chunksize + 1) + ">");
+
+  // unexpected eof
+  test_failing_read<VC>(context, bufsize, "<7>Dennis");
+  
+  // missing ending <0>
+  test_failing_read<VC>(context, bufsize, "<5>Brian<6>Dennis");
+  test_failing_read<VC>(context, bufsize, "<5>Brian\t\r <6>Dennis\t\r ");
 }
 
 std::vector<int> medium_int_vector()
@@ -95,7 +118,7 @@ std::vector<std::string> vector_of_strings()
   for(int i = 0; i != 1000; ++i)
   {
     // use a somewhat longer string to avoid SSO
-    result.push_back("Eine kleine Wolfgang Amadeus Mozart(" +
+    result.push_back("Joannes Chrysostomus Wolfgangus Theophilus Mozart(" +
       std::to_string(i) + ")");
   }
 
@@ -114,6 +137,20 @@ std::vector<std::vector<int>> vector_of_int_vectors()
 
   return result;
 }
+
+template<typename T>
+std::vector<T> char_vector(std::size_t size)
+{
+  std::vector<T> result;
+  result.reserve(size);
+
+  for(std::size_t i = 0; i != size; ++i)
+  {
+    result.push_back(static_cast<T>(i));
+  }
+
+  return result;
+}
   
 void test_roundtrips(logging_context_t& context, std::size_t bufsize)
 {
@@ -123,6 +160,24 @@ void test_roundtrips(logging_context_t& context, std::size_t bufsize)
   test_roundtrip(context, bufsize, big_int_vector());
   test_roundtrip(context, bufsize, vector_of_strings());
   test_roundtrip(context, bufsize, vector_of_int_vectors());
+
+  static size_t constexpr vector_sizes[] =
+    { 0, 1, 100, 80000 };
+  static size_t constexpr chunk_sizes[] =
+    { 17, writer_t<std::vector<char>>::default_chunksize };
+
+  for(auto vector_size : vector_sizes)
+  {
+    for(auto chunk_size : chunk_sizes)
+    {
+      test_roundtrip(context, bufsize,
+        char_vector<char>(vector_size), chunk_size);
+      test_roundtrip(context, bufsize,
+        char_vector<signed char>(vector_size), chunk_size);
+      test_roundtrip(context, bufsize,
+        char_vector<unsigned char>(vector_size), chunk_size);
+    }
+  }
 }
 
 struct options_t

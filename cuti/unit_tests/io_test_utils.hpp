@@ -40,6 +40,7 @@
 #include <stdexcept>
 #include <string>
 #include <typeinfo>
+#include <utility>
 
 /*
  * Enable assert(), remembering its old setting
@@ -65,7 +66,7 @@ void test_failing_read(logging_context_t& context, std::size_t bufsize,
   if(auto msg = context.message_at(loglevel_t::info))
   {
     *msg << __func__ << '<' << typeid(T).name() <<
-      ">: bufsize: " << bufsize <<
+      ">: starting; bufsize: " << bufsize <<
       " input: " << quoted_string(input);
   }
 
@@ -112,13 +113,15 @@ void test_failing_read(logging_context_t& context, std::size_t bufsize,
   assert(caught);
 }
 
-template<typename T>
-void test_roundtrip(logging_context_t& context, std::size_t bufsize, T value)
+template<typename T, typename... WriterArgs>
+void test_roundtrip(logging_context_t& context,
+                    std::size_t bufsize, T value,
+                    WriterArgs&&... writer_args)
 {
   if(auto msg = context.message_at(loglevel_t::info))
   {
     *msg << __func__ << '<' << typeid(T).name() <<
-      ">: bufsize: " << bufsize;
+      ">: starting; bufsize: " << bufsize;
   }
 
   default_scheduler_t scheduler;
@@ -129,7 +132,8 @@ void test_roundtrip(logging_context_t& context, std::size_t bufsize, T value)
   bound_outbuf_t bot(marker, *outbuf, scheduler);
 
   final_result_t<void> write_result;
-  writer_t<T> writer(write_result, bot);
+  writer_t<T> writer(write_result, bot,
+                     std::forward<WriterArgs>(writer_args)...);
   writer.start(value);
 
   std::size_t n_writing_callbacks = 0;
