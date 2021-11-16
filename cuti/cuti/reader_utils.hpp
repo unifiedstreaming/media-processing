@@ -89,50 +89,6 @@ extern template struct digits_reader_t<unsigned int>;
 extern template struct digits_reader_t<unsigned long>;
 extern template struct digits_reader_t<unsigned long long>;
 
-template<typename T>
-struct CUTI_ABI chunk_reader_t
-{
-  static_assert(std::is_same_v<T, char> ||
-                std::is_same_v<T, signed char> ||
-                std::is_same_v<T, unsigned char>);
-
-  static std::size_t constexpr max_chunksize = 256 * 1024;
-  using result_value_t = std::size_t;
-
-  chunk_reader_t(result_t<std::size_t>& result, bound_inbuf_t& buf);
-
-  chunk_reader_t(chunk_reader_t const&) = delete;
-  chunk_reader_t& operator=(chunk_reader_t const&) = delete;
-
-  /*
-   * Starts appending to target, eventually submitting the number of
-   * bytes appended.
-   */
-  void start(std::vector<T>& target);
-  
-private :
-  void read_lt(int c);
-  void on_chunksize(std::size_t chunksize);
-  void read_gt();
-  void read_data();
-  void on_exception(std::exception_ptr ex);
-
-private :
-  result_t<std::size_t>& result_;
-  bound_inbuf_t& buf_;
-  subroutine_t<chunk_reader_t, token_finder_t> finder_;
-  subroutine_t<chunk_reader_t, digits_reader_t<std::size_t>> digits_reader_;
-
-  std::vector<T>* target_;
-  char* first_;
-  char* next_;
-  char* last_;
-};
-  
-extern template struct chunk_reader_t<char>;
-extern template struct chunk_reader_t<signed char>;
-extern template struct chunk_reader_t<unsigned char>;
-
 } // detail
 
 } // cuti

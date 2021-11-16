@@ -37,6 +37,9 @@
 #undef NDEBUG
 #include <cassert>
 
+#define TEST_CHAR_VECTORS 1
+#undef TEST_CHAR_VECTORS
+
 namespace // anoymous
 {
 
@@ -60,6 +63,8 @@ void test_failing_reads(logging_context_t& context, std::size_t bufsize)
   // bad element type
   test_failing_read<VI>(context, bufsize, "[ \"YYZ\" ]");
 
+#if TEST_CHAR_VECTORS
+
   using VC = std::vector<char>;
 
   // missing '<'
@@ -82,6 +87,8 @@ void test_failing_reads(logging_context_t& context, std::size_t bufsize)
   // missing ending <0>
   test_failing_read<VC>(context, bufsize, "<5>Brian<6>Dennis");
   test_failing_read<VC>(context, bufsize, "<5>Brian\t\r <6>Dennis\t\r ");
+
+#endif
 }
 
 std::vector<int> medium_int_vector()
@@ -161,10 +168,13 @@ void test_roundtrips(logging_context_t& context, std::size_t bufsize)
   test_roundtrip(context, bufsize, vector_of_strings());
   test_roundtrip(context, bufsize, vector_of_int_vectors());
 
+#if TEST_CHAR_VECTORS
+
   static size_t constexpr vector_sizes[] =
     { 0, 1, 100, 80000 };
   static size_t constexpr chunk_sizes[] =
     { 17, writer_t<std::vector<char>>::default_chunksize };
+
 
   for(auto vector_size : vector_sizes)
   {
@@ -178,6 +188,8 @@ void test_roundtrips(logging_context_t& context, std::size_t bufsize)
         char_vector<unsigned char>(vector_size), chunk_size);
     }
   }
+
+#endif
 }
 
 struct options_t

@@ -115,70 +115,12 @@ private :
   typename std::vector<T>::iterator last_;
 };
 
-template<typename T>
-struct CUTI_ABI bulk_writer_t
-{
-  static_assert(std::is_same_v<T, char> ||
-                std::is_same_v<T, signed char> ||
-                std::is_same_v<T, unsigned char>);
-
-  static std::size_t constexpr default_chunksize = 64 * 1024;
-  using result_value_t = void;
-
-  bulk_writer_t(result_t<void>& result,
-                bound_outbuf_t& buf,
-                std::size_t chunksize = default_chunksize);
-
-  bulk_writer_t(bulk_writer_t const&) = delete;
-  bulk_writer_t& operator=(bulk_writer_t const&) = delete;
-  
-  void start(std::vector<T> value);
-
-private :
-  void write_chunks();
-  void on_intermediate_chunk_written();
-  void on_final_chunk_written();
-  void on_exception(std::exception_ptr ex);
-
-private :
-  result_t<void>& result_;
-  bound_outbuf_t& buf_;
-  std::size_t const chunksize_;
-  subroutine_t<bulk_writer_t, chunk_writer_t<T>> chunk_writer_;
-
-  std::vector<T> value_;
-  T const* first_;
-  T const* last_;
-};
-
-extern template struct bulk_writer_t<char>;
-extern template struct bulk_writer_t<signed char>;
-extern template struct bulk_writer_t<unsigned char>;
-
 } // detail
 
 template<typename T>
 struct writer_traits_t<std::vector<T>>
 {
   using type = detail::vector_writer_t<T>;
-};
-
-template<>
-struct writer_traits_t<std::vector<char>>
-{
-  using type = detail::bulk_writer_t<char>;
-};
-
-template<>
-struct writer_traits_t<std::vector<signed char>>
-{
-  using type = detail::bulk_writer_t<signed char>;
-};
-
-template<>
-struct writer_traits_t<std::vector<unsigned char>>
-{
-  using type = detail::bulk_writer_t<unsigned char>;
 };
 
 } // cuti
