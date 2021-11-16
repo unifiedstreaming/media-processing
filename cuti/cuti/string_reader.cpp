@@ -113,20 +113,16 @@ void string_reader_t::read_contents()
     switch(c)
     {
     case eof :
+      result_.fail(parse_error_t("unexpected eof in string value"));
+      return;
     case '\n' :
-      result_.fail(parse_error_t(
-        "missing closing double quote (\'\"\') at end of string"));
+      result_.fail(parse_error_t("non-escaped newline string value"));
       return;
     case '\\' :
       buf_.skip();
       this->read_escaped();
       return;
     default :
-      if(!is_printable(c))
-      {
-        result_.fail(parse_error_t("non-printable in string value"));
-        return;
-      }
       buf_.skip();
       value_ += static_cast<char>(c);
       break;

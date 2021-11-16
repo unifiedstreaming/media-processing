@@ -36,28 +36,6 @@ namespace cuti
 namespace detail
 {
 
-struct CUTI_ABI hex_digits_writer_t
-{
-  using result_value_t = void;
-
-  hex_digits_writer_t(result_t<void>& result_, bound_outbuf_t& buf);
-
-  hex_digits_writer_t(hex_digits_writer_t const&) = delete;
-  hex_digits_writer_t& operator=(hex_digits_writer_t const&) = delete;
-
-  void start(int value);
-
-private :
-  void write_digits();
-
-private :
-  result_t<void>& result_;
-  bound_outbuf_t& buf_;
-
-  int value_;
-  int shift_;
-};
-    
 struct CUTI_ABI string_writer_t
 {
   using result_value_t = void;
@@ -73,14 +51,12 @@ private :
   void write_contents();
   void write_escaped();
   void write_closing_dq();
-  void on_escaped_written();
   void on_exception(std::exception_ptr ex);
 
 private :
   result_t<void>& result_;
   bound_outbuf_t& buf_;
   subroutine_t<string_writer_t, literal_writer_t> prefix_writer_;
-  subroutine_t<string_writer_t, hex_digits_writer_t> hex_digits_writer_;
   
   std::string value_;
   char const* first_;

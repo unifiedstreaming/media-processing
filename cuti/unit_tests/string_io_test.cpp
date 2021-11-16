@@ -53,10 +53,6 @@ void test_failing_reads(logging_context_t& context, std::size_t bufsize)
   test_failing_read<T>(context, bufsize, "\"Bonkers");
   test_failing_read<T>(context, bufsize, "\"Bonkers\n");
 
-  // non-printable in string value
-  test_failing_read<T>(context, bufsize, "\"Hello\tWorld\"");
-  test_failing_read<T>(context, bufsize, "\"G\xffs de Gabber\"");
-
   // unknown escape sequence
   test_failing_read<T>(context, bufsize, "\"What\\0\"");
   test_failing_read<T>(context, bufsize, "\"What\\?\"");

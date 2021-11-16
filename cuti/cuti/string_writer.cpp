@@ -31,46 +31,10 @@ namespace cuti
 namespace detail
 {
 
-hex_digits_writer_t::hex_digits_writer_t(
-  result_t<void>& result, bound_outbuf_t& buf)
-: result_(result)
-, buf_(buf)
-, value_()
-, shift_()
-{ }
-
-void hex_digits_writer_t::start(int value)
-{
-  value_ = value;
-  shift_ = 8;
-
-  this->write_digits();
-}
-
-void hex_digits_writer_t::write_digits()
-{
-  assert(shift_ % 4 == 0);
-
-  while(shift_ != 0 && buf_.writable())
-  {
-    shift_ -= 4;
-    buf_.put(hex_digits[(value_ >> shift_) & 0x0F]);
-  }
-
-  if(shift_ != 0)
-  {
-    buf_.call_when_writable([this] { this->write_digits(); });
-    return;
-  }
-
-  result_.submit();
-}
-
 string_writer_t::string_writer_t(result_t<void>& result, bound_outbuf_t& buf)
 : result_(result)
 , buf_(buf)
 , prefix_writer_(*this, &string_writer_t::on_exception, buf_)
-, hex_digits_writer_(*this, &string_writer_t::on_exception, buf_)
 , value_()
 , first_()
 , last_()
@@ -89,15 +53,18 @@ void string_writer_t::write_contents()
 {
   while(first_ != last_ && buf_.writable())
   {
-    int c = std::char_traits<char>::to_int_type(*first_);
-    if(!is_printable(c) || c == '\"' || c == '\'' || c == '\\')
+    switch(*first_)
     {
+    case '\n' :
+    case '\"' :
+    case '\\' :
       buf_.put('\\');
       this->write_escaped();
       return;
+    default :
+      buf_.put(*first_);
+      break;
     }
-
-    buf_.put(static_cast<char>(c));
     ++first_;
   }
 
@@ -119,36 +86,31 @@ void string_writer_t::write_escaped()
   }
     
   assert(first_ != last_);
-  int c = std::char_traits<char>::to_int_type(*first_);
-  ++first_;
-
-  switch(c)
+  switch(*first_)
   {
-  case '\t' :
-    buf_.put('t');
-    break;
   case '\n' :
     buf_.put('n');
     break;
-  case '\r' :
-    buf_.put('r');
-    break;
   case '\"' :
     buf_.put('\"');
-    break;
-  case '\'' :
-    buf_.put('\'');
     break;
   case '\\' :
     buf_.put('\\');
     break;
   default :
-    buf_.put('x');
-    hex_digits_writer_.start(&string_writer_t::on_escaped_written, c);
+    assert(false);
+    break;
+  }
+  ++first_;
+
+  stack_marker_t marker;
+  if(marker.in_range(buf_.base_marker()))
+  {
+    this->write_contents();
     return;
   }
 
-  this->on_escaped_written();
+  buf_.call_when_writable([this] { this->write_contents(); });
 }
 
 void string_writer_t::write_closing_dq()
@@ -162,18 +124,6 @@ void string_writer_t::write_closing_dq()
 
   value_.clear();
   result_.submit();
-}
-
-void string_writer_t::on_escaped_written()
-{
-  stack_marker_t marker;
-  if(marker.in_range(buf_.base_marker()))
-  {
-    this->write_contents();
-    return;
-  }
-
-  buf_.call_when_writable([this] { this->write_contents(); });
 }
 
 void string_writer_t::on_exception(std::exception_ptr ex)
