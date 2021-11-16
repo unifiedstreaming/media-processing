@@ -149,6 +149,24 @@ struct reader_traits_t<std::vector<T>>
   using type = detail::vector_reader_t<T>;
 };
 
+template<>
+struct reader_traits_t<std::vector<char>>
+{
+  using type = detail::blob_reader_t<std::vector<char>>;
+};
+
+template<>
+struct reader_traits_t<std::vector<signed char>>
+{
+  using type = detail::blob_reader_t<std::vector<signed char>>;
+};
+
+template<>
+struct reader_traits_t<std::vector<unsigned char>>
+{
+  using type = detail::blob_reader_t<std::vector<unsigned char>>;
+};
+
 } // cuti
 
 #endif

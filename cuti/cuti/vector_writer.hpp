@@ -123,6 +123,24 @@ struct writer_traits_t<std::vector<T>>
   using type = detail::vector_writer_t<T>;
 };
 
+template<>
+struct writer_traits_t<std::vector<char>>
+{
+  using type = detail::blob_writer_t<std::vector<char>>;
+};
+
+template<>
+struct writer_traits_t<std::vector<signed char>>
+{
+  using type = detail::blob_writer_t<std::vector<signed char>>;
+};
+
+template<>
+struct writer_traits_t<std::vector<unsigned char>>
+{
+  using type = detail::blob_writer_t<std::vector<unsigned char>>;
+};
+
 } // cuti
 
 #endif
