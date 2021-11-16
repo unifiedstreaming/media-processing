@@ -20,55 +20,18 @@
 #ifndef CUTI_STRING_WRITER_HPP_
 #define CUTI_STRING_WRITER_HPP_
 
-#include "bound_outbuf.hpp"
-#include "linkage.h"
-#include "result.hpp"
-#include "subroutine.hpp"
 #include "writer_traits.hpp"
 #include "writer_utils.hpp"
 
-#include <exception>
 #include <string>
 
 namespace cuti
 {
 
-namespace detail
-{
-
-struct CUTI_ABI string_writer_t
-{
-  using result_value_t = void;
-
-  string_writer_t(result_t<void>& result, bound_outbuf_t& buf);
-
-  string_writer_t(string_writer_t const&) = delete;
-  string_writer_t& operator=(string_writer_t const&) = delete;
-  
-  void start(std::string value);
-
-private :
-  void write_contents();
-  void write_escaped();
-  void write_closing_dq();
-  void on_exception(std::exception_ptr ex);
-
-private :
-  result_t<void>& result_;
-  bound_outbuf_t& buf_;
-  subroutine_t<string_writer_t, literal_writer_t> prefix_writer_;
-  
-  std::string value_;
-  char const* first_;
-  char const* last_;
-};
-
-} // detail
-
 template<>
 struct writer_traits_t<std::string>
 {
-  using type = detail::string_writer_t;
+  using type = detail::blob_writer_t<std::string>;
 };
 
 } // cuti

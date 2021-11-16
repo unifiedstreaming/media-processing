@@ -27,7 +27,9 @@
 
 #include <cstddef>
 #include <exception>
+#include <string>
 #include <type_traits>
+#include <vector>
 
 namespace cuti
 {
@@ -94,6 +96,44 @@ extern template struct digits_writer_t<unsigned short>;
 extern template struct digits_writer_t<unsigned int>;
 extern template struct digits_writer_t<unsigned long>;
 extern template struct digits_writer_t<unsigned long long>;
+
+template<typename T>
+struct CUTI_ABI blob_writer_t
+{
+  static_assert(std::is_same_v<T, std::string> ||
+                std::is_same_v<T, std::vector<char>> ||
+                std::is_same_v<T, std::vector<signed char>> ||
+                std::is_same_v<T, std::vector<unsigned char>>);
+		
+  using result_value_t = void;
+
+  blob_writer_t(result_t<void>& result, bound_outbuf_t& buf);
+
+  blob_writer_t(blob_writer_t const&) = delete;
+  blob_writer_t& operator=(blob_writer_t const&) = delete;
+  
+  void start(T value);
+
+private :
+  void write_contents();
+  void write_escaped();
+  void write_closing_dq();
+  void on_exception(std::exception_ptr ex);
+
+private :
+  result_t<void>& result_;
+  bound_outbuf_t& buf_;
+  subroutine_t<blob_writer_t, literal_writer_t> prefix_writer_;
+  
+  T value_;
+  typename T::const_iterator first_;
+  typename T::const_iterator last_;
+};
+
+extern template struct blob_writer_t<std::string>;
+extern template struct blob_writer_t<std::vector<char>>;
+extern template struct blob_writer_t<std::vector<signed char>>;
+extern template struct blob_writer_t<std::vector<unsigned char>>;
 
 } // detail
 

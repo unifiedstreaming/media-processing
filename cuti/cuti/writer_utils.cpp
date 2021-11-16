@@ -19,6 +19,8 @@
 
 #include "writer_utils.hpp"
 
+#include "stack_marker.hpp"
+
 #include <cassert>
 #include <limits>
 #include <utility>
@@ -98,6 +100,117 @@ template struct digits_writer_t<unsigned short>;
 template struct digits_writer_t<unsigned int>;
 template struct digits_writer_t<unsigned long>;
 template struct digits_writer_t<unsigned long long>;
+
+template<typename T>
+blob_writer_t<T>::blob_writer_t(result_t<void>& result, bound_outbuf_t& buf)
+: result_(result)
+, buf_(buf)
+, prefix_writer_(*this, &blob_writer_t::on_exception, buf_)
+, value_()
+, first_()
+, last_()
+{ }
+
+template<typename T>
+void blob_writer_t<T>::start(T value)
+{
+  value_ = std::move(value);
+  first_ = value_.begin();
+  last_ = value_.end();
+    
+  prefix_writer_.start(&blob_writer_t::write_contents, " \"");
+}
+
+template<typename T>
+void blob_writer_t<T>::write_contents()
+{
+  while(first_ != last_ && buf_.writable())
+  {
+    switch(*first_)
+    {
+    case '\n' :
+    case '\"' :
+    case '\\' :
+      buf_.put('\\');
+      this->write_escaped();
+      return;
+    default :
+      buf_.put(static_cast<char>(*first_));
+      break;
+    }
+    ++first_;
+  }
+
+  if(first_ != last_)
+  {
+    buf_.call_when_writable([this] { this->write_contents(); });
+    return;
+  }
+
+  this->write_closing_dq();
+}
+
+template<typename T>
+void blob_writer_t<T>::write_escaped()
+{
+  if(!buf_.writable())
+  {
+    buf_.call_when_writable([this] { this->write_escaped(); });
+    return;
+  }
+    
+  assert(first_ != last_);
+  switch(*first_)
+  {
+  case '\n' :
+    buf_.put('n');
+    break;
+  case '\"' :
+    buf_.put('\"');
+    break;
+  case '\\' :
+    buf_.put('\\');
+    break;
+  default :
+    assert(false);
+    break;
+  }
+  ++first_;
+
+  stack_marker_t marker;
+  if(marker.in_range(buf_.base_marker()))
+  {
+    this->write_contents();
+    return;
+  }
+
+  buf_.call_when_writable([this] { this->write_contents(); });
+}
+
+template<typename T>
+void blob_writer_t<T>::write_closing_dq()
+{
+  if(!buf_.writable())
+  {
+    buf_.call_when_writable([this] { this->write_closing_dq(); });
+    return;
+  }
+  buf_.put('\"');
+
+  value_.clear();
+  result_.submit();
+}
+
+template<typename T>
+void blob_writer_t<T>::on_exception(std::exception_ptr ex)
+{
+  result_.fail(std::move(ex));
+}
+
+template struct blob_writer_t<std::string>;
+template struct blob_writer_t<std::vector<char>>;
+template struct blob_writer_t<std::vector<signed char>>;
+template struct blob_writer_t<std::vector<unsigned char>>;
 
 } // detail
 

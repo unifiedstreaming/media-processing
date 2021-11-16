@@ -27,6 +27,7 @@
 
 #include <cstddef>
 #include <exception>
+#include <string>
 #include <type_traits>
 #include <utility>
 #include <vector>
@@ -88,6 +89,65 @@ extern template struct digits_reader_t<unsigned short>;
 extern template struct digits_reader_t<unsigned int>;
 extern template struct digits_reader_t<unsigned long>;
 extern template struct digits_reader_t<unsigned long long>;
+
+struct CUTI_ABI hex_digits_reader_t
+{
+  using result_value_t = int;
+
+  hex_digits_reader_t(result_t<int>& result, bound_inbuf_t& buf);
+
+  hex_digits_reader_t(hex_digits_reader_t const&) = delete;
+  hex_digits_reader_t& operator=(hex_digits_reader_t const&) = delete;
+
+  void start();
+
+private :
+  void read_digits();
+
+private :
+  result_t<int>& result_;
+  bound_inbuf_t& buf_;
+  int shift_;
+  int value_;
+};
+    
+template<typename T>
+struct CUTI_ABI blob_reader_t
+{
+  static_assert(std::is_same_v<T, std::string> ||
+                std::is_same_v<T, std::vector<char>> ||
+                std::is_same_v<T, std::vector<signed char>> ||
+                std::is_same_v<T, std::vector<unsigned char>>);
+		
+  using result_value_t = T;
+
+  blob_reader_t(result_t<T>& result, bound_inbuf_t& buf);
+
+  blob_reader_t(blob_reader_t const&) = delete;
+  blob_reader_t& operator=(blob_reader_t const&) = delete;
+
+  void start();
+
+private :
+  void on_begin_token(int c);
+  void read_contents();
+  void read_escaped();
+  void on_hex_digits(int c);
+  void on_exception(std::exception_ptr ex);
+  
+private :
+  result_t<T>& result_;
+  bound_inbuf_t& buf_;
+  subroutine_t<blob_reader_t, token_finder_t> finder_;
+  subroutine_t<blob_reader_t, hex_digits_reader_t> hex_digits_reader_;
+
+  T value_;
+};
+
+extern template struct blob_reader_t<std::string>;
+extern template struct blob_reader_t<std::vector<char>>;
+extern template struct blob_reader_t<std::vector<signed char>>;
+extern template struct blob_reader_t<std::vector<unsigned char>>;
 
 } // detail
 
