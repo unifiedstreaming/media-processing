@@ -21,6 +21,7 @@
 #define CUTI_READER_UTILS_HPP_
 
 #include "bound_inbuf.hpp"
+#include "charclass.hpp"
 #include "linkage.h"
 #include "result.hpp"
 #include "subroutine.hpp"
@@ -42,7 +43,10 @@ struct CUTI_ABI token_finder_t
 {
   using result_value_t = int;
 
-  token_finder_t(result_t<int>& result, bound_inbuf_t& buf);
+  token_finder_t(result_t<int>& result, bound_inbuf_t& buf)
+  : result_(result)
+  , buf_(buf)
+  { }
 
   token_finder_t(token_finder_t const&) = delete;
   token_finder_t& operator=(token_finder_t const&) = delete;
@@ -53,7 +57,24 @@ struct CUTI_ABI token_finder_t
    * buf, buf.readable() will be true and buf.peek() will equal the
    * submitted value.
    */
-  void start();
+  void start()
+  {
+    int c{};
+    while(buf_.readable() && is_whitespace(c = buf_.peek()))
+    {
+      buf_.skip();
+    }
+
+    if(!buf_.readable())
+    {
+      buf_.call_when_readable([this] { this->start(); });
+      return;
+    }
+
+    // TODO: check for inline exception in buf_ and fail if so 
+
+    result_.submit(c);
+  }
 
 private :
   result_t<int>& result_;

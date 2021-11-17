@@ -32,30 +32,6 @@ namespace cuti
 namespace detail
 {
 
-token_finder_t::token_finder_t(result_t<int>& result, bound_inbuf_t& buf)
-: result_(result)
-, buf_(buf)
-{ }
-
-void token_finder_t::start()
-{
-  int c{};
-  while(buf_.readable() && is_whitespace(c = buf_.peek()))
-  {
-    buf_.skip();
-  }
-
-  if(!buf_.readable())
-  {
-    buf_.call_when_readable([this] { this->start(); });
-    return;
-  }
-
-  // TODO: check for inline exception in buf_ and fail if so 
-
-  result_.submit(c);
-}
-  
 template<typename T>
 digits_reader_t<T>::digits_reader_t(result_t<T>& result, bound_inbuf_t& buf)
 : result_(result)
