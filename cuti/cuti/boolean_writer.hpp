@@ -36,6 +36,9 @@ namespace cuti
 namespace detail
 {
 
+extern CUTI_ABI char const true_literal[];
+extern CUTI_ABI char const false_literal[];
+
 template<typename T>
 struct CUTI_ABI boolean_writer_t
 {
@@ -49,12 +52,15 @@ struct CUTI_ABI boolean_writer_t
   void start(T value);
 
 private :
-  void on_literal_written();
+  void on_done();
   void on_exception(std::exception_ptr ex);
 
 private :
   result_t<void>& result_;
-  subroutine_t<boolean_writer_t, literal_writer_t> literal_writer_;
+  subroutine_t<boolean_writer_t, literal_writer_t<true_literal>>
+    true_writer_;
+  subroutine_t<boolean_writer_t, literal_writer_t<false_literal>>
+    false_writer_;
 };
 
 extern template struct boolean_writer_t<bool>;

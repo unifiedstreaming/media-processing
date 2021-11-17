@@ -27,6 +27,9 @@ namespace cuti
 namespace detail
 {
 
+char const positive_prefix[] = " ";
+char const negative_prefix[] = " -";
+
 template<typename T>
 unsigned_writer_t<T>::unsigned_writer_t(result_t<void>& result,
                                         bound_outbuf_t& buf)
@@ -40,7 +43,7 @@ template<typename T>
 void unsigned_writer_t<T>::start(T value)
 {
   value_ = value;
-  prefix_writer_.start(&unsigned_writer_t::on_prefix_written, " ");
+  prefix_writer_.start(&unsigned_writer_t::on_prefix_written);
 }
 
 template<typename T>
@@ -69,7 +72,8 @@ template struct unsigned_writer_t<unsigned long long>;
 template<typename T>
 signed_writer_t<T>::signed_writer_t(result_t<void>& result, bound_outbuf_t& buf)
 : result_(result)
-, prefix_writer_(*this, &signed_writer_t::on_failure, buf)
+, positive_prefix_writer_(*this, &signed_writer_t::on_failure, buf)
+, negative_prefix_writer_(*this, &signed_writer_t::on_failure, buf)
 , digits_writer_(*this, &signed_writer_t::on_failure, buf)
 , unsigned_value_()
 { }
@@ -81,7 +85,7 @@ void signed_writer_t<T>::start(T value)
   {
     unsigned_value_ = value;
 
-    prefix_writer_.start(&signed_writer_t::on_prefix_written, " ");
+    positive_prefix_writer_.start(&signed_writer_t::on_prefix_written);
   }
   else
   {
@@ -90,7 +94,7 @@ void signed_writer_t<T>::start(T value)
     unsigned_value_ = value;
     ++unsigned_value_;
 
-    prefix_writer_.start(&signed_writer_t::on_prefix_written, " -");
+    negative_prefix_writer_.start(&signed_writer_t::on_prefix_written);
   }  
 }
 

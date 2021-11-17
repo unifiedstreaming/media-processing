@@ -31,28 +31,6 @@ namespace cuti
 namespace detail
 {
 
-literal_writer_t::literal_writer_t(result_t<void>& result, bound_outbuf_t& buf)
-: result_(result)
-, buf_(buf)
-{ }
-
-void literal_writer_t::write_chars()
-{
-  while(first_ != last_ && buf_.writable())
-  {
-    buf_.put(*first_);
-    ++first_;
-  }
-
-  if(first_ != last_)
-  {
-    buf_.call_when_writable([this] { this->write_chars(); });
-    return;
-  }
-
-  result_.submit();
-}
-
 template<typename T>
 digits_writer_t<T>::digits_writer_t(result_t<void>& result,
                                     bound_outbuf_t& buf)
@@ -101,11 +79,15 @@ template struct digits_writer_t<unsigned int>;
 template struct digits_writer_t<unsigned long>;
 template struct digits_writer_t<unsigned long long>;
 
+char const blob_prefix[] = " \"";
+char const blob_suffix[] = "\"";
+
 template<typename T>
 blob_writer_t<T>::blob_writer_t(result_t<void>& result, bound_outbuf_t& buf)
 : result_(result)
 , buf_(buf)
 , prefix_writer_(*this, &blob_writer_t::on_exception, buf_)
+, suffix_writer_(*this, &blob_writer_t::on_exception, buf_)
 , value_()
 , first_()
 , last_()
@@ -118,7 +100,7 @@ void blob_writer_t<T>::start(T value)
   first_ = value_.begin();
   last_ = value_.end();
     
-  prefix_writer_.start(&blob_writer_t::write_contents, " \"");
+  prefix_writer_.start(&blob_writer_t::write_contents);
 }
 
 template<typename T>
@@ -147,7 +129,7 @@ void blob_writer_t<T>::write_contents()
     return;
   }
 
-  this->write_closing_dq();
+  suffix_writer_.start(&blob_writer_t::on_suffix_written);
 }
 
 template<typename T>
@@ -188,15 +170,8 @@ void blob_writer_t<T>::write_escaped()
 }
 
 template<typename T>
-void blob_writer_t<T>::write_closing_dq()
+void blob_writer_t<T>::on_suffix_written()
 {
-  if(!buf_.writable())
-  {
-    buf_.call_when_writable([this] { this->write_closing_dq(); });
-    return;
-  }
-  buf_.put('\"');
-
   value_.clear();
   result_.submit();
 }

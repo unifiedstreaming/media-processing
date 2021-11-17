@@ -27,11 +27,15 @@ namespace cuti
 namespace detail
 {
 
+char const true_literal[] = " *";
+char const false_literal[] = " !";
+
 template<typename T>
 boolean_writer_t<T>::boolean_writer_t(
   result_t<void>& result, bound_outbuf_t& buf)
 : result_(result)
-, literal_writer_(*this, &boolean_writer_t::on_exception, buf)
+, true_writer_(*this, &boolean_writer_t::on_exception, buf)
+, false_writer_(*this, &boolean_writer_t::on_exception, buf)
 { }
 
 template<typename T>
@@ -39,16 +43,16 @@ void boolean_writer_t<T>::start(T value)
 {
   if(value)
   {
-    literal_writer_.start(&boolean_writer_t::on_literal_written, " *");
+    true_writer_.start(&boolean_writer_t::on_done);
   }
   else
   {
-    literal_writer_.start(&boolean_writer_t::on_literal_written, " !");
+    false_writer_.start(&boolean_writer_t::on_done);
   }
 }
 
 template<typename T>
-void boolean_writer_t<T>::on_literal_written()
+void boolean_writer_t<T>::on_done()
 {
   result_.submit();
 }

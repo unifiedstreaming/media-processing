@@ -18,3 +18,18 @@
  */
 
 #include "tuple_writer.hpp"
+
+namespace cuti
+{
+
+namespace detail
+{
+
+char const tuple_prefix[] = " {";
+char const tuple_suffix[] = " }";
+
+} // detail
+
+} // cuti
+
+

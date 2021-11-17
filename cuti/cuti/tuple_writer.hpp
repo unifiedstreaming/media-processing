@@ -126,6 +126,9 @@ private :
   T* value_;
 };
 
+extern CUTI_ABI char const tuple_prefix[];
+extern CUTI_ABI char const tuple_suffix[];
+
 template<typename T>
 struct tuple_writer_t
 {
@@ -133,8 +136,9 @@ struct tuple_writer_t
 
   tuple_writer_t(result_t<void>& result, bound_outbuf_t& buf)
   : result_(result)
-  , literal_writer_(*this, &tuple_writer_t::on_exception, buf)
+  , prefix_writer_(*this, &tuple_writer_t::on_exception, buf)
   , elements_writer_(*this, &tuple_writer_t::on_exception, buf)
+  , suffix_writer_(*this, &tuple_writer_t::on_exception, buf)
   , value_()
   { }
 
@@ -144,7 +148,7 @@ struct tuple_writer_t
   void start(T value)
   {
     value_ = std::move(value);
-    literal_writer_.start(&tuple_writer_t::on_prefix_written, " {");
+    prefix_writer_.start(&tuple_writer_t::on_prefix_written);
   }
 
 private :
@@ -155,7 +159,7 @@ private :
     
   void on_elements_written()
   {
-    literal_writer_.start(&tuple_writer_t::on_suffix_written, " }");
+    suffix_writer_.start(&tuple_writer_t::on_suffix_written);
   }
 
   void on_suffix_written()
@@ -170,8 +174,9 @@ private :
 
 private :
   result_t<void>& result_;
-  subroutine_t<tuple_writer_t, literal_writer_t> literal_writer_;
+  subroutine_t<tuple_writer_t, literal_writer_t<tuple_prefix>> prefix_writer_;
   subroutine_t<tuple_writer_t, tuple_elements_writer_t<T>> elements_writer_;
+  subroutine_t<tuple_writer_t, literal_writer_t<tuple_suffix>> suffix_writer_;
 
   T value_;
 };

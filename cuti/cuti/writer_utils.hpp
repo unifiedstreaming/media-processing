@@ -37,35 +37,48 @@ namespace cuti
 namespace detail
 {
 
-struct CUTI_ABI literal_writer_t
+template<char const* Literal>
+struct literal_writer_t
 {
   using result_value_t = void;
 
-  literal_writer_t(result_t<void>& result, bound_outbuf_t& buf);
+  literal_writer_t(result_t<void>& result, bound_outbuf_t& buf)
+  : result_(result)
+  , buf_(buf)
+  , p_()
+  { }
 
   literal_writer_t(literal_writer_t const&) = delete;
   literal_writer_t& operator=(literal_writer_t const&) = delete;
-
-  template<std::size_t N>
-  void start(char const (&literal)[N])
+  
+  void start()
   {
-    static_assert(N > 0);
-
-    first_ = literal;
-    last_ = literal + N - 1;
-
+    p_ = Literal;
     this->write_chars();
   }
 
 private :
-  void write_chars();
+  void write_chars()
+  {
+    while(*p_ != '\0' && buf_.writable())
+    {
+      buf_.put(*p_);
+      ++p_;
+    }
+
+    if(*p_ != '\0')
+    {
+      buf_.call_when_writable([this] { this->write_chars(); });
+      return;
+    }
+
+    result_.submit();
+  }
 
 private :
   result_t<void>& result_;
   bound_outbuf_t& buf_;
-
-  char const* first_;
-  char const* last_;
+  char const* p_;
 };
 
 template<typename T>
@@ -97,6 +110,9 @@ extern template struct digits_writer_t<unsigned int>;
 extern template struct digits_writer_t<unsigned long>;
 extern template struct digits_writer_t<unsigned long long>;
 
+extern CUTI_ABI char const blob_prefix[];
+extern CUTI_ABI char const blob_suffix[];
+
 template<typename T>
 struct CUTI_ABI blob_writer_t
 {
@@ -117,13 +133,14 @@ struct CUTI_ABI blob_writer_t
 private :
   void write_contents();
   void write_escaped();
-  void write_closing_dq();
+  void on_suffix_written();
   void on_exception(std::exception_ptr ex);
 
 private :
   result_t<void>& result_;
   bound_outbuf_t& buf_;
-  subroutine_t<blob_writer_t, literal_writer_t> prefix_writer_;
+  subroutine_t<blob_writer_t, literal_writer_t<blob_prefix>> prefix_writer_;
+  subroutine_t<blob_writer_t, literal_writer_t<blob_suffix>> suffix_writer_;
   
   T value_;
   typename T::const_iterator first_;

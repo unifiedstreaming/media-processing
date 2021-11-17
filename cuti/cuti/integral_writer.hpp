@@ -41,6 +41,9 @@ extern template struct digits_writer_t<unsigned int>;
 extern template struct digits_writer_t<unsigned long>;
 extern template struct digits_writer_t<unsigned long long>;
 
+extern CUTI_ABI char const positive_prefix[];
+extern CUTI_ABI char const negative_prefix[];
+
 template<typename T>
 struct CUTI_ABI unsigned_writer_t
 {
@@ -62,7 +65,8 @@ private :
 
 private :
   result_t<void>& result_;
-  subroutine_t<unsigned_writer_t, literal_writer_t> prefix_writer_;
+  subroutine_t<unsigned_writer_t, literal_writer_t<positive_prefix>>
+    prefix_writer_;
   subroutine_t<unsigned_writer_t, digits_writer_t<T>> digits_writer_;
   T value_;
 };
@@ -96,7 +100,10 @@ private :
 
 private :
   result_t<void>& result_;
-  subroutine_t<signed_writer_t, literal_writer_t> prefix_writer_;
+  subroutine_t<signed_writer_t, literal_writer_t<positive_prefix>>
+    positive_prefix_writer_;
+  subroutine_t<signed_writer_t, literal_writer_t<negative_prefix>>
+    negative_prefix_writer_;
   subroutine_t<signed_writer_t, digits_writer_t<UT>> digits_writer_;
 
   UT unsigned_value_;
