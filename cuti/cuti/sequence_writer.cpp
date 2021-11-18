@@ -17,4 +17,17 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#include "vector_writer.hpp"
+#include "sequence_writer.hpp"
+
+namespace cuti
+{
+
+namespace detail
+{
+
+char const sequence_prefix[] = " [";
+char const sequence_suffix[] = " ]";
+
+} // detail
+
+} // cuti

@@ -23,7 +23,7 @@
 #include "bound_outbuf.hpp"
 #include "linkage.h"
 #include "result.hpp"
-#include "stack_marker.hpp"
+#include "sequence_writer.hpp"
 #include "subroutine.hpp"
 #include "writer_traits.hpp"
 #include "writer_utils.hpp"
@@ -39,9 +39,6 @@ namespace cuti
 namespace detail
 {
 
-extern CUTI_ABI char const sequence_prefix[];
-extern CUTI_ABI char const sequence_suffix[];
-
 template<typename T>
 struct vector_writer_t
 {
@@ -49,10 +46,9 @@ struct vector_writer_t
 
   vector_writer_t(result_t<void>& result, bound_outbuf_t& buf)
   : result_(result)
-  , buf_(buf)
-  , prefix_writer_(*this, &vector_writer_t::on_exception, buf_)
-  , element_writer_(*this, &vector_writer_t::on_exception, buf_)
-  , suffix_writer_(*this, &vector_writer_t::on_exception, buf_)
+  , begin_writer_(*this, &vector_writer_t::on_exception, buf)
+  , element_writer_(*this, &vector_writer_t::on_exception, buf)
+  , end_writer_(*this, &vector_writer_t::on_exception, buf)
   , value_()
   , first_()
   , last_()
@@ -67,7 +63,7 @@ struct vector_writer_t
     first_ = value_.begin();
     last_ = value_.end();
 
-    prefix_writer_.start(&vector_writer_t::write_elements);
+    begin_writer_.start(&vector_writer_t::write_elements);
   }
 
 private :
@@ -78,29 +74,17 @@ private :
       T elem = std::move(*first_);
       ++first_;
       element_writer_.start(
-        &vector_writer_t::on_element_written, std::move(elem));
+        &vector_writer_t::write_elements, std::move(elem));
       return;
     }
 
-    suffix_writer_.start(&vector_writer_t::on_suffix_written);
+    end_writer_.start(&vector_writer_t::on_end_written);
   }
       
-  void on_suffix_written()
+  void on_end_written()
   {
     value_.clear();
     result_.submit();
-  }
-
-  void on_element_written()
-  {
-    stack_marker_t marker;
-    if(marker.in_range(buf_.base_marker()))
-    {
-      this->write_elements();
-      return;
-    }
-
-    buf_.call_when_writable([this] { this->write_elements(); });
   }
 
   void on_exception(std::exception_ptr ex)
@@ -110,12 +94,9 @@ private :
 
 private :
   result_t<void>& result_;
-  bound_outbuf_t& buf_;
-  subroutine_t<vector_writer_t, literal_writer_t<sequence_prefix>>
-    prefix_writer_;
-  subroutine_t<vector_writer_t, writer_t<T>> element_writer_;
-  subroutine_t<vector_writer_t, literal_writer_t<sequence_suffix>>
-    suffix_writer_;
+  subroutine_t<vector_writer_t, begin_sequence_writer_t> begin_writer_;
+  subroutine_t<vector_writer_t, sequence_element_writer_t<T>> element_writer_;
+  subroutine_t<vector_writer_t, end_sequence_writer_t> end_writer_;
 
   std::vector<T> value_;
   typename std::vector<T>::iterator first_;

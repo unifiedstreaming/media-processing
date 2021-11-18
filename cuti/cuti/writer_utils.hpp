@@ -23,12 +23,15 @@
 #include "bound_outbuf.hpp"
 #include "linkage.h"
 #include "result.hpp"
+#include "stack_marker.hpp"
 #include "subroutine.hpp"
+#include "writer_traits.hpp"
 
 #include <cstddef>
 #include <exception>
 #include <string>
 #include <type_traits>
+#include <utility>
 #include <vector>
 
 namespace cuti
@@ -151,6 +154,54 @@ extern template struct blob_writer_t<std::string>;
 extern template struct blob_writer_t<std::vector<char>>;
 extern template struct blob_writer_t<std::vector<signed char>>;
 extern template struct blob_writer_t<std::vector<unsigned char>>;
+
+/*
+ * Writer for sequence and tuple elements avoiding stack overflow  
+ */
+template<typename T>
+struct element_writer_t
+{
+  using result_value_t = void;
+
+  element_writer_t(result_t<void>& result, bound_outbuf_t& buf)
+  : result_(result)
+  , buf_(buf)
+  , delegate_(*this, &element_writer_t::on_exception, buf_)
+  { }
+
+  element_writer_t(element_writer_t const&) = delete;
+  element_writer_t& operator=(element_writer_t const&) = delete;
+
+  template<typename TT>
+  void start(TT&& value)
+  {
+    delegate_.start(
+      &element_writer_t::on_delegate_done, std::forward<TT>(value));
+  }
+
+private :
+  void on_delegate_done()
+  {
+    stack_marker_t marker;
+    if(marker.in_range(buf_.base_marker()))
+    {
+      result_.submit();
+      return;
+    }
+
+    buf_.call_when_writable([this] { this->result_.submit(); });
+  }
+
+  void on_exception(std::exception_ptr ex)
+  {
+    result_.fail(std::move(ex));
+  }
+
+private :
+  result_t<void>& result_;
+  bound_outbuf_t& buf_;
+  subroutine_t<element_writer_t, writer_t<T>> delegate_;
+};
 
 } // detail
 
