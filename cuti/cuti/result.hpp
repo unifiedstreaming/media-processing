@@ -30,6 +30,36 @@ namespace cuti
 {
 
 /*
+ * Base interface for results of any type.
+ */
+struct any_result_t
+{
+  any_result_t()
+  { }
+
+  any_result_t(any_result_t const&) = delete;
+  any_result_t& operator=(any_result_t const&) = delete;
+  
+  void fail(std::exception_ptr ex)
+  {
+    assert(ex != nullptr);
+    this->do_fail(std::move(ex));
+  }
+
+  template<typename Ex>
+  void fail(Ex&& ex)
+  {
+    this->do_fail(std::make_exception_ptr(std::forward<Ex>(ex)));
+  }
+
+  virtual ~any_result_t()
+  { }
+
+private :
+  virtual void do_fail(std::exception_ptr ex) = 0;
+};
+
+/*
  * Strawman type for reporting no meaningful value.
  */
 struct CUTI_ABI no_value_t { };
@@ -53,39 +83,17 @@ struct result_helper_t<void>
  * Interface for reporting the result of an asynchronous operation.
  */
 template<typename T>
-struct result_t
+struct result_t : any_result_t
 {
   using submit_arg_t = typename result_helper_t<T>::submit_arg_t;
 
-  result_t()
-  { }
-
-  result_t(result_t const&) = delete;
-  result_t& operator=(result_t const&) = delete;
-  
   void submit(submit_arg_t value = no_value_t{})
   {
     this->do_submit(std::move(value));
   }
 
-  void fail(std::exception_ptr ex)
-  {
-    assert(ex != nullptr);
-    this->do_fail(std::move(ex));
-  }
-
-  template<typename Ex>
-  void fail(Ex&& ex)
-  {
-    this->do_fail(std::make_exception_ptr(std::forward<Ex>(ex)));
-  }
-  
-  virtual ~result_t()
-  { }
-
 private :
   virtual void do_submit(submit_arg_t value) = 0;
-  virtual void do_fail(std::exception_ptr ex) = 0;
 };
 
 } // cuti

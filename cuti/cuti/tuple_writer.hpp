@@ -28,7 +28,6 @@
 #include "writer_utils.hpp"
 
 #include <cstddef>
-#include <exception>
 #include <tuple>
 #include <utility>
 
@@ -74,8 +73,8 @@ struct tuple_elements_writer_t<T, std::index_sequence<First, Rest...>>
   tuple_elements_writer_t(result_t<void>& result, bound_outbuf_t& buf)
   : result_(result)
   , buf_(buf)
-  , element_writer_(*this, &tuple_elements_writer_t::on_exception, buf_)
-  , delegate_(*this, &tuple_elements_writer_t::on_exception, buf_)
+  , element_writer_(*this, result_, buf_)
+  , delegate_(*this, result_, buf_)
   , value_()
   { }
 
@@ -112,11 +111,6 @@ private :
     result_.submit();
   }
 
-  void on_exception(std::exception_ptr ex)
-  {
-    result_.fail(std::move(ex));
-  }
-
 private :
   result_t<void>& result_;
   bound_outbuf_t& buf_;
@@ -136,9 +130,9 @@ struct tuple_writer_t
 
   tuple_writer_t(result_t<void>& result, bound_outbuf_t& buf)
   : result_(result)
-  , prefix_writer_(*this, &tuple_writer_t::on_exception, buf)
-  , elements_writer_(*this, &tuple_writer_t::on_exception, buf)
-  , suffix_writer_(*this, &tuple_writer_t::on_exception, buf)
+  , prefix_writer_(*this, result_, buf)
+  , elements_writer_(*this, result_, buf)
+  , suffix_writer_(*this, result_, buf)
   , value_()
   { }
 
@@ -165,11 +159,6 @@ private :
   void on_suffix_written()
   {
     result_.submit();
-  }
-
-  void on_exception(std::exception_ptr ex)
-  {
-    result_.fail(std::move(ex));
   }
 
 private :

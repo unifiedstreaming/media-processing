@@ -30,7 +30,6 @@
 
 #include <cassert>
 #include <cstddef>
-#include <exception>
 #include <tuple>
 #include <utility>
 
@@ -76,8 +75,8 @@ struct tuple_elements_reader_t<T, std::index_sequence<First, Rest...>>
   tuple_elements_reader_t(result_t<void>& result, bound_inbuf_t& buf)
   : result_(result)
   , buf_(buf)
-  , element_reader_(*this, &tuple_elements_reader_t::on_exception, buf_)
-  , delegate_(*this, &tuple_elements_reader_t::on_exception, buf_)
+  , element_reader_(*this, result_, buf_)
+  , delegate_(*this, result_, buf_)
   , value_()
   { }
 
@@ -115,11 +114,6 @@ private :
     result_.submit();
   }
 
-  void on_exception(std::exception_ptr ex)
-  {
-    result_.fail(std::move(ex));
-  }
-
 private :
   result_t<void>& result_;
   bound_inbuf_t& buf_;
@@ -137,8 +131,8 @@ struct tuple_reader_t
   tuple_reader_t(result_t<T>& result, bound_inbuf_t& buf)
   : result_(result)
   , buf_(buf)
-  , finder_(*this, &tuple_reader_t::on_exception, buf_)
-  , elements_reader_(*this, &tuple_reader_t::on_exception, buf_)
+  , finder_(*this, result_, buf_)
+  , elements_reader_(*this, result_, buf_)
   , value_()
   { }
 
@@ -184,11 +178,6 @@ private :
     buf_.skip();
 
     result_.submit(std::move(value_));
-  }
-
-  void on_exception(std::exception_ptr ex)
-  {
-    result_.fail(std::move(ex));
   }
 
 private :

@@ -28,8 +28,6 @@
 #include "result.hpp"
 #include "subroutine.hpp"
 
-#include <exception>
-
 namespace cuti
 {
 
@@ -50,7 +48,6 @@ struct CUTI_ABI boolean_reader_t
 
 private :
   void on_begin_token(int c);
-  void on_failure(std::exception_ptr ex);
 
 private :
   result_t<T>& result_;

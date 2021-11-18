@@ -34,8 +34,8 @@ template<typename T>
 boolean_writer_t<T>::boolean_writer_t(
   result_t<void>& result, bound_outbuf_t& buf)
 : result_(result)
-, true_writer_(*this, &boolean_writer_t::on_exception, buf)
-, false_writer_(*this, &boolean_writer_t::on_exception, buf)
+, true_writer_(*this, result_, buf)
+, false_writer_(*this, result_, buf)
 { }
 
 template<typename T>
@@ -55,12 +55,6 @@ template<typename T>
 void boolean_writer_t<T>::on_done()
 {
   result_.submit();
-}
-
-template<typename T>
-void boolean_writer_t<T>::on_exception(std::exception_ptr ex)
-{
-  result_.fail(std::move(ex));
 }
 
 template struct boolean_writer_t<bool>;

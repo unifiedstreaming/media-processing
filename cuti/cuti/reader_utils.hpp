@@ -27,7 +27,6 @@
 #include "subroutine.hpp"
 
 #include <cstddef>
-#include <exception>
 #include <string>
 #include <type_traits>
 #include <utility>
@@ -154,7 +153,6 @@ private :
   void read_contents();
   void read_escaped();
   void on_hex_digits(int c);
-  void on_exception(std::exception_ptr ex);
   
 private :
   result_t<T>& result_;

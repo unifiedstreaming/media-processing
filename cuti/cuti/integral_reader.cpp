@@ -31,8 +31,8 @@ template<typename T>
 unsigned_reader_t<T>::unsigned_reader_t(result_t<T>& result,
                                         bound_inbuf_t& buf)
 : result_(result)
-, finder_(*this, &unsigned_reader_t::on_failure, buf)
-, digits_reader_(*this, &unsigned_reader_t::on_failure, buf)
+, finder_(*this, result_, buf)
+, digits_reader_(*this, result_, buf)
 { }
 
 template<typename T>
@@ -54,12 +54,6 @@ void unsigned_reader_t<T>::on_digits_read(T value)
   result_.submit(value);
 }
 
-template<typename T>
-void unsigned_reader_t<T>::on_failure(std::exception_ptr ex)
-{
-  result_.fail(std::move(ex));
-}
-
 template struct unsigned_reader_t<unsigned short>;
 template struct unsigned_reader_t<unsigned int>;
 template struct unsigned_reader_t<unsigned long>;
@@ -69,8 +63,8 @@ template<typename T>
 signed_reader_t<T>::signed_reader_t(result_t<T>& result, bound_inbuf_t& buf)
 : result_(result)
 , buf_(buf)
-, finder_(*this, &signed_reader_t::on_failure, buf_)
-, digits_reader_(*this, &signed_reader_t::on_failure, buf_)
+, finder_(*this, result_, buf_)
+, digits_reader_(*this, result_, buf_)
 , negative_()
 { }
 
@@ -118,12 +112,6 @@ void signed_reader_t<T>::on_digits_read(UT unsigned_value)
   result_.submit(signed_value);
 }
 
-template<typename T>
-void signed_reader_t<T>::on_failure(std::exception_ptr ex)
-{
-  result_.fail(std::move(ex));
-}
-    
 template struct signed_reader_t<short>;
 template struct signed_reader_t<int>;
 template struct signed_reader_t<long>;

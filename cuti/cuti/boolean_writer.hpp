@@ -28,8 +28,6 @@
 #include "writer_traits.hpp"
 #include "writer_utils.hpp"
 
-#include <exception>
-
 namespace cuti
 {
 
@@ -53,7 +51,6 @@ struct CUTI_ABI boolean_writer_t
 
 private :
   void on_done();
-  void on_exception(std::exception_ptr ex);
 
 private :
   result_t<void>& result_;

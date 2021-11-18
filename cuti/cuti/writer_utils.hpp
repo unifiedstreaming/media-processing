@@ -28,7 +28,6 @@
 #include "writer_traits.hpp"
 
 #include <cstddef>
-#include <exception>
 #include <string>
 #include <type_traits>
 #include <utility>
@@ -137,7 +136,6 @@ private :
   void write_contents();
   void write_escaped();
   void on_suffix_written();
-  void on_exception(std::exception_ptr ex);
 
 private :
   result_t<void>& result_;
@@ -166,7 +164,7 @@ struct element_writer_t
   element_writer_t(result_t<void>& result, bound_outbuf_t& buf)
   : result_(result)
   , buf_(buf)
-  , delegate_(*this, &element_writer_t::on_exception, buf_)
+  , delegate_(*this, result_, buf_)
   { }
 
   element_writer_t(element_writer_t const&) = delete;
@@ -190,11 +188,6 @@ private :
     }
 
     buf_.call_when_writable([this] { this->result_.submit(); });
-  }
-
-  void on_exception(std::exception_ptr ex)
-  {
-    result_.fail(std::move(ex));
   }
 
 private :

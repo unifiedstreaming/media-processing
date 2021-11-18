@@ -50,8 +50,8 @@ struct vector_reader_t
   vector_reader_t(result_t<std::vector<T>>& result, bound_inbuf_t& buf)
   : result_(result)
   , buf_(buf)
-  , finder_(*this, &vector_reader_t::on_exception, buf)
-  , element_reader_(*this, &vector_reader_t::on_exception, buf)
+  , finder_(*this, result_, buf)
+  , element_reader_(*this, result_, buf)
   , value_()
   { }
 
@@ -125,11 +125,6 @@ private :
     }
 
     buf_.call_when_readable([this] { this->read_elements(); });
-  }
-
-  void on_exception(std::exception_ptr ex)
-  {
-    result_.fail(std::move(ex));
   }
 
 private :

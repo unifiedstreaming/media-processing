@@ -140,8 +140,8 @@ template<typename T>
 blob_reader_t<T>::blob_reader_t(result_t<T>& result, bound_inbuf_t& buf)
 : result_(result)
 , buf_(buf)
-, finder_(*this, &blob_reader_t::on_exception, buf_)
-, hex_digits_reader_(*this, &blob_reader_t::on_exception, buf_)
+, finder_(*this, result_, buf_)
+, hex_digits_reader_(*this, result_, buf_)
 , value_()
 { }
 
@@ -269,12 +269,6 @@ void blob_reader_t<T>::on_hex_digits(int c)
   buf_.call_when_readable([this] { this->read_contents(); });
 }
 
-template<typename T>
-void blob_reader_t<T>::on_exception(std::exception_ptr ex)
-{
-  result_.fail(std::move(ex));
-}
-  
 template struct blob_reader_t<std::string>;
 template struct blob_reader_t<std::vector<char>>;
 template struct blob_reader_t<std::vector<signed char>>;

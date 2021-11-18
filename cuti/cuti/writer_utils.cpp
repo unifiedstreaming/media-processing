@@ -86,8 +86,8 @@ template<typename T>
 blob_writer_t<T>::blob_writer_t(result_t<void>& result, bound_outbuf_t& buf)
 : result_(result)
 , buf_(buf)
-, prefix_writer_(*this, &blob_writer_t::on_exception, buf_)
-, suffix_writer_(*this, &blob_writer_t::on_exception, buf_)
+, prefix_writer_(*this, result_, buf_)
+, suffix_writer_(*this, result_, buf_)
 , value_()
 , first_()
 , last_()
@@ -174,12 +174,6 @@ void blob_writer_t<T>::on_suffix_written()
 {
   value_.clear();
   result_.submit();
-}
-
-template<typename T>
-void blob_writer_t<T>::on_exception(std::exception_ptr ex)
-{
-  result_.fail(std::move(ex));
 }
 
 template struct blob_writer_t<std::string>;

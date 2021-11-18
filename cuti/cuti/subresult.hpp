@@ -28,11 +28,56 @@
 namespace cuti
 {
 
+enum class failure_mode_t
+{
+  forward_upwards,
+  handle_in_parent
+};
+
+template<typename Parent, failure_mode_t Mode>
+struct failure_handler_t;
+
+template<typename Parent>
+struct failure_handler_t<Parent, failure_mode_t::forward_upwards>
+{
+  using handler_type = any_result_t&;
+
+  explicit failure_handler_t(any_result_t& parents_result)
+  : parents_result_(parents_result)
+  { }
+
+  void operator()(Parent& /* ignored */, std::exception_ptr ex) const
+  {
+    parents_result_.fail(std::move(ex));
+  }
+
+private :
+  any_result_t& parents_result_;
+};
+
+template<typename Parent>
+struct failure_handler_t<Parent, failure_mode_t::handle_in_parent>
+{
+  using handler_type = void (Parent::*)(std::exception_ptr);
+
+  explicit failure_handler_t(void (Parent::*handler)(std::exception_ptr))
+  : handler_((assert(handler != nullptr), handler))
+  { }
+
+  void operator()(Parent& parent, std::exception_ptr ex) const
+  {
+    (parent.*handler_)(std::move(ex));
+  }
+
+private :
+  void (Parent::*handler_)(std::exception_ptr);
+};
+
 /*
  * Helper to deal with subresult_t<Parent, void>
  */
 template<typename Parent, typename T>
-struct subresult_helper_t
+struct subresult_reporter_t
 {
   using on_success_t = void (Parent::*)(T);
 
@@ -45,7 +90,7 @@ struct subresult_helper_t
 };
     
 template<typename Parent>
-struct subresult_helper_t<Parent, void>
+struct subresult_reporter_t<Parent, void>
 {
   using on_success_t = void (Parent::*)();
 
@@ -60,17 +105,17 @@ struct subresult_helper_t<Parent, void>
 /*
  * Result type for an asynchronous suboperation.
  */
-template<typename Parent, typename T>
+template<typename Parent, typename T, failure_mode_t Mode>
 struct subresult_t : result_t<T>
 {
   using submit_arg_t = typename result_t<T>::submit_arg_t;
-  using on_success_t = typename subresult_helper_t<Parent, T>::on_success_t;
-  using on_failure_t = void (Parent::*)(std::exception_ptr);
+  using on_success_t = typename subresult_reporter_t<Parent, T>::on_success_t;
+  using on_failure_t = typename failure_handler_t<Parent, Mode>::handler_type;
 
   subresult_t(Parent& parent, on_failure_t on_failure)
   : parent_(parent)
   , on_success_(nullptr)
-  , on_failure_((assert(on_failure != nullptr), on_failure))
+  , failure_handler_(on_failure)
   { }
 
   template<typename Child, typename... Args>
@@ -85,19 +130,19 @@ private :
   void do_submit(submit_arg_t value) override
   {
     assert(on_success_ != nullptr);
-    subresult_helper_t<Parent, T>::report_success(
+    subresult_reporter_t<Parent, T>::report_success(
       parent_, on_success_, std::move(value));
   }
 
   void do_fail(std::exception_ptr ex) override
   {
-    (parent_.*on_failure_)(std::move(ex));
+    failure_handler_(parent_, std::move(ex));
   }
 
 private :
   Parent& parent_;
   on_success_t on_success_;
-  on_failure_t on_failure_;
+  failure_handler_t<Parent, Mode> failure_handler_;
 };
 
 } // cuti

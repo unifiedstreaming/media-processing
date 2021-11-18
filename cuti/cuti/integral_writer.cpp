@@ -34,8 +34,8 @@ template<typename T>
 unsigned_writer_t<T>::unsigned_writer_t(result_t<void>& result,
                                         bound_outbuf_t& buf)
 : result_(result)
-, prefix_writer_(*this, &unsigned_writer_t::on_failure, buf)
-, digits_writer_(*this, &unsigned_writer_t::on_failure, buf)
+, prefix_writer_(*this, result_, buf)
+, digits_writer_(*this, result_, buf)
 , value_()
 { }
 
@@ -58,12 +58,6 @@ void unsigned_writer_t<T>::on_digits_written()
   result_.submit();
 }
 
-template<typename T>
-void unsigned_writer_t<T>::on_failure(std::exception_ptr ex)
-{
-  result_.fail(std::move(ex));
-}
-
 template struct unsigned_writer_t<unsigned short>;
 template struct unsigned_writer_t<unsigned int>;
 template struct unsigned_writer_t<unsigned long>;
@@ -72,9 +66,9 @@ template struct unsigned_writer_t<unsigned long long>;
 template<typename T>
 signed_writer_t<T>::signed_writer_t(result_t<void>& result, bound_outbuf_t& buf)
 : result_(result)
-, positive_prefix_writer_(*this, &signed_writer_t::on_failure, buf)
-, negative_prefix_writer_(*this, &signed_writer_t::on_failure, buf)
-, digits_writer_(*this, &signed_writer_t::on_failure, buf)
+, positive_prefix_writer_(*this, result_, buf)
+, negative_prefix_writer_(*this, result_, buf)
+, digits_writer_(*this, result_, buf)
 , unsigned_value_()
 { }
 
@@ -108,12 +102,6 @@ template<typename T>
 void signed_writer_t<T>::on_digits_written()
 {
   result_.submit();
-}
-
-template<typename T>
-void signed_writer_t<T>::on_failure(std::exception_ptr ex)
-{
-  result_.fail(std::move(ex));
 }
 
 template struct signed_writer_t<short>;

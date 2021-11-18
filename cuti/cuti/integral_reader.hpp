@@ -27,7 +27,6 @@
 #include "result.hpp"
 #include "subroutine.hpp"
 
-#include <exception>
 #include <type_traits>
 
 namespace cuti
@@ -53,7 +52,6 @@ struct CUTI_ABI unsigned_reader_t
 private :
   void on_begin_token(int c);
   void on_digits_read(T value);
-  void on_failure(std::exception_ptr ex);
 
 private :
   result_t<T>& result_;
@@ -86,8 +84,7 @@ private :
 
   void on_begin_token(int c);
   void on_digits_read(UT unsigned_value);
-  void on_failure(std::exception_ptr ex);
-    
+
 private :
   result_t<T>& result_;
   bound_inbuf_t& buf_;

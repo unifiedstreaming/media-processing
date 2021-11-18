@@ -29,7 +29,6 @@
 #include "writer_utils.hpp"
 
 #include <cstddef>
-#include <exception>
 #include <utility>
 #include <vector>
 
@@ -46,9 +45,9 @@ struct vector_writer_t
 
   vector_writer_t(result_t<void>& result, bound_outbuf_t& buf)
   : result_(result)
-  , begin_writer_(*this, &vector_writer_t::on_exception, buf)
-  , element_writer_(*this, &vector_writer_t::on_exception, buf)
-  , end_writer_(*this, &vector_writer_t::on_exception, buf)
+  , begin_writer_(*this, result_, buf)
+  , element_writer_(*this, result_, buf)
+  , end_writer_(*this, result_, buf)
   , value_()
   , first_()
   , last_()
@@ -85,11 +84,6 @@ private :
   {
     value_.clear();
     result_.submit();
-  }
-
-  void on_exception(std::exception_ptr ex)
-  {
-    result_.fail(std::move(ex));
   }
 
 private :

@@ -27,7 +27,6 @@
 #include "writer_traits.hpp"
 #include "writer_utils.hpp"
 
-#include <exception>
 #include <type_traits>
 
 namespace cuti
@@ -61,7 +60,6 @@ struct CUTI_ABI unsigned_writer_t
 private :
   void on_prefix_written();
   void on_digits_written();
-  void on_failure(std::exception_ptr ex);
 
 private :
   result_t<void>& result_;
@@ -96,7 +94,6 @@ private :
 
   void on_prefix_written();
   void on_digits_written();
-  void on_failure(std::exception_ptr ex);
 
 private :
   result_t<void>& result_;

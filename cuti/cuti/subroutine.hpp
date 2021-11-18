@@ -32,14 +32,16 @@ namespace cuti
  * subroutine_t links a single asynchronous child routine to some
  * invoking parent.
  */
-template<typename Parent, typename Child>
+template<typename Parent,
+         typename Child,
+         failure_mode_t Mode = failure_mode_t::forward_upwards>
 struct subroutine_t
 {
   using result_value_t = typename Child::result_value_t;
   using on_success_t =
-    typename subresult_t<Parent, result_value_t>::on_success_t;
+    typename subresult_t<Parent, result_value_t, Mode>::on_success_t;
   using on_failure_t =
-    typename subresult_t<Parent, result_value_t>::on_failure_t;
+    typename subresult_t<Parent, result_value_t, Mode>::on_failure_t;
   
   template<typename... ChildArgs>
   subroutine_t(Parent& parent,
@@ -60,7 +62,7 @@ struct subroutine_t
   }
     
 private :
-  subresult_t<Parent, result_value_t> subresult_;
+  subresult_t<Parent, result_value_t, Mode> subresult_;
   Child child_;
 };
 

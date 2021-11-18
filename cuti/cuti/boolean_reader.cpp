@@ -34,7 +34,7 @@ template<typename T>
 boolean_reader_t<T>::boolean_reader_t(result_t<T>& result, bound_inbuf_t& buf)
 : result_(result)
 , buf_(buf)
-, finder_(*this, &boolean_reader_t::on_failure, buf_)
+, finder_(*this, result_, buf_)
 { }
 
 template<typename T>
@@ -67,12 +67,6 @@ void boolean_reader_t<T>::on_begin_token(int c)
   result_.submit(value);
 }
   
-template<typename T>
-void boolean_reader_t<T>::on_failure(std::exception_ptr ex)
-{
-  result_.fail(std::move(ex));
-}
-
 template struct boolean_reader_t<bool>;
 template struct boolean_reader_t<flag_t>;
 
