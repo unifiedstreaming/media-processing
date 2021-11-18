@@ -71,10 +71,10 @@ private :
   {
     if(first_ != last_)
     {
-      T elem = std::move(*first_);
+      auto pos = first_;
       ++first_;
       element_writer_.start(
-        &vector_writer_t::write_elements, std::move(elem));
+        &vector_writer_t::write_elements, std::move(*pos));
       return;
     }
 
