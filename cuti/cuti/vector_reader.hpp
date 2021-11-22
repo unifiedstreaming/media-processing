@@ -74,27 +74,13 @@ private :
     }
     buf_.skip();
 
-    this->read_elements();
+    skipper_.start(&vector_reader_t::check_for_element);
   }
 
-  void read_elements()
+  void check_for_element(int c)
   {
-    int c{};
-    while(buf_.readable() && is_whitespace(c = buf_.peek()))
-    {
-      /*
-       * Direct whitespace skipping (not using a whitespace skipper)
-       * is OK here because the element reader should use a whitespace
-       * skipper to check for inline exceptions in buf_.
-       */
-      buf_.skip();
-    }
-
-    if(!buf_.readable())
-    {
-      buf_.call_when_readable([this] { this->read_elements(); });
-      return;
-    }
+    assert(buf_.readable());
+    assert(buf_.peek() == c);
 
     switch(c)
     {
@@ -120,11 +106,12 @@ private :
     stack_marker_t marker;
     if(marker.in_range(buf_.base_marker()))
     {
-      this->read_elements();
+      skipper_.start(&vector_reader_t::check_for_element);
       return;
     }
 
-    buf_.call_when_readable([this] { this->read_elements(); });
+    buf_.call_when_readable([this]
+      { this->skipper_.start(&vector_reader_t::check_for_element); });
   }
 
 private :
