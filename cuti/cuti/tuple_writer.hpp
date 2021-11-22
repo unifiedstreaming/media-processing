@@ -37,6 +37,23 @@ namespace cuti
 namespace detail
 {
 
+extern CUTI_ABI char const tuple_prefix[];
+extern CUTI_ABI char const tuple_suffix[];
+
+} // detail
+
+using begin_tuple_writer_t =
+  detail::literal_writer_t<detail::tuple_prefix>;
+
+template<typename T>
+using tuple_element_writer_t = detail::element_writer_t<T>;
+
+using end_tuple_writer_t =
+  detail::literal_writer_t<detail::tuple_suffix>;
+
+namespace detail
+{
+
 template<typename T,
          typename = std::make_index_sequence<std::tuple_size_v<T>>>
 struct tuple_elements_writer_t;
@@ -91,19 +108,7 @@ struct tuple_elements_writer_t<T, std::index_sequence<First, Rest...>>
 private :
   void on_element_written()
   {
-    stack_marker_t marker;
-    if(marker.in_range(buf_.base_marker()))
-    {
-      delegate_.start(
-        &tuple_elements_writer_t::on_delegate_done, *value_);
-      return;
-    }
-
-    buf_.call_when_writable([this]
-    {
-      this->delegate_.start(
-        &tuple_elements_writer_t::on_delegate_done, *this->value_);
-    });
+    delegate_.start(&tuple_elements_writer_t::on_delegate_done, *value_);
   }
 
   void on_delegate_done()
@@ -114,14 +119,12 @@ private :
 private :
   result_t<void>& result_;
   bound_outbuf_t& buf_;
-  subroutine_t<tuple_elements_writer_t, writer_t<element_t>> element_writer_;
+  subroutine_t<tuple_elements_writer_t, tuple_element_writer_t<element_t>>
+    element_writer_;
   subroutine_t<tuple_elements_writer_t, delegate_t> delegate_;
 
   T* value_;
 };
-
-extern CUTI_ABI char const tuple_prefix[];
-extern CUTI_ABI char const tuple_suffix[];
 
 template<typename T>
 struct tuple_writer_t
@@ -163,9 +166,9 @@ private :
 
 private :
   result_t<void>& result_;
-  subroutine_t<tuple_writer_t, literal_writer_t<tuple_prefix>> prefix_writer_;
+  subroutine_t<tuple_writer_t, begin_tuple_writer_t> prefix_writer_;
   subroutine_t<tuple_writer_t, tuple_elements_writer_t<T>> elements_writer_;
-  subroutine_t<tuple_writer_t, literal_writer_t<tuple_suffix>> suffix_writer_;
+  subroutine_t<tuple_writer_t, end_tuple_writer_t> suffix_writer_;
 
   T value_;
 };
