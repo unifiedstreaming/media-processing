@@ -140,7 +140,7 @@ template<typename T>
 blob_reader_t<T>::blob_reader_t(result_t<T>& result, bound_inbuf_t& buf)
 : result_(result)
 , buf_(buf)
-, skipper_(*this, result_, buf_)
+, leading_dq_reader_(*this, result_, buf_)
 , hex_digits_reader_(*this, result_, buf_)
 , value_()
 { }
@@ -149,24 +149,7 @@ template<typename T>
 void blob_reader_t<T>::start()
 {
   value_.clear();
-
-  skipper_.start(&blob_reader_t::on_whitespace_skipped);
-}
-
-template<typename T>
-void blob_reader_t<T>::on_whitespace_skipped(int c)
-{
-  assert(buf_.readable());
-  assert(buf_.peek() == c);
-
-  if(c != '\"')
-  {
-    result_.fail(parse_error_t("opening double quote (\'\"\') expected"));
-    return;
-  }
-  buf_.skip();
-
-  this->read_contents();
+  leading_dq_reader_.start(&blob_reader_t::read_contents);
 }
 
 template<typename T>

@@ -29,26 +29,26 @@ namespace cuti
 {
 
 CUTI_ABI
-inline bool is_whitespace(int c)
+inline constexpr bool is_whitespace(int c)
 {
   return c == '\t' || c == '\r' || c == ' ';
 }
 
 CUTI_ABI
-inline bool is_printable(int c)
+inline constexpr bool is_printable(int c)
 {
   return c >= 0x20 && c <= 0x7E;
 }
 
 CUTI_ABI
-inline int digit_value(int c)
+inline constexpr int digit_value(int c)
 {
   return c >= '0' && c <= '9' ? c - '0' :
          -1;
 }
 
 CUTI_ABI
-inline int hex_digit_value(int c)
+inline constexpr int hex_digit_value(int c)
 {
   return c >= '0' && c <= '9' ? c - '0' :
          c >= 'A' && c <= 'F' ? c - 'A' + 10 :

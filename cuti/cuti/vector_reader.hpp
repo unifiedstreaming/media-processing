@@ -50,7 +50,8 @@ struct vector_reader_t
   vector_reader_t(result_t<std::vector<T>>& result, bound_inbuf_t& buf)
   : result_(result)
   , buf_(buf)
-  , skipper_(*this, result_, buf)
+  , begin_reader_(*this, result_, buf)
+  , end_sensor_(*this, result_, buf)
   , element_reader_(*this, result_, buf)
   , value_()
   { }
@@ -58,66 +59,45 @@ struct vector_reader_t
   void start()
   {
     value_.clear();
-    skipper_.start(&vector_reader_t::on_leading_whitespace_skipped);
+    begin_reader_.start(&vector_reader_t::read_elements);
   }
 
 private :
-  void on_leading_whitespace_skipped(int c)
+  void read_elements()
   {
-    assert(buf_.readable());
-    assert(buf_.peek() == c);
-
-    if(c != '[')
-    {
-      result_.fail(parse_error_t("\'[\' expected"));
-      return;
-    }
-    buf_.skip();
-
-    skipper_.start(&vector_reader_t::check_for_element);
+    end_sensor_.start(&vector_reader_t::on_end_sensor);
   }
 
-  void check_for_element(int c)
+  void on_end_sensor(bool at_end)
   {
-    assert(buf_.readable());
-    assert(buf_.peek() == c);
-
-    switch(c)
+    if(!at_end)
     {
-    case ']' :
-      break;
-    case eof :
-    case '\n' :
-      result_.fail(parse_error_t("missing \']\' at end of sequence"));
-      return;
-    default :
-      element_reader_.start(&vector_reader_t::on_element_read);
+      element_reader_.start(&vector_reader_t::on_element);
       return;
     }
       
-    buf_.skip();
     result_.submit(std::move(value_));
   }
     
-  void on_element_read(T element)
+  void on_element(T element)
   {
     value_.push_back(std::move(element));
 
     stack_marker_t marker;
     if(marker.in_range(buf_.base_marker()))
     {
-      skipper_.start(&vector_reader_t::check_for_element);
+      this->read_elements();
       return;
     }
 
-    buf_.call_when_readable([this]
-      { this->skipper_.start(&vector_reader_t::check_for_element); });
+    buf_.call_when_readable([this] { this->read_elements(); });
   }
 
 private :
   result_t<std::vector<T>>& result_;
   bound_inbuf_t& buf_;
-  subroutine_t<vector_reader_t, whitespace_skipper_t> skipper_;
+  subroutine_t<vector_reader_t, expected_reader_t<'['>> begin_reader_;
+  subroutine_t<vector_reader_t, sensor_t<']'>> end_sensor_;
   subroutine_t<vector_reader_t, reader_t<T>> element_reader_;
 
   std::vector<T> value_;

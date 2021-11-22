@@ -130,9 +130,9 @@ struct tuple_reader_t
 
   tuple_reader_t(result_t<T>& result, bound_inbuf_t& buf)
   : result_(result)
-  , buf_(buf)
-  , skipper_(*this, result_, buf_)
-  , elements_reader_(*this, result_, buf_)
+  , begin_reader_(*this, result_, buf)
+  , elements_reader_(*this, result_, buf)
+  , end_reader_(*this, result_, buf)
   , value_()
   { }
 
@@ -141,50 +141,30 @@ struct tuple_reader_t
 
   void start()
   {
-    skipper_.start(&tuple_reader_t::on_leading_whitespace_skipped);
+    begin_reader_.start(&tuple_reader_t::on_begin_read);
   }
 
 private :
-  void on_leading_whitespace_skipped(int c)
+  void on_begin_read()
   {
-    assert(buf_.readable());
-    assert(buf_.peek() == c);
-
-    if(c != '{')
-    {
-      result_.fail(parse_error_t("\'{\' expected"));
-      return;
-    }
-    buf_.skip();
-
     elements_reader_.start(&tuple_reader_t::on_elements_read, value_);
   }
 
   void on_elements_read()
   {
-    skipper_.start(&tuple_reader_t::on_trailing_whitespace_skipped);
+    end_reader_.start(&tuple_reader_t::on_end_read);
   }
 
-  void on_trailing_whitespace_skipped(int c)
+  void on_end_read()
   {
-    assert(buf_.readable());
-    assert(buf_.peek() == c);
-
-    if(c != '}')
-    {
-      result_.fail(parse_error_t("\'}\' expected"));
-      return;
-    }
-    buf_.skip();
-
     result_.submit(std::move(value_));
   }
 
 private :
   result_t<T>& result_;
-  bound_inbuf_t& buf_;
-  subroutine_t<tuple_reader_t, whitespace_skipper_t> skipper_;
+  subroutine_t<tuple_reader_t, expected_reader_t<'{'>> begin_reader_;
   subroutine_t<tuple_reader_t, tuple_elements_reader_t<T>> elements_reader_;
+  subroutine_t<tuple_reader_t, expected_reader_t<'}'>> end_reader_;
 
   T value_;
 };

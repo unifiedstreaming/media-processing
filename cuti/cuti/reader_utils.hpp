@@ -22,10 +22,13 @@
 
 #include "bound_inbuf.hpp"
 #include "charclass.hpp"
+#include "eof.hpp"
 #include "linkage.h"
+#include "parse_error.hpp"
 #include "result.hpp"
 #include "subroutine.hpp"
 
+#include <cassert>
 #include <cstddef>
 #include <string>
 #include <type_traits>
@@ -70,14 +73,113 @@ struct CUTI_ABI whitespace_skipper_t
       return;
     }
 
-    // TODO: check for inline exception in buf_ and fail if so 
-
     result_.submit(c);
   }
 
 private :
   result_t<int>& result_;
   bound_inbuf_t& buf_;
+};
+
+template<int C>
+struct sensor_t
+{
+  using result_value_t = bool;
+
+  sensor_t(result_t<bool>& result, bound_inbuf_t& buf)
+  : result_(result)
+  , buf_(buf)
+  , skipper_(*this, result_, buf_)
+  { }
+
+  sensor_t(sensor_t const&) = delete;
+  sensor_t& operator=(sensor_t const&) = delete;
+
+  /*
+   * Skips whitespace, eventually submitting true if C is found (and
+   * skipped) or false if something else is found (and not skipped).
+   */
+  void start()
+  {
+    skipper_.start(&sensor_t::on_whitespace_skipped);
+  }
+
+private :
+  void on_whitespace_skipped(int c)
+  {
+    assert(buf_.readable());
+    assert(buf_.peek() == c);
+
+    if(c != C)
+    {
+      result_.submit(false);
+      return;
+    }
+
+    if constexpr(C != eof)
+    {
+      buf_.skip();
+    }
+
+    result_.submit(true);
+  }
+
+private :
+  result_t<bool>& result_;
+  bound_inbuf_t& buf_;
+  subroutine_t<sensor_t, whitespace_skipper_t> skipper_;
+};
+
+template<int C>
+struct expected_reader_t
+{
+  using result_value_t = void;
+
+  expected_reader_t(result_t<void>& result, bound_inbuf_t& buf)
+  : result_(result)
+  , sensor_(*this, result_, buf)
+  { }
+
+  expected_reader_t(expected_reader_t const&) = delete;
+  expected_reader_t& operator=(expected_reader_t const&) = delete;
+
+  /*
+   * Skips whitespace, checks for C, then submits with C skipped, or
+   * fails.
+   */
+  void start()
+  {
+    sensor_.start(&expected_reader_t::on_sensor);
+  }
+
+private :
+  void on_sensor(bool match)
+  {
+    if(!match)
+    {
+      if constexpr(C == eof)
+      {
+        result_.fail(parse_error_t("eof expected"));
+      }
+      else if constexpr(is_printable(C))
+      {
+        result_.fail(parse_error_t(std::string("\'") +
+          static_cast<char>(C) + "\' expected"));
+      }
+      else
+      {
+        result_.fail(parse_error_t("char (" +
+          std::to_string(C) + ") expected"));
+      }
+      return;
+    }
+      
+    result_.submit();
+  }
+
+private :
+  result_t<void>& result_;
+  subroutine_t<expected_reader_t, sensor_t<C>> sensor_;
 };
 
 template<typename T>
@@ -138,7 +240,7 @@ struct CUTI_ABI blob_reader_t
                 std::is_same_v<T, std::vector<char>> ||
                 std::is_same_v<T, std::vector<signed char>> ||
                 std::is_same_v<T, std::vector<unsigned char>>);
-		
+
   using result_value_t = T;
 
   blob_reader_t(result_t<T>& result, bound_inbuf_t& buf);
@@ -149,7 +251,6 @@ struct CUTI_ABI blob_reader_t
   void start();
 
 private :
-  void on_whitespace_skipped(int c);
   void read_contents();
   void read_escaped();
   void on_hex_digits(int c);
@@ -157,7 +258,7 @@ private :
 private :
   result_t<T>& result_;
   bound_inbuf_t& buf_;
-  subroutine_t<blob_reader_t, whitespace_skipper_t> skipper_;
+  subroutine_t<blob_reader_t, expected_reader_t<'\"'>> leading_dq_reader_;
   subroutine_t<blob_reader_t, hex_digits_reader_t> hex_digits_reader_;
 
   T value_;
