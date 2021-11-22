@@ -126,6 +126,7 @@ lib cuti
   select_selector.cpp
   selector.cpp
   selector_factory.cpp
+  sequence_reader.cpp
   sequence_writer.cpp
   service.cpp
   signal_handler.cpp

@@ -27,6 +27,7 @@
 #include "reader_traits.hpp"
 #include "reader_utils.hpp"
 #include "result.hpp"
+#include "sequence_reader.hpp"
 #include "subroutine.hpp"
 
 #include <cassert>
@@ -84,9 +85,9 @@ private :
 
 private :
   result_t<std::vector<T>>& result_;
-  subroutine_t<vector_reader_t, expected_reader_t<'['>> begin_reader_;
-  subroutine_t<vector_reader_t, sensor_t<']'>> end_sensor_;
-  subroutine_t<vector_reader_t, element_reader_t<T>> element_reader_;
+  subroutine_t<vector_reader_t, begin_sequence_reader_t> begin_reader_;
+  subroutine_t<vector_reader_t, end_sequence_sensor_t> end_sensor_;
+  subroutine_t<vector_reader_t, sequence_element_reader_t<T>> element_reader_;
 
   std::vector<T> value_;
 };

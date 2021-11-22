@@ -35,6 +35,12 @@
 namespace cuti
 {
 
+using begin_tuple_reader_t = detail::expected_reader_t<'{'>;
+using end_tuple_reader_t = detail::expected_reader_t<'}'>;
+
+template<typename T>
+using tuple_element_reader_t = detail::element_reader_t<T>;
+
 namespace detail
 {
 
@@ -101,7 +107,7 @@ private :
 
 private :
   result_t<void>& result_;
-  subroutine_t<tuple_elements_reader_t, element_reader_t<element_t>>
+  subroutine_t<tuple_elements_reader_t, tuple_element_reader_t<element_t>>
     element_reader_;
   subroutine_t<tuple_elements_reader_t, delegate_t> delegate_;
 
@@ -147,9 +153,9 @@ private :
 
 private :
   result_t<T>& result_;
-  subroutine_t<tuple_reader_t, expected_reader_t<'{'>> begin_reader_;
+  subroutine_t<tuple_reader_t, begin_tuple_reader_t> begin_reader_;
   subroutine_t<tuple_reader_t, tuple_elements_reader_t<T>> elements_reader_;
-  subroutine_t<tuple_reader_t, expected_reader_t<'}'>> end_reader_;
+  subroutine_t<tuple_reader_t, end_tuple_reader_t> end_reader_;
 
   T value_;
 };
