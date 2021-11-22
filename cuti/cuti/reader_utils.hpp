@@ -25,6 +25,8 @@
 #include "linkage.h"
 #include "parse_error.hpp"
 #include "result.hpp"
+#include "reader_traits.hpp"
+#include "stack_marker.hpp"
 #include "subroutine.hpp"
 
 #include <cassert>
@@ -267,6 +269,48 @@ extern template struct blob_reader_t<std::string>;
 extern template struct blob_reader_t<std::vector<char>>;
 extern template struct blob_reader_t<std::vector<signed char>>;
 extern template struct blob_reader_t<std::vector<unsigned char>>;
+
+/*
+ * Reader for sequence and tuple elements avoiding stack overflow  
+ */
+template<typename T>
+struct element_reader_t
+{
+  using result_value_t = T;
+
+  element_reader_t(result_t<T>& result, bound_inbuf_t& buf)
+  : result_(result)
+  , buf_(buf)
+  , delegate_(*this, result_, buf_)
+  { }
+
+  element_reader_t(element_reader_t const&) = delete;
+  element_reader_t& operator=(element_reader_t const&) = delete;
+
+  void start()
+  {
+    stack_marker_t marker;
+    if(marker.in_range(buf_.base_marker()))
+    {
+      delegate_.start(&element_reader_t::on_delegate_done);
+      return;
+    }
+
+    buf_.call_when_readable([this]
+      { this->delegate_.start(&element_reader_t::on_delegate_done); });
+  }
+
+private :
+  void on_delegate_done(T value)
+  {
+    result_.submit(std::move(value));
+  }
+
+private :
+  result_t<T>& result_;
+  bound_inbuf_t& buf_;
+  subroutine_t<element_reader_t, reader_t<T>> delegate_;
+};
 
 } // detail
 

@@ -25,7 +25,6 @@
 #include "reader_traits.hpp"
 #include "reader_utils.hpp"
 #include "result.hpp"
-#include "stack_marker.hpp"
 #include "subroutine.hpp"
 
 #include <cassert>
@@ -74,9 +73,8 @@ struct tuple_elements_reader_t<T, std::index_sequence<First, Rest...>>
 
   tuple_elements_reader_t(result_t<void>& result, bound_inbuf_t& buf)
   : result_(result)
-  , buf_(buf)
-  , element_reader_(*this, result_, buf_)
-  , delegate_(*this, result_, buf_)
+  , element_reader_(*this, result_, buf)
+  , delegate_(*this, result_, buf)
   , value_()
   { }
 
@@ -93,20 +91,7 @@ private :
   void on_element_read(element_t element)
   {
     std::get<First>(*value_) = std::move(element);
-
-    stack_marker_t marker;
-    if(marker.in_range(buf_.base_marker()))
-    {
-      delegate_.start(
-        &tuple_elements_reader_t::on_delegate_done, *value_);
-      return;
-    }
-
-    buf_.call_when_readable([this]
-    {
-      this->delegate_.start(
-        &tuple_elements_reader_t::on_delegate_done, *this->value_);
-    });
+    delegate_.start(&tuple_elements_reader_t::on_delegate_done, *value_);
   }
 
   void on_delegate_done()
@@ -116,8 +101,8 @@ private :
 
 private :
   result_t<void>& result_;
-  bound_inbuf_t& buf_;
-  subroutine_t<tuple_elements_reader_t, reader_t<element_t>> element_reader_;
+  subroutine_t<tuple_elements_reader_t, element_reader_t<element_t>>
+    element_reader_;
   subroutine_t<tuple_elements_reader_t, delegate_t> delegate_;
 
   T* value_;

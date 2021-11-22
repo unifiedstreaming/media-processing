@@ -27,7 +27,6 @@
 #include "reader_traits.hpp"
 #include "reader_utils.hpp"
 #include "result.hpp"
-#include "stack_marker.hpp"
 #include "subroutine.hpp"
 
 #include <cassert>
@@ -48,7 +47,6 @@ struct vector_reader_t
 
   vector_reader_t(result_t<std::vector<T>>& result, bound_inbuf_t& buf)
   : result_(result)
-  , buf_(buf)
   , begin_reader_(*this, result_, buf)
   , end_sensor_(*this, result_, buf)
   , element_reader_(*this, result_, buf)
@@ -81,23 +79,14 @@ private :
   void on_element(T element)
   {
     value_.push_back(std::move(element));
-
-    stack_marker_t marker;
-    if(marker.in_range(buf_.base_marker()))
-    {
-      this->read_elements();
-      return;
-    }
-
-    buf_.call_when_readable([this] { this->read_elements(); });
+    this->read_elements();
   }
 
 private :
   result_t<std::vector<T>>& result_;
-  bound_inbuf_t& buf_;
   subroutine_t<vector_reader_t, expected_reader_t<'['>> begin_reader_;
   subroutine_t<vector_reader_t, sensor_t<']'>> end_sensor_;
-  subroutine_t<vector_reader_t, reader_t<T>> element_reader_;
+  subroutine_t<vector_reader_t, element_reader_t<T>> element_reader_;
 
   std::vector<T> value_;
 };
