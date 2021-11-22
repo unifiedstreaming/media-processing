@@ -82,7 +82,6 @@ lib cuti
   default_scheduler.cpp
   dispatcher.cpp
   endpoint.cpp
-  eof.cpp
   eof_checker.cpp
   epoll_selector.cpp
   exception_builder.cpp

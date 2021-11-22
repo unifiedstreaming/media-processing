@@ -18,7 +18,8 @@
  */
 
 #include "config_file_reader.hpp"
-#include "eof.hpp"
+
+#include "charclass.hpp"
 #include "system_error.hpp"
 
 #include <utility>

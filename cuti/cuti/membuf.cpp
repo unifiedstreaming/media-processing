@@ -18,7 +18,8 @@
  */
 
 #include "membuf.hpp"
-#include "eof.hpp"
+
+#include "charclass.hpp"
 
 #include <algorithm>
 

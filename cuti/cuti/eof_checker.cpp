@@ -19,7 +19,7 @@
 
 #include "eof_checker.hpp"
 
-#include "eof.hpp"
+#include "charclass.hpp"
 #include "parse_error.hpp"
 
 namespace cuti

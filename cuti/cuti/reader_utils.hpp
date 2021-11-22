@@ -22,7 +22,6 @@
 
 #include "bound_inbuf.hpp"
 #include "charclass.hpp"
-#include "eof.hpp"
 #include "linkage.h"
 #include "parse_error.hpp"
 #include "result.hpp"

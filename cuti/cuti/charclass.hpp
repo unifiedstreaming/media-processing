@@ -22,11 +22,15 @@
 
 #include "linkage.h"
 
+#include <string>
+
 /*
  * Some character (classification) utilities
  */
 namespace cuti
 {
+
+auto inline constexpr eof = std::char_traits<char>::eof();
 
 CUTI_ABI
 inline constexpr bool is_whitespace(int c)

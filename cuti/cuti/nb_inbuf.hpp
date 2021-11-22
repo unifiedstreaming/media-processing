@@ -21,7 +21,7 @@
 #define CUTI_NB_INBUF_HPP_
 
 #include "callback.hpp"
-#include "eof.hpp"
+#include "charclass.hpp"
 #include "linkage.h"
 #include "nb_source.hpp"
 #include "nb_tickets_holder.hpp"

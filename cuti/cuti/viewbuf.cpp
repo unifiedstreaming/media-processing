@@ -19,7 +19,7 @@
 
 #include "viewbuf.hpp"
 
-#include "eof.hpp"
+#include "charclass.hpp"
 
 namespace cuti
 {
