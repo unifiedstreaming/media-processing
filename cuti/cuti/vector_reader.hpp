@@ -50,7 +50,7 @@ struct vector_reader_t
   vector_reader_t(result_t<std::vector<T>>& result, bound_inbuf_t& buf)
   : result_(result)
   , buf_(buf)
-  , finder_(*this, result_, buf)
+  , skipper_(*this, result_, buf)
   , element_reader_(*this, result_, buf)
   , value_()
   { }
@@ -58,11 +58,11 @@ struct vector_reader_t
   void start()
   {
     value_.clear();
-    finder_.start(&vector_reader_t::on_begin_token);
+    skipper_.start(&vector_reader_t::on_leading_whitespace_skipped);
   }
 
 private :
-  void on_begin_token(int c)
+  void on_leading_whitespace_skipped(int c)
   {
     assert(buf_.readable());
     assert(buf_.peek() == c);
@@ -83,9 +83,9 @@ private :
     while(buf_.readable() && is_whitespace(c = buf_.peek()))
     {
       /*
-       * Direct whitespace skipping (not using a token finder) is OK
-       * here because the element reader should use a token finder to
-       * check for inline exceptions in buf_.
+       * Direct whitespace skipping (not using a whitespace skipper)
+       * is OK here because the element reader should use a whitespace
+       * skipper to check for inline exceptions in buf_.
        */
       buf_.skip();
     }
@@ -130,7 +130,7 @@ private :
 private :
   result_t<std::vector<T>>& result_;
   bound_inbuf_t& buf_;
-  subroutine_t<vector_reader_t, token_finder_t> finder_;
+  subroutine_t<vector_reader_t, whitespace_skipper_t> skipper_;
   subroutine_t<vector_reader_t, reader_t<T>> element_reader_;
 
   std::vector<T> value_;

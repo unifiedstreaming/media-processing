@@ -34,17 +34,17 @@ template<typename T>
 boolean_reader_t<T>::boolean_reader_t(result_t<T>& result, bound_inbuf_t& buf)
 : result_(result)
 , buf_(buf)
-, finder_(*this, result_, buf_)
+, skipper_(*this, result_, buf_)
 { }
 
 template<typename T>
 void boolean_reader_t<T>::start()
 {
-  finder_.start(&boolean_reader_t::on_begin_token);
+  skipper_.start(&boolean_reader_t::on_whitespace_skipped);
 }
 
 template<typename T>
-void boolean_reader_t<T>::on_begin_token(int c)
+void boolean_reader_t<T>::on_whitespace_skipped(int c)
 {
   assert(buf_.readable());
   assert(buf_.peek() == c);

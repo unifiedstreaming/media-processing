@@ -31,18 +31,18 @@ template<typename T>
 unsigned_reader_t<T>::unsigned_reader_t(result_t<T>& result,
                                         bound_inbuf_t& buf)
 : result_(result)
-, finder_(*this, result_, buf)
+, skipper_(*this, result_, buf)
 , digits_reader_(*this, result_, buf)
 { }
 
 template<typename T>
 void unsigned_reader_t<T>::start()
 {
-  finder_.start(&unsigned_reader_t::on_begin_token);
+  skipper_.start(&unsigned_reader_t::on_whitespace_skipped);
 }
 
 template<typename T>
-void unsigned_reader_t<T>::on_begin_token(int)
+void unsigned_reader_t<T>::on_whitespace_skipped(int)
 {
   digits_reader_.start(
     &unsigned_reader_t::on_digits_read, std::numeric_limits<T>::max());
@@ -63,7 +63,7 @@ template<typename T>
 signed_reader_t<T>::signed_reader_t(result_t<T>& result, bound_inbuf_t& buf)
 : result_(result)
 , buf_(buf)
-, finder_(*this, result_, buf_)
+, skipper_(*this, result_, buf_)
 , digits_reader_(*this, result_, buf_)
 , negative_()
 { }
@@ -72,11 +72,11 @@ template<typename T>
 void signed_reader_t<T>::start()
 {
   negative_ = false;
-  finder_.start(&signed_reader_t::on_begin_token);
+  skipper_.start(&signed_reader_t::on_whitespace_skipped);
 }
 
 template<typename T>
-void signed_reader_t<T>::on_begin_token(int c)
+void signed_reader_t<T>::on_whitespace_skipped(int c)
 {
   assert(buf_.readable());
   assert(c == buf_.peek());

@@ -38,17 +38,17 @@ namespace cuti
 namespace detail
 {
 
-struct CUTI_ABI token_finder_t
+struct CUTI_ABI whitespace_skipper_t
 {
   using result_value_t = int;
 
-  token_finder_t(result_t<int>& result, bound_inbuf_t& buf)
+  whitespace_skipper_t(result_t<int>& result, bound_inbuf_t& buf)
   : result_(result)
   , buf_(buf)
   { }
 
-  token_finder_t(token_finder_t const&) = delete;
-  token_finder_t& operator=(token_finder_t const&) = delete;
+  whitespace_skipper_t(whitespace_skipper_t const&) = delete;
+  whitespace_skipper_t& operator=(whitespace_skipper_t const&) = delete;
 
   /*
    * Skips whitespace and eventually submits the first non-whitespace
@@ -149,7 +149,7 @@ struct CUTI_ABI blob_reader_t
   void start();
 
 private :
-  void on_begin_token(int c);
+  void on_whitespace_skipped(int c);
   void read_contents();
   void read_escaped();
   void on_hex_digits(int c);
@@ -157,7 +157,7 @@ private :
 private :
   result_t<T>& result_;
   bound_inbuf_t& buf_;
-  subroutine_t<blob_reader_t, token_finder_t> finder_;
+  subroutine_t<blob_reader_t, whitespace_skipper_t> skipper_;
   subroutine_t<blob_reader_t, hex_digits_reader_t> hex_digits_reader_;
 
   T value_;

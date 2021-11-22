@@ -47,12 +47,12 @@ struct CUTI_ABI boolean_reader_t
   void start();
 
 private :
-  void on_begin_token(int c);
+  void on_whitespace_skipped(int c);
 
 private :
   result_t<T>& result_;
   bound_inbuf_t& buf_;
-  subroutine_t<boolean_reader_t, token_finder_t> finder_;
+  subroutine_t<boolean_reader_t, whitespace_skipper_t> skipper_;
 };
 
 extern template struct boolean_reader_t<bool>;

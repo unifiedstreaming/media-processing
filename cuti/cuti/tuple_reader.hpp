@@ -131,7 +131,7 @@ struct tuple_reader_t
   tuple_reader_t(result_t<T>& result, bound_inbuf_t& buf)
   : result_(result)
   , buf_(buf)
-  , finder_(*this, result_, buf_)
+  , skipper_(*this, result_, buf_)
   , elements_reader_(*this, result_, buf_)
   , value_()
   { }
@@ -141,11 +141,11 @@ struct tuple_reader_t
 
   void start()
   {
-    finder_.start(&tuple_reader_t::on_first_token);
+    skipper_.start(&tuple_reader_t::on_leading_whitespace_skipped);
   }
 
 private :
-  void on_first_token(int c)
+  void on_leading_whitespace_skipped(int c)
   {
     assert(buf_.readable());
     assert(buf_.peek() == c);
@@ -162,10 +162,10 @@ private :
 
   void on_elements_read()
   {
-    finder_.start(&tuple_reader_t::on_last_token);
+    skipper_.start(&tuple_reader_t::on_trailing_whitespace_skipped);
   }
 
-  void on_last_token(int c)
+  void on_trailing_whitespace_skipped(int c)
   {
     assert(buf_.readable());
     assert(buf_.peek() == c);
@@ -183,7 +183,7 @@ private :
 private :
   result_t<T>& result_;
   bound_inbuf_t& buf_;
-  subroutine_t<tuple_reader_t, token_finder_t> finder_;
+  subroutine_t<tuple_reader_t, whitespace_skipper_t> skipper_;
   subroutine_t<tuple_reader_t, tuple_elements_reader_t<T>> elements_reader_;
 
   T value_;

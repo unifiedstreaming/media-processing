@@ -50,12 +50,12 @@ struct CUTI_ABI unsigned_reader_t
   void start();
 
 private :
-  void on_begin_token(int c);
+  void on_whitespace_skipped(int c);
   void on_digits_read(T value);
 
 private :
   result_t<T>& result_;
-  subroutine_t<unsigned_reader_t, token_finder_t> finder_;
+  subroutine_t<unsigned_reader_t, whitespace_skipper_t> skipper_;
   subroutine_t<unsigned_reader_t, digits_reader_t<T>> digits_reader_;
 };
 
@@ -82,13 +82,13 @@ struct CUTI_ABI signed_reader_t
 private :
   using UT = std::make_unsigned_t<T>;
 
-  void on_begin_token(int c);
+  void on_whitespace_skipped(int c);
   void on_digits_read(UT unsigned_value);
 
 private :
   result_t<T>& result_;
   bound_inbuf_t& buf_;
-  subroutine_t<signed_reader_t, token_finder_t> finder_;
+  subroutine_t<signed_reader_t, whitespace_skipper_t> skipper_;
   subroutine_t<signed_reader_t, digits_reader_t<UT>> digits_reader_;
 
   bool negative_;
