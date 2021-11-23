@@ -24,6 +24,7 @@
 #include "result.hpp"
 #include "stack_marker.hpp"
 #include "subroutine.hpp"
+#include "structure_writer.hpp"
 #include "writer_traits.hpp"
 #include "writer_utils.hpp"
 
@@ -33,23 +34,6 @@
 
 namespace cuti
 {
-
-namespace detail
-{
-
-extern CUTI_ABI char const tuple_prefix[];
-extern CUTI_ABI char const tuple_suffix[];
-
-} // detail
-
-using begin_tuple_writer_t =
-  detail::literal_writer_t<detail::tuple_prefix>;
-
-template<typename T>
-using tuple_element_writer_t = detail::element_writer_t<T>;
-
-using end_tuple_writer_t =
-  detail::literal_writer_t<detail::tuple_suffix>;
 
 namespace detail
 {
@@ -119,7 +103,7 @@ private :
 private :
   result_t<void>& result_;
   bound_outbuf_t& buf_;
-  subroutine_t<tuple_elements_writer_t, tuple_element_writer_t<element_t>>
+  subroutine_t<tuple_elements_writer_t, structure_element_writer_t<element_t>>
     element_writer_;
   subroutine_t<tuple_elements_writer_t, delegate_t> delegate_;
 
@@ -166,9 +150,9 @@ private :
 
 private :
   result_t<void>& result_;
-  subroutine_t<tuple_writer_t, begin_tuple_writer_t> prefix_writer_;
+  subroutine_t<tuple_writer_t, begin_structure_writer_t> prefix_writer_;
   subroutine_t<tuple_writer_t, tuple_elements_writer_t<T>> elements_writer_;
-  subroutine_t<tuple_writer_t, end_tuple_writer_t> suffix_writer_;
+  subroutine_t<tuple_writer_t, end_structure_writer_t> suffix_writer_;
 
   T value_;
 };
