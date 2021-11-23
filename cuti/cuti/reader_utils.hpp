@@ -97,8 +97,10 @@ struct sensor_t
   sensor_t& operator=(sensor_t const&) = delete;
 
   /*
-   * Skips whitespace, eventually submitting true if C is found (and
-   * skipped) or false if something else is found (and not skipped).
+   * Skips whitespace, eventually submitting true if C is found, and
+   * false otherwise.  C is not skipped; at submit time,
+   * buf.readable() is true, and if true is submitted, buf.peek() ==
+   * C.
    */
   void start()
   {
@@ -111,18 +113,7 @@ private :
     assert(buf_.readable());
     assert(buf_.peek() == c);
 
-    if(c != C)
-    {
-      result_.submit(false);
-      return;
-    }
-
-    if constexpr(C != eof)
-    {
-      buf_.skip();
-    }
-
-    result_.submit(true);
+    result_.submit(c == C);
   }
 
 private :
@@ -138,7 +129,8 @@ struct expected_reader_t
 
   expected_reader_t(result_t<void>& result, bound_inbuf_t& buf)
   : result_(result)
-  , sensor_(*this, result_, buf)
+  , buf_(buf)
+  , sensor_(*this, result_, buf_)
   { }
 
   expected_reader_t(expected_reader_t const&) = delete;
@@ -174,12 +166,18 @@ private :
       }
       return;
     }
+
+    if constexpr(C != eof)
+    {
+      buf_.skip();
+    }
       
     result_.submit();
   }
 
 private :
   result_t<void>& result_;
+  bound_inbuf_t& buf_;
   subroutine_t<expected_reader_t, sensor_t<C>> sensor_;
 };
 

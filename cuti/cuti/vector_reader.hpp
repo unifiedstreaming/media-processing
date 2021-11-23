@@ -21,9 +21,7 @@
 #define CUTI_VECTOR_READER_HPP_
 
 #include "bound_inbuf.hpp"
-#include "charclass.hpp"
 #include "linkage.h"
-#include "parse_error.hpp"
 #include "reader_traits.hpp"
 #include "reader_utils.hpp"
 #include "result.hpp"
@@ -48,9 +46,10 @@ struct vector_reader_t
 
   vector_reader_t(result_t<std::vector<T>>& result, bound_inbuf_t& buf)
   : result_(result)
-  , begin_reader_(*this, result_, buf)
-  , end_sensor_(*this, result_, buf)
-  , element_reader_(*this, result_, buf)
+  , buf_(buf)
+  , begin_reader_(*this, result_, buf_)
+  , end_sensor_(*this, result_, buf_)
+  , element_reader_(*this, result_, buf_)
   , value_()
   { }
 
@@ -68,12 +67,15 @@ private :
 
   void on_end_sensor(bool at_end)
   {
+    assert(buf_.readable());
+
     if(!at_end)
     {
       element_reader_.start(&vector_reader_t::on_element);
       return;
     }
       
+    buf_.skip();
     result_.submit(std::move(value_));
   }
     
@@ -85,6 +87,7 @@ private :
 
 private :
   result_t<std::vector<T>>& result_;
+  bound_inbuf_t& buf_;
   subroutine_t<vector_reader_t, begin_sequence_reader_t> begin_reader_;
   subroutine_t<vector_reader_t, end_sequence_sensor_t> end_sensor_;
   subroutine_t<vector_reader_t, sequence_element_reader_t<T>> element_reader_;
