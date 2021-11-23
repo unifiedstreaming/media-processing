@@ -135,6 +135,7 @@ lib cuti
   streambuf_backend.cpp
   string_reader.cpp
   string_writer.cpp
+  structure_reader.cpp
   structure_writer.cpp
   subresult.cpp
   subroutine.cpp
