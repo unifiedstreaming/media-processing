@@ -54,8 +54,9 @@ void digits_reader_t<T>::start(T max)
 template<typename T>
 void digits_reader_t<T>::read_digits()
 {
+  int c{};
   int dval{};
-  while(buf_.readable() && (dval = digit_value(buf_.peek())) >= 0)
+  while(buf_.readable() && (dval = digit_value(c = buf_.peek())) >= 0)
   {
     digit_seen_ = true;
 
@@ -83,7 +84,14 @@ void digits_reader_t<T>::read_digits()
     result_.fail(parse_error_t("digit expected"));
     return;
   }
-  
+
+  if(c == eof)
+  {
+    // avoid submitting a half-baked value on remote hangup
+    result_.fail(parse_error_t("unexpected eof in integral value"));
+    return;
+  }
+
   result_.submit(value_);
 }
 
