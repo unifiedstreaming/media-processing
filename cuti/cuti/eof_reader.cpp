@@ -17,32 +17,4 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#ifndef CUTI_EOF_CHECKER_HPP_
-#define CUTI_EOF_CHECKER_HPP_
-
-#include "bound_inbuf.hpp"
-#include "linkage.h"
-#include "result.hpp"
-
-namespace cuti
-{
-
-struct CUTI_ABI eof_checker_t
-{
-  using result_value_t = void;
-
-  eof_checker_t(result_t<void>& result, bound_inbuf_t& buf);
-
-  eof_checker_t(eof_checker_t const&) = delete;
-  eof_checker_t& operator=(eof_checker_t const&) = delete;
-  
-  void start();
-
-private :
-  result_t<void>& result_;
-  bound_inbuf_t& buf_;
-};
-
-} // of namespace cuti
-
-#endif
+#include "eof_reader.hpp"

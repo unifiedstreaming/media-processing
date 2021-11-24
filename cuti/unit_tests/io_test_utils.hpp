@@ -23,7 +23,7 @@
 #include <cuti/bound_inbuf.hpp>
 #include <cuti/bound_outbuf.hpp>
 #include <cuti/default_scheduler.hpp>
-#include <cuti/eof_checker.hpp>
+#include <cuti/eof_reader.hpp>
 #include <cuti/final_result.hpp>
 #include <cuti/flusher.hpp>
 #include <cuti/loglevel.hpp>
@@ -218,25 +218,25 @@ void test_roundtrip(logging_context_t& context,
 
   assert(read_result.value() == value);
 
-  final_result_t<void> checker_result;
-  eof_checker_t checker(checker_result, bit);
-  checker.start();
+  final_result_t<void> eof_reader_result;
+  eof_reader_t eof_reader(eof_reader_result, bit);
+  eof_reader.start();
 
-  std::size_t n_checking_callbacks = 0;
-  while(!checker_result.available())
+  std::size_t n_eof_reader_callbacks = 0;
+  while(!eof_reader_result.available())
   {
     auto cb = scheduler.wait();
     assert(cb != nullptr);
     cb();
-    ++n_checking_callbacks;
+    ++n_eof_reader_callbacks;
   }
 
-  checker_result.value();
+  eof_reader_result.value();
 
   if(auto msg = context.message_at(loglevel_t::info))
   {
     *msg << __func__ << '<' << typeid(T).name() <<
-      ">: n_checking_callbacks: " << n_checking_callbacks;
+      ">: n_eof_reader_callbacks: " << n_eof_reader_callbacks;
   }
 }
 

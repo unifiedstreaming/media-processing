@@ -82,7 +82,7 @@ lib cuti
   default_scheduler.cpp
   dispatcher.cpp
   endpoint.cpp
-  eof_checker.cpp
+  eof_reader.cpp
   epoll_selector.cpp
   exception_builder.cpp
   file_backend.cpp
