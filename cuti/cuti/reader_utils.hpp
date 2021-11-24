@@ -83,28 +83,26 @@ private :
 };
 
 template<int C>
-struct sensor_t
+struct expected_checker_t
 {
   using result_value_t = bool;
 
-  sensor_t(result_t<bool>& result, bound_inbuf_t& buf)
+  expected_checker_t(result_t<bool>& result, bound_inbuf_t& buf)
   : result_(result)
   , buf_(buf)
   , skipper_(*this, result_, buf_)
   { }
 
-  sensor_t(sensor_t const&) = delete;
-  sensor_t& operator=(sensor_t const&) = delete;
+  expected_checker_t(expected_checker_t const&) = delete;
+  expected_checker_t& operator=(expected_checker_t const&) = delete;
 
   /*
    * Skips whitespace, eventually submitting true if C is found, and
-   * false otherwise.  C is not skipped; at submit time,
-   * buf.readable() is true, and if true is submitted, buf.peek() ==
-   * C.
+   * false otherwise.  C is skipped if found.
    */
   void start()
   {
-    skipper_.start(&sensor_t::on_whitespace_skipped);
+    skipper_.start(&expected_checker_t::on_whitespace_skipped);
   }
 
 private :
@@ -113,13 +111,24 @@ private :
     assert(buf_.readable());
     assert(buf_.peek() == c);
 
-    result_.submit(c == C);
+    if(c != C)
+    {
+      result_.submit(false);
+      return;
+    }
+
+    if constexpr(C != eof)
+    {
+      buf_.skip();
+    }
+
+    result_.submit(true);
   }
 
 private :
   result_t<bool>& result_;
   bound_inbuf_t& buf_;
-  subroutine_t<sensor_t, whitespace_skipper_t> skipper_;
+  subroutine_t<expected_checker_t, whitespace_skipper_t> skipper_;
 };
 
 template<int C>
@@ -130,7 +139,7 @@ struct expected_reader_t
   expected_reader_t(result_t<void>& result, bound_inbuf_t& buf)
   : result_(result)
   , buf_(buf)
-  , sensor_(*this, result_, buf_)
+  , skipper_(*this, result_, buf_)
   { }
 
   expected_reader_t(expected_reader_t const&) = delete;
@@ -142,13 +151,16 @@ struct expected_reader_t
    */
   void start()
   {
-    sensor_.start(&expected_reader_t::on_sensor);
+    skipper_.start(&expected_reader_t::on_whitespace_skipped);
   }
 
 private :
-  void on_sensor(bool match)
+  void on_whitespace_skipped(int c)
   {
-    if(!match)
+    assert(buf_.readable());
+    assert(buf_.peek() == c);
+
+    if(c != C)
     {
       if constexpr(C == eof)
       {
@@ -161,7 +173,7 @@ private :
       }
       else
       {
-        result_.fail(parse_error_t("char (" +
+        result_.fail(parse_error_t("char(" +
           std::to_string(C) + ") expected"));
       }
       return;
@@ -178,7 +190,7 @@ private :
 private :
   result_t<void>& result_;
   bound_inbuf_t& buf_;
-  subroutine_t<expected_reader_t, sensor_t<C>> sensor_;
+  subroutine_t<expected_reader_t, whitespace_skipper_t> skipper_;
 };
 
 template<typename T>

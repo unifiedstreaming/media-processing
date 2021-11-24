@@ -46,10 +46,9 @@ struct vector_reader_t
 
   vector_reader_t(result_t<std::vector<T>>& result, bound_inbuf_t& buf)
   : result_(result)
-  , buf_(buf)
-  , begin_reader_(*this, result_, buf_)
-  , end_sensor_(*this, result_, buf_)
-  , element_reader_(*this, result_, buf_)
+  , begin_reader_(*this, result_, buf)
+  , end_checker_(*this, result_, buf)
+  , element_reader_(*this, result_, buf)
   , value_()
   { }
 
@@ -62,21 +61,18 @@ struct vector_reader_t
 private :
   void read_elements()
   {
-    end_sensor_.start(&vector_reader_t::on_end_sensor);
+    end_checker_.start(&vector_reader_t::on_end_checker);
   }
 
-  void on_end_sensor(bool at_end)
+  void on_end_checker(bool at_end)
   {
-    assert(buf_.readable());
-
-    if(!at_end)
+    if(at_end)
     {
-      element_reader_.start(&vector_reader_t::on_element);
+      result_.submit(std::move(value_));
       return;
     }
       
-    buf_.skip();
-    result_.submit(std::move(value_));
+    element_reader_.start(&vector_reader_t::on_element);
   }
     
   void on_element(T element)
@@ -87,9 +83,8 @@ private :
 
 private :
   result_t<std::vector<T>>& result_;
-  bound_inbuf_t& buf_;
   subroutine_t<vector_reader_t, begin_sequence_reader_t> begin_reader_;
-  subroutine_t<vector_reader_t, end_sequence_sensor_t> end_sensor_;
+  subroutine_t<vector_reader_t, end_sequence_checker_t> end_checker_;
   subroutine_t<vector_reader_t, sequence_element_reader_t<T>> element_reader_;
 
   std::vector<T> value_;
