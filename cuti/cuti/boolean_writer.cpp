@@ -27,8 +27,8 @@ namespace cuti
 namespace detail
 {
 
-char const true_literal[] = " *";
-char const false_literal[] = " !";
+char const true_literal[] = "* ";
+char const false_literal[] = "! ";
 
 template<typename T>
 boolean_writer_t<T>::boolean_writer_t(

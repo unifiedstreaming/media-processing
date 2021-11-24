@@ -112,7 +112,6 @@ extern template struct digits_writer_t<unsigned int>;
 extern template struct digits_writer_t<unsigned long>;
 extern template struct digits_writer_t<unsigned long long>;
 
-extern CUTI_ABI char const blob_prefix[];
 extern CUTI_ABI char const blob_suffix[];
 
 template<typename T>
@@ -133,6 +132,7 @@ struct CUTI_ABI blob_writer_t
   void start(T value);
 
 private :
+  void write_opening_dq();
   void write_contents();
   void write_escaped();
   void on_suffix_written();
@@ -140,7 +140,6 @@ private :
 private :
   result_t<void>& result_;
   bound_outbuf_t& buf_;
-  subroutine_t<blob_writer_t, literal_writer_t<blob_prefix>> prefix_writer_;
   subroutine_t<blob_writer_t, literal_writer_t<blob_suffix>> suffix_writer_;
   
   T value_;

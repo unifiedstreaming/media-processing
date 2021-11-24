@@ -79,14 +79,12 @@ template struct digits_writer_t<unsigned int>;
 template struct digits_writer_t<unsigned long>;
 template struct digits_writer_t<unsigned long long>;
 
-char const blob_prefix[] = " \"";
-char const blob_suffix[] = "\"";
+char const blob_suffix[] = "\" ";
 
 template<typename T>
 blob_writer_t<T>::blob_writer_t(result_t<void>& result, bound_outbuf_t& buf)
 : result_(result)
 , buf_(buf)
-, prefix_writer_(*this, result_, buf_)
 , suffix_writer_(*this, result_, buf_)
 , value_()
 , first_()
@@ -100,7 +98,20 @@ void blob_writer_t<T>::start(T value)
   first_ = value_.begin();
   last_ = value_.end();
     
-  prefix_writer_.start(&blob_writer_t::write_contents);
+  this->write_opening_dq();
+}
+
+template<typename T>
+void blob_writer_t<T>::write_opening_dq()
+{
+  if(!buf_.writable())
+  {
+    buf_.call_when_writable([this] { this->write_opening_dq(); });
+    return;
+  }
+  buf_.put('\"');
+
+  this->write_contents();
 }
 
 template<typename T>

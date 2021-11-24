@@ -25,8 +25,8 @@ namespace cuti
 namespace detail
 {
 
-char const sequence_prefix[] = " [";
-char const sequence_suffix[] = " ]";
+char const sequence_prefix[] = "[ ";
+char const sequence_suffix[] = "] ";
 
 } // detail
 

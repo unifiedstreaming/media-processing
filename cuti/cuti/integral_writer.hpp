@@ -35,14 +35,6 @@ namespace cuti
 namespace detail
 {
 
-extern template struct digits_writer_t<unsigned short>;
-extern template struct digits_writer_t<unsigned int>;
-extern template struct digits_writer_t<unsigned long>;
-extern template struct digits_writer_t<unsigned long long>;
-
-extern CUTI_ABI char const positive_prefix[];
-extern CUTI_ABI char const negative_prefix[];
-
 template<typename T>
 struct CUTI_ABI unsigned_writer_t
 {
@@ -58,15 +50,12 @@ struct CUTI_ABI unsigned_writer_t
   void start(T value);
 
 private :
-  void on_prefix_written();
-  void on_digits_written();
+  void write_trailing_space();
 
 private :
   result_t<void>& result_;
-  subroutine_t<unsigned_writer_t, literal_writer_t<positive_prefix>>
-    prefix_writer_;
+  bound_outbuf_t& buf_;
   subroutine_t<unsigned_writer_t, digits_writer_t<T>> digits_writer_;
-  T value_;
 };
 
 extern template struct unsigned_writer_t<unsigned short>;
@@ -92,15 +81,12 @@ struct CUTI_ABI signed_writer_t
 private :
   using UT = std::make_unsigned_t<T>;
 
-  void on_prefix_written();
-  void on_digits_written();
+  void write_minus();
+  void write_trailing_space();
 
 private :
   result_t<void>& result_;
-  subroutine_t<signed_writer_t, literal_writer_t<positive_prefix>>
-    positive_prefix_writer_;
-  subroutine_t<signed_writer_t, literal_writer_t<negative_prefix>>
-    negative_prefix_writer_;
+  bound_outbuf_t& buf_;
   subroutine_t<signed_writer_t, digits_writer_t<UT>> digits_writer_;
 
   UT unsigned_value_;

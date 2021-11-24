@@ -179,17 +179,17 @@ void test_roundtrip(logging_context_t& context,
     auto size = serialized_form.size();
 
     *msg << __func__ << '<' << typeid(T).name() <<
-      ">: serialized form (size: " << size << ") ";
+      ">: serialized form (size: " << size << ')';
 
     if(size <= 256)
     {
-      *msg << ':' << quoted_string(serialized_form);
+      *msg << ": " << quoted_string(serialized_form);
     }
     else
     {
       std::string truncated(serialized_form.begin(),
                             serialized_form.begin() + 256);
-      *msg << "<truncated>: " << quoted_string(truncated);
+      *msg << " <truncated>: " << quoted_string(truncated);
     }
   }
 
