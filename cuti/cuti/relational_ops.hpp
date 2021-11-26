@@ -20,56 +20,27 @@
 #ifndef CUTI_RELATIONAL_OPS_HPP_
 #define CUTI_RELATIONAL_OPS_HPP_
 
-/*
- * Mix-in base classes for generating overloads of the relational
- * operators for some user-defined type T and a set of zero or
- * more related ('Peer') types.
- */
-
 namespace cuti
 {
 
 /*
- * Requirements for operator==(), operator!=():
+ * Mix-in base for generating overloads of the relational
+ * operators for some user-defined type T and a set of zero or
+ * more related ('Peer') types.
+ *
+ * -------------------------------------------
+ * Requirements for operator==(), operator!=()
+ * -------------------------------------------
  *
  * T must have a const member function named equal_to that accepts a
  * const T&.
  *
  * For each Peer in Peers, T must have a const member function named
  * equal_to that accepts a const Peer&.
- */
-template<typename T, typename... Peers>
-struct equality_ops_t;
-
-template<typename T>
-struct equality_ops_t<T>
-{
-  friend constexpr bool operator==(T const& lhs, T const& rhs)
-  { return lhs.equal_to(rhs); }
-
-  friend constexpr bool operator!=(T const& lhs, T const& rhs)
-  { return !(lhs == rhs); }
-};
-
-template<typename T, typename FirstPeer, typename... OtherPeers>
-struct equality_ops_t<T, FirstPeer, OtherPeers...> :
-       equality_ops_t<T, OtherPeers...>
-{
-  friend constexpr bool operator==(T const& lhs, FirstPeer const& rhs)
-  { return lhs.equal_to(rhs); }
-
-  friend constexpr bool operator!=(T const& lhs, FirstPeer const& rhs)
-  { return !(lhs == rhs); }
-
-  friend constexpr bool operator==(FirstPeer const& lhs, T const& rhs)
-  { return rhs == lhs; }
-
-  friend constexpr bool operator!=(FirstPeer const& lhs, T const& rhs)
-  { return !(lhs == rhs); }
-};
-
-/*
- * Requirements for operator<(), operator<=(), operator>(), operator>=():
+ *
+ * ---------------------------------------------------------------------
+ * Requirements for operator<(), operator<=(), operator>(), operator>=()
+ * ---------------------------------------------------------------------
  *
  * T must have a const member function named less_than that accepts a
  * const T&.
@@ -81,11 +52,17 @@ struct equality_ops_t<T, FirstPeer, OtherPeers...> :
  * greater_than that accepts a const Peer&.
  */
 template<typename T, typename... Peers>
-struct ordering_ops_t;
+struct relational_ops_t;
 
 template<typename T>
-struct ordering_ops_t<T>
+struct relational_ops_t<T>
 {
+  friend constexpr bool operator==(T const& lhs, T const& rhs)
+  { return lhs.equal_to(rhs); }
+
+  friend constexpr bool operator!=(T const& lhs, T const& rhs)
+  { return !(lhs == rhs); }
+
   friend constexpr bool operator<(T const& lhs, T const& rhs)
   { return lhs.less_than(rhs); }
 
@@ -100,9 +77,21 @@ struct ordering_ops_t<T>
 };
 
 template<typename T, typename FirstPeer, typename... OtherPeers>
-struct ordering_ops_t<T, FirstPeer, OtherPeers...> :
-       ordering_ops_t<T, OtherPeers...>
+struct relational_ops_t<T, FirstPeer, OtherPeers...> :
+       relational_ops_t<T, OtherPeers...>
 {
+  friend constexpr bool operator==(T const& lhs, FirstPeer const& rhs)
+  { return lhs.equal_to(rhs); }
+
+  friend constexpr bool operator!=(T const& lhs, FirstPeer const& rhs)
+  { return !(lhs == rhs); }
+
+  friend constexpr bool operator==(FirstPeer const& lhs, T const& rhs)
+  { return rhs == lhs; }
+
+  friend constexpr bool operator!=(FirstPeer const& lhs, T const& rhs)
+  { return !(lhs == rhs); }
+
   friend constexpr bool operator<(T const& lhs, FirstPeer const& rhs)
   { return lhs.less_than(rhs); }
 
@@ -127,11 +116,6 @@ struct ordering_ops_t<T, FirstPeer, OtherPeers...> :
   friend constexpr bool operator>=(FirstPeer const& lhs, T const& rhs)
   { return !(lhs < rhs); }
 };
-
-template<typename T, typename... Peers>
-struct relational_ops_t : equality_ops_t<T, Peers...>,
-                          ordering_ops_t<T, Peers...>
-{ };
 
 } // cuti
 

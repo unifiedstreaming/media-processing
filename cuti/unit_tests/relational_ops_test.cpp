@@ -31,25 +31,55 @@ namespace // anonymous
 namespace user
 {
 
-struct wrapped_string_t :
-  cuti::relational_ops_t<wrapped_string_t, std::string, char const*>
+/*
+ * User-defined type with operator==() and operator!=()
+ */
+struct eq_only_wrapper_t :
+  cuti::relational_ops_t<eq_only_wrapper_t, std::string, char const*>
 {
-  explicit wrapped_string_t(std::string wrapped)
+  explicit eq_only_wrapper_t(std::string wrapped)
   : wrapped_(std::move(wrapped))
   { }
 
   /*
-   * To support the relational ops taking two wrapped_string_t
+   * Define an equal_to() for eq_only_wrapper_t and each of the peer
+   * types.
+   */
+  bool equal_to(eq_only_wrapper_t const& that) const
+  { return this->wrapped_ == that.wrapped_; }
+
+  bool equal_to(std::string const& that) const
+  { return this->wrapped_ == that; }
+
+  bool equal_to(char const* that) const
+  { assert(that != nullptr); return this->wrapped_ == that; }
+
+private :
+  std::string wrapped_;
+};
+
+/*
+ * User-defined type with the full set of relational operators
+ */
+struct full_wrapper_t :
+  cuti::relational_ops_t<full_wrapper_t, std::string, char const*>
+{
+  explicit full_wrapper_t(std::string wrapped)
+  : wrapped_(std::move(wrapped))
+  { }
+
+  /*
+   * To support the relational ops taking two full_wrapper_t
    * instances, only less_than() and equal_to() are required.
    */
-  bool less_than(wrapped_string_t const& that) const
+  bool less_than(full_wrapper_t const& that) const
   { return this->wrapped_ < that.wrapped_; }
 
-  bool equal_to(wrapped_string_t const& that) const
+  bool equal_to(full_wrapper_t const& that) const
   { return this->wrapped_ == that.wrapped_; }
 
   /*
-   * To support the relational ops taking a wrapped_string_t and some
+   * To support the relational ops taking a full_wrapper_t and some
    * other type, less_than(), equal_to() and greater_than() are
    * required.
    */
@@ -77,10 +107,10 @@ private :
 
 } // user
 
-template<typename Peer>
-void test_relational_ops()
+template<typename T, typename Peer>
+void test_equality_ops()
 {
-  user::wrapped_string_t val1{"val1"};
+  T val1{"val1"};
   Peer val2{"val2"};
 
   assert(val1 == val1);
@@ -90,6 +120,15 @@ void test_relational_ops()
   assert(!(val1 != val1));
   assert(val1 != val2);
   assert(val2 != val1);
+}
+
+template<typename T, typename Peer>
+void test_all_ops()
+{
+  test_equality_ops<T, Peer>();
+
+  T val1{"val1"};
+  Peer val2{"val2"};
 
   assert(!(val1 < val1));
   assert(val1 < val2);
@@ -112,9 +151,13 @@ void test_relational_ops()
 
 int main()
 {
-  test_relational_ops<user::wrapped_string_t>();
-  test_relational_ops<std::string>();
-  test_relational_ops<char const*>();
+  test_equality_ops<user::eq_only_wrapper_t, user::eq_only_wrapper_t>(); 
+  test_equality_ops<user::eq_only_wrapper_t, std::string>(); 
+  test_equality_ops<user::eq_only_wrapper_t, char const*>(); 
+
+  test_all_ops<user::full_wrapper_t, user::full_wrapper_t>(); 
+  test_all_ops<user::full_wrapper_t, std::string>(); 
+  test_all_ops<user::full_wrapper_t, char const*>(); 
 
   return 0;
 }
