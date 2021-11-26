@@ -24,11 +24,10 @@ namespace cuti
 {
 
 /*
- * Mix-in base for generating overloads of the relational
- * operators for some user-defined type T and a set of zero or
- * more related ('Peer') types.
+ * Mix-in base for generating overloads of the relational operators
+ * for some user-defined type T and a set of zero or more related
+ * ('Peer') types.
  *
- * -------------------------------------------
  * Requirements for operator==(), operator!=()
  * -------------------------------------------
  *
@@ -38,7 +37,6 @@ namespace cuti
  * For each Peer in Peers, T must have a const member function named
  * equal_to that accepts a const Peer&.
  *
- * ---------------------------------------------------------------------
  * Requirements for operator<(), operator<=(), operator>(), operator>=()
  * ---------------------------------------------------------------------
  *
@@ -86,12 +84,6 @@ struct relational_ops_t<T, FirstPeer, OtherPeers...> :
   friend constexpr bool operator!=(T const& lhs, FirstPeer const& rhs)
   { return !(lhs == rhs); }
 
-  friend constexpr bool operator==(FirstPeer const& lhs, T const& rhs)
-  { return rhs == lhs; }
-
-  friend constexpr bool operator!=(FirstPeer const& lhs, T const& rhs)
-  { return !(lhs == rhs); }
-
   friend constexpr bool operator<(T const& lhs, FirstPeer const& rhs)
   { return lhs.less_than(rhs); }
 
@@ -103,6 +95,12 @@ struct relational_ops_t<T, FirstPeer, OtherPeers...> :
 
   friend constexpr bool operator>=(T const& lhs, FirstPeer const& rhs)
   { return !(lhs < rhs); }
+
+  friend constexpr bool operator==(FirstPeer const& lhs, T const& rhs)
+  { return rhs == lhs; }
+
+  friend constexpr bool operator!=(FirstPeer const& lhs, T const& rhs)
+  { return !(lhs == rhs); }
 
   friend constexpr bool operator<(FirstPeer const& lhs, T const& rhs)
   { return rhs > lhs; }
