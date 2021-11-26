@@ -49,6 +49,10 @@ unit-test fs_utils_test
 : fs_utils_test.cpp
 ;
 
+unit-test identifier_test
+: identifier_test.cpp
+;
+
 unit-test indexed_heap_test
 : indexed_heap_test.cpp
 ;

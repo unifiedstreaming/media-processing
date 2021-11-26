@@ -91,6 +91,7 @@ lib cuti
   flusher.cpp
   fs_utils.cpp
   format.cpp
+  identifier.cpp
   indexed_heap.cpp
   integral_reader.cpp
   integral_writer.cpp

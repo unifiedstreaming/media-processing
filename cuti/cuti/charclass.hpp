@@ -45,10 +45,21 @@ inline constexpr bool is_printable(int c)
 }
 
 CUTI_ABI
+inline constexpr bool is_alpha(int c)
+{
+  return (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z');
+}
+	 
+CUTI_ABI
+inline constexpr bool is_digit(int c)
+{
+  return c >= '0' && c <= '9';
+}
+	 
+CUTI_ABI
 inline constexpr int digit_value(int c)
 {
-  return c >= '0' && c <= '9' ? c - '0' :
-         -1;
+  return is_digit(c) ? c - '0' : -1;
 }
 
 CUTI_ABI
