@@ -118,6 +118,7 @@ lib cuti
   quoted_string.cpp
   reader_traits.cpp
   reader_utils.cpp
+  relational_ops.cpp
   resolver.cpp
   result.cpp
   scheduler.cpp
