@@ -20,50 +20,12 @@
 #ifndef CUTI_BOOLEAN_WRITER_HPP_
 #define CUTI_BOOLEAN_WRITER_HPP_
 
-#include "bound_outbuf.hpp"
 #include "flag.hpp"
-#include "linkage.h"
-#include "result.hpp"
-#include "subroutine.hpp"
 #include "writer_traits.hpp"
 #include "writer_utils.hpp"
 
 namespace cuti
 {
-
-namespace detail
-{
-
-extern CUTI_ABI char const true_literal[];
-extern CUTI_ABI char const false_literal[];
-
-template<typename T>
-struct CUTI_ABI boolean_writer_t
-{
-  using result_value_t = void;
-
-  boolean_writer_t(result_t<void>& result, bound_outbuf_t& buf);
-
-  boolean_writer_t(boolean_writer_t const&) = delete;
-  boolean_writer_t& operator=(boolean_writer_t const&) = delete;
-  
-  void start(T value);
-
-private :
-  void on_done();
-
-private :
-  result_t<void>& result_;
-  subroutine_t<boolean_writer_t, token_suffix_writer_t<true_literal>>
-    true_writer_;
-  subroutine_t<boolean_writer_t, token_suffix_writer_t<false_literal>>
-    false_writer_;
-};
-
-extern template struct boolean_writer_t<bool>;
-extern template struct boolean_writer_t<flag_t>;
-
-} // detail
 
 template<>
 struct writer_traits_t<bool>

@@ -20,84 +20,11 @@
 #ifndef CUTI_VECTOR_WRITER_HPP_
 #define CUTI_VECTOR_WRITER_HPP_
 
-#include "bound_outbuf.hpp"
-#include "linkage.h"
-#include "result.hpp"
-#include "sequence_writer.hpp"
-#include "subroutine.hpp"
 #include "writer_traits.hpp"
 #include "writer_utils.hpp"
 
-#include <cstddef>
-#include <utility>
-#include <vector>
-
 namespace cuti
 {
-
-namespace detail
-{
-
-template<typename T>
-struct vector_writer_t
-{
-  using result_value_t = void;
-
-  vector_writer_t(result_t<void>& result, bound_outbuf_t& buf)
-  : result_(result)
-  , begin_writer_(*this, result_, buf)
-  , element_writer_(*this, result_, buf)
-  , end_writer_(*this, result_, buf)
-  , value_()
-  , first_()
-  , last_()
-  { }
-
-  vector_writer_t(vector_writer_t const&) = delete;
-  vector_writer_t& operator=(vector_writer_t const&) = delete;
-  
-  void start(std::vector<T> value)
-  {
-    value_ = std::move(value);
-    first_ = value_.begin();
-    last_ = value_.end();
-
-    begin_writer_.start(&vector_writer_t::write_elements);
-  }
-
-private :
-  void write_elements()
-  {
-    if(first_ != last_)
-    {
-      auto pos = first_;
-      ++first_;
-      element_writer_.start(
-        &vector_writer_t::write_elements, std::move(*pos));
-      return;
-    }
-
-    end_writer_.start(&vector_writer_t::on_end_written);
-  }
-      
-  void on_end_written()
-  {
-    value_.clear();
-    result_.submit();
-  }
-
-private :
-  result_t<void>& result_;
-  subroutine_t<vector_writer_t, begin_sequence_writer_t> begin_writer_;
-  subroutine_t<vector_writer_t, writer_t<T>> element_writer_;
-  subroutine_t<vector_writer_t, end_sequence_writer_t> end_writer_;
-
-  std::vector<T> value_;
-  typename std::vector<T>::iterator first_;
-  typename std::vector<T>::iterator last_;
-};
-
-} // detail
 
 template<typename T>
 struct writer_traits_t<std::vector<T>>

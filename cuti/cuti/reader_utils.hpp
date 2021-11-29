@@ -511,8 +511,8 @@ private :
   T* value_;
 };
 
-using begin_structure_reader_t = detail::expected_reader_t<'{'>;
-using end_structure_reader_t = detail::expected_reader_t<'}'>;
+using begin_structure_reader_t = expected_reader_t<'{'>;
+using end_structure_reader_t = expected_reader_t<'}'>;
 
 template<typename T>
 struct tuple_reader_t

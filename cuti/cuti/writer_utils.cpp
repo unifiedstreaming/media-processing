@@ -81,7 +81,130 @@ template struct digits_writer_t<unsigned int>;
 template struct digits_writer_t<unsigned long>;
 template struct digits_writer_t<unsigned long long>;
 
+char const true_literal[] = "* ";
+char const false_literal[] = "! ";
+
+template<typename T>
+boolean_writer_t<T>::boolean_writer_t(
+  result_t<void>& result, bound_outbuf_t& buf)
+: result_(result)
+, true_writer_(*this, result_, buf)
+, false_writer_(*this, result_, buf)
+{ }
+
+template<typename T>
+void boolean_writer_t<T>::start(T value)
+{
+  if(value)
+  {
+    true_writer_.start(&boolean_writer_t::on_done);
+  }
+  else
+  {
+    false_writer_.start(&boolean_writer_t::on_done);
+  }
+}
+
+template<typename T>
+void boolean_writer_t<T>::on_done()
+{
+  result_.submit();
+}
+
+template struct boolean_writer_t<bool>;
+template struct boolean_writer_t<flag_t>;
+
 char const blob_suffix[] = "\" ";
+
+template<typename T>
+unsigned_writer_t<T>::unsigned_writer_t(result_t<void>& result,
+                                        bound_outbuf_t& buf)
+: result_(result)
+, digits_writer_(*this, result_, buf)
+, space_writer_(*this, result_, buf)
+{ }
+
+template<typename T>
+void unsigned_writer_t<T>::start(T value)
+{
+  digits_writer_.start(&unsigned_writer_t::on_digits_written, value);
+}
+
+template<typename T>
+void unsigned_writer_t<T>::on_digits_written()
+{
+  space_writer_.start(&unsigned_writer_t::on_space_written);
+}
+
+template<typename T>
+void unsigned_writer_t<T>::on_space_written()
+{
+  result_.submit();
+}
+
+template struct unsigned_writer_t<unsigned short>;
+template struct unsigned_writer_t<unsigned int>;
+template struct unsigned_writer_t<unsigned long>;
+template struct unsigned_writer_t<unsigned long long>;
+
+template<typename T>
+signed_writer_t<T>::signed_writer_t(result_t<void>& result, bound_outbuf_t& buf)
+: result_(result)
+, buf_(buf)
+, digits_writer_(*this, result_, buf_)
+, space_writer_(*this, result_, buf_)
+, unsigned_value_()
+{ }
+
+template<typename T>
+void signed_writer_t<T>::start(T value)
+{
+  if(value >= 0)
+  {
+    unsigned_value_ = value;
+    digits_writer_.start(
+      &signed_writer_t::on_digits_written, unsigned_value_);
+  }
+  else
+  {
+    ++value;
+    value = -value;
+    unsigned_value_ = value;
+    ++unsigned_value_;
+    this->write_minus();
+  }  
+}
+
+template<typename T>
+void signed_writer_t<T>::write_minus()
+{
+  if(!buf_.writable())
+  {
+    buf_.call_when_writable([this] { this->write_minus(); });
+    return;
+  }
+  buf_.put('-');
+
+  digits_writer_.start(
+    &signed_writer_t::on_digits_written, unsigned_value_);
+}
+
+template<typename T>
+void signed_writer_t<T>::on_digits_written()
+{
+  space_writer_.start(&signed_writer_t::on_space_written);
+}
+
+template<typename T>
+void signed_writer_t<T>::on_space_written()
+{
+  result_.submit();
+}
+
+template struct signed_writer_t<short>;
+template struct signed_writer_t<int>;
+template struct signed_writer_t<long>;
+template struct signed_writer_t<long long>;
 
 template<typename T>
 blob_writer_t<T>::blob_writer_t(result_t<void>& result, bound_outbuf_t& buf)
@@ -193,6 +316,12 @@ template struct blob_writer_t<std::string>;
 template struct blob_writer_t<std::vector<char>>;
 template struct blob_writer_t<std::vector<signed char>>;
 template struct blob_writer_t<std::vector<unsigned char>>;
+
+char const sequence_prefix[] = "[ ";
+char const sequence_suffix[] = "] ";
+
+char const structure_prefix[] = "{ ";
+char const structure_suffix[] = "} ";
 
 } // detail
 

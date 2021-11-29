@@ -20,26 +20,14 @@
 #ifndef CUTI_SEQUENCE_WRITER_HPP_
 #define CUTI_SEQUENCE_WRITER_HPP_
 
-#include "linkage.h"
 #include "writer_traits.hpp"
 #include "writer_utils.hpp"
 
 namespace cuti
 {
 
-namespace detail
-{
-
-extern CUTI_ABI char const sequence_prefix[];
-extern CUTI_ABI char const sequence_suffix[];
-
-} // detail
-
-using begin_sequence_writer_t =
-  detail::token_suffix_writer_t<detail::sequence_prefix>;
-
-using end_sequence_writer_t =
-  detail::token_suffix_writer_t<detail::sequence_suffix>;
+using begin_sequence_writer_t = detail::begin_sequence_writer_t;
+using end_sequence_writer_t = detail::end_sequence_writer_t;
 
 } // cuti
 

@@ -20,87 +20,11 @@
 #ifndef CUTI_INTEGRAL_WRITER_HPP_
 #define CUTI_INTEGRAL_WRITER_HPP_
 
-#include "bound_outbuf.hpp"
-#include "linkage.h"
-#include "result.hpp"
-#include "subroutine.hpp"
 #include "writer_traits.hpp"
 #include "writer_utils.hpp"
 
-#include <type_traits>
-
 namespace cuti
 {
-
-namespace detail
-{
-
-template<typename T>
-struct CUTI_ABI unsigned_writer_t
-{
-  static_assert(std::is_unsigned_v<T>);
-
-  using result_value_t = void;
-
-  unsigned_writer_t(result_t<void>& result, bound_outbuf_t& buf);
-
-  unsigned_writer_t(unsigned_writer_t const&) = delete;
-  unsigned_writer_t& operator=(unsigned_writer_t const&) = delete;
-
-  void start(T value);
-
-private :
-  void on_digits_written();
-  void on_space_written();
-
-private :
-  result_t<void>& result_;
-  subroutine_t<unsigned_writer_t, digits_writer_t<T>> digits_writer_;
-  subroutine_t<unsigned_writer_t, space_writer_t> space_writer_;
-};
-
-extern template struct unsigned_writer_t<unsigned short>;
-extern template struct unsigned_writer_t<unsigned int>;
-extern template struct unsigned_writer_t<unsigned long>;
-extern template struct unsigned_writer_t<unsigned long long>;
-
-template<typename T>
-struct CUTI_ABI signed_writer_t
-{
-  static_assert(std::is_signed_v<T>);
-  static_assert(std::is_integral_v<T>);
-
-  using result_value_t = void;
-
-  signed_writer_t(result_t<void>& result, bound_outbuf_t& buf);
-
-  signed_writer_t(signed_writer_t const&) = delete;
-  signed_writer_t& operator=(signed_writer_t const&) = delete;
-
-  void start(T value);
-
-private :
-  using UT = std::make_unsigned_t<T>;
-
-  void write_minus();
-  void on_digits_written();
-  void on_space_written();
-
-private :
-  result_t<void>& result_;
-  bound_outbuf_t& buf_;
-  subroutine_t<signed_writer_t, digits_writer_t<UT>> digits_writer_;
-  subroutine_t<signed_writer_t, space_writer_t> space_writer_;
-
-  UT unsigned_value_;
-};
-
-extern template struct signed_writer_t<short>;
-extern template struct signed_writer_t<int>;
-extern template struct signed_writer_t<long>;
-extern template struct signed_writer_t<long long>;
-
-} // detail
 
 template<>
 struct writer_traits_t<unsigned short>

@@ -27,19 +27,8 @@
 namespace cuti
 {
 
-namespace detail
-{
-
-extern CUTI_ABI char const structure_prefix[];
-extern CUTI_ABI char const structure_suffix[];
-
-} // detail
-
-using begin_structure_writer_t =
-  detail::token_suffix_writer_t<detail::structure_prefix>;
-
-using end_structure_writer_t =
-  detail::token_suffix_writer_t<detail::structure_suffix>;
+using begin_structure_writer_t = detail::begin_structure_writer_t;
+using end_structure_writer_t = detail::end_structure_writer_t;
 
 } // cuti
 

@@ -18,16 +18,3 @@
  */
 
 #include "structure_writer.hpp"
-
-namespace cuti
-{
-
-namespace detail
-{
-
-char const structure_prefix[] = "{ ";
-char const structure_suffix[] = "} ";
-
-} // detail
-
-} // cuti
