@@ -17,14 +17,34 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#ifndef CUTI_INTEGRAL_READER_HPP_
-#define CUTI_INTEGRAL_READER_HPP_
+#ifndef CUTI_ASYNC_READERS_HPP_
+#define CUTI_ASYNC_READERS_HPP_
 
+#include "flag.hpp"
 #include "reader_traits.hpp"
 #include "reader_utils.hpp"
 
+#include <string>
+#include <tuple>
+#include <vector>
+
 namespace cuti
 {
+
+/*
+ * Built-async readers; use reader_t<T> for a reader reading a T.
+ */
+template<>
+struct reader_traits_t<bool>
+{
+  using type = detail::boolean_reader_t<bool>;
+};
+
+template<>
+struct reader_traits_t<flag_t>
+{
+  using type = detail::boolean_reader_t<flag_t>;
+};
 
 template<>
 struct reader_traits_t<unsigned short>
@@ -73,6 +93,58 @@ struct reader_traits_t<long long>
 {
   using type = detail::signed_reader_t<long long>;
 };
+
+template<>
+struct reader_traits_t<std::string>
+{
+  using type = detail::blob_reader_t<std::string>;
+};
+
+template<typename T>
+struct reader_traits_t<std::vector<T>>
+{
+  using type = detail::vector_reader_t<T>;
+};
+
+template<>
+struct reader_traits_t<std::vector<char>>
+{
+  using type = detail::blob_reader_t<std::vector<char>>;
+};
+
+template<>
+struct reader_traits_t<std::vector<signed char>>
+{
+  using type = detail::blob_reader_t<std::vector<signed char>>;
+};
+
+template<>
+struct reader_traits_t<std::vector<unsigned char>>
+{
+  using type = detail::blob_reader_t<std::vector<unsigned char>>;
+};
+
+template<typename... Types>
+struct reader_traits_t<std::tuple<Types...>>
+{
+  using type = detail::tuple_reader_t<std::tuple<Types...>>;
+};
+
+template<typename T1, typename T2>
+struct reader_traits_t<std::pair<T1, T2>>
+{
+  using type = detail::tuple_reader_t<std::pair<T1, T2>>;
+};
+
+/*
+ * Helpers for streaming async reading and async readers for
+ * user-defined types.
+ */
+using begin_sequence_reader_t = detail::begin_sequence_reader_t;
+using end_sequence_checker_t = detail::end_sequence_checker_t;
+
+using begin_structure_reader_t = detail::begin_structure_reader_t;
+using end_structure_reader_t = detail::end_structure_reader_t;
 
 } // cuti
 

@@ -19,7 +19,7 @@
 
 #include "io_test_utils.hpp"
 
-#include <cuti/integral_reader.hpp>
+#include <cuti/async_readers.hpp>
 #include <cuti/integral_writer.hpp>
 
 #include <cuti/cmdline_reader.hpp>

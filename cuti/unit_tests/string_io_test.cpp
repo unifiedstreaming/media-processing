@@ -19,7 +19,7 @@
 
 #include "io_test_utils.hpp"
 
-#include <cuti/string_reader.hpp>
+#include <cuti/async_readers.hpp>
 #include <cuti/string_writer.hpp>
 
 #include <cuti/charclass.hpp>

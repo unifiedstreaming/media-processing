@@ -65,7 +65,7 @@ rule cuti-dll-name ( name : type ? : properties * )
 lib cuti
 :
   args_reader.cpp
-  boolean_reader.cpp
+  async_readers.cpp
   boolean_writer.cpp
   bound_inbuf.cpp
   bound_outbuf.cpp
@@ -93,7 +93,6 @@ lib cuti
   format.cpp
   identifier.cpp
   indexed_heap.cpp
-  integral_reader.cpp
   integral_writer.cpp
   kqueue_selector.cpp
   linkage.cpp
@@ -128,16 +127,13 @@ lib cuti
   select_selector.cpp
   selector.cpp
   selector_factory.cpp
-  sequence_reader.cpp
   sequence_writer.cpp
   service.cpp
   signal_handler.cpp
   socket_nifty.cpp
   stack_marker.cpp
   streambuf_backend.cpp
-  string_reader.cpp
   string_writer.cpp
-  structure_reader.cpp
   structure_writer.cpp
   subresult.cpp
   subroutine.cpp
@@ -147,9 +143,7 @@ lib cuti
   tcp_connection.cpp
   tcp_socket.cpp
   throughput_checker.cpp
-  tuple_reader.cpp
   tuple_writer.cpp
-  vector_reader.cpp
   vector_writer.cpp
   viewbuf.cpp
   writer_traits.cpp
