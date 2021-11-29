@@ -20,14 +20,11 @@
 #include "io_test_utils.hpp"
 
 #include <cuti/async_readers.hpp>
-#include <cuti/tuple_writer.hpp>
+#include <cuti/async_writers.hpp>
 
 #include <cuti/cmdline_reader.hpp>
-#include <cuti/integral_writer.hpp>
 #include <cuti/option_walker.hpp>
 #include <cuti/streambuf_backend.hpp>
-#include <cuti/string_writer.hpp>
-#include <cuti/vector_writer.hpp>
 
 #include <iostream>
 #include <typeinfo>

@@ -20,7 +20,7 @@
 #include "io_test_utils.hpp"
 
 #include <cuti/async_readers.hpp>
-#include <cuti/integral_writer.hpp>
+#include <cuti/async_writers.hpp>
 
 #include <cuti/cmdline_reader.hpp>
 #include <cuti/option_walker.hpp>

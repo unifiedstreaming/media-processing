@@ -20,7 +20,7 @@
 #include "io_test_utils.hpp"
 
 #include <cuti/async_readers.hpp>
-#include <cuti/string_writer.hpp>
+#include <cuti/async_writers.hpp>
 
 #include <cuti/charclass.hpp>
 #include <cuti/cmdline_reader.hpp>

@@ -17,14 +17,34 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#ifndef CUTI_INTEGRAL_WRITER_HPP_
-#define CUTI_INTEGRAL_WRITER_HPP_
+#ifndef CUTI_ASYNC_WRITERS_HPP_
+#define CUTI_ASYNC_WRITERS_HPP_
 
+#include "flag.hpp"
 #include "writer_traits.hpp"
 #include "writer_utils.hpp"
 
+#include <string>
+#include <tuple>
+#include <vector>
+
 namespace cuti
 {
+
+/*
+ * Built-async writers; use writer_t<T> for a writer writing a T.
+ */
+template<>
+struct writer_traits_t<bool>
+{
+  using type = detail::boolean_writer_t<bool>;
+};
+
+template<>
+struct writer_traits_t<flag_t>
+{
+  using type = detail::boolean_writer_t<flag_t>;
+};
 
 template<>
 struct writer_traits_t<unsigned short>
@@ -73,6 +93,58 @@ struct writer_traits_t<long long>
 {
   using type = detail::signed_writer_t<long long>;
 };
+
+template<>
+struct writer_traits_t<std::string>
+{
+  using type = detail::blob_writer_t<std::string>;
+};
+
+template<typename T>
+struct writer_traits_t<std::vector<T>>
+{
+  using type = detail::vector_writer_t<T>;
+};
+
+template<>
+struct writer_traits_t<std::vector<char>>
+{
+  using type = detail::blob_writer_t<std::vector<char>>;
+};
+
+template<>
+struct writer_traits_t<std::vector<signed char>>
+{
+  using type = detail::blob_writer_t<std::vector<signed char>>;
+};
+
+template<>
+struct writer_traits_t<std::vector<unsigned char>>
+{
+  using type = detail::blob_writer_t<std::vector<unsigned char>>;
+};
+
+template<typename... Types>
+struct writer_traits_t<std::tuple<Types...>>
+{
+  using type = detail::tuple_writer_t<std::tuple<Types...>>;
+};
+
+template<typename T1, typename T2>
+struct writer_traits_t<std::pair<T1, T2>>
+{
+  using type = detail::tuple_writer_t<std::pair<T1, T2>>;
+};
+
+/*
+ * Helpers for streaming async writing and async writers for
+ * user-defined types.
+ */
+using begin_sequence_writer_t = detail::begin_sequence_writer_t;
+using end_sequence_writer_t = detail::end_sequence_writer_t;
+
+using begin_structure_writer_t = detail::begin_structure_writer_t;
+using end_structure_writer_t = detail::end_structure_writer_t;
 
 } // cuti
 
