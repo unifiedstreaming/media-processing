@@ -20,86 +20,11 @@
 #ifndef CUTI_INTEGRAL_READER_HPP_
 #define CUTI_INTEGRAL_READER_HPP_
 
-#include "bound_inbuf.hpp"
-#include "linkage.h"
 #include "reader_traits.hpp"
 #include "reader_utils.hpp"
-#include "result.hpp"
-#include "subroutine.hpp"
-
-#include <type_traits>
 
 namespace cuti
 {
-
-namespace detail
-{
-
-template<typename T>
-struct CUTI_ABI unsigned_reader_t
-{
-  static_assert(std::is_unsigned_v<T>);
-
-  using result_value_t = T;
-
-  unsigned_reader_t(result_t<T>& result, bound_inbuf_t& buf);
-
-  unsigned_reader_t(unsigned_reader_t const&) = delete;
-  unsigned_reader_t& operator=(unsigned_reader_t const&) = delete;
-
-  void start();
-
-private :
-  void on_whitespace_skipped(int c);
-  void on_digits_read(T value);
-
-private :
-  result_t<T>& result_;
-  subroutine_t<unsigned_reader_t, whitespace_skipper_t> skipper_;
-  subroutine_t<unsigned_reader_t, digits_reader_t<T>> digits_reader_;
-};
-
-extern template struct unsigned_reader_t<unsigned short>;
-extern template struct unsigned_reader_t<unsigned int>;
-extern template struct unsigned_reader_t<unsigned long>;
-extern template struct unsigned_reader_t<unsigned long long>;
-
-template<typename T>
-struct CUTI_ABI signed_reader_t
-{
-  static_assert(std::is_signed_v<T>);
-  static_assert(std::is_integral_v<T>);
-
-  using result_value_t = T;
-
-  signed_reader_t(result_t<T>& result, bound_inbuf_t& buf);
-
-  signed_reader_t(signed_reader_t const&) = delete;
-  signed_reader_t& operator=(signed_reader_t const&) = delete;
-
-  void start();
-
-private :
-  using UT = std::make_unsigned_t<T>;
-
-  void on_whitespace_skipped(int c);
-  void on_digits_read(UT unsigned_value);
-
-private :
-  result_t<T>& result_;
-  bound_inbuf_t& buf_;
-  subroutine_t<signed_reader_t, whitespace_skipper_t> skipper_;
-  subroutine_t<signed_reader_t, digits_reader_t<UT>> digits_reader_;
-
-  bool negative_;
-};
-
-extern template struct signed_reader_t<short>;
-extern template struct signed_reader_t<int>;
-extern template struct signed_reader_t<long>;
-extern template struct signed_reader_t<long long>;
-
-} // detail
 
 template<>
 struct reader_traits_t<unsigned short>

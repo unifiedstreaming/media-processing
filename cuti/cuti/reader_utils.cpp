@@ -145,6 +145,136 @@ void hex_digits_reader_t::read_digits()
 }
   
 template<typename T>
+boolean_reader_t<T>::boolean_reader_t(result_t<T>& result, bound_inbuf_t& buf)
+: result_(result)
+, buf_(buf)
+, skipper_(*this, result_, buf_)
+{ }
+
+template<typename T>
+void boolean_reader_t<T>::start()
+{
+  skipper_.start(&boolean_reader_t::on_whitespace_skipped);
+}
+
+template<typename T>
+void boolean_reader_t<T>::on_whitespace_skipped(int c)
+{
+  assert(buf_.readable());
+  assert(buf_.peek() == c);
+
+  T value{};
+  switch(c)
+  {
+  case '!' :
+    value = false;
+    break;
+  case '*' :
+    value = true;
+    break;
+  default :
+    result_.fail(parse_error_t("boolean value (\'!\' or \'*\') expected"));
+    return;
+  }
+  buf_.skip();
+
+  result_.submit(value);
+}
+  
+template struct boolean_reader_t<bool>;
+template struct boolean_reader_t<flag_t>;
+
+template<typename T>
+unsigned_reader_t<T>::unsigned_reader_t(result_t<T>& result,
+                                        bound_inbuf_t& buf)
+: result_(result)
+, skipper_(*this, result_, buf)
+, digits_reader_(*this, result_, buf)
+{ }
+
+template<typename T>
+void unsigned_reader_t<T>::start()
+{
+  skipper_.start(&unsigned_reader_t::on_whitespace_skipped);
+}
+
+template<typename T>
+void unsigned_reader_t<T>::on_whitespace_skipped(int)
+{
+  digits_reader_.start(
+    &unsigned_reader_t::on_digits_read, std::numeric_limits<T>::max());
+}    
+
+template<typename T>
+void unsigned_reader_t<T>::on_digits_read(T value)
+{
+  result_.submit(value);
+}
+
+template struct unsigned_reader_t<unsigned short>;
+template struct unsigned_reader_t<unsigned int>;
+template struct unsigned_reader_t<unsigned long>;
+template struct unsigned_reader_t<unsigned long long>;
+
+template<typename T>
+signed_reader_t<T>::signed_reader_t(result_t<T>& result, bound_inbuf_t& buf)
+: result_(result)
+, buf_(buf)
+, skipper_(*this, result_, buf_)
+, digits_reader_(*this, result_, buf_)
+, negative_()
+{ }
+
+template<typename T>
+void signed_reader_t<T>::start()
+{
+  negative_ = false;
+  skipper_.start(&signed_reader_t::on_whitespace_skipped);
+}
+
+template<typename T>
+void signed_reader_t<T>::on_whitespace_skipped(int c)
+{
+  assert(buf_.readable());
+  assert(c == buf_.peek());
+
+  UT max = std::numeric_limits<T>::max();
+  if(c == '-')
+  {
+    negative_ = true;
+    ++max;
+    buf_.skip();
+  }
+
+  digits_reader_.start(&signed_reader_t::on_digits_read, max);
+}
+
+template<typename T>
+void signed_reader_t<T>::on_digits_read(UT unsigned_value)
+{
+  T signed_value;
+
+  if(!negative_ || unsigned_value == 0)
+  {
+    signed_value = unsigned_value;
+  }
+  else
+  {
+    --unsigned_value;
+    signed_value = unsigned_value;
+    signed_value = -signed_value;
+    --signed_value;
+  }
+
+  result_.submit(signed_value);
+}
+
+template struct signed_reader_t<short>;
+template struct signed_reader_t<int>;
+template struct signed_reader_t<long>;
+template struct signed_reader_t<long long>;
+
+template<typename T>
 blob_reader_t<T>::blob_reader_t(result_t<T>& result, bound_inbuf_t& buf)
 : result_(result)
 , buf_(buf)

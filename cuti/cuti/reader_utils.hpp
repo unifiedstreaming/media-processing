@@ -22,6 +22,7 @@
 
 #include "bound_inbuf.hpp"
 #include "charclass.hpp"
+#include "flag.hpp"
 #include "linkage.h"
 #include "parse_error.hpp"
 #include "result.hpp"
@@ -32,6 +33,7 @@
 #include <cassert>
 #include <cstddef>
 #include <string>
+#include <tuple>
 #include <type_traits>
 #include <utility>
 #include <vector>
@@ -262,6 +264,94 @@ private :
 };
     
 template<typename T>
+struct CUTI_ABI boolean_reader_t
+{
+  using result_value_t = T;
+
+  boolean_reader_t(result_t<T>& result, bound_inbuf_t& buf);
+
+  boolean_reader_t(boolean_reader_t const&) = delete;
+  boolean_reader_t& operator=(boolean_reader_t const&) = delete;
+  
+  void start();
+
+private :
+  void on_whitespace_skipped(int c);
+
+private :
+  result_t<T>& result_;
+  bound_inbuf_t& buf_;
+  subroutine_t<boolean_reader_t, whitespace_skipper_t> skipper_;
+};
+
+extern template struct boolean_reader_t<bool>;
+extern template struct boolean_reader_t<flag_t>;
+
+template<typename T>
+struct CUTI_ABI unsigned_reader_t
+{
+  static_assert(std::is_unsigned_v<T>);
+
+  using result_value_t = T;
+
+  unsigned_reader_t(result_t<T>& result, bound_inbuf_t& buf);
+
+  unsigned_reader_t(unsigned_reader_t const&) = delete;
+  unsigned_reader_t& operator=(unsigned_reader_t const&) = delete;
+
+  void start();
+
+private :
+  void on_whitespace_skipped(int c);
+  void on_digits_read(T value);
+
+private :
+  result_t<T>& result_;
+  subroutine_t<unsigned_reader_t, whitespace_skipper_t> skipper_;
+  subroutine_t<unsigned_reader_t, digits_reader_t<T>> digits_reader_;
+};
+
+extern template struct unsigned_reader_t<unsigned short>;
+extern template struct unsigned_reader_t<unsigned int>;
+extern template struct unsigned_reader_t<unsigned long>;
+extern template struct unsigned_reader_t<unsigned long long>;
+
+template<typename T>
+struct CUTI_ABI signed_reader_t
+{
+  static_assert(std::is_signed_v<T>);
+  static_assert(std::is_integral_v<T>);
+
+  using result_value_t = T;
+
+  signed_reader_t(result_t<T>& result, bound_inbuf_t& buf);
+
+  signed_reader_t(signed_reader_t const&) = delete;
+  signed_reader_t& operator=(signed_reader_t const&) = delete;
+
+  void start();
+
+private :
+  using UT = std::make_unsigned_t<T>;
+
+  void on_whitespace_skipped(int c);
+  void on_digits_read(UT unsigned_value);
+
+private :
+  result_t<T>& result_;
+  bound_inbuf_t& buf_;
+  subroutine_t<signed_reader_t, whitespace_skipper_t> skipper_;
+  subroutine_t<signed_reader_t, digits_reader_t<UT>> digits_reader_;
+
+  bool negative_;
+};
+
+extern template struct signed_reader_t<short>;
+extern template struct signed_reader_t<int>;
+extern template struct signed_reader_t<long>;
+extern template struct signed_reader_t<long long>;
+
+template<typename T>
 struct CUTI_ABI blob_reader_t
 {
   static_assert(std::is_same_v<T, std::string> ||
@@ -297,6 +387,178 @@ extern template struct blob_reader_t<std::string>;
 extern template struct blob_reader_t<std::vector<char>>;
 extern template struct blob_reader_t<std::vector<signed char>>;
 extern template struct blob_reader_t<std::vector<unsigned char>>;
+
+using begin_sequence_reader_t = expected_reader_t<'['>;
+using end_sequence_checker_t = expected_checker_t<']'>;
+
+template<typename T>
+struct vector_reader_t
+{
+  using result_value_t = std::vector<T>;
+
+  vector_reader_t(result_t<std::vector<T>>& result, bound_inbuf_t& buf)
+  : result_(result)
+  , begin_reader_(*this, result_, buf)
+  , end_checker_(*this, result_, buf)
+  , element_reader_(*this, result_, buf)
+  , value_()
+  { }
+
+  void start()
+  {
+    value_.clear();
+    begin_reader_.start(&vector_reader_t::read_elements);
+  }
+
+private :
+  void read_elements()
+  {
+    end_checker_.start(&vector_reader_t::on_end_checker);
+  }
+
+  void on_end_checker(bool at_end)
+  {
+    if(at_end)
+    {
+      result_.submit(std::move(value_));
+      return;
+    }
+      
+    element_reader_.start(&vector_reader_t::on_element);
+  }
+    
+  void on_element(T element)
+  {
+    value_.push_back(std::move(element));
+    this->read_elements();
+  }
+
+private :
+  result_t<std::vector<T>>& result_;
+  subroutine_t<vector_reader_t, begin_sequence_reader_t> begin_reader_;
+  subroutine_t<vector_reader_t, end_sequence_checker_t> end_checker_;
+  subroutine_t<vector_reader_t, reader_t<T>> element_reader_;
+
+  std::vector<T> value_;
+};
+
+template<typename T,
+         typename = std::make_index_sequence<std::tuple_size_v<T>>>
+struct tuple_elements_reader_t;
+
+template<typename T>
+struct tuple_elements_reader_t<T, std::index_sequence<>>
+{
+  using result_value_t = void;
+
+  tuple_elements_reader_t(result_t<void>& result, bound_inbuf_t&)
+  : result_(result)
+  { }
+
+  tuple_elements_reader_t(tuple_elements_reader_t const&) = delete;
+  tuple_elements_reader_t& operator=(tuple_elements_reader_t const&) = delete;
+  
+  void start(T&)
+  {
+    result_.submit();
+  }
+  
+private :
+  result_t<void>& result_;
+};
+
+template<typename T, std::size_t First, std::size_t... Rest>
+struct tuple_elements_reader_t<T, std::index_sequence<First, Rest...>>
+{
+  using result_value_t = void;
+
+  using element_t = std::tuple_element_t<First, T>;
+  using delegate_t = tuple_elements_reader_t<T, std::index_sequence<Rest...>>;
+
+  tuple_elements_reader_t(result_t<void>& result, bound_inbuf_t& buf)
+  : result_(result)
+  , element_reader_(*this, result_, buf)
+  , delegate_(*this, result_, buf)
+  , value_()
+  { }
+
+  tuple_elements_reader_t(tuple_elements_reader_t const&) = delete;
+  tuple_elements_reader_t& operator=(tuple_elements_reader_t const&) = delete;
+  
+  void start(T& value)
+  {
+    value_ = &value;
+    element_reader_.start(&tuple_elements_reader_t::on_element_read);
+  }
+
+private :
+  void on_element_read(element_t element)
+  {
+    std::get<First>(*value_) = std::move(element);
+    delegate_.start(&tuple_elements_reader_t::on_delegate_done, *value_);
+  }
+
+  void on_delegate_done()
+  {
+    result_.submit();
+  }
+
+private :
+  result_t<void>& result_;
+  subroutine_t<tuple_elements_reader_t, reader_t<element_t>> element_reader_;
+  subroutine_t<tuple_elements_reader_t, delegate_t> delegate_;
+
+  T* value_;
+};
+
+using begin_structure_reader_t = detail::expected_reader_t<'{'>;
+using end_structure_reader_t = detail::expected_reader_t<'}'>;
+
+template<typename T>
+struct tuple_reader_t
+{
+  using result_value_t = T;
+
+  tuple_reader_t(result_t<T>& result, bound_inbuf_t& buf)
+  : result_(result)
+  , begin_reader_(*this, result_, buf)
+  , elements_reader_(*this, result_, buf)
+  , end_reader_(*this, result_, buf)
+  , value_()
+  { }
+
+  tuple_reader_t(tuple_reader_t const&) = delete;
+  tuple_reader_t& operator=(tuple_reader_t const&) = delete;
+
+  void start()
+  {
+    begin_reader_.start(&tuple_reader_t::on_begin_read);
+  }
+
+private :
+  void on_begin_read()
+  {
+    elements_reader_.start(&tuple_reader_t::on_elements_read, value_);
+  }
+
+  void on_elements_read()
+  {
+    end_reader_.start(&tuple_reader_t::on_end_read);
+  }
+
+  void on_end_read()
+  {
+    result_.submit(std::move(value_));
+  }
+
+private :
+  result_t<T>& result_;
+  subroutine_t<tuple_reader_t, begin_structure_reader_t> begin_reader_;
+  subroutine_t<tuple_reader_t, tuple_elements_reader_t<T>> elements_reader_;
+  subroutine_t<tuple_reader_t, end_structure_reader_t> end_reader_;
+
+  T value_;
+};
 
 } // detail
 

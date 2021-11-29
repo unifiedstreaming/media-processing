@@ -20,45 +20,12 @@
 #ifndef CUTI_BOOLEAN_READER_HPP_
 #define CUTI_BOOLEAN_READER_HPP_
 
-#include "bound_inbuf.hpp"
 #include "flag.hpp"
-#include "linkage.h"
 #include "reader_traits.hpp"
 #include "reader_utils.hpp"
-#include "result.hpp"
-#include "subroutine.hpp"
 
 namespace cuti
 {
-
-namespace detail
-{
-
-template<typename T>
-struct CUTI_ABI boolean_reader_t
-{
-  using result_value_t = T;
-
-  boolean_reader_t(result_t<T>& result, bound_inbuf_t& buf);
-
-  boolean_reader_t(boolean_reader_t const&) = delete;
-  boolean_reader_t& operator=(boolean_reader_t const&) = delete;
-  
-  void start();
-
-private :
-  void on_whitespace_skipped(int c);
-
-private :
-  result_t<T>& result_;
-  bound_inbuf_t& buf_;
-  subroutine_t<boolean_reader_t, whitespace_skipper_t> skipper_;
-};
-
-extern template struct boolean_reader_t<bool>;
-extern template struct boolean_reader_t<flag_t>;
-
-} // detail
 
 template<>
 struct reader_traits_t<bool>
