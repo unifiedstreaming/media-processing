@@ -27,9 +27,6 @@ namespace cuti
 
 using begin_structure_reader_t = detail::expected_reader_t<'{'>;
 
-template<typename T>
-using structure_element_reader_t = detail::element_reader_t<T>;
-
 using end_structure_reader_t = detail::expected_reader_t<'}'>;
 
 } // cuti

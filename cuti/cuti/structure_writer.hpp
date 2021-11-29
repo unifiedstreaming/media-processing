@@ -21,6 +21,7 @@
 #define CUTI_STRUCTURE_WRITER_HPP_
 
 #include "linkage.h"
+#include "writer_traits.hpp"
 #include "writer_utils.hpp"
 
 namespace cuti
@@ -35,13 +36,10 @@ extern CUTI_ABI char const structure_suffix[];
 } // detail
 
 using begin_structure_writer_t =
-  detail::literal_writer_t<detail::structure_prefix>;
-
-template<typename T>
-using structure_element_writer_t = detail::element_writer_t<T>;
+  detail::token_suffix_writer_t<detail::structure_prefix>;
 
 using end_structure_writer_t =
-  detail::literal_writer_t<detail::structure_suffix>;
+  detail::token_suffix_writer_t<detail::structure_suffix>;
 
 } // cuti
 

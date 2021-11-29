@@ -50,12 +50,13 @@ struct CUTI_ABI unsigned_writer_t
   void start(T value);
 
 private :
-  void write_trailing_space();
+  void on_digits_written();
+  void on_space_written();
 
 private :
   result_t<void>& result_;
-  bound_outbuf_t& buf_;
   subroutine_t<unsigned_writer_t, digits_writer_t<T>> digits_writer_;
+  subroutine_t<unsigned_writer_t, space_writer_t> space_writer_;
 };
 
 extern template struct unsigned_writer_t<unsigned short>;
@@ -82,12 +83,14 @@ private :
   using UT = std::make_unsigned_t<T>;
 
   void write_minus();
-  void write_trailing_space();
+  void on_digits_written();
+  void on_space_written();
 
 private :
   result_t<void>& result_;
   bound_outbuf_t& buf_;
   subroutine_t<signed_writer_t, digits_writer_t<UT>> digits_writer_;
+  subroutine_t<signed_writer_t, space_writer_t> space_writer_;
 
   UT unsigned_value_;
 };

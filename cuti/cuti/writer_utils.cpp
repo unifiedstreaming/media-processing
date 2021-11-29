@@ -31,6 +31,8 @@ namespace cuti
 namespace detail
 {
 
+char const space_suffix[] = " ";
+
 template<typename T>
 digits_writer_t<T>::digits_writer_t(result_t<void>& result,
                                     bound_outbuf_t& buf)

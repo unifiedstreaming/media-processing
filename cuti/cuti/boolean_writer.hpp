@@ -54,9 +54,9 @@ private :
 
 private :
   result_t<void>& result_;
-  subroutine_t<boolean_writer_t, literal_writer_t<true_literal>>
+  subroutine_t<boolean_writer_t, token_suffix_writer_t<true_literal>>
     true_writer_;
-  subroutine_t<boolean_writer_t, literal_writer_t<false_literal>>
+  subroutine_t<boolean_writer_t, token_suffix_writer_t<false_literal>>
     false_writer_;
 };
 

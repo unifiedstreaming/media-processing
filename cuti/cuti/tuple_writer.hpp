@@ -22,7 +22,6 @@
 
 #include "bound_outbuf.hpp"
 #include "result.hpp"
-#include "stack_marker.hpp"
 #include "subroutine.hpp"
 #include "structure_writer.hpp"
 #include "writer_traits.hpp"
@@ -103,8 +102,7 @@ private :
 private :
   result_t<void>& result_;
   bound_outbuf_t& buf_;
-  subroutine_t<tuple_elements_writer_t, structure_element_writer_t<element_t>>
-    element_writer_;
+  subroutine_t<tuple_elements_writer_t, writer_t<element_t>> element_writer_;
   subroutine_t<tuple_elements_writer_t, delegate_t> delegate_;
 
   T* value_;

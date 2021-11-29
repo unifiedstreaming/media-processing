@@ -31,26 +31,25 @@ template<typename T>
 unsigned_writer_t<T>::unsigned_writer_t(result_t<void>& result,
                                         bound_outbuf_t& buf)
 : result_(result)
-, buf_(buf)
-, digits_writer_(*this, result_, buf_)
+, digits_writer_(*this, result_, buf)
+, space_writer_(*this, result_, buf)
 { }
 
 template<typename T>
 void unsigned_writer_t<T>::start(T value)
 {
-  digits_writer_.start(&unsigned_writer_t::write_trailing_space, value);
+  digits_writer_.start(&unsigned_writer_t::on_digits_written, value);
 }
 
 template<typename T>
-void unsigned_writer_t<T>::write_trailing_space()
+void unsigned_writer_t<T>::on_digits_written()
 {
-  if(!buf_.writable())
-  {
-    buf_.call_when_writable([this] { this->write_trailing_space(); });
-    return;
-  }
-  buf_.put(' ');
+  space_writer_.start(&unsigned_writer_t::on_space_written);
+}
 
+template<typename T>
+void unsigned_writer_t<T>::on_space_written()
+{
   result_.submit();
 }
 
@@ -64,6 +63,7 @@ signed_writer_t<T>::signed_writer_t(result_t<void>& result, bound_outbuf_t& buf)
 : result_(result)
 , buf_(buf)
 , digits_writer_(*this, result_, buf_)
+, space_writer_(*this, result_, buf_)
 , unsigned_value_()
 { }
 
@@ -74,7 +74,7 @@ void signed_writer_t<T>::start(T value)
   {
     unsigned_value_ = value;
     digits_writer_.start(
-      &signed_writer_t::write_trailing_space, unsigned_value_);
+      &signed_writer_t::on_digits_written, unsigned_value_);
   }
   else
   {
@@ -97,19 +97,18 @@ void signed_writer_t<T>::write_minus()
   buf_.put('-');
 
   digits_writer_.start(
-    &signed_writer_t::write_trailing_space, unsigned_value_);
+    &signed_writer_t::on_digits_written, unsigned_value_);
 }
 
 template<typename T>
-void signed_writer_t<T>::write_trailing_space()
+void signed_writer_t<T>::on_digits_written()
 {
-  if(!buf_.writable())
-  {
-    buf_.call_when_writable([this] { this->write_trailing_space(); });
-    return;
-  }
-  buf_.put(' ');
+  space_writer_.start(&signed_writer_t::on_space_written);
+}
 
+template<typename T>
+void signed_writer_t<T>::on_space_written()
+{
   result_.submit();
 }
 

@@ -89,7 +89,7 @@ private :
 private :
   result_t<void>& result_;
   subroutine_t<vector_writer_t, begin_sequence_writer_t> begin_writer_;
-  subroutine_t<vector_writer_t, sequence_element_writer_t<T>> element_writer_;
+  subroutine_t<vector_writer_t, writer_t<T>> element_writer_;
   subroutine_t<vector_writer_t, end_sequence_writer_t> end_writer_;
 
   std::vector<T> value_;

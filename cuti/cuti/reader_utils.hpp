@@ -42,6 +42,16 @@ namespace cuti
 namespace detail
 {
 
+/*
+ * whitespace_skipper: skips whitespace and eventually submits the
+ * first non-whitespace character from buf (which could be eof).  At
+ * that position in buf, buf.readable() will be true and buf.peek()
+ * will equal the submitted value.
+ *
+ * Please note: to prevent stack overflow as a result of unbounded
+ * tail recursion, any token reader MUST use a whitespace skipper as
+ * its first step.
+ */
 struct CUTI_ABI whitespace_skipper_t
 {
   using result_value_t = int;
@@ -54,13 +64,20 @@ struct CUTI_ABI whitespace_skipper_t
   whitespace_skipper_t(whitespace_skipper_t const&) = delete;
   whitespace_skipper_t& operator=(whitespace_skipper_t const&) = delete;
 
-  /*
-   * Skips whitespace and eventually submits the first non-whitespace
-   * character from buf (which could be eof).  At that position in
-   * buf, buf.readable() will be true and buf.peek() will equal the
-   * submitted value.
-   */
   void start()
+  {
+    stack_marker_t marker;
+    if(marker.in_range(buf_.base_marker()))
+    {
+      this->skip_spaces();
+      return;
+    }
+
+    buf_.call_when_readable([this] { this->skip_spaces(); });
+  }
+
+private :
+  void skip_spaces()
   {
     int c{};
     while(buf_.readable() && is_whitespace(c = buf_.peek()))
@@ -262,6 +279,7 @@ struct CUTI_ABI blob_reader_t
   void start();
 
 private :
+  void read_leading_dq(int c);
   void read_contents();
   void read_escaped();
   void on_hex_digits(int c);
@@ -269,7 +287,7 @@ private :
 private :
   result_t<T>& result_;
   bound_inbuf_t& buf_;
-  subroutine_t<blob_reader_t, expected_reader_t<'\"'>> leading_dq_reader_;
+  subroutine_t<blob_reader_t, whitespace_skipper_t> skipper_;
   subroutine_t<blob_reader_t, hex_digits_reader_t> hex_digits_reader_;
 
   T value_;
@@ -279,48 +297,6 @@ extern template struct blob_reader_t<std::string>;
 extern template struct blob_reader_t<std::vector<char>>;
 extern template struct blob_reader_t<std::vector<signed char>>;
 extern template struct blob_reader_t<std::vector<unsigned char>>;
-
-/*
- * Reader for sequence and tuple elements avoiding stack overflow  
- */
-template<typename T>
-struct element_reader_t
-{
-  using result_value_t = T;
-
-  element_reader_t(result_t<T>& result, bound_inbuf_t& buf)
-  : result_(result)
-  , buf_(buf)
-  , delegate_(*this, result_, buf_)
-  { }
-
-  element_reader_t(element_reader_t const&) = delete;
-  element_reader_t& operator=(element_reader_t const&) = delete;
-
-  void start()
-  {
-    stack_marker_t marker;
-    if(marker.in_range(buf_.base_marker()))
-    {
-      delegate_.start(&element_reader_t::on_delegate_done);
-      return;
-    }
-
-    buf_.call_when_readable([this]
-      { this->delegate_.start(&element_reader_t::on_delegate_done); });
-  }
-
-private :
-  void on_delegate_done(T value)
-  {
-    result_.submit(std::move(value));
-  }
-
-private :
-  result_t<T>& result_;
-  bound_inbuf_t& buf_;
-  subroutine_t<element_reader_t, reader_t<T>> delegate_;
-};
 
 } // detail
 

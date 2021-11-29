@@ -101,8 +101,7 @@ private :
 
 private :
   result_t<void>& result_;
-  subroutine_t<tuple_elements_reader_t, structure_element_reader_t<element_t>>
-    element_reader_;
+  subroutine_t<tuple_elements_reader_t, reader_t<element_t>> element_reader_;
   subroutine_t<tuple_elements_reader_t, delegate_t> delegate_;
 
   T* value_;

@@ -28,9 +28,6 @@ namespace cuti
 using begin_sequence_reader_t = detail::expected_reader_t<'['>;
 using end_sequence_checker_t = detail::expected_checker_t<']'>;
 
-template<typename T>
-using sequence_element_reader_t = detail::element_reader_t<T>;
-
 } // cuti
 
 #endif

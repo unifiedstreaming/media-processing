@@ -39,24 +39,39 @@ namespace cuti
 namespace detail
 {
 
+/*
+ * token_suffix_writer: writes some fixed string literal.
+ *
+ * Please note: to prevent stack overflow as a result of unbounded
+ * tail recursion, any token writer MUST use a suffix writer as its
+ * last step.
+ */
 template<char const* Literal>
-struct literal_writer_t
+struct token_suffix_writer_t
 {
   using result_value_t = void;
 
-  literal_writer_t(result_t<void>& result, bound_outbuf_t& buf)
+  token_suffix_writer_t(result_t<void>& result, bound_outbuf_t& buf)
   : result_(result)
   , buf_(buf)
   , p_()
   { }
 
-  literal_writer_t(literal_writer_t const&) = delete;
-  literal_writer_t& operator=(literal_writer_t const&) = delete;
+  token_suffix_writer_t(token_suffix_writer_t const&) = delete;
+  token_suffix_writer_t& operator=(token_suffix_writer_t const&) = delete;
   
   void start()
   {
     p_ = Literal;
-    this->write_chars();
+
+    stack_marker_t marker;
+    if(marker.in_range(buf_.base_marker()))
+    {
+      this->write_chars();
+      return;
+    }
+
+    buf_.call_when_writable([this] { this->write_chars(); });
   }
 
 private :
@@ -82,6 +97,10 @@ private :
   bound_outbuf_t& buf_;
   char const* p_;
 };
+
+extern CUTI_ABI char const space_suffix[];
+
+using space_writer_t = token_suffix_writer_t<space_suffix>;
 
 template<typename T>
 struct CUTI_ABI digits_writer_t
@@ -140,7 +159,8 @@ private :
 private :
   result_t<void>& result_;
   bound_outbuf_t& buf_;
-  subroutine_t<blob_writer_t, literal_writer_t<blob_suffix>> suffix_writer_;
+  subroutine_t<blob_writer_t, token_suffix_writer_t<blob_suffix>>
+    suffix_writer_;
   
   T value_;
   typename T::const_iterator first_;
@@ -151,49 +171,6 @@ extern template struct blob_writer_t<std::string>;
 extern template struct blob_writer_t<std::vector<char>>;
 extern template struct blob_writer_t<std::vector<signed char>>;
 extern template struct blob_writer_t<std::vector<unsigned char>>;
-
-/*
- * Writer for sequence and tuple elements avoiding stack overflow  
- */
-template<typename T>
-struct element_writer_t
-{
-  using result_value_t = void;
-
-  element_writer_t(result_t<void>& result, bound_outbuf_t& buf)
-  : result_(result)
-  , buf_(buf)
-  , delegate_(*this, result_, buf_)
-  { }
-
-  element_writer_t(element_writer_t const&) = delete;
-  element_writer_t& operator=(element_writer_t const&) = delete;
-
-  template<typename TT>
-  void start(TT&& value)
-  {
-    delegate_.start(
-      &element_writer_t::on_delegate_done, std::forward<TT>(value));
-  }
-
-private :
-  void on_delegate_done()
-  {
-    stack_marker_t marker;
-    if(marker.in_range(buf_.base_marker()))
-    {
-      result_.submit();
-      return;
-    }
-
-    buf_.call_when_writable([this] { this->result_.submit(); });
-  }
-
-private :
-  result_t<void>& result_;
-  bound_outbuf_t& buf_;
-  subroutine_t<element_writer_t, writer_t<T>> delegate_;
-};
 
 } // detail
 

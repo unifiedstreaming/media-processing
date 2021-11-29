@@ -21,6 +21,7 @@
 #define CUTI_SEQUENCE_WRITER_HPP_
 
 #include "linkage.h"
+#include "writer_traits.hpp"
 #include "writer_utils.hpp"
 
 namespace cuti
@@ -35,13 +36,10 @@ extern CUTI_ABI char const sequence_suffix[];
 } // detail
 
 using begin_sequence_writer_t =
-  detail::literal_writer_t<detail::sequence_prefix>;
-
-template<typename T>
-using sequence_element_writer_t = detail::element_writer_t<T>;
+  detail::token_suffix_writer_t<detail::sequence_prefix>;
 
 using end_sequence_writer_t =
-  detail::literal_writer_t<detail::sequence_suffix>;
+  detail::token_suffix_writer_t<detail::sequence_suffix>;
 
 } // cuti
 
