@@ -411,6 +411,63 @@ template struct blob_reader_t<std::vector<char>>;
 template struct blob_reader_t<std::vector<signed char>>;
 template struct blob_reader_t<std::vector<unsigned char>>;
 
+identifier_reader_t::identifier_reader_t(
+  result_t<identifier_t>& result, bound_inbuf_t& buf)
+: result_(result)
+, buf_(buf)
+, skipper_(*this, result_, buf_)
+, rep_()
+{ }
+
+void identifier_reader_t::start()
+{
+  rep_.clear();
+
+  skipper_.start(&identifier_reader_t::read_leader);
+}
+
+void identifier_reader_t::read_leader(int c)
+{
+  assert(buf_.readable());
+  assert(buf_.peek() == c);
+
+  if(!identifier_t::is_leader(c))
+  {
+    result_.fail(parse_error_t("identifier expected"));
+    return;
+  }
+
+  rep_.push_back(static_cast<char>(c));
+  buf_.skip();
+
+  this->read_followers();
+}
+
+void identifier_reader_t::read_followers()
+{
+  int c{};
+  while(buf_.readable() && identifier_t::is_follower(c = buf_.peek()))
+  {
+    rep_.push_back(static_cast<char>(c));
+    buf_.skip();
+  }
+
+  if(!buf_.readable())
+  {
+    buf_.call_when_readable([this] { this->read_followers(); });
+    return;
+  }
+
+  if(c == eof)
+  {
+    // avoid submitting a half-baked value on remote hangup
+    result_.fail(parse_error_t("unexpected eof in identifier value"));
+    return;
+  }
+
+  result_.submit(identifier_t(std::move(rep_)));
+}
+
 } // detail
 
 } // cuti

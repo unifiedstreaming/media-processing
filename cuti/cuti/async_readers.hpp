@@ -21,6 +21,7 @@
 #define CUTI_ASYNC_READERS_HPP_
 
 #include "flag.hpp"
+#include "identifier.hpp"
 #include "reader_traits.hpp"
 #include "reader_utils.hpp"
 
@@ -98,6 +99,12 @@ template<>
 struct reader_traits_t<std::string>
 {
   using type = detail::blob_reader_t<std::string>;
+};
+
+template<>
+struct reader_traits_t<identifier_t>
+{
+  using type = detail::identifier_reader_t;
 };
 
 template<typename T>

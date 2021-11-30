@@ -23,6 +23,7 @@
 #include "bound_inbuf.hpp"
 #include "charclass.hpp"
 #include "flag.hpp"
+#include "identifier.hpp"
 #include "linkage.h"
 #include "parse_error.hpp"
 #include "result.hpp"
@@ -388,6 +389,29 @@ extern template struct blob_reader_t<std::vector<char>>;
 extern template struct blob_reader_t<std::vector<signed char>>;
 extern template struct blob_reader_t<std::vector<unsigned char>>;
 
+struct CUTI_ABI identifier_reader_t
+{
+  using result_value_t = identifier_t;
+
+  identifier_reader_t(result_t<identifier_t>& result, bound_inbuf_t& buf);
+
+  identifier_reader_t(identifier_reader_t const&) = delete;
+  identifier_reader_t& operator=(identifier_reader_t const&) = delete;
+
+  void start();
+
+private :
+  void read_leader(int c);
+  void read_followers();
+
+private :
+  result_t<identifier_t>& result_;
+  bound_inbuf_t& buf_;
+  subroutine_t<identifier_reader_t, whitespace_skipper_t> skipper_;
+
+  std::string rep_;
+};
+  
 using begin_sequence_reader_t = expected_reader_t<'['>;
 using end_sequence_checker_t = expected_checker_t<']'>;
 
@@ -404,6 +428,9 @@ struct vector_reader_t
   , value_()
   { }
 
+  vector_reader_t(vector_reader_t const&) = delete;
+  vector_reader_t& operator=(vector_reader_t const&) = delete;
+  
   void start()
   {
     value_.clear();
