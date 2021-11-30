@@ -409,7 +409,7 @@ private :
   bound_inbuf_t& buf_;
   subroutine_t<identifier_reader_t, whitespace_skipper_t> skipper_;
 
-  std::string rep_;
+  std::string wrapped_;
 };
   
 using begin_sequence_reader_t = expected_reader_t<'['>;

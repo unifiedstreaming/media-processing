@@ -23,6 +23,7 @@
 #include "bound_outbuf.hpp"
 #include "flag.hpp"
 #include "linkage.h"
+#include "identifier.hpp"
 #include "result.hpp"
 #include "stack_marker.hpp"
 #include "subroutine.hpp"
@@ -268,6 +269,31 @@ extern template struct blob_writer_t<std::vector<char>>;
 extern template struct blob_writer_t<std::vector<signed char>>;
 extern template struct blob_writer_t<std::vector<unsigned char>>;
 
+struct CUTI_ABI identifier_writer_t
+{
+  using result_value_t = void;
+
+  identifier_writer_t(result_t<void>& result, bound_outbuf_t& buf);
+
+  identifier_writer_t(identifier_writer_t const&) = delete;
+  identifier_writer_t& operator=(identifier_writer_t const&) = delete;
+
+  void start(identifier_t value);
+
+private :
+  void write_contents();
+  void on_space_written();
+
+private :
+  result_t<void>& result_;
+  bound_outbuf_t& buf_;
+  subroutine_t<identifier_writer_t, space_writer_t> space_writer_;
+
+  identifier_t value_;
+  std::string::const_iterator begin_;
+  std::string::const_iterator end_;
+};
+  
 extern CUTI_ABI char const sequence_prefix[];
 extern CUTI_ABI char const sequence_suffix[];
 

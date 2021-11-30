@@ -51,8 +51,8 @@ struct identifier_t
   : wrapped_()
   { }
 
-  explicit identifier_t(std::string rep)
-  : wrapped_(std::move(rep))
+  explicit identifier_t(std::string wrapped)
+  : wrapped_(std::move(wrapped))
   { }
 
   bool is_valid() const

@@ -20,6 +20,7 @@
 #include "io_test_utils.hpp"
 
 #include <cuti/async_readers.hpp>
+#include <cuti/async_writers.hpp>
 
 #include <cuti/cmdline_reader.hpp>
 #include <cuti/option_walker.hpp>
@@ -49,6 +50,26 @@ void test_failing_reads(logging_context_t& context, std::size_t bufsize)
     test_failing_read<identifier_t>(context, bufsize,
       std::string(prefix) + "_3foo_3BAR");
   }
+}
+
+void test_roundtrips(logging_context_t& context, std::size_t bufsize)
+{
+  test_roundtrip(context, bufsize, identifier_t{"a"});
+  test_roundtrip(context, bufsize, identifier_t{"A"});
+  test_roundtrip(context, bufsize, identifier_t{"z"});
+  test_roundtrip(context, bufsize, identifier_t{"Z"});
+  test_roundtrip(context, bufsize, identifier_t{"_"});
+  
+  test_roundtrip(context, bufsize, identifier_t{"aa"});
+  test_roundtrip(context, bufsize, identifier_t{"a42"});
+  test_roundtrip(context, bufsize, identifier_t{"zz"});
+  test_roundtrip(context, bufsize, identifier_t{"z42"});
+  test_roundtrip(context, bufsize, identifier_t{"AA"});
+  test_roundtrip(context, bufsize, identifier_t{"A42"});
+  test_roundtrip(context, bufsize, identifier_t{"ZZ"});
+  test_roundtrip(context, bufsize, identifier_t{"Z42"});
+  test_roundtrip(context, bufsize, identifier_t{"__"});
+  test_roundtrip(context, bufsize, identifier_t{"_42"});
 }
 
 struct options_t
@@ -103,6 +124,7 @@ int run_tests(int argc, char const* const* argv)
   for(auto bufsize : bufsizes)
   {
     test_failing_reads(context, bufsize);
+    test_roundtrips(context, bufsize);
   }
   
   return 0;

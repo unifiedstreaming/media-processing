@@ -21,6 +21,7 @@
 #define CUTI_ASYNC_WRITERS_HPP_
 
 #include "flag.hpp"
+#include "identifier.hpp"
 #include "writer_traits.hpp"
 #include "writer_utils.hpp"
 
@@ -98,6 +99,12 @@ template<>
 struct writer_traits_t<std::string>
 {
   using type = detail::blob_writer_t<std::string>;
+};
+
+template<>
+struct writer_traits_t<identifier_t>
+{
+  using type = detail::identifier_writer_t;
 };
 
 template<typename T>

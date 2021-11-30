@@ -41,12 +41,18 @@ void test_is_valid()
 
   assert(identifier_t{"a"}.is_valid());
   assert(identifier_t{"A"}.is_valid());
+  assert(identifier_t{"z"}.is_valid());
+  assert(identifier_t{"Z"}.is_valid());
   assert(identifier_t{"_"}.is_valid());
   
   assert(identifier_t{"aa"}.is_valid());
   assert(identifier_t{"a42"}.is_valid());
+  assert(identifier_t{"zz"}.is_valid());
+  assert(identifier_t{"z42"}.is_valid());
   assert(identifier_t{"AA"}.is_valid());
   assert(identifier_t{"A42"}.is_valid());
+  assert(identifier_t{"ZZ"}.is_valid());
+  assert(identifier_t{"Z42"}.is_valid());
   assert(identifier_t{"__"}.is_valid());
   assert(identifier_t{"_42"}.is_valid());
 }

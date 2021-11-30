@@ -317,6 +317,51 @@ template struct blob_writer_t<std::vector<char>>;
 template struct blob_writer_t<std::vector<signed char>>;
 template struct blob_writer_t<std::vector<unsigned char>>;
 
+identifier_writer_t::identifier_writer_t(result_t<void>& result,
+                                         bound_outbuf_t& buf)
+: result_(result)
+, buf_(buf)
+, space_writer_(*this, result_, buf)
+, value_()
+, begin_()
+, end_()
+{ }
+
+void identifier_writer_t::start(identifier_t value)
+{
+  assert(value.is_valid());
+  value_ = std::move(value);
+
+  std::string const& rep = value_.as_string();
+  begin_ = rep.begin();
+  end_ = rep.end();
+
+  this->write_contents();
+}
+
+void identifier_writer_t::write_contents()
+{
+  while(begin_ != end_ && buf_.writable())
+  {
+    buf_.put(*begin_);
+    ++begin_;
+  }
+
+  if(begin_ != end_)
+  {
+    buf_.call_when_writable([this] { this->write_contents(); });
+    return;
+  }
+
+  space_writer_.start(&identifier_writer_t::on_space_written);
+}
+
+void identifier_writer_t::on_space_written()
+{
+  value_ = identifier_t{};
+  result_.submit();
+}
+  
 char const sequence_prefix[] = "[ ";
 char const sequence_suffix[] = "] ";
 
