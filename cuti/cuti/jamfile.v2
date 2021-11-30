@@ -118,6 +118,7 @@ lib cuti
   reader_traits.cpp
   reader_utils.cpp
   relational_ops.cpp
+  remote_error.cpp
   resolver.cpp
   result.cpp
   scheduler.cpp
