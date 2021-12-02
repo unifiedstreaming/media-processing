@@ -19,6 +19,7 @@
 
 #include "async_writers.hpp"
 
+#include "remote_error.hpp"
 #include "stack_marker.hpp"
 
 #include <cassert>
@@ -368,6 +369,71 @@ char const sequence_suffix[] = "] ";
 char const structure_prefix[] = "{ ";
 char const structure_suffix[] = "} ";
 
+namespace // anoymous
+{
+
+char const exception_marker[] = "! ";
+
+} // anonymous
+
+struct exception_writer_t::impl_t
+{
+  impl_t(result_t<void>& result, bound_outbuf_t& buf)
+  : result_(result)
+  , marker_writer_(*this, result_, buf)
+  , error_writer_(*this, result_, buf)
+  , type_()
+  , description_()
+  { }
+
+  impl_t(impl_t const&) = delete;
+  impl_t& operator=(impl_t const&) = delete;
+
+  void start(identifier_t type, std::string description)
+  {
+    assert(type.is_valid());
+    type_ = std::move(type);
+    description_ = std::move(description);
+
+    marker_writer_.start(&impl_t::on_marker_written);
+  }
+
+private :
+  void on_marker_written()
+  {
+    error_writer_.start(&impl_t::on_error_written,
+      remote_error_t(std::move(type_), std::move(description_)));
+  }
+
+  void on_error_written()
+  {
+    result_.submit();
+  }
+
+private :
+  result_t<void>& result_;
+  subroutine_t<impl_t, token_suffix_writer_t<exception_marker>>
+    marker_writer_;
+  subroutine_t<impl_t, writer_t<remote_error_t>>
+    error_writer_;
+
+  identifier_t type_;
+  std::string description_;
+};
+
+exception_writer_t::exception_writer_t(result_t<void>& result,
+                                       bound_outbuf_t& buf)
+: impl_(std::make_unique<impl_t>(result, buf))
+{ }
+
+void exception_writer_t::start(identifier_t type, std::string description)
+{
+  impl_->start(std::move(type), std::move(description));
+}
+
+exception_writer_t::~exception_writer_t()
+{ }
+    
 } // detail
 
 } // cuti

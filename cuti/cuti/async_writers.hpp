@@ -31,6 +31,7 @@
 
 #include <array>
 #include <cstddef>
+#include <memory>
 #include <string>
 #include <tuple>
 #include <type_traits>
@@ -526,6 +527,22 @@ private :
   subroutine_t<user_type_writer_t, tuple_writer_t<tuple_t>> tuple_writer_;
 };
     
+struct CUTI_ABI exception_writer_t
+{
+  explicit exception_writer_t(result_t<void>& result, bound_outbuf_t& buf);
+
+  exception_writer_t(exception_writer_t const&) = delete;
+  exception_writer_t& operator=(exception_writer_t const&) = delete;
+  
+  void start(identifier_t type, std::string description);
+
+  ~exception_writer_t();
+
+private :
+  struct impl_t;
+  std::unique_ptr<impl_t> impl_;
+};
+
 } // detail
 
 template<>
@@ -656,6 +673,11 @@ using end_sequence_writer_t = detail::end_sequence_writer_t;
 
 using begin_structure_writer_t = detail::begin_structure_writer_t;
 using end_structure_writer_t = detail::end_structure_writer_t;
+
+/*
+ * Helper for signaling exceptions to the peer
+ */
+using exception_writer_t = detail::exception_writer_t;
 
 } // cuti
 
