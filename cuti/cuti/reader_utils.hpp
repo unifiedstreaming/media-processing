@@ -30,9 +30,12 @@
 #include "reader_traits.hpp"
 #include "stack_marker.hpp"
 #include "subroutine.hpp"
+#include "tuple_mapping.hpp"
 
 #include <cassert>
 #include <cstddef>
+#include <exception>
+#include <optional>
 #include <string>
 #include <tuple>
 #include <type_traits>
@@ -585,6 +588,48 @@ private :
   subroutine_t<tuple_reader_t, end_structure_reader_t> end_reader_;
 
   T value_;
+};
+
+template<typename T>
+struct user_type_reader_t
+{
+  using result_value_t = T;
+  using mapping_t = tuple_mapping_t<T>;
+  using tuple_t = typename mapping_t::tuple_t;
+
+  user_type_reader_t(result_t<T>& result, bound_inbuf_t& buf)
+  : result_(result)
+  , tuple_reader_(*this, result_, buf)
+  { }
+
+  user_type_reader_t(user_type_reader_t const&) = delete;
+  user_type_reader_t& operator=(user_type_reader_t const&) = delete;
+
+  void start()
+  {
+    tuple_reader_.start(&user_type_reader_t::on_tuple);
+  }
+
+private :
+  void on_tuple(tuple_t t)
+  {
+    std::optional<T> opt_value;
+    try
+    {
+      opt_value.emplace(mapping_t::from_tuple(std::move(t)));
+    }
+    catch(std::exception const&)
+    {
+      result_.fail(std::current_exception());
+      return;
+    }
+      
+    result_.submit(std::move(*opt_value));
+  }
+    
+private :
+  result_t<T>& result_;
+  subroutine_t<user_type_reader_t, tuple_reader_t<tuple_t>> tuple_reader_;
 };
 
 } // detail

@@ -143,6 +143,12 @@ struct reader_traits_t<std::pair<T1, T2>>
   using type = detail::tuple_reader_t<std::pair<T1, T2>>;
 };
 
+template<typename T>
+struct reader_traits_t
+{
+  using type = detail::user_type_reader_t<T>;
+};
+
 /*
  * Helpers for streaming async reading and async readers for
  * user-defined types.

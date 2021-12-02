@@ -27,6 +27,7 @@
 #include "result.hpp"
 #include "stack_marker.hpp"
 #include "subroutine.hpp"
+#include "tuple_mapping.hpp"
 #include "writer_traits.hpp"
 
 #include <cstddef>
@@ -481,6 +482,39 @@ private :
   subroutine_t<tuple_writer_t, end_structure_writer_t> suffix_writer_;
 
   T value_;
+};
+
+template<typename T>
+struct user_type_writer_t
+{
+  using result_value_t = void;
+  using mapping_t = tuple_mapping_t<T>;
+  using tuple_t = typename mapping_t::tuple_t;
+
+  user_type_writer_t(result_t<void>& result, bound_outbuf_t& buf)
+  : result_(result)
+  , tuple_writer_(*this, result_, buf)
+  { }
+  
+  user_type_writer_t(user_type_writer_t const&) = delete;
+  user_type_writer_t& operator=(user_type_writer_t const&) = delete;
+  
+  template<typename TT>
+  void start(TT&& value)
+  {
+    tuple_writer_.start(&user_type_writer_t::on_tuple_writer_done,
+                        mapping_t::to_tuple(std::forward<TT>(value)));
+  }
+
+private :
+  void on_tuple_writer_done()
+  {
+    result_.submit();
+  }
+    
+private :
+  result_t<void>& result_;
+  subroutine_t<user_type_writer_t, tuple_writer_t<tuple_t>> tuple_writer_;
 };
     
 } // detail

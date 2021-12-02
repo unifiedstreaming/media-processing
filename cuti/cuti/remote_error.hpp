@@ -22,10 +22,12 @@
 
 #include "identifier.hpp"
 #include "linkage.h"
+#include "tuple_mapping.hpp"
 
 #include <memory>
 #include <stdexcept>
 #include <string>
+#include <tuple>
 #include <utility>
 
 namespace cuti
@@ -63,6 +65,22 @@ private :
   std::shared_ptr<rep_t const> rep_; 
 };
 
+template<>
+struct tuple_mapping_t<remote_error_t>
+{
+  using tuple_t = std::pair<identifier_t, std::string>;
+
+  static auto to_tuple(remote_error_t const& error)
+  {
+    return tuple_t(error.type(), error.description());
+  }
+
+  static auto from_tuple(tuple_t t)
+  {
+    return std::make_from_tuple<remote_error_t>(std::move(t));
+  }
+};
+    
 } // cuti
 
 #endif

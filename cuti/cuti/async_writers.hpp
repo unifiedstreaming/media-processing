@@ -143,6 +143,12 @@ struct writer_traits_t<std::pair<T1, T2>>
   using type = detail::tuple_writer_t<std::pair<T1, T2>>;
 };
 
+template<typename T>
+struct writer_traits_t
+{
+  using type = detail::user_type_writer_t<T>;
+};
+
 /*
  * Helpers for streaming async writing and async writers for
  * user-defined types.

@@ -133,6 +133,10 @@ unit-test tuple_io_test
 : tuple_io_test.cpp
 ;
 
+unit-test user_type_io_test
+: user_type_io_test.cpp
+;
+
 unit-test vector_io_test
 : vector_io_test.cpp
 ;

@@ -140,6 +140,7 @@ lib cuti
   tcp_connection.cpp
   tcp_socket.cpp
   throughput_checker.cpp
+  tuple_mapping.cpp
   viewbuf.cpp
   writer_traits.cpp
   writer_utils.cpp

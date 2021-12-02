@@ -37,6 +37,7 @@
 #include <cuti/writer_traits.hpp>
 
 #include <cstddef>
+#include <functional>
 #include <stdexcept>
 #include <string>
 #include <typeinfo>
@@ -113,10 +114,11 @@ void test_failing_read(logging_context_t& context, std::size_t bufsize,
   assert(caught);
 }
 
-template<typename T, typename... WriterArgs>
+template<typename T, typename Eq>
 void test_roundtrip(logging_context_t& context,
-                    std::size_t bufsize, T value,
-                    WriterArgs&&... writer_args)
+                    std::size_t bufsize,
+                    T value,
+                    Eq eq)
 {
   if(auto msg = context.message_at(loglevel_t::info))
   {
@@ -132,8 +134,7 @@ void test_roundtrip(logging_context_t& context,
   bound_outbuf_t bot(marker, *outbuf, scheduler);
 
   final_result_t<void> write_result;
-  writer_t<T> writer(write_result, bot,
-                     std::forward<WriterArgs>(writer_args)...);
+  writer_t<T> writer(write_result, bot);
   writer.start(value);
 
   std::size_t n_writing_callbacks = 0;
@@ -216,7 +217,7 @@ void test_roundtrip(logging_context_t& context,
       ">: n_reading_callbacks: " << n_reading_callbacks;
   }
 
-  assert(read_result.value() == value);
+  assert(eq(read_result.value(), value));
 
   final_result_t<void> eof_reader_result;
   eof_reader_t eof_reader(eof_reader_result, bit);
@@ -238,6 +239,14 @@ void test_roundtrip(logging_context_t& context,
     *msg << __func__ << '<' << typeid(T).name() <<
       ">: n_eof_reader_callbacks: " << n_eof_reader_callbacks;
   }
+}
+
+template<typename T>
+void test_roundtrip(logging_context_t& context,
+                    std::size_t bufsize,
+                    T value)
+{
+  test_roundtrip(context, bufsize, value, std::equal_to<T>{});
 }
 
 } // io_test_utils
