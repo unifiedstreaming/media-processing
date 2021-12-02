@@ -40,8 +40,8 @@ struct CUTI_ABI remote_error_t : std::runtime_error
   , rep_(std::make_shared<rep_t>(std::move(type), std::move(description)))
   { }
 
-  remote_error_t(remote_error_t const&) noexcept = default;
-  remote_error_t& operator=(remote_error_t const&) noexcept = default;
+  remote_error_t(remote_error_t const&) = default;
+  remote_error_t& operator=(remote_error_t const&) = default;
   
   identifier_t const& type() const noexcept
   { return rep_->type_; }
