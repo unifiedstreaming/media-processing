@@ -46,19 +46,24 @@ void test_failing_reads(logging_context_t& context, std::size_t bufsize)
   test_failing_read<std::tuple<>>(context, bufsize, "\t\r ");
   test_failing_read<std::pair<int, int>>(context, bufsize, "");
   test_failing_read<std::pair<int, int>>(context, bufsize, "\t\r ");
+  test_failing_read<std::array<int, 2>>(context, bufsize, "");
+  test_failing_read<std::array<int, 2>>(context, bufsize, "\t\r ");
 
   // missing closing curly
   test_failing_read<std::tuple<>>(context, bufsize, "{");
   test_failing_read<std::tuple<>>(context, bufsize, "{ \n}");
-  test_failing_read<std::tuple<int>>(context, bufsize, "{ 100");
+  test_failing_read<std::tuple<int>>(context, bufsize, "{ 100 ");
   test_failing_read<std::tuple<int>>(context, bufsize, "{ 100\n}");
-  test_failing_read<std::pair<int, int>>(context, bufsize, "{ 100 101");
+  test_failing_read<std::pair<int, int>>(context, bufsize, "{ 100 101 ");
   test_failing_read<std::pair<int, int>>(context, bufsize, "{ 100 101\n}");
+  test_failing_read<std::array<int, 2>>(context, bufsize, "{ 100 101 ");
+  test_failing_read<std::array<int, 2>>(context, bufsize, "{ 100 101\n}");
 
   // error in element
   test_failing_read<std::tuple<int>>(context, bufsize, "{ \"Hello world\" }");
   test_failing_read<std::tuple<int, std::string>>(context, bufsize, "{ 1 2 }");
   test_failing_read<std::pair<int, std::string>>(context, bufsize, "{ 1 2 }");
+  test_failing_read<std::array<int, 2>>(context, bufsize, "{ 100 \"Hello\" }");
 }
 
 auto tuple_of_tuples()
@@ -115,7 +120,11 @@ void test_roundtrips(logging_context_t& context, std::size_t bufsize)
   test_roundtrip(context, bufsize, std::tuple<>{});
   test_roundtrip(context, bufsize, std::tuple<int>{42});
   test_roundtrip(context, bufsize, std::tuple<int, int>{42, 4711});
+  test_roundtrip(context, bufsize, std::pair<int, int>{42, 4711});
+  test_roundtrip(context, bufsize, std::array<int, 2>{42, 4711});
   test_roundtrip(context, bufsize, std::tuple<int, std::string>{42, "Alice"});
+  test_roundtrip(context, bufsize, std::pair<int, std::string>{42, "Alice"});
+
   test_roundtrip(context, bufsize, tuple_of_tuples());
   test_roundtrip(context, bufsize, marx_family());
   test_roundtrip(context, bufsize, reverse_marx_family());

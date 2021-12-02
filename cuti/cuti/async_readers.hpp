@@ -25,6 +25,7 @@
 #include "reader_traits.hpp"
 #include "reader_utils.hpp"
 
+#include <array>
 #include <string>
 #include <tuple>
 #include <vector>
@@ -141,6 +142,12 @@ template<typename T1, typename T2>
 struct reader_traits_t<std::pair<T1, T2>>
 {
   using type = detail::tuple_reader_t<std::pair<T1, T2>>;
+};
+
+template<typename T, std::size_t N>
+struct reader_traits_t<std::array<T, N>>
+{
+  using type = detail::tuple_reader_t<std::array<T, N>>;
 };
 
 template<typename T>

@@ -25,6 +25,7 @@
 #include "writer_traits.hpp"
 #include "writer_utils.hpp"
 
+#include <array>
 #include <string>
 #include <tuple>
 #include <vector>
@@ -141,6 +142,12 @@ template<typename T1, typename T2>
 struct writer_traits_t<std::pair<T1, T2>>
 {
   using type = detail::tuple_writer_t<std::pair<T1, T2>>;
+};
+
+template<typename T, std::size_t N>
+struct writer_traits_t<std::array<T, N>>
+{
+  using type = detail::tuple_writer_t<std::array<T, N>>;
 };
 
 template<typename T>
