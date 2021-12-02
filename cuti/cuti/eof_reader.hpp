@@ -20,8 +20,8 @@
 #ifndef CUTI_EOF_READER_HPP_
 #define CUTI_EOF_READER_HPP_
 
+#include "async_readers.hpp"
 #include "charclass.hpp"
-#include "reader_utils.hpp"
 
 namespace cuti
 {

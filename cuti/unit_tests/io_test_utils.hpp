@@ -20,6 +20,8 @@
 #ifndef CUTI_IO_TEST_UTILS_HPP_
 #define CUTI_IO_TEST_UTILS_HPP_
 
+#include <cuti/async_readers.hpp>
+#include <cuti/async_writers.hpp>
 #include <cuti/bound_inbuf.hpp>
 #include <cuti/bound_outbuf.hpp>
 #include <cuti/default_scheduler.hpp>
@@ -31,10 +33,7 @@
 #include <cuti/nb_string_inbuf.hpp>
 #include <cuti/nb_string_outbuf.hpp>
 #include <cuti/quoted_string.hpp>
-#include <cuti/reader_traits.hpp>
 #include <cuti/stack_marker.hpp>
-#include <cuti/reader_traits.hpp>
-#include <cuti/writer_traits.hpp>
 
 #include <cstddef>
 #include <functional>

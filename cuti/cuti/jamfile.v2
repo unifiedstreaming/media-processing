@@ -115,8 +115,6 @@ lib cuti
   poll_selector.cpp
   process.cpp
   quoted_string.cpp
-  reader_traits.cpp
-  reader_utils.cpp
   relational_ops.cpp
   remote_error.cpp
   resolver.cpp
@@ -142,8 +140,6 @@ lib cuti
   throughput_checker.cpp
   tuple_mapping.cpp
   viewbuf.cpp
-  writer_traits.cpp
-  writer_utils.cpp
   advapi32
   ws2_32
 :
