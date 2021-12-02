@@ -166,14 +166,14 @@ void boolean_reader_t<T>::on_whitespace_skipped(int c)
   T value{};
   switch(c)
   {
-  case '!' :
+  case '&' :
     value = false;
     break;
-  case '*' :
+  case '|' :
     value = true;
     break;
   default :
-    result_.fail(parse_error_t("boolean value (\'!\' or \'*\') expected"));
+    result_.fail(parse_error_t("boolean value (\'&\' or \'|\') expected"));
     return;
   }
   buf_.skip();

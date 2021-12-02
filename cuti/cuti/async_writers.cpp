@@ -81,8 +81,8 @@ template struct digits_writer_t<unsigned int>;
 template struct digits_writer_t<unsigned long>;
 template struct digits_writer_t<unsigned long long>;
 
-char const true_literal[] = "* ";
-char const false_literal[] = "! ";
+char const true_literal[] = "| ";
+char const false_literal[] = "& ";
 
 template<typename T>
 boolean_writer_t<T>::boolean_writer_t(
