@@ -21,6 +21,7 @@
 
 #include "charclass.hpp"
 #include "parse_error.hpp"
+#include "remote_error.hpp"
 #include "stack_marker.hpp"
 
 #include <cassert>
@@ -31,6 +32,52 @@ namespace cuti
 
 namespace detail
 {
+
+struct whitespace_skipper_t::exception_handler_t
+{
+  exception_handler_t(any_result_t& result, bound_inbuf_t& buf)
+  : result_(result)
+  , error_reader_(*this, result_, buf)
+  { }
+
+  exception_handler_t(exception_handler_t const&) = delete;
+  exception_handler_t& operator=(exception_handler_t const&) = delete;
+
+  void start()
+  {
+    error_reader_.start(&exception_handler_t::on_error_read);
+  }
+
+private :
+  void on_error_read(remote_error_t error)
+  {
+    result_.fail(std::move(error));
+  }
+
+private :
+  any_result_t& result_;
+  subroutine_t<exception_handler_t, reader_t<remote_error_t>> error_reader_;
+};
+  
+void whitespace_skipper_t::exception_handler_deleter_t::operator()(
+  exception_handler_t* handler) const noexcept
+{
+  delete handler;
+}
+
+void whitespace_skipper_t::start_exception_handler()
+{
+  assert(buf_.readable());
+  assert(buf_.peek() == '!');
+  buf_.skip();
+
+  if(exception_handler_ == nullptr)
+  {
+    exception_handler_.reset(new exception_handler_t(result_, buf_));
+  }
+
+  exception_handler_->start();
+}
 
 template<typename T>
 digits_reader_t<T>::digits_reader_t(result_t<T>& result, bound_inbuf_t& buf)

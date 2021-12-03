@@ -529,6 +529,8 @@ private :
     
 struct CUTI_ABI exception_writer_t
 {
+  using result_value_t = void;
+
   explicit exception_writer_t(result_t<void>& result, bound_outbuf_t& buf);
 
   exception_writer_t(exception_writer_t const&) = delete;

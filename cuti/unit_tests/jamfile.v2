@@ -57,6 +57,10 @@ unit-test identifier_io_test
 : identifier_io_test.cpp
 ;
 
+unit-test inline_exception_test
+: inline_exception_test.cpp
+;
+
 unit-test indexed_heap_test
 : indexed_heap_test.cpp
 ;
