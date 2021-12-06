@@ -93,6 +93,10 @@ unit-test relational_ops_test
 : relational_ops_test.cpp
 ;
 
+unit-test request_handler_test
+: request_handler_test.cpp
+;
+
 unit-test resolver_test
 : resolver_test.cpp
 ;

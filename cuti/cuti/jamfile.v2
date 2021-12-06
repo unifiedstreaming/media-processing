@@ -116,6 +116,7 @@ lib cuti
   process.cpp
   quoted_string.cpp
   relational_ops.cpp
+  request_handler.cpp
   remote_error.cpp
   resolver.cpp
   result.cpp
