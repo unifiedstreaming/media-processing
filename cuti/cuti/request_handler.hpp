@@ -128,6 +128,7 @@ struct CUTI_ABI method_map_t
   {
     auto not_sorted = [](method_entry_t const& e1, method_entry_t const& e2)
     { return e1.method() >= e2.method(); };
+    static_cast<void>(not_sorted);
     
     assert(std::adjacent_find(first_, last_, not_sorted) == last_);
   }
