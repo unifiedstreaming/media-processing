@@ -61,6 +61,21 @@ void add_handler_t::on_second_arg(int arg)
     *msg << "add_handler: " << __func__ << ": arg: " << arg;
   }
 
+  if(first_arg_ >= 0)
+  {
+    if(arg > std::numeric_limits<int>::max() - first_arg_)
+    {
+      throw std::runtime_error("addition overflow");
+    }
+  }
+  else
+  {
+    if(arg < std::numeric_limits<int>::min() - first_arg_)
+    {
+      throw std::runtime_error("addition underflow");
+    }
+  }
+    
   int_writer_.start(&add_handler_t::on_done, first_arg_ + arg);
 }
 

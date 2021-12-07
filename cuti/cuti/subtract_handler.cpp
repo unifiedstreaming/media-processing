@@ -61,6 +61,23 @@ void subtract_handler_t::on_second_arg(int arg)
     *msg << "subtract_handler: " << __func__ << ": arg: " << arg;
   }
 
+  if(arg >= 0)
+  {
+    if(first_arg_ < std::numeric_limits<int>::min() + arg)
+    {
+      result_.fail(std::runtime_error("subtraction underflow"));
+      return;
+    }
+  }
+  else
+  {
+    if(first_arg_ > std::numeric_limits<int>::max() + arg)
+    {
+      result_.fail(std::runtime_error("subtraction overflow"));
+      return;
+    }
+  }
+    
   int_writer_.start(&subtract_handler_t::on_done, first_arg_ - arg);
 }
 
