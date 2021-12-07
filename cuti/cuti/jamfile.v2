@@ -64,6 +64,7 @@ rule cuti-dll-name ( name : type ? : properties * )
 
 lib cuti
 :
+  add_handler.cpp
   args_reader.cpp
   async_readers.cpp
   async_writers.cpp
@@ -134,6 +135,7 @@ lib cuti
   streambuf_backend.cpp
   subresult.cpp
   subroutine.cpp
+  subtract_handler.cpp
   syslog_backend.cpp
   system_error.cpp
   tcp_acceptor.cpp
