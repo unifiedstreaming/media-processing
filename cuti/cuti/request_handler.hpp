@@ -49,6 +49,36 @@ struct CUTI_ABI method_handler_t
   { }
 };
 
+template<typename T>
+struct method_handler_instance_t : method_handler_t
+{
+  method_handler_instance_t(logging_context_t& context,
+                            result_t<void>& result,
+                            bound_inbuf_t& inbuf,
+                            bound_outbuf_t& outbuf)
+  : delegate_(context, result, inbuf, outbuf)
+  { }
+
+  void start() override
+  {
+    delegate_.start();
+  }
+
+private :
+  T delegate_;
+};
+
+template<typename T>
+std::unique_ptr<method_handler_t>
+make_method_handler(logging_context_t& context,
+                    result_t<void>& result,
+                    bound_inbuf_t& inbuf,
+                    bound_outbuf_t& outbuf)
+{
+  return std::make_unique<method_handler_instance_t<T>>(
+    context, result, inbuf, outbuf);
+}
+
 struct CUTI_ABI method_entry_t
 {
   template<typename F>
@@ -74,9 +104,9 @@ struct CUTI_ABI method_entry_t
   }
     
 private :
-  struct factory_impl_t
+  struct factory_t
   {
-    factory_impl_t()
+    factory_t()
     { }
 
     virtual std::unique_ptr<method_handler_t> operator()(
@@ -85,12 +115,12 @@ private :
       bound_inbuf_t& inbuf,
       bound_outbuf_t& outbuf) const = 0;
 
-    virtual ~factory_impl_t()
+    virtual ~factory_t()
     { }
   };
 
   template<typename F>
-  struct factory_instance_t : factory_impl_t
+  struct factory_instance_t : factory_t
   {
     factory_instance_t(F f)
     : f_(f)
@@ -116,7 +146,7 @@ private :
 
 private :
   identifier_t method_;
-  std::unique_ptr<factory_impl_t> factory_;
+  std::unique_ptr<factory_t> factory_;
 };
 
 struct CUTI_ABI method_map_t
@@ -126,11 +156,11 @@ struct CUTI_ABI method_map_t
   : first_(entries)
   , last_(entries + N)
   {
-    auto not_sorted = [](method_entry_t const& e1, method_entry_t const& e2)
-    { return e1.method() >= e2.method(); };
-    static_cast<void>(not_sorted);
-    
-    assert(std::adjacent_find(first_, last_, not_sorted) == last_);
+    auto not_less = [](method_entry_t const& e1, method_entry_t const& e2)
+    { return !(e1.method() < e2.method()); };
+
+    static_cast<void>(not_less);
+    assert(std::adjacent_find(first_, last_, not_less) == last_);
   }
 
   method_entry_t const* find_method_entry(identifier_t const& method) const
@@ -140,7 +170,7 @@ struct CUTI_ABI method_map_t
     { return entry.method() < method; };
 
     auto pos = std::lower_bound(first_, last_, method, method_less);
-    if(pos == last_ || pos->method() != method)
+    if(pos == last_ || method < pos->method())
     {
       return nullptr;
     }

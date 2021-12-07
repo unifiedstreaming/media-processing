@@ -35,7 +35,7 @@ namespace // anonymous
 
 using namespace cuti;
 
-struct add_handler_t : method_handler_t
+struct add_handler_t
 {
   add_handler_t(logging_context_t& context,
                 result_t<void>& result,
@@ -99,7 +99,7 @@ private :
   int first_arg_;
 };
   
-struct subtract_handler_t : method_handler_t
+struct subtract_handler_t
 {
   subtract_handler_t(logging_context_t& context,
                      result_t<void>& result,
@@ -163,18 +163,9 @@ private :
   int first_arg_;
 };
 
-template<typename T>
-std::unique_ptr<T> make_handler(logging_context_t& context,
-                                result_t<void>& result,
-                                bound_inbuf_t& inbuf,
-                                bound_outbuf_t& outbuf)
-{
-  return std::make_unique<T>(context, result, inbuf, outbuf);
-}
-
 method_entry_t const method_entries[] = {
-  { "add", make_handler<add_handler_t> },
-  { "subtract", make_handler<subtract_handler_t> }
+  { "add", make_method_handler<add_handler_t> },
+  { "subtract", make_method_handler<subtract_handler_t> }
 };
 
 method_map_t const method_map{method_entries};
