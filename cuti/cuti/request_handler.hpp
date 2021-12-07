@@ -20,12 +20,9 @@
 #ifndef CUTI_REQUEST_HANDLER_HPP_
 #define CUTI_REQUEST_HANDLER_HPP_
 
-#include "bound_inbuf.hpp"
-#include "bound_outbuf.hpp"
 #include "identifier.hpp"
 #include "linkage.h"
-#include "logging_context.hpp"
-#include "result.hpp"
+#include "method_handler.hpp"
 
 #include <algorithm>
 #include <cassert>
@@ -34,50 +31,6 @@
 
 namespace cuti
 {
-
-struct CUTI_ABI method_handler_t
-{
-  method_handler_t()
-  { }
-
-  method_handler_t(method_handler_t const&);
-  method_handler_t& operator=(method_handler_t const&);
-
-  virtual void start() = 0;
-
-  virtual ~method_handler_t()
-  { }
-};
-
-template<typename T>
-struct method_handler_instance_t : method_handler_t
-{
-  method_handler_instance_t(logging_context_t& context,
-                            result_t<void>& result,
-                            bound_inbuf_t& inbuf,
-                            bound_outbuf_t& outbuf)
-  : delegate_(context, result, inbuf, outbuf)
-  { }
-
-  void start() override
-  {
-    delegate_.start();
-  }
-
-private :
-  T delegate_;
-};
-
-template<typename T>
-std::unique_ptr<method_handler_t>
-make_method_handler(logging_context_t& context,
-                    result_t<void>& result,
-                    bound_inbuf_t& inbuf,
-                    bound_outbuf_t& outbuf)
-{
-  return std::make_unique<method_handler_instance_t<T>>(
-    context, result, inbuf, outbuf);
-}
 
 struct CUTI_ABI method_entry_t
 {

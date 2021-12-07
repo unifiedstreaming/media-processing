@@ -102,6 +102,7 @@ lib cuti
   logging_context.cpp
   loglevel.cpp
   membuf.cpp
+  method_handler.cpp
   nb_inbuf.cpp
   nb_outbuf.cpp
   nb_sink.cpp
