@@ -77,6 +77,10 @@ unit-test membuf_test
 : membuf_test.cpp
 ;
 
+unit-test method_map_test
+: method_map_test.cpp
+;
+
 unit-test nb_buffers_test
 : nb_buffers_test.cpp
 ;
@@ -91,10 +95,6 @@ unit-test process_test
 
 unit-test relational_ops_test
 : relational_ops_test.cpp
-;
-
-unit-test request_handler_test
-: request_handler_test.cpp
 ;
 
 unit-test resolver_test

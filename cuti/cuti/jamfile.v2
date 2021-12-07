@@ -103,6 +103,7 @@ lib cuti
   loglevel.cpp
   membuf.cpp
   method_handler.cpp
+  method_map.cpp
   nb_inbuf.cpp
   nb_outbuf.cpp
   nb_sink.cpp
@@ -117,7 +118,6 @@ lib cuti
   process.cpp
   quoted_string.cpp
   relational_ops.cpp
-  request_handler.cpp
   remote_error.cpp
   resolver.cpp
   result.cpp

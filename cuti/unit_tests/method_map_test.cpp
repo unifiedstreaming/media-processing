@@ -19,13 +19,9 @@
 
 #include <cuti/async_readers.hpp>
 #include <cuti/async_writers.hpp>
-#include <cuti/cmdline_reader.hpp>
-#include <cuti/logging_context.hpp>
-#include <cuti/option_walker.hpp>
-#include <cuti/request_handler.hpp>
-#include <cuti/streambuf_backend.hpp>
+#include <cuti/method_map.hpp>
 
-#include <iostream>
+#include <iterator>
 
 #undef NDEBUG
 #include <cassert>
@@ -163,100 +159,28 @@ private :
   int first_arg_;
 };
 
-method_entry_t const method_entries[] = {
+method_map_t::entry_t const entries[] = {
   { "add", make_method_handler<add_handler_t> },
   { "subtract", make_method_handler<subtract_handler_t> }
 };
 
-method_map_t const method_map{method_entries};
+method_map_t const method_map{std::begin(entries), std::end(entries)};
   
 void test_method_map()
 {
-  assert(method_map.find_method_entry(
-    identifier_t("a")) == nullptr);
-  assert(method_map.find_method_entry(
-    identifier_t("add")) == &method_entries[0]);
-  assert(method_map.find_method_entry(
-    identifier_t("divide")) == nullptr);
-  assert(method_map.find_method_entry(
-    identifier_t("multiply")) == nullptr);
-  assert(method_map.find_method_entry(
-    identifier_t("subtract")) == &method_entries[1]);
-  assert(method_map.find_method_entry(
-    identifier_t("z")) == nullptr);
-}
-  
-struct options_t
-{
-  static loglevel_t constexpr default_loglevel = loglevel_t::error;
-
-  options_t()
-  : loglevel_(default_loglevel)
-  { }
-
-  loglevel_t loglevel_;
-};
-
-void print_usage(std::ostream& os, char const* argv0)
-{
-  os << "usage: " << argv0 << " [<option> ...]\n";
-  os << "options are:\n";
-  os << "  --loglevel <level>       set loglevel " <<
-    "(default: " << loglevel_string(options_t::default_loglevel) << ")\n";
-  os << std::flush;
-}
-
-void read_options(options_t& options, option_walker_t& walker)
-{
-  while(!walker.done())
-  {
-    if(!walker.match("--loglevel", options.loglevel_))
-    {
-      break;
-    }
-  }
-}
-
-int run_tests(int argc, char const* const* argv)
-{
-  options_t options;
-  cmdline_reader_t reader(argc, argv);
-  option_walker_t walker(reader);
-
-  read_options(options, walker);
-  if(!walker.done() || !reader.at_end())
-  {
-    print_usage(std::cerr, argv[0]);
-    return 1;
-  }
-
-  logger_t logger(std::make_unique<streambuf_backend_t>(std::cerr));
-  logging_context_t context(logger, options.loglevel_);
-
-  test_method_map();
-
-  std::size_t constexpr bufsizes[] = { 1, nb_inbuf_t::default_bufsize };
-  for(auto bufsize : bufsizes)
-  {
-    // TODO: test request_handler_t
-    static_cast<void>(bufsize);
-  }
-  
-  return 0;
+  assert(method_map.find_entry(identifier_t("a")) == nullptr);
+  assert(method_map.find_entry(identifier_t("add")) == &entries[0]);
+  assert(method_map.find_entry(identifier_t("divide")) == nullptr);
+  assert(method_map.find_entry(identifier_t("multiply")) == nullptr);
+  assert(method_map.find_entry(identifier_t("subtract")) == &entries[1]);
+  assert(method_map.find_entry(identifier_t("z")) == nullptr);
 }
   
 } // anonymous
 
 int main(int argc, char* argv[])
 {
-  try
-  {
-    return run_tests(argc, argv);
-  }
-  catch(std::exception const& ex)
-  {
-    std::cerr << argv[0] << ": exception: " << ex.what() << std::endl;
-  }
+  test_method_map();
 
-  return 1;
+  return 0;
 }
