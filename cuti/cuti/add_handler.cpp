@@ -19,6 +19,8 @@
 
 #include "add_handler.hpp"
 
+#include <limits>
+
 namespace cuti
 {
 
@@ -65,14 +67,16 @@ void add_handler_t::on_second_arg(int arg)
   {
     if(arg > std::numeric_limits<int>::max() - first_arg_)
     {
-      throw std::runtime_error("addition overflow");
+      result_.fail(std::runtime_error("addition overflow"));
+      return;
     }
   }
   else
   {
     if(arg < std::numeric_limits<int>::min() - first_arg_)
     {
-      throw std::runtime_error("addition underflow");
+      result_.fail(std::runtime_error("addition underflow"));
+      return;
     }
   }
     
