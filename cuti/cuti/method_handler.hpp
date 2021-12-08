@@ -54,11 +54,11 @@ struct CUTI_ABI method_handler_t
 template<typename T>
 struct method_handler_instance_t : method_handler_t
 {
-  method_handler_instance_t(logging_context_t& context,
-                            result_t<void>& result,
+  method_handler_instance_t(result_t<void>& result,
+                            logging_context_t& context,
                             bound_inbuf_t& inbuf,
                             bound_outbuf_t& outbuf)
-  : delegate_(context, result, inbuf, outbuf)
+  : delegate_(result, context, inbuf, outbuf)
   { }
 
   void start() override
@@ -75,13 +75,13 @@ private :
  */
 template<typename T>
 std::unique_ptr<method_handler_t>
-make_method_handler(logging_context_t& context,
-                    result_t<void>& result,
+make_method_handler(result_t<void>& result,
+                    logging_context_t& context,
                     bound_inbuf_t& inbuf,
                     bound_outbuf_t& outbuf)
 {
   return std::make_unique<method_handler_instance_t<T>>(
-    context, result, inbuf, outbuf);
+    result, context, inbuf, outbuf);
 }
 
 } // cuti

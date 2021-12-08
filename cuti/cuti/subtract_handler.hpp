@@ -37,8 +37,8 @@ namespace cuti
  */
 struct CUTI_ABI subtract_handler_t
 {
-  subtract_handler_t(logging_context_t& context,
-                     result_t<void>& result,
+  subtract_handler_t(result_t<void>& result,
+                     logging_context_t& context,
                      bound_inbuf_t& inbuf,
                      bound_outbuf_t& outbuf);
 
@@ -53,8 +53,8 @@ private :
   void on_done();
 
 private :
-  logging_context_t& context_;
   result_t<void>& result_;
+  logging_context_t& context_;
   subroutine_t<subtract_handler_t, reader_t<int>> int_reader_;
   subroutine_t<subtract_handler_t, writer_t<int>> int_writer_;
 

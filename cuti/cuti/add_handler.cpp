@@ -24,12 +24,12 @@
 namespace cuti
 {
 
-add_handler_t::add_handler_t(logging_context_t& context,
-                             result_t<void>& result,
+add_handler_t::add_handler_t(result_t<void>& result,
+                             logging_context_t& context,
                              bound_inbuf_t& inbuf,
                              bound_outbuf_t& outbuf)
-: context_(context)
-, result_(result)
+: result_(result)
+, context_(context)
 , int_reader_(*this, result, inbuf)
 , int_writer_(*this, result, outbuf)
 , first_arg_()

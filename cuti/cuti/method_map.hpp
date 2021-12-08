@@ -52,20 +52,20 @@ struct CUTI_ABI method_map_t
     }
 
     std::unique_ptr<method_handler_t> make_method_handler(
-      logging_context_t& context,
       result_t<void>& result,
+      logging_context_t& context,
       bound_inbuf_t& inbuf,
       bound_outbuf_t& outbuf) const
     {
-      return (*factory_wrapper_)(context, result, inbuf, outbuf);
+      return (*factory_wrapper_)(result, context, inbuf, outbuf);
     }
     
   private :
     struct CUTI_ABI factory_wrapper_t
     {
       virtual std::unique_ptr<method_handler_t> operator()(
-        logging_context_t& context,
         result_t<void>& result,
+        logging_context_t& context,
         bound_inbuf_t& inbuf,
         bound_outbuf_t& outbuf) const = 0;
 
@@ -86,12 +86,12 @@ struct CUTI_ABI method_map_t
       }
 
       std::unique_ptr<method_handler_t> operator()(
-        logging_context_t& context,
         result_t<void>& result,
+        logging_context_t& context,
         bound_inbuf_t& inbuf,
         bound_outbuf_t& outbuf) const override
       {
-        return f_(context, result, inbuf, outbuf);
+        return f_(result, context, inbuf, outbuf);
       }
 
     private:
