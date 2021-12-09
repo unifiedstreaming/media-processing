@@ -24,6 +24,7 @@
 
 #include <cassert>
 #include <limits>
+#include <optional>
 #include <utility>
 
 namespace cuti
@@ -382,31 +383,28 @@ struct exception_writer_t::impl_t
   : result_(result)
   , marker_writer_(*this, result_, buf)
   , error_writer_(*this, result_, buf)
-  , type_()
-  , description_()
+  , error_(std::nullopt)
   { }
 
   impl_t(impl_t const&) = delete;
   impl_t& operator=(impl_t const&) = delete;
 
-  void start(identifier_t type, std::string description)
+  void start(remote_error_t error)
   {
-    assert(type.is_valid());
-    type_ = std::move(type);
-    description_ = std::move(description);
-
+    error_.emplace(std::move(error));
     marker_writer_.start(&impl_t::on_marker_written);
   }
 
 private :
   void on_marker_written()
   {
-    error_writer_.start(&impl_t::on_error_written,
-      remote_error_t(std::move(type_), std::move(description_)));
+    assert(error_ != std::nullopt);
+    error_writer_.start(&impl_t::on_error_written, std::move(*error_));
   }
 
   void on_error_written()
   {
+    error_.reset();
     result_.submit();
   }
 
@@ -417,8 +415,7 @@ private :
   subroutine_t<impl_t, writer_t<remote_error_t>>
     error_writer_;
 
-  identifier_t type_;
-  std::string description_;
+  std::optional<remote_error_t> error_;
 };
 
 exception_writer_t::exception_writer_t(result_t<void>& result,
@@ -426,14 +423,37 @@ exception_writer_t::exception_writer_t(result_t<void>& result,
 : impl_(std::make_unique<impl_t>(result, buf))
 { }
 
-void exception_writer_t::start(identifier_t type, std::string description)
+void exception_writer_t::start(remote_error_t error)
 {
-  impl_->start(std::move(type), std::move(description));
+  impl_->start(std::move(error));
 }
 
 exception_writer_t::~exception_writer_t()
 { }
     
+char const newline[] = "\n";
+
+eom_writer_t::eom_writer_t(result_t<void>& result, bound_outbuf_t& buf)
+: result_(result)
+, newline_writer_(*this, result_, buf)
+, flusher_(*this, result_, buf)
+{ }
+
+void eom_writer_t::start()
+{
+  newline_writer_.start(&eom_writer_t::on_newline_written);
+}
+
+void eom_writer_t::on_newline_written()
+{
+  flusher_.start(&eom_writer_t::on_flushed);
+}
+
+void eom_writer_t::on_flushed()
+{
+  result_.submit();
+}
+
 } // detail
 
 } // cuti

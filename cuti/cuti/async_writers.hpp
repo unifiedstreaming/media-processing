@@ -22,8 +22,10 @@
 
 #include "bound_outbuf.hpp"
 #include "flag.hpp"
+#include "flusher.hpp"
 #include "identifier.hpp"
 #include "linkage.h"
+#include "remote_error.hpp"
 #include "result.hpp"
 #include "stack_marker.hpp"
 #include "subroutine.hpp"
@@ -531,12 +533,12 @@ struct CUTI_ABI exception_writer_t
 {
   using result_value_t = void;
 
-  explicit exception_writer_t(result_t<void>& result, bound_outbuf_t& buf);
+  exception_writer_t(result_t<void>& result, bound_outbuf_t& buf);
 
   exception_writer_t(exception_writer_t const&) = delete;
   exception_writer_t& operator=(exception_writer_t const&) = delete;
   
-  void start(identifier_t type, std::string description);
+  void start(remote_error_t error);
 
   ~exception_writer_t();
 
@@ -545,6 +547,29 @@ private :
   std::unique_ptr<impl_t> impl_;
 };
 
+extern CUTI_ABI char const newline[];
+
+struct CUTI_ABI eom_writer_t
+{
+  using result_value_t = void;
+
+  eom_writer_t(result_t<void>& result, bound_outbuf_t& buf);
+
+  eom_writer_t(eom_writer_t const&) = delete;
+  eom_writer_t& operator=(eom_writer_t const&) = delete;
+
+  void start();
+
+private :
+  void on_newline_written();
+  void on_flushed();
+
+private :
+  result_t<void>& result_;
+  subroutine_t<eom_writer_t, token_suffix_writer_t<newline>> newline_writer_;
+  subroutine_t<eom_writer_t, flusher_t> flusher_;
+};
+  
 } // detail
 
 template<>
@@ -676,10 +701,8 @@ using end_sequence_writer_t = detail::end_sequence_writer_t;
 using begin_structure_writer_t = detail::begin_structure_writer_t;
 using end_structure_writer_t = detail::end_structure_writer_t;
 
-/*
- * Helper for signaling exceptions to the peer
- */
 using exception_writer_t = detail::exception_writer_t;
+using eom_writer_t = detail::eom_writer_t;
 
 } // cuti
 

@@ -81,7 +81,7 @@ private :
     if(method != "echo")
     {
       exception_writer_.start(&servant_t::start_flusher,
-        identifier_t("bad_method"), method.as_string());
+        remote_error_t("bad_method", method.as_string()));
       return;
     }
 
@@ -113,7 +113,7 @@ private :
       }
 
       exception_writer_.start(&servant_t::start_flusher,
-        identifier_t("bad_request"), ex.what());
+        remote_error_t("bad_request", ex.what()));
     }
   }
 

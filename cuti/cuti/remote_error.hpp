@@ -25,6 +25,7 @@
 #include "tuple_mapping.hpp"
 
 #include <memory>
+#include <ostream>
 #include <stdexcept>
 #include <string>
 #include <tuple>
@@ -40,6 +41,10 @@ struct CUTI_ABI remote_error_t : std::runtime_error
   , rep_(std::make_shared<rep_t>(std::move(type), std::move(description)))
   { }
 
+  remote_error_t(std::string type, std::string description)
+  : remote_error_t(identifier_t(std::move(type)), std::move(description))
+  { }
+
   remote_error_t(remote_error_t const&) = default;
   remote_error_t& operator=(remote_error_t const&) = default;
   
@@ -48,6 +53,12 @@ struct CUTI_ABI remote_error_t : std::runtime_error
 
   std::string const& description() const noexcept
   { return rep_->description_; }
+
+  friend std::ostream& operator<<(
+    std::ostream& os, remote_error_t const& error)
+  {
+    return os << error.type() << ": " << error.description();
+  }
 
 private :
   static std::string make_message(identifier_t const& type,

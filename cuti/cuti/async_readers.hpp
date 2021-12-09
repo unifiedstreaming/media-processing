@@ -660,6 +660,54 @@ private :
   subroutine_t<user_type_reader_t, tuple_reader_t<tuple_t>> tuple_reader_;
 };
 
+struct CUTI_ABI message_drainer_t
+{
+  using result_value_t = void;
+
+  message_drainer_t(result_t<void>& result, bound_inbuf_t& buf)
+  : result_(result)
+  , buf_(buf)
+  { }
+
+  void start()
+  {
+    stack_marker_t marker;
+    if(marker.in_range(buf_.base_marker()))
+    {
+      this->drain();
+      return;
+    }
+
+    buf_.call_when_readable([this] { this->drain(); });
+  }
+
+private :
+  void drain()
+  {
+    int c{};
+    while(buf_.readable() && (c = buf_.peek()) != '\n' && c != eof)
+    {
+      buf_.skip();
+    }
+
+    if(!buf_.readable())
+    {
+      buf_.call_when_readable([this] { this->drain(); });
+    }
+
+    if(c != eof)
+    {
+      buf_.skip();
+    }
+
+    result_.submit();
+  }
+
+private :
+  result_t<void>& result_;
+  bound_inbuf_t& buf_;
+};
+
 } // detail
 
 template<>
@@ -790,6 +838,8 @@ using end_sequence_checker_t = detail::end_sequence_checker_t;
 
 using begin_structure_reader_t = detail::begin_structure_reader_t;
 using end_structure_reader_t = detail::end_structure_reader_t;
+
+using message_drainer_t = detail::message_drainer_t;
 
 } // cuti
 
