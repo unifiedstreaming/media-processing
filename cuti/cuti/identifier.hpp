@@ -51,7 +51,7 @@ struct identifier_t
   : wrapped_()
   { }
 
-  explicit identifier_t(std::string wrapped)
+  identifier_t(std::string wrapped)
   : wrapped_(std::move(wrapped))
   { }
 

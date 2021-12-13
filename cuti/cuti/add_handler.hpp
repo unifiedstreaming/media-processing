@@ -37,6 +37,8 @@ namespace cuti
  */
 struct CUTI_ABI add_handler_t
 {
+  using result_value_t = void;
+
   add_handler_t(result_t<void>& result,
                 logging_context_t& context,
                 bound_inbuf_t& inbuf,

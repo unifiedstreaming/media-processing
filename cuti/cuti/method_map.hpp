@@ -20,119 +20,151 @@
 #ifndef CUTI_METHOD_MAP_HPP_
 #define CUTI_METHOD_MAP_HPP_
 
+#include "bound_inbuf.hpp"
+#include "bound_outbuf.hpp"
 #include "identifier.hpp"
-#include "linkage.h"
-#include "method_handler.hpp"
+#include "logging_context.hpp"
+#include "method.hpp"
 
-#include <algorithm>
 #include <cassert>
-#include <cstddef>
+#include <exception>
+#include <map>
 #include <memory>
+#include <tuple>
+#include <type_traits>
 #include <utility>
 
 namespace cuti
 {
 
-struct CUTI_ABI method_map_t
+/*
+ * Factory creating method instances by name for request handler type
+ * Parent.
+ */
+template<typename Parent>
+struct method_map_t
 {
-  struct CUTI_ABI entry_t
+  method_map_t()
+  : factories_()
+  { }
+
+  /*
+   * Adds a method factory for the method named name.  The
+   * method_factory functor must accept the following arguments...
+   *
+   * - a reference to a Parent
+   * - a member function pointer to the Parent's failure handler
+   * - a reference to a logging_context_t
+   * - a reference to a bound_inbuf_t
+   * - a reference to a bound_outbuf_t
+   *
+   * ...and return (something convertible to) a
+   * std::unique_ptr<method_t<Parent>>.
+   */
+  template<typename MethodFactory>
+  void add_method_factory(std::string name, MethodFactory&& method_factory)
   {
-    template<typename HandlerFactory>
-    entry_t(std::string method, HandlerFactory f)
-    : method_(std::move(method))
-    , factory_wrapper_(std::make_unique<
-        factory_wrapper_instance_t<HandlerFactory>>(std::move(f)))
+    bool inserted;
+    std::tie(std::ignore, inserted) = factories_.insert(
+      std::make_pair(
+        std::move(name),
+        make_factory_wrapper(std::forward<MethodFactory>(method_factory))));
+    assert(inserted);
+  }
+
+  /*
+   * Creates a method instance for the method named name, returning
+   * nullptr if name is not found.
+   */
+  std::unique_ptr<method_t<Parent>>
+  create_method_instance(identifier_t const& name,
+                         Parent& parent,
+                         void (Parent::*on_failure)(std::exception_ptr),
+                         logging_context_t& context,
+                         bound_inbuf_t& inbuf,
+                         bound_outbuf_t& outbuf) const
+  {
+    std::unique_ptr<method_t<Parent>> result = nullptr;
+
+    auto pos = factories_.find(name);
+    if(pos != factories_.end())
     {
-      assert(method_.is_valid());
+      result = (*pos->second)(parent, on_failure, context, inbuf, outbuf);
     }
 
-    identifier_t const& method() const
-    {
-      return method_;
-    }
-
-    std::unique_ptr<method_handler_t> make_method_handler(
-      result_t<void>& result,
-      logging_context_t& context,
-      bound_inbuf_t& inbuf,
-      bound_outbuf_t& outbuf) const
-    {
-      return (*factory_wrapper_)(result, context, inbuf, outbuf);
-    }
+    return result;
+  }
     
-  private :
-    struct CUTI_ABI factory_wrapper_t
-    {
-      virtual std::unique_ptr<method_handler_t> operator()(
-        result_t<void>& result,
-        logging_context_t& context,
-        bound_inbuf_t& inbuf,
-        bound_outbuf_t& outbuf) const = 0;
+private :
+  struct factory_wrapper_t
+  {
+    factory_wrapper_t()
+    { }
 
-      virtual ~factory_wrapper_t()
-      { }
-    };
+    factory_wrapper_t(factory_wrapper_t const&) = delete;
+    factory_wrapper_t& operator=(factory_wrapper_t const&) = delete;
 
-    template<typename HandlerFactory>
-    struct factory_wrapper_instance_t : factory_wrapper_t
-    {
-      factory_wrapper_instance_t(HandlerFactory f)
-      : f_(std::move(f))
-      {
-        if constexpr(std::is_pointer_v<HandlerFactory>)
-        {
-          assert(f_ != nullptr);
-        }
-      }
+    virtual std::unique_ptr<method_t<Parent>>
+    operator()(Parent& parent,
+               void (Parent::*on_failure)(std::exception_ptr),
+               logging_context_t& context,
+               bound_inbuf_t& inbuf,
+               bound_outbuf_t& outbuf) const = 0;
 
-      std::unique_ptr<method_handler_t> operator()(
-        result_t<void>& result,
-        logging_context_t& context,
-        bound_inbuf_t& inbuf,
-        bound_outbuf_t& outbuf) const override
-      {
-        return f_(result, context, inbuf, outbuf);
-      }
-
-    private:
-      HandlerFactory f_;
-    };
-
-  private :
-    identifier_t method_;
-    std::unique_ptr<factory_wrapper_t> factory_wrapper_;
+    virtual ~factory_wrapper_t()
+    { }
   };
 
-  method_map_t(entry_t const* first, entry_t const* last)
-  : first_(first)
-  , last_(last)
+  template<typename Factory>
+  struct factory_wrapper_inst_t : factory_wrapper_t
   {
-    auto not_less = [](entry_t const& e1, entry_t const& e2)
-    { return !(e1.method() < e2.method()); };
-
-    static_cast<void>(not_less);
-    assert(std::adjacent_find(first_, last_, not_less) == last_);
-  }
-
-  entry_t const* find_entry(identifier_t const& method) const
-  {
-    auto method_less = [](entry_t const& entry, identifier_t const& method)
-    { return entry.method() < method; };
-
-    auto pos = std::lower_bound(first_, last_, method, method_less);
-    if(pos == last_ || method < pos->method())
+    template<typename FFactory>
+    factory_wrapper_inst_t(FFactory&& wrapped)
+    : wrapped_(std::forward<FFactory>(wrapped))
     {
-      return nullptr;
+      if constexpr(std::is_pointer_v<Factory>)
+      {
+        assert(wrapped_ != nullptr);
+      }
     }
 
-    return &*pos;
+    std::unique_ptr<method_t<Parent>>
+    operator()(Parent& parent,
+               void (Parent::*on_failure)(std::exception_ptr),
+               logging_context_t& context,
+               bound_inbuf_t& inbuf,
+               bound_outbuf_t& outbuf) const override
+    {
+      return wrapped_(parent, on_failure, context, inbuf, outbuf);
+    }
+
+  private :
+    Factory wrapped_;
+  };
+
+  template<typename Factory>
+  static std::unique_ptr<factory_wrapper_t const>
+  make_factory_wrapper(Factory&& wrapped)
+  {
+    return std::make_unique<factory_wrapper_inst_t<std::decay_t<Factory>>>(
+      std::forward<Factory>(wrapped));
   }
-  
+    
 private :
-  entry_t const* first_;
-  entry_t const* last_;
+  std::map<identifier_t, std::unique_ptr<factory_wrapper_t const>> factories_;
 };
-  
+
+template<typename Impl>
+auto inline default_method_factory = [](
+  auto& parent,
+  auto on_failure,
+  logging_context_t& context,
+  bound_inbuf_t& inbuf,
+  bound_outbuf_t& outbuf)
+{
+  return make_method<Impl>(parent, on_failure, context, inbuf, outbuf);
+};
+
 } // cuti
 
 #endif
