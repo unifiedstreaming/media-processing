@@ -36,12 +36,14 @@ struct logging_backend_t;
 
 struct CUTI_ABI logger_t
 {
+  // Nullptr results in no backend (silent logger)
   explicit logger_t(char const* argv0);
   explicit logger_t(std::unique_ptr<logging_backend_t> backend);
 
   logger_t(logger_t const&) = delete;
   logger_t& operator=(logger_t const&) = delete;
 
+  // Nullptr results in no backend (silent logger)
   void set_backend(std::unique_ptr<logging_backend_t> backend);
 
   void report(loglevel_t level,

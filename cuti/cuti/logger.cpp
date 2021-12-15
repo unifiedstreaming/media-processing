@@ -32,7 +32,8 @@ namespace cuti
 {
 
 logger_t::logger_t(char const* argv0)
-: logger_t(std::make_unique<default_backend_t>(argv0))
+: logger_t(argv0 ? std::make_unique<default_backend_t>(argv0)
+                 : std::unique_ptr<logging_backend_t>())
 { }
 
 logger_t::logger_t(std::unique_ptr<logging_backend_t> backend)

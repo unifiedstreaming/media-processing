@@ -120,6 +120,7 @@ lib cuti
   quoted_string.cpp
   relational_ops.cpp
   remote_error.cpp
+  request_handler.cpp
   resolver.cpp
   result.cpp
   scheduler.cpp

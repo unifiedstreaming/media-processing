@@ -660,6 +660,37 @@ private :
   subroutine_t<user_type_reader_t, tuple_reader_t<tuple_t>> tuple_reader_;
 };
 
+struct CUTI_ABI eom_checker_t
+{
+  using result_value_t = void;
+
+  eom_checker_t(result_t<void>& result, bound_inbuf_t& buf)
+  : result_(result)
+  , skipper_(*this, result_, buf)
+  { }
+
+  void start()
+  {
+    skipper_.start(&eom_checker_t::on_whitespace_skipped);
+  }
+
+private :
+  void on_whitespace_skipped(int c)
+  {
+    if(c != '\n')
+    {
+      result_.fail(parse_error_t("end of message (newline) expected"));
+      return;
+    }
+
+    result_.submit();
+  }
+
+private :
+  result_t<void>& result_;
+  subroutine_t<eom_checker_t, whitespace_skipper_t> skipper_;
+};
+
 struct CUTI_ABI message_drainer_t
 {
   using result_value_t = void;
@@ -693,6 +724,7 @@ private :
     if(!buf_.readable())
     {
       buf_.call_when_readable([this] { this->drain(); });
+      return;
     }
 
     if(c != eof)
@@ -839,6 +871,7 @@ using end_sequence_checker_t = detail::end_sequence_checker_t;
 using begin_structure_reader_t = detail::begin_structure_reader_t;
 using end_structure_reader_t = detail::end_structure_reader_t;
 
+using eom_checker_t = detail::eom_checker_t;
 using message_drainer_t = detail::message_drainer_t;
 
 } // cuti

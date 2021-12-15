@@ -19,13 +19,14 @@
 
 #include "default_backend.hpp"
 
+#include <cassert>
 #include <iostream>
 
 namespace cuti
 {
 
 default_backend_t::default_backend_t(char const* argv0)
-: argv0_(argv0)
+: argv0_((assert(argv0 != nullptr), argv0))
 , sb_(std::cerr.rdbuf())
 { }
 
