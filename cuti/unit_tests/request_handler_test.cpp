@@ -206,6 +206,10 @@ void do_run_tests(logging_context_t& client_context,
   fail_int_request(client_context, server_context, bufsize, map,
     "add 1 " + std::to_string(max) + "\n");
 
+  // hangup (eof) parsing second argument
+  fail_int_request(client_context, server_context, bufsize, map,
+    "add 42 4711");
+
   // missing end-of-message
   fail_int_request(client_context, server_context, bufsize, map,
     "add 42 4711 ");
