@@ -25,6 +25,7 @@
 #include "flusher.hpp"
 #include "identifier.hpp"
 #include "linkage.h"
+#include "producer.hpp"
 #include "remote_error.hpp"
 #include "result.hpp"
 #include "stack_marker.hpp"
@@ -34,6 +35,7 @@
 #include <array>
 #include <cstddef>
 #include <memory>
+#include <optional>
 #include <string>
 #include <tuple>
 #include <type_traits>
@@ -314,18 +316,95 @@ using begin_sequence_writer_t = token_suffix_writer_t<sequence_prefix>;
 using end_sequence_writer_t = token_suffix_writer_t<sequence_suffix>;
 
 template<typename T>
+struct sequence_writer_t
+{
+  using result_value_t = void;
+
+  sequence_writer_t(result_t<void>& result, bound_outbuf_t& buf)
+  : result_(result)
+  , begin_writer_(*this, result_, buf)
+  , element_writer_(*this, result_, buf)
+  , end_writer_(*this, result_, buf)
+  , producer_(nullptr)
+  { }
+
+  sequence_writer_t(sequence_writer_t const&) = delete;
+  sequence_writer_t& operator=(sequence_writer_t const&) = delete;
+  
+  void start(producer_t<T>& producer)
+  {
+    producer_ = &producer;
+    begin_writer_.start(&sequence_writer_t::write_elements);
+  }
+
+private :
+  void write_elements()
+  {
+    assert(producer_ != nullptr);
+   
+    if(!producer_->done())
+    {
+      element_writer_.start(
+        &sequence_writer_t::write_elements, producer_->produce());
+      return;
+    }
+
+    producer_ = nullptr;
+    end_writer_.start(&sequence_writer_t::on_end_written);
+  }
+      
+  void on_end_written()
+  {
+    result_.submit();
+  }
+
+private :
+  result_t<void>& result_;
+  subroutine_t<sequence_writer_t, begin_sequence_writer_t> begin_writer_;
+  subroutine_t<sequence_writer_t, writer_t<T>> element_writer_;
+  subroutine_t<sequence_writer_t, end_sequence_writer_t> end_writer_;
+
+  producer_t<T>* producer_;
+};
+
+template<typename T>
+struct vector_producer_t : producer_t<T>
+{
+  explicit vector_producer_t(std::vector<T> value)
+  : value_(std::move(value))
+  , first_(value_.begin())
+  , last_(value_.end())
+  { }
+
+  bool done() const override
+  {
+    return first_ == last_;
+  }
+
+  T produce() override
+  {
+    assert(first_ != last_);
+
+    auto pos = first_;
+    ++first_;
+    return std::move(*pos);
+  }
+
+private :
+  std::vector<T> value_;
+  typename std::vector<T>::iterator first_;
+  typename std::vector<T>::iterator last_;
+};
+    
+template<typename T>
 struct vector_writer_t
 {
   using result_value_t = void;
 
   vector_writer_t(result_t<void>& result, bound_outbuf_t& buf)
   : result_(result)
-  , begin_writer_(*this, result_, buf)
-  , element_writer_(*this, result_, buf)
-  , end_writer_(*this, result_, buf)
-  , value_()
-  , first_()
-  , last_()
+  , sequence_writer_(*this, result_, buf)
+  , producer_(std::nullopt)
   { }
 
   vector_writer_t(vector_writer_t const&) = delete;
@@ -333,43 +412,22 @@ struct vector_writer_t
   
   void start(std::vector<T> value)
   {
-    value_ = std::move(value);
-    first_ = value_.begin();
-    last_ = value_.end();
-
-    begin_writer_.start(&vector_writer_t::write_elements);
+    producer_.emplace(std::move(value));
+    sequence_writer_.start(&vector_writer_t::on_sequence_written, *producer_);
   }
 
 private :
-  void write_elements()
+  void on_sequence_written()
   {
-    if(first_ != last_)
-    {
-      auto pos = first_;
-      ++first_;
-      element_writer_.start(
-        &vector_writer_t::write_elements, std::move(*pos));
-      return;
-    }
-
-    end_writer_.start(&vector_writer_t::on_end_written);
-  }
-      
-  void on_end_written()
-  {
-    value_.clear();
+    producer_.reset();
     result_.submit();
   }
 
 private :
   result_t<void>& result_;
-  subroutine_t<vector_writer_t, begin_sequence_writer_t> begin_writer_;
-  subroutine_t<vector_writer_t, writer_t<T>> element_writer_;
-  subroutine_t<vector_writer_t, end_sequence_writer_t> end_writer_;
+  subroutine_t<vector_writer_t, sequence_writer_t<T>> sequence_writer_;
 
-  std::vector<T> value_;
-  typename std::vector<T>::iterator first_;
-  typename std::vector<T>::iterator last_;
+  std::optional<vector_producer_t<T>> producer_;
 };
 
 template<typename T,
@@ -697,6 +755,9 @@ struct writer_traits_t
  */
 using begin_sequence_writer_t = detail::begin_sequence_writer_t;
 using end_sequence_writer_t = detail::end_sequence_writer_t;
+
+template<typename T>
+using sequence_writer_t = detail::sequence_writer_t<T>;
 
 using begin_structure_writer_t = detail::begin_structure_writer_t;
 using end_structure_writer_t = detail::end_structure_writer_t;

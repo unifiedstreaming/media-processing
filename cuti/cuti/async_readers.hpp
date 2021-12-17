@@ -22,6 +22,7 @@
 
 #include "bound_inbuf.hpp"
 #include "charclass.hpp"
+#include "consumer.hpp"
 #include "flag.hpp"
 #include "identifier.hpp"
 #include "linkage.h"
@@ -36,6 +37,7 @@
 #include <cstddef>
 #include <exception>
 #include <memory>
+#include <optional>
 #include <string>
 #include <tuple>
 #include <type_traits>
@@ -447,16 +449,91 @@ using begin_sequence_reader_t = expected_reader_t<'['>;
 using end_sequence_checker_t = expected_checker_t<']'>;
 
 template<typename T>
+struct sequence_reader_t
+{
+  using result_value_t = void;
+
+  sequence_reader_t(result_t<void>& result, bound_inbuf_t& buf)
+  : result_(result)
+  , begin_reader_(*this, result_, buf)
+  , end_checker_(*this, result_, buf)
+  , element_reader_(*this, result_, buf)
+  , consumer_(nullptr)
+  { }
+
+  sequence_reader_t(sequence_reader_t const&) = delete;
+  sequence_reader_t& operator=(sequence_reader_t const&) = delete;
+  
+  void start(consumer_t<T>& consumer)
+  {
+    consumer_ = &consumer;
+    begin_reader_.start(&sequence_reader_t::read_elements);
+  }
+
+private :
+  void read_elements()
+  {
+    end_checker_.start(&sequence_reader_t::on_end_checker);
+  }
+
+  void on_end_checker(bool at_end)
+  {
+    if(at_end)
+    {
+      consumer_ = nullptr;
+      result_.submit();
+      return;
+    }
+      
+    element_reader_.start(&sequence_reader_t::on_element);
+  }
+    
+  void on_element(T element)
+  {
+    assert(consumer_ != nullptr);
+    consumer_->consume(std::move(element));
+    this->read_elements();
+  }
+
+private :
+  result_t<void>& result_;
+  subroutine_t<sequence_reader_t, begin_sequence_reader_t> begin_reader_;
+  subroutine_t<sequence_reader_t, end_sequence_checker_t> end_checker_;
+  subroutine_t<sequence_reader_t, reader_t<T>> element_reader_;
+
+  consumer_t<T>* consumer_;
+};
+
+template<typename T>
+struct vector_consumer_t : consumer_t<T>
+{
+  vector_consumer_t()
+  : value_()
+  { }
+
+  void consume(T element) override
+  {
+    value_.push_back(std::move(element));
+  }
+
+  std::vector<T>& value()
+  {
+    return value_;
+  }
+
+private :
+  std::vector<T> value_;
+};
+
+template<typename T>
 struct vector_reader_t
 {
   using result_value_t = std::vector<T>;
 
   vector_reader_t(result_t<std::vector<T>>& result, bound_inbuf_t& buf)
   : result_(result)
-  , begin_reader_(*this, result_, buf)
-  , end_checker_(*this, result_, buf)
-  , element_reader_(*this, result_, buf)
-  , value_()
+  , sequence_reader_(*this, result_, buf)
+  , consumer_(std::nullopt)
   { }
 
   vector_reader_t(vector_reader_t const&) = delete;
@@ -464,40 +541,24 @@ struct vector_reader_t
   
   void start()
   {
-    value_.clear();
-    begin_reader_.start(&vector_reader_t::read_elements);
+    consumer_.emplace();
+    sequence_reader_.start(&vector_reader_t::on_sequence_read, *consumer_);
   }
 
 private :
-  void read_elements()
+  void on_sequence_read()
   {
-    end_checker_.start(&vector_reader_t::on_end_checker);
-  }
-
-  void on_end_checker(bool at_end)
-  {
-    if(at_end)
-    {
-      result_.submit(std::move(value_));
-      return;
-    }
-      
-    element_reader_.start(&vector_reader_t::on_element);
-  }
-    
-  void on_element(T element)
-  {
-    value_.push_back(std::move(element));
-    this->read_elements();
+    assert(consumer_ != std::nullopt);
+    auto value = std::move(consumer_->value());
+    consumer_.reset();
+    result_.submit(std::move(value));
   }
 
 private :
   result_t<std::vector<T>>& result_;
-  subroutine_t<vector_reader_t, begin_sequence_reader_t> begin_reader_;
-  subroutine_t<vector_reader_t, end_sequence_checker_t> end_checker_;
-  subroutine_t<vector_reader_t, reader_t<T>> element_reader_;
+  subroutine_t<vector_reader_t, sequence_reader_t<T>> sequence_reader_;
 
-  std::vector<T> value_;
+  std::optional<vector_consumer_t<T>> consumer_;
 };
 
 template<typename T,
@@ -867,6 +928,9 @@ struct reader_traits_t
  */
 using begin_sequence_reader_t = detail::begin_sequence_reader_t;
 using end_sequence_checker_t = detail::end_sequence_checker_t;
+
+template<typename T>
+using sequence_reader_t = detail::sequence_reader_t<T>;
 
 using begin_structure_reader_t = detail::begin_structure_reader_t;
 using end_structure_reader_t = detail::end_structure_reader_t;

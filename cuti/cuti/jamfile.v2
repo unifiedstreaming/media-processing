@@ -79,6 +79,7 @@ lib cuti
   clock_object.cpp
   cmdline_reader.cpp
   config_file_reader.cpp
+  consumer.cpp
   default_backend.cpp
   default_scheduler.cpp
   dispatcher.cpp
@@ -117,6 +118,7 @@ lib cuti
   parse_error.cpp
   poll_selector.cpp
   process.cpp
+  producer.cpp
   quoted_string.cpp
   relational_ops.cpp
   remote_error.cpp
