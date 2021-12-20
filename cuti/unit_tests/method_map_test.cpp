@@ -233,8 +233,8 @@ void test_handler_methods()
   method_map_t<sample_request_handler_t> map;
 
   // Default method factories
-  map.add_method_factory("succeed", default_method_factory<succeed_t>);
-  map.add_method_factory("fail", default_method_factory<fail_t>);
+  map.add_method_factory("succeed", default_method_factory<succeed_t>());
+  map.add_method_factory("fail", default_method_factory<fail_t>());
 
   // Configurable method factories
   map.add_method_factory("configured_to_succeed",

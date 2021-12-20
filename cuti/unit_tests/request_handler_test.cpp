@@ -176,9 +176,9 @@ void do_run_tests(logging_context_t& client_context,
 {
   method_map_t<request_handler_t> map;
   map.add_method_factory(
-    "add", default_method_factory<add_handler_t>);
+    "add", default_method_factory<add_handler_t>());
   map.add_method_factory(
-    "sub", default_method_factory<subtract_handler_t>);
+    "sub", default_method_factory<subtract_handler_t>());
 
   assert(run_int_request(client_context, server_context, bufsize, map,
     "add 42 4711\n") == 4753);

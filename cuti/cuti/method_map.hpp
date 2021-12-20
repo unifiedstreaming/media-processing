@@ -155,15 +155,18 @@ private :
 };
 
 template<typename Impl>
-auto inline default_method_factory = [](
-  auto& parent,
-  auto on_failure,
-  logging_context_t& context,
-  bound_inbuf_t& inbuf,
-  bound_outbuf_t& outbuf)
+auto default_method_factory()
 {
-  return make_method<Impl>(parent, on_failure, context, inbuf, outbuf);
-};
+  return [](
+    auto& parent,
+    auto on_failure,
+    logging_context_t& context,
+    bound_inbuf_t& inbuf,
+    bound_outbuf_t& outbuf)
+  {
+    return make_method<Impl>(parent, on_failure, context, inbuf, outbuf);
+  };
+}
 
 } // cuti
 
