@@ -69,6 +69,10 @@ unit-test integral_io_test
 : integral_io_test.cpp
 ;
 
+unit-test input_list_test
+: input_list_test.cpp
+;
+
 unit-test list_arena_test
 : list_arena_test.cpp
 ;

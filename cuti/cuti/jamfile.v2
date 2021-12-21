@@ -95,6 +95,7 @@ lib cuti
   format.cpp
   identifier.cpp
   indexed_heap.cpp
+  input_list.cpp
   kqueue_selector.cpp
   linkage.cpp
   list_arena.cpp
