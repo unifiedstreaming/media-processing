@@ -146,6 +146,7 @@ lib cuti
   tcp_socket.cpp
   throughput_checker.cpp
   tuple_mapping.cpp
+  type_list.cpp
   viewbuf.cpp
   advapi32
   ws2_32
