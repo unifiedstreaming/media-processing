@@ -30,9 +30,9 @@ namespace cuti
 {
 
 /*
- * Abstract base interface for handling an input value of type T.
+ * Abstract base interface for handling an input of type Value.
  */
-template<typename T>
+template<typename Value>
 struct input_t
 {
   input_t()
@@ -41,51 +41,51 @@ struct input_t
   input_t(input_t const&) = delete;
   input_t& operator=(input_t const&) = delete;
 
-  virtual void set(T value) const = 0;
+  virtual void set(Value value) const = 0;
 
   virtual ~input_t()
   { }
 };
 
 /*
- * Template for implementing input_t<T>.
+ * Template for implementing input_t<Value>.
  */
-template<typename T, typename Handler>
+template<typename Value, typename Handler>
 struct input_impl_t;
 
 /*
  * If the handler type matches the value type, we simply take a
  * reference to the value type and assign to it...
  */
-template<typename T>
-struct input_impl_t<T, T> : input_t<T>
+template<typename Value>
+struct input_impl_t<Value, Value> : input_t<Value>
 {
-  explicit input_impl_t(T& target)
+  explicit input_impl_t(Value& target)
   : target_(target)
   { }
 
-  void set(T value) const override
+  void set(Value value) const override
   {
     target_ = std::move(value);
   }
 
 private :
-  T& target_;
+  Value& target_;
 };
 
 /*
- * ...otherwise, we assume the handler type is a (const-)callable
- * taking a T and invoke it.
+ * ...otherwise, we assume the handler is a const-callable taking a
+ * Value and invoke it.
  */
-template<typename T, typename Handler>
-struct input_impl_t : input_t<T>
+template<typename Value, typename Handler>
+struct input_impl_t : input_t<Value>
 {
   template<typename HHandler>
   explicit input_impl_t(HHandler&& handler)
   : handler_(std::forward<HHandler>(handler))
   { }
 
-  void set(T value) const override
+  void set(Value value) const override
   {
     handler_(std::move(value));
   }
@@ -95,15 +95,15 @@ private :
 };
 
 /*
- * Abstract base interface for a list of inputs.  Each input handles a
- * specific value type.
+ * Abstract base interface for a list of inputs.  Each input has its
+ * own value type.
  */
-template<typename... Types>
+template<typename... Values>
 struct input_list_t;
 
 /*
- * Nothing to see here if there are no input types.  Keep calm and
- * carry on.
+ * Nothing to see here if there are no inputs.  Keep calm and carry
+ * on.
  */
 template<>
 struct CUTI_ABI input_list_t<>
@@ -119,12 +119,11 @@ struct CUTI_ABI input_list_t<>
 };
 
 /*
- * Otherwise, the list of input types is non-empty.  We require an
- * accessor to get at the first input handler, and another accessor to
- * get at the other input handlers.
+ * Otherwise, we require an accessor to get at the first input, and
+ * another accessor to get at the other inputs.
  */
-template<typename FirstType, typename... OtherTypes>
-struct input_list_t<FirstType, OtherTypes...>
+template<typename FirstValue, typename... OtherValues>
+struct input_list_t<FirstValue, OtherValues...>
 {
   input_list_t()
   { }
@@ -132,38 +131,39 @@ struct input_list_t<FirstType, OtherTypes...>
   input_list_t(input_list_t const&) = delete;
   input_list_t& operator=(input_list_t const&) = delete;
 
-  virtual input_t<FirstType> const& first() const = 0;
-  virtual input_list_t<OtherTypes...> const& others() const = 0;
+  virtual input_t<FirstValue> const& first() const = 0;
+  virtual input_list_t<OtherValues...> const& others() const = 0;
   
   virtual ~input_list_t()
   { }
 };
 
 /*
- * Template for implementing an input_list_t for the types in a type
- * list.  Each type takes its own Handler implementation.
+ * Template for implementing an input_list_t for the value types in a
+ * type list.  Each value type has a corresponding Handler type.
  */
-template<typename TypeList, typename... Handlers>
+template<typename Values, typename Handlers>
 struct input_list_impl_t;
 
 /*
- * If the list of types is empty, there are no handlers and we have
- * nothing to add to our base interface.
+ * If there are no value/handler types, we have nothing to add to our
+ * base interface.
  */
 template<>
-struct CUTI_ABI input_list_impl_t<type_list_t<>> : input_list_t<>
+struct CUTI_ABI input_list_impl_t<type_list_t<>, type_list_t<>>
+: input_list_t<>
 { };
 
 /*
  * Otherwise, we implement our base interface by instantiating the
- * first input by its type and its handler, and use recursive
- * instantiation for the other input and handler types.
+ * first input by its value/handler type, and use recursive
+ * instantiation for the other value/handler types.
  */
-template<typename FirstType, typename... OtherTypes,
+template<typename FirstValue, typename... OtherValues,
          typename FirstHandler, typename... OtherHandlers>
-struct input_list_impl_t<
-  type_list_t<FirstType, OtherTypes...>, FirstHandler, OtherHandlers...>
-: input_list_t<FirstType, OtherTypes...>
+struct input_list_impl_t<type_list_t<FirstValue, OtherValues...>,
+                         type_list_t<FirstHandler, OtherHandlers...>>
+: input_list_t<FirstValue, OtherValues...>
 {
   template<typename FFirstHandler, typename... OOtherHandlers>
   input_list_impl_t(FFirstHandler&& first_handler,
@@ -172,43 +172,44 @@ struct input_list_impl_t<
   , others_(std::forward<OOtherHandlers>(other_handlers)...)
   { }
 
-  input_t<FirstType> const& first() const override
+  input_t<FirstValue> const& first() const override
   {
     return first_;
   }
 
-  input_list_t<OtherTypes...> const& others() const override
+  input_list_t<OtherValues...> const& others() const override
   {
     return others_;
   }
 
 private :
-  input_impl_t<FirstType, FirstHandler> first_;
-  input_list_impl_t<type_list_t<OtherTypes...>, OtherHandlers...> others_;
+  input_impl_t<FirstValue, FirstHandler> first_;
+  input_list_impl_t<type_list_t<OtherValues...>,
+                    type_list_t<OtherHandlers...>> others_;
 };
 
 /*
  * Helper functor template for building an input list.
  */
-template<typename... Types>
+template<typename... Values>
 struct make_input_list_t
 {
   template<typename... Handlers>
   auto operator()(Handlers&&... handlers) const
   {
-    return input_list_impl_t<
-      type_list_t<Types...>, std::decay_t<Handlers>...>(
-        std::forward<Handlers>(handlers)...);
+    return input_list_impl_t<type_list_t<Values...>,
+                             type_list_t<std::decay_t<Handlers>...>>(
+      std::forward<Handlers>(handlers)...);
   }
 };
     
 /*
  * Function-like object for building an input list.  It takes the
- * input types as template arguments; the actual handlers are taken
- * from the run-time parameters it is invoked with.
+ * value types as template arguments; the actual handler types are
+ * determined from the run-time parameters it is invoked with.
  */
-template<typename... Types>
-auto constexpr make_input_list = make_input_list_t<Types...>();
+template<typename... Values>
+auto constexpr make_input_list = make_input_list_t<Values...>();
 
 } // cuti
 
