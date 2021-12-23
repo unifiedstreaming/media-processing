@@ -20,10 +20,12 @@
 #ifndef CUTI_INPUT_LIST_HPP_
 #define CUTI_INPUT_LIST_HPP_
 
+#include <optional>
 #include <type_traits>
 #include <utility>
 
 #include "linkage.h"
+#include "streaming_tag.hpp"
 #include "type_list.hpp"
 
 namespace cuti
@@ -48,6 +50,25 @@ struct input_t
 };
 
 /*
+ * Abstract base interface for handling a stream of inputs of type
+ * Value.  The end of the stream is marked by an empty optional.
+ */
+template<typename Value>
+struct input_t<streaming_tag_t<Value>>
+{
+  input_t()
+  { }
+
+  input_t(input_t const&) = delete;
+  input_t& operator=(input_t const&) = delete;
+
+  virtual void set(std::optional<Value> value) const = 0;
+
+  virtual ~input_t()
+  { }
+};
+
+/*
  * Template for implementing input_t<Value>.
  */
 template<typename Value, typename Handler>
@@ -55,7 +76,7 @@ struct input_impl_t;
 
 /*
  * If the handler type matches the value type, we simply take a
- * reference to the value type and assign to it...
+ * reference to the value type and assign to it.
  */
 template<typename Value>
 struct input_impl_t<Value, Value> : input_t<Value>
@@ -74,8 +95,31 @@ private :
 };
 
 /*
- * ...otherwise, we assume the handler is a const-callable taking a
- * Value and invoke it.
+ * Otherwise, if the value type is taggged as streaming, we assume
+ * the handler is a const-callable taking an optional Value and
+ * invoke it.
+ */
+template<typename Value, typename Handler>
+struct input_impl_t<streaming_tag_t<Value>, Handler>
+: input_t<streaming_tag_t<Value>>
+{
+  template<typename HHandler>
+  explicit input_impl_t(HHandler&& handler)
+  : handler_(std::forward<HHandler>(handler))
+  { }
+
+  void set(std::optional<Value> value) const override
+  {
+    handler_(std::move(value));
+  }
+
+private :
+  Handler handler_;
+};
+
+/*
+ * Otherwise, we assume the handler is a const-callable taking a Value
+ * and invoke it.
  */
 template<typename Value, typename Handler>
 struct input_impl_t : input_t<Value>

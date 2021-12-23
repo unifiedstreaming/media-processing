@@ -17,19 +17,4 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#ifndef CUTI_SEQUENCE_OF_HPP_
-#define CUTI_SEQUENCE_OF_HPP_
-
-namespace cuti
-{
-
-/*
- * Tag type for denoting a sequence of values.
- */
-template<typename T>
-struct sequence_of_t
-{ };
-
-} // cuti
-
-#endif
+#include "streaming_tag.hpp"
