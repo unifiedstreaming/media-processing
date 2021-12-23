@@ -32,56 +32,31 @@ namespace // anonymous
 
 using namespace cuti;
 
-/*
- * set_inputs(): forward declarations to allow for mutual recursion
- */
-void set_inputs(input_list_t<> const& inputs);
-  
-template<typename... Inputs,
-         typename FirstValue, typename... OtherValues>
-void set_inputs(
-  input_list_t<Inputs...> const& inputs,
-  FirstValue&& first_value,
-  OtherValues&&... other_values);
+template<typename T, typename Value>
+void set_single_input(input_t<T> const& input, Value&& value)
+{
+  input.set(std::forward<Value>(value));
+}
 
-template<typename Element, typename... OtherInputs,
-         typename Container, typename... OtherValues>
-void set_inputs(
-  input_list_t<streaming_tag_t<Element>, OtherInputs...> const& inputs,
-  Container container,
-  OtherValues&&... other_values);
+template<typename T, typename Values>
+void set_single_input(input_t<streaming_tag_t<T>> const& input, Values values)
+{
+  for(auto& value : values)
+  {
+    input.set(std::make_optional<T>(std::move(value)));
+  }
+  input.set(std::nullopt);
+}
 
-/*
- * set_inputs(): forward declared definitions
- */
 void set_inputs(input_list_t<> const& /* inputs */)
 { }
   
 template<typename... Inputs,
          typename FirstValue, typename... OtherValues>
-void set_inputs(
-  input_list_t<Inputs...> const& inputs,
-  FirstValue&& first_value,
-  OtherValues&&... other_values)
+void set_inputs(input_list_t<Inputs...> const& inputs,
+                FirstValue&& first_value, OtherValues&&... other_values)
 {
-  inputs.first().set(std::forward<FirstValue>(first_value));
-  set_inputs(inputs.others(), std::forward<OtherValues>(other_values)...);
-}
-
-template<typename Element, typename... OtherInputs,
-         typename Container, typename... OtherValues>
-void set_inputs(
-  input_list_t<streaming_tag_t<Element>, OtherInputs...> const& inputs,
-  Container container,
-  OtherValues&&... other_values)
-{
-  auto const& first_input = inputs.first();
-  for(auto& element : container)
-  {
-    first_input.set(std::make_optional<Element>(std::move(element)));
-  }
-  first_input.set(std::nullopt);
-  
+  set_single_input(inputs.first(), std::forward<FirstValue>(first_value));
   set_inputs(inputs.others(), std::forward<OtherValues>(other_values)...);
 }
 
