@@ -252,7 +252,7 @@ struct CUTI_ABI blob_writer_t
                 std::is_same_v<T, std::vector<char>> ||
                 std::is_same_v<T, std::vector<signed char>> ||
                 std::is_same_v<T, std::vector<unsigned char>>);
-		
+
   using result_value_t = void;
 
   blob_writer_t(result_t<void>& result, bound_outbuf_t& buf);
@@ -341,11 +341,22 @@ private :
   void write_elements()
   {
     assert(producer_ != nullptr);
+
+    std::optional<T> element;
+    try
+    {
+      element = producer_->get();
+    }
+    catch(std::exception const&)
+    {
+      result_.fail(std::current_exception());
+      return;
+    }
    
-    if(!producer_->done())
+    if(element != std::nullopt)
     {
       element_writer_.start(
-        &sequence_writer_t::write_elements, producer_->produce());
+        &sequence_writer_t::write_elements, std::move(*element));
       return;
     }
 
@@ -376,18 +387,16 @@ struct vector_producer_t : producer_t<T>
   , last_(value_.end())
   { }
 
-  bool done() const override
+  std::optional<T> get() override
   {
-    return first_ == last_;
-  }
-
-  T produce() override
-  {
-    assert(first_ != last_);
+    if(first_ == last_)
+    {
+      return std::nullopt;
+    }
 
     auto pos = first_;
     ++first_;
-    return std::move(*pos);
+    return std::optional<T>(std::move(*pos));
   }
 
 private :

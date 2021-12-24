@@ -20,11 +20,14 @@
 #ifndef CUTI_PRODUCER_HPP_
 #define CUTI_PRODUCER_HPP_
 
+#include <optional>
+
 namespace cuti
 {
 
 /*
- * Interface for a producer of Ts.
+ * Abstract base interface consuming a stream of inputs of type T.
+ * The end of the stream is marked by an empty optional.
  */
 template<typename T>
 struct producer_t
@@ -35,10 +38,7 @@ struct producer_t
   producer_t(producer_t const&) = delete;
   producer_t& operator=(producer_t const&) = delete;
 
-  virtual bool done() const = 0;
-
-  // PRE: !this->done()
-  virtual T produce() = 0;
+  virtual std::optional<T> get() = 0;
 
   virtual ~producer_t()
   { }

@@ -478,8 +478,20 @@ private :
 
   void on_end_checker(bool at_end)
   {
+    assert(consumer_ != nullptr);
+
     if(at_end)
     {
+      try
+      {
+        consumer_->put(std::nullopt);
+      }
+      catch(std::exception const&)
+      {
+        result_.fail(std::current_exception());
+        return;
+      }
+        
       consumer_ = nullptr;
       result_.submit();
       return;
@@ -491,7 +503,17 @@ private :
   void on_element(T element)
   {
     assert(consumer_ != nullptr);
-    consumer_->consume(std::move(element));
+
+    try
+    {
+      consumer_->put(std::make_optional(std::move(element)));
+    }
+    catch(std::exception const&)
+    {
+      result_.fail(std::current_exception());
+      return;
+    }
+        
     this->read_elements();
   }
 
@@ -511,9 +533,12 @@ struct vector_consumer_t : consumer_t<T>
   : value_()
   { }
 
-  void consume(T element) override
+  void put(std::optional<T> element) override
   {
-    value_.push_back(std::move(element));
+    if(element != std::nullopt)
+    {
+      value_.push_back(std::move(*element));
+    }
   }
 
   std::vector<T>& value()

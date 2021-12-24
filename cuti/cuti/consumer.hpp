@@ -20,11 +20,14 @@
 #ifndef CUTI_CONSUMER_HPP_
 #define CUTI_CONSUMER_HPP_
 
+#include <optional>
+
 namespace cuti
 {
 
 /*
- * Interface for a consumer of Ts.
+ * Abstract base interface consuming a stream of inputs of type T.
+ * The end of the stream is marked by an empty optional.
  */
 template<typename T>
 struct consumer_t
@@ -35,7 +38,7 @@ struct consumer_t
   consumer_t(consumer_t const&) = delete;
   consumer_t& operator=(consumer_t const&) = delete;
 
-  virtual void consume(T value) = 0;
+  virtual void put(std::optional<T> value) = 0;
 
   virtual ~consumer_t()
   { }
