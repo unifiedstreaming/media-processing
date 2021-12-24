@@ -32,7 +32,7 @@ namespace cuti
 {
 
 /*
- * Abstract base interface for obtaining an output of type Value.
+ * Abstract base interface for producing an output of type Value.
  */
 template<typename Value>
 struct output_t
@@ -50,7 +50,7 @@ struct output_t
 };
 
 /*
- * Abstract base interface for obtaining a stream of outputs of type
+ * Abstract base interface for producing a stream of outputs of type
  * Value.  The end of the stream is marked by an empty optional.
  */
 template<typename Value>
