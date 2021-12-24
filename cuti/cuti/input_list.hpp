@@ -32,7 +32,7 @@ namespace cuti
 {
 
 /*
- * Abstract base interface for consuming an input of type Value.
+ * Abstract base interface consuming of a single input of type Value.
  */
 template<typename Value>
 struct input_t
@@ -50,8 +50,8 @@ struct input_t
 };
 
 /*
- * Abstract base interface for consuming a stream of inputs of type
- * Value.  The end of the stream is marked by an empty optional.
+ * Abstract base interface consuming a stream of inputs of type Value.
+ * The end of the stream is marked by an empty optional.
  */
 template<typename Value>
 struct input_t<streaming_tag_t<Value>>
@@ -71,12 +71,12 @@ struct input_t<streaming_tag_t<Value>>
 /*
  * Template for implementing input_t<Value>.
  */
-template<typename Value, typename Consumer>
+template<typename Value, typename Sink>
 struct input_impl_t;
 
 /*
- * If the consumer type is the same as the value type, we simply take
- * a reference to the value type and assign to it.
+ * If the sink type is the same as the value type, we simply take a
+ * reference to the value type and assign to it.
  */
 template<typename Value>
 struct input_impl_t<Value, Value> : input_t<Value>
@@ -95,48 +95,48 @@ private :
 };
 
 /*
- * Otherwise, we assume the consumer is a callable taking a Value and
+ * Otherwise, we assume the sink is a callable taking a Value and
  * invoke it.
  */
-template<typename Value, typename Consumer>
+template<typename Value, typename Sink>
 struct input_impl_t : input_t<Value>
 {
-  template<typename CConsumer>
-  explicit input_impl_t(CConsumer&& consumer)
-  : consumer_(std::forward<CConsumer>(consumer))
+  template<typename SSink>
+  explicit input_impl_t(SSink&& sink)
+  : sink_(std::forward<SSink>(sink))
   { }
 
   void put(Value value) override
   {
-    consumer_(std::move(value));
+    sink_(std::move(value));
   }
 
 private :
-  Consumer consumer_;
+  Sink sink_;
 };
 
 /*
  * Template for implementing input_t<streaming_tag_t<Value>>.
  *
- * Here, we always assume the consumer is a callable taking an
- * optional Value and invoke it.
+ * Here, we always assume the sink is a callable taking an optional
+ * value and invoke it.
  */
-template<typename Value, typename Consumer>
-struct input_impl_t<streaming_tag_t<Value>, Consumer>
+template<typename Value, typename Sink>
+struct input_impl_t<streaming_tag_t<Value>, Sink>
 : input_t<streaming_tag_t<Value>>
 {
-  template<typename CConsumer>
-  explicit input_impl_t(CConsumer&& consumer)
-  : consumer_(std::forward<CConsumer>(consumer))
+  template<typename SSink>
+  explicit input_impl_t(SSink&& sink)
+  : sink_(std::forward<SSink>(sink))
   { }
 
   void put(std::optional<Value> value) override
   {
-    consumer_(std::move(value));
+    sink_(std::move(value));
   }
 
 private :
-  Consumer consumer_;
+  Sink sink_;
 };
 
 /*
@@ -185,13 +185,13 @@ struct input_list_t<FirstValue, OtherValues...>
 
 /*
  * Template for implementing an input_list_t for the value types in a
- * type list.  Each value type has a corresponding consumer type.
+ * type list.  Each value type has a corresponding sink type.
  */
-template<typename Values, typename Consumers>
+template<typename Values, typename Sinks>
 struct input_list_impl_t;
 
 /*
- * If there are no value/consumer types, we have nothing to do to
+ * If there are no value/sink types, we have nothing to do to
  * implement our base interface.
  */
 template<>
@@ -201,20 +201,20 @@ struct CUTI_ABI input_list_impl_t<type_list_t<>, type_list_t<>>
 
 /*
  * Otherwise, we implement our base interface by instantiating the
- * first input by its value/consumer type, and use recursive
- * instantiation for the other value/consumer types.
+ * first input by its value/sink type, and use recursive instantiation
+ * for the other value/sink types.
  */
 template<typename FirstValue, typename... OtherValues,
-         typename FirstConsumer, typename... OtherConsumers>
+         typename FirstSink, typename... OtherSinks>
 struct input_list_impl_t<type_list_t<FirstValue, OtherValues...>,
-                         type_list_t<FirstConsumer, OtherConsumers...>>
+                         type_list_t<FirstSink, OtherSinks...>>
 : input_list_t<FirstValue, OtherValues...>
 {
-  template<typename FFirstConsumer, typename... OOtherConsumers>
-  input_list_impl_t(FFirstConsumer&& first_consumer,
-                    OOtherConsumers&&... other_consumers)
-  : first_(std::forward<FFirstConsumer>(first_consumer))
-  , others_(std::forward<OOtherConsumers>(other_consumers)...)
+  template<typename FFirstSink, typename... OOtherSinks>
+  input_list_impl_t(FFirstSink&& first_sink,
+                    OOtherSinks&&... other_sinks)
+  : first_(std::forward<FFirstSink>(first_sink))
+  , others_(std::forward<OOtherSinks>(other_sinks)...)
   { }
 
   input_t<FirstValue>& first() override
@@ -228,9 +228,9 @@ struct input_list_impl_t<type_list_t<FirstValue, OtherValues...>,
   }
 
 private :
-  input_impl_t<FirstValue, FirstConsumer> first_;
+  input_impl_t<FirstValue, FirstSink> first_;
   input_list_impl_t<type_list_t<OtherValues...>,
-                    type_list_t<OtherConsumers...>> others_;
+                    type_list_t<OtherSinks...>> others_;
 };
 
 /*
@@ -239,18 +239,18 @@ private :
 template<typename... Values>
 struct make_input_list_t
 {
-  template<typename... Consumers>
-  auto operator()(Consumers&&... consumers) const
+  template<typename... Sinks>
+  auto operator()(Sinks&&... sinks) const
   {
     return input_list_impl_t<type_list_t<Values...>,
-                             type_list_t<std::decay_t<Consumers>...>>(
-      std::forward<Consumers>(consumers)...);
+                             type_list_t<std::decay_t<Sinks>...>>(
+      std::forward<Sinks>(sinks)...);
   }
 };
     
 /*
  * Function-like object for building an input list.  It takes the
- * value types as template arguments; the actual consumer types are
+ * value types as template arguments; the actual sink types are
  * determined from the run-time arguments it is invoked with.
  */
 template<typename... Values>

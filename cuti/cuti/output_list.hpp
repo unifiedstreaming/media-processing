@@ -32,7 +32,7 @@ namespace cuti
 {
 
 /*
- * Abstract base interface for producing an output of type Value.
+ * Abstract base interface producing of a single output of type Value.
  */
 template<typename Value>
 struct output_t
@@ -50,7 +50,7 @@ struct output_t
 };
 
 /*
- * Abstract base interface for producing a stream of outputs of type
+ * Abstract base interface producing a stream of outputs of type
  * Value.  The end of the stream is marked by an empty optional.
  */
 template<typename Value>
@@ -71,52 +71,52 @@ struct output_t<streaming_tag_t<Value>>
 /*
  * Template for implementing output_t<Value>
  */
-template<typename Value, typename Producer>
+template<typename Value, typename Source>
 struct output_impl_t : output_t<Value>
 {
-  template<typename PProducer>
-  explicit output_impl_t(PProducer&& producer)
-  : producer_(std::forward<PProducer>(producer))
+  template<typename SSource>
+  explicit output_impl_t(SSource&& source)
+  : source_(std::forward<SSource>(source))
   { }
 
   Value get() override
   {
-    if constexpr(std::is_convertible_v<Producer, Value>)
+    if constexpr(std::is_convertible_v<Source, Value>)
     {
       // assume a value was captured
-      return std::move(producer_);
+      return std::move(source_);
     }
     else
     {
       // assume a callable was captured
-      return producer_();
+      return source_();
     }
   }
 
 private :
-  Producer producer_;
+  Source source_;
 };
 
 /*
  * Template for implementing output_t<streaming_tag_t<Value>>.
  */
-template<typename Value, typename Producer>
-struct output_impl_t<streaming_tag_t<Value>, Producer>
+template<typename Value, typename Source>
+struct output_impl_t<streaming_tag_t<Value>, Source>
 : output_t<streaming_tag_t<Value>>
 {
-  template<typename PProducer>
-  explicit output_impl_t(PProducer&& producer)
-  : producer_(std::forward<PProducer>(producer))
+  template<typename SSource>
+  explicit output_impl_t(SSource&& source)
+  : source_(std::forward<SSource>(source))
   { }
 
   std::optional<Value> get() override
   {
     // always assume a callable was captured
-    return producer_();
+    return source_();
   }
 
 private :
-  Producer producer_;
+  Source source_;
 };
 
 /*
@@ -165,13 +165,13 @@ struct output_list_t<FirstValue, OtherValues...>
 
 /*
  * Template for implementing an output_list_t for the value types in a
- * type list.  Each value type has a corresponding Producer type.
+ * type list.  Each value type has a corresponding source type.
  */
-template<typename Values, typename Producers>
+template<typename Values, typename Sources>
 struct output_list_impl_t;
 
 /*
- * If there are no value/producer types, we have nothing to do to
+ * If there are no value/source types, we have nothing to do to
  * implement our base interface.
  */
 template<>
@@ -181,20 +181,20 @@ struct CUTI_ABI output_list_impl_t<type_list_t<>, type_list_t<>>
 
 /*
  * Otherwise, we implement our base interface by instantiating the
- * first output by its value/producer type, and use recursive
- * instantiation for the other value/producer types.
+ * first output by its value/source type, and use recursive
+ * instantiation for the other value/source types.
  */
 template<typename FirstValue, typename... OtherValues,
-         typename FirstProducer, typename... OtherProducers>
+         typename FirstSource, typename... OtherSources>
 struct output_list_impl_t<type_list_t<FirstValue, OtherValues...>,
-                          type_list_t<FirstProducer, OtherProducers...>>
+                          type_list_t<FirstSource, OtherSources...>>
 : output_list_t<FirstValue, OtherValues...>
 {
-  template<typename FFirstProducer, typename... OOtherProducers>
-  output_list_impl_t(FFirstProducer&& first_producer,
-                     OOtherProducers&&... other_producers)
-  : first_(std::forward<FFirstProducer>(first_producer))
-  , others_(std::forward<OOtherProducers>(other_producers)...)
+  template<typename FFirstSource, typename... OOtherSources>
+  output_list_impl_t(FFirstSource&& first_source,
+                     OOtherSources&&... other_sources)
+  : first_(std::forward<FFirstSource>(first_source))
+  , others_(std::forward<OOtherSources>(other_sources)...)
   { }
 
   output_t<FirstValue>& first() override
@@ -208,9 +208,9 @@ struct output_list_impl_t<type_list_t<FirstValue, OtherValues...>,
   }
 
 private :
-  output_impl_t<FirstValue, FirstProducer> first_;
+  output_impl_t<FirstValue, FirstSource> first_;
   output_list_impl_t<type_list_t<OtherValues...>,
-                     type_list_t<OtherProducers...>> others_;
+                     type_list_t<OtherSources...>> others_;
 };
 
 /*
@@ -219,18 +219,18 @@ private :
 template<typename... Values>
 struct make_output_list_t
 {
-  template<typename... Producers>
-  auto operator()(Producers&&... producers) const
+  template<typename... Sources>
+  auto operator()(Sources&&... sources) const
   {
     return output_list_impl_t<type_list_t<Values...>,
-                              type_list_t<std::decay_t<Producers>...>>(
-      std::forward<Producers>(producers)...);
+                              type_list_t<std::decay_t<Sources>...>>(
+      std::forward<Sources>(sources)...);
   }
 };
     
 /*
  * Function-like object for building an output list.  It takes the
- * value types as template arguments; the actual producer types are
+ * value types as template arguments; the actual source types are
  * determined from the run-time arguments it is invoked with.
  */
 template<typename... Values>
