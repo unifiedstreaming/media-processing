@@ -33,37 +33,38 @@ namespace // anonymous
 using namespace cuti;
 
 template<typename T, typename Value>
-void set_single_input(input_t<T> const& input, Value&& value)
+void put_single_input(input_t<T>& input, Value&& value)
 {
-  input.set(std::forward<Value>(value));
+  input.put(std::forward<Value>(value));
 }
 
 template<typename T, typename Values>
-void set_single_input(input_t<streaming_tag_t<T>> const& input, Values values)
+void put_single_input(input_t<streaming_tag_t<T>>& input, Values values)
 {
   for(auto& value : values)
   {
-    input.set(std::make_optional<T>(std::move(value)));
+    input.put(std::make_optional<T>(std::move(value)));
   }
-  input.set(std::nullopt);
+  input.put(std::nullopt);
 }
 
-void set_inputs(input_list_t<> const& /* inputs */)
+void put_inputs(input_list_t<>& /* inputs */)
 { }
   
 template<typename... Inputs,
          typename FirstValue, typename... OtherValues>
-void set_inputs(input_list_t<Inputs...> const& inputs,
+void put_inputs(input_list_t<Inputs...>& inputs,
                 FirstValue&& first_value, OtherValues&&... other_values)
 {
-  set_single_input(inputs.first(), std::forward<FirstValue>(first_value));
-  set_inputs(inputs.others(), std::forward<OtherValues>(other_values)...);
+  put_single_input(inputs.first(), std::forward<FirstValue>(first_value));
+  put_inputs(inputs.others(), std::forward<OtherValues>(other_values)...);
 }
 
 void test_single_value()
 {
   int i = 42;
-  set_inputs(make_input_list<int>(i), 4711);
+  auto inputs = make_input_list<int>(i);
+  put_inputs(inputs, 4711);
   assert(i == 4711);
 }
 
@@ -73,8 +74,8 @@ void test_multiple_values()
   int i = 42;
   std::string s = "Buster";
 
-  set_inputs(make_input_list<bool, int, std::string>(b, i, s),
-    true, 4711, "Charlie");
+  auto inputs = make_input_list<bool, int, std::string>(b, i, s);
+  put_inputs(inputs, true, 4711, "Charlie");
 
   assert(b == true);
   assert(i = 4711);
@@ -86,7 +87,8 @@ void test_single_lambda()
   int i = 42;
   auto lambda = [&](int value) { i = value; };
 
-  set_inputs(make_input_list<int>(lambda), 4711);
+  auto inputs = make_input_list<int>(lambda);
+  put_inputs(inputs, 4711);
 
   assert(i == 4711);
 }
@@ -102,9 +104,9 @@ void test_multiple_lambdas()
   std::string s = "Buster";
   auto slambda = [&](std::string value) { s = std::move(value); };
 
-  set_inputs(
-    make_input_list<bool, int, std::string>(blambda, ilambda, slambda),
-    true, 4711, "Charlie");
+  auto inputs = make_input_list<bool, int, std::string>(
+    blambda, ilambda, slambda); 
+  put_inputs(inputs, true, 4711, "Charlie");
 
   assert(b == true);
   assert(i == 4711);
@@ -130,7 +132,8 @@ void test_streaming_tag()
     }
   };
 
-  set_inputs(make_input_list<streaming_tag_t<int>>(lambda), src_vector);
+  auto inputs = make_input_list<streaming_tag_t<int>>(lambda);
+  put_inputs(inputs, src_vector);
 
   assert(dst_vector == src_vector);
   assert(at_end_stream);
@@ -164,10 +167,9 @@ void test_mixed()
   std::string s = "Buster";
   auto slambda = [&](std::string value) { s = std::move(value); };
 
-  set_inputs(
-    make_input_list<bool, int, streaming_tag_t<int>, std::string>(
-      blambda, i, vlambda, slambda),
-    true, 4711, src_vector, "Charlie");
+  auto inputs = make_input_list<bool, int, streaming_tag_t<int>, std::string>(
+      blambda, i, vlambda, slambda);
+  put_inputs(inputs, true, 4711, src_vector, "Charlie");
 
   assert(b == true);
   assert(i == 4711);

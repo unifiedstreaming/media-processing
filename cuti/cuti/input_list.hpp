@@ -20,19 +20,19 @@
 #ifndef CUTI_INPUT_LIST_HPP_
 #define CUTI_INPUT_LIST_HPP_
 
-#include <optional>
-#include <type_traits>
-#include <utility>
-
 #include "linkage.h"
 #include "streaming_tag.hpp"
 #include "type_list.hpp"
+
+#include <optional>
+#include <type_traits>
+#include <utility>
 
 namespace cuti
 {
 
 /*
- * Abstract base interface for handling an input of type Value.
+ * Abstract base interface for consuming an input of type Value.
  */
 template<typename Value>
 struct input_t
@@ -43,14 +43,14 @@ struct input_t
   input_t(input_t const&) = delete;
   input_t& operator=(input_t const&) = delete;
 
-  virtual void set(Value value) const = 0;
+  virtual void put(Value value) = 0;
 
   virtual ~input_t()
   { }
 };
 
 /*
- * Abstract base interface for handling a stream of inputs of type
+ * Abstract base interface for consuming a stream of inputs of type
  * Value.  The end of the stream is marked by an empty optional.
  */
 template<typename Value>
@@ -62,7 +62,7 @@ struct input_t<streaming_tag_t<Value>>
   input_t(input_t const&) = delete;
   input_t& operator=(input_t const&) = delete;
 
-  virtual void set(std::optional<Value> value) const = 0;
+  virtual void put(std::optional<Value> value) = 0;
 
   virtual ~input_t()
   { }
@@ -71,12 +71,12 @@ struct input_t<streaming_tag_t<Value>>
 /*
  * Template for implementing input_t<Value>.
  */
-template<typename Value, typename Handler>
+template<typename Value, typename Consumer>
 struct input_impl_t;
 
 /*
- * If the handler type matches the value type, we simply take a
- * reference to the value type and assign to it.
+ * If the consumer type is the same as the value type, we simply take
+ * a reference to the value type and assign to it.
  */
 template<typename Value>
 struct input_impl_t<Value, Value> : input_t<Value>
@@ -85,7 +85,7 @@ struct input_impl_t<Value, Value> : input_t<Value>
   : target_(target)
   { }
 
-  void set(Value value) const override
+  void put(Value value) override
   {
     target_ = std::move(value);
   }
@@ -95,47 +95,48 @@ private :
 };
 
 /*
- * Otherwise, if the value type is taggged as streaming, we assume
- * the handler is a const-callable taking an optional Value and
+ * Otherwise, we assume the consumer is a callable taking a Value and
  * invoke it.
  */
-template<typename Value, typename Handler>
-struct input_impl_t<streaming_tag_t<Value>, Handler>
-: input_t<streaming_tag_t<Value>>
+template<typename Value, typename Consumer>
+struct input_impl_t : input_t<Value>
 {
-  template<typename HHandler>
-  explicit input_impl_t(HHandler&& handler)
-  : handler_(std::forward<HHandler>(handler))
+  template<typename CConsumer>
+  explicit input_impl_t(CConsumer&& consumer)
+  : consumer_(std::forward<CConsumer>(consumer))
   { }
 
-  void set(std::optional<Value> value) const override
+  void put(Value value) override
   {
-    handler_(std::move(value));
+    consumer_(std::move(value));
   }
 
 private :
-  Handler handler_;
+  Consumer consumer_;
 };
 
 /*
- * Otherwise, we assume the handler is a const-callable taking a Value
- * and invoke it.
+ * Template for implementing input_t<streaming_tag_t<Value>>.
+ *
+ * Here, we always assume the consumer is a callable taking an
+ * optional Value and invoke it.
  */
-template<typename Value, typename Handler>
-struct input_impl_t : input_t<Value>
+template<typename Value, typename Consumer>
+struct input_impl_t<streaming_tag_t<Value>, Consumer>
+: input_t<streaming_tag_t<Value>>
 {
-  template<typename HHandler>
-  explicit input_impl_t(HHandler&& handler)
-  : handler_(std::forward<HHandler>(handler))
+  template<typename CConsumer>
+  explicit input_impl_t(CConsumer&& consumer)
+  : consumer_(std::forward<CConsumer>(consumer))
   { }
 
-  void set(Value value) const override
+  void put(std::optional<Value> value) override
   {
-    handler_(std::move(value));
+    consumer_(std::move(value));
   }
 
 private :
-  Handler handler_;
+  Consumer consumer_;
 };
 
 /*
@@ -175,8 +176,8 @@ struct input_list_t<FirstValue, OtherValues...>
   input_list_t(input_list_t const&) = delete;
   input_list_t& operator=(input_list_t const&) = delete;
 
-  virtual input_t<FirstValue> const& first() const = 0;
-  virtual input_list_t<OtherValues...> const& others() const = 0;
+  virtual input_t<FirstValue>& first() = 0;
+  virtual input_list_t<OtherValues...>& others() = 0;
   
   virtual ~input_list_t()
   { }
@@ -184,14 +185,14 @@ struct input_list_t<FirstValue, OtherValues...>
 
 /*
  * Template for implementing an input_list_t for the value types in a
- * type list.  Each value type has a corresponding Handler type.
+ * type list.  Each value type has a corresponding consumer type.
  */
-template<typename Values, typename Handlers>
+template<typename Values, typename Consumers>
 struct input_list_impl_t;
 
 /*
- * If there are no value/handler types, we have nothing to add to our
- * base interface.
+ * If there are no value/consumer types, we have nothing to do to
+ * implement our base interface.
  */
 template<>
 struct CUTI_ABI input_list_impl_t<type_list_t<>, type_list_t<>>
@@ -200,36 +201,36 @@ struct CUTI_ABI input_list_impl_t<type_list_t<>, type_list_t<>>
 
 /*
  * Otherwise, we implement our base interface by instantiating the
- * first input by its value/handler type, and use recursive
- * instantiation for the other value/handler types.
+ * first input by its value/consumer type, and use recursive
+ * instantiation for the other value/consumer types.
  */
 template<typename FirstValue, typename... OtherValues,
-         typename FirstHandler, typename... OtherHandlers>
+         typename FirstConsumer, typename... OtherConsumers>
 struct input_list_impl_t<type_list_t<FirstValue, OtherValues...>,
-                         type_list_t<FirstHandler, OtherHandlers...>>
+                         type_list_t<FirstConsumer, OtherConsumers...>>
 : input_list_t<FirstValue, OtherValues...>
 {
-  template<typename FFirstHandler, typename... OOtherHandlers>
-  input_list_impl_t(FFirstHandler&& first_handler,
-                    OOtherHandlers&&... other_handlers)
-  : first_(std::forward<FFirstHandler>(first_handler))
-  , others_(std::forward<OOtherHandlers>(other_handlers)...)
+  template<typename FFirstConsumer, typename... OOtherConsumers>
+  input_list_impl_t(FFirstConsumer&& first_consumer,
+                    OOtherConsumers&&... other_consumers)
+  : first_(std::forward<FFirstConsumer>(first_consumer))
+  , others_(std::forward<OOtherConsumers>(other_consumers)...)
   { }
 
-  input_t<FirstValue> const& first() const override
+  input_t<FirstValue>& first() override
   {
     return first_;
   }
 
-  input_list_t<OtherValues...> const& others() const override
+  input_list_t<OtherValues...>& others() override
   {
     return others_;
   }
 
 private :
-  input_impl_t<FirstValue, FirstHandler> first_;
+  input_impl_t<FirstValue, FirstConsumer> first_;
   input_list_impl_t<type_list_t<OtherValues...>,
-                    type_list_t<OtherHandlers...>> others_;
+                    type_list_t<OtherConsumers...>> others_;
 };
 
 /*
@@ -238,19 +239,19 @@ private :
 template<typename... Values>
 struct make_input_list_t
 {
-  template<typename... Handlers>
-  auto operator()(Handlers&&... handlers) const
+  template<typename... Consumers>
+  auto operator()(Consumers&&... consumers) const
   {
     return input_list_impl_t<type_list_t<Values...>,
-                             type_list_t<std::decay_t<Handlers>...>>(
-      std::forward<Handlers>(handlers)...);
+                             type_list_t<std::decay_t<Consumers>...>>(
+      std::forward<Consumers>(consumers)...);
   }
 };
     
 /*
  * Function-like object for building an input list.  It takes the
- * value types as template arguments; the actual handler types are
- * determined from the run-time parameters it is invoked with.
+ * value types as template arguments; the actual consumer types are
+ * determined from the run-time arguments it is invoked with.
  */
 template<typename... Values>
 auto constexpr make_input_list = make_input_list_t<Values...>();
