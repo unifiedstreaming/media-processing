@@ -93,6 +93,10 @@ unit-test option_walker_test
 : option_walker_test.cpp
 ;
 
+unit-test output_list_test
+: output_list_test.cpp
+;
+
 unit-test process_test
 : process_test.cpp
 ;

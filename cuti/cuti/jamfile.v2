@@ -116,6 +116,7 @@ lib cuti
   nb_tcp_buffers.cpp
   nb_tickets_holder.cpp
   option_walker.cpp
+  output_list.cpp
   parse_error.cpp
   poll_selector.cpp
   process.cpp
