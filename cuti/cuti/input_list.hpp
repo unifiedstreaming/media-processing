@@ -20,6 +20,7 @@
 #ifndef CUTI_INPUT_LIST_HPP_
 #define CUTI_INPUT_LIST_HPP_
 
+#include "consumer.hpp"
 #include "linkage.h"
 #include "streaming_tag.hpp"
 #include "type_list.hpp"
@@ -32,7 +33,7 @@ namespace cuti
 {
 
 /*
- * Abstract base interface consuming of a single input of type Value.
+ * Interface type consuming of a single input of type Value.
  */
 template<typename Value>
 struct input_t
@@ -50,23 +51,11 @@ struct input_t
 };
 
 /*
- * Abstract base interface consuming a stream of inputs of type Value.
- * The end of the stream is marked by an empty optional.
+ * Interface type consuming a stream of inputs of type Value.
  */
 template<typename Value>
-struct input_t<streaming_tag_t<Value>>
-{
-  input_t()
-  { }
-
-  input_t(input_t const&) = delete;
-  input_t& operator=(input_t const&) = delete;
-
-  virtual void put(std::optional<Value> value) = 0;
-
-  virtual ~input_t()
-  { }
-};
+struct input_t<streaming_tag_t<Value>> : consumer_t<Value>
+{ };
 
 /*
  * Template for implementing input_t<Value>.

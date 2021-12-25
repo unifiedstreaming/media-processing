@@ -21,6 +21,7 @@
 #define CUTI_OUTPUT_LIST_HPP_
 
 #include "linkage.h"
+#include "producer.hpp"
 #include "streaming_tag.hpp"
 #include "type_list.hpp"
 
@@ -32,7 +33,7 @@ namespace cuti
 {
 
 /*
- * Abstract base interface producing of a single output of type Value.
+ * Interface type producing of a single output of type Value.
  */
 template<typename Value>
 struct output_t
@@ -50,23 +51,11 @@ struct output_t
 };
 
 /*
- * Abstract base interface producing a stream of outputs of type
- * Value.  The end of the stream is marked by an empty optional.
+ * Interface type producing a stream of outputs of type Value.
  */
 template<typename Value>
-struct output_t<streaming_tag_t<Value>>
-{
-  output_t()
-  { }
-
-  output_t(output_t const&) = delete;
-  output_t& operator=(output_t const&) = delete;
-
-  virtual std::optional<Value> get() = 0;
-
-  virtual ~output_t()
-  { }
-};
+struct output_t<streaming_tag_t<Value>> : producer_t<Value>
+{ };
 
 /*
  * Template for implementing output_t<Value>

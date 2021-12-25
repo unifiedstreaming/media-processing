@@ -26,8 +26,8 @@ namespace cuti
 {
 
 /*
- * Abstract base interface consuming a stream of inputs of type T.
- * The end of the stream is marked by an empty optional.
+ * Interface type producing a stream of Ts.  The end of the stream is
+ * marked by an empty optional.
  */
 template<typename T>
 struct producer_t
