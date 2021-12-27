@@ -77,6 +77,10 @@ unit-test list_arena_test
 : list_arena_test.cpp
 ;
 
+unit-test list_io_test
+: list_io_test.cpp
+;
+
 unit-test membuf_test
 : membuf_test.cpp
 ;

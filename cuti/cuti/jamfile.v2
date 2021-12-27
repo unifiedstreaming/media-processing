@@ -96,6 +96,7 @@ lib cuti
   identifier.cpp
   indexed_heap.cpp
   input_list.cpp
+  input_list_reader.cpp
   kqueue_selector.cpp
   linkage.cpp
   list_arena.cpp
@@ -117,6 +118,7 @@ lib cuti
   nb_tickets_holder.cpp
   option_walker.cpp
   output_list.cpp
+  output_list_writer.cpp
   parse_error.cpp
   poll_selector.cpp
   process.cpp
