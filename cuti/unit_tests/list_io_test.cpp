@@ -391,7 +391,7 @@ void echo_mixed(logging_context_t& context,
   }
 
   std::string src_string = "Principles of Programming Languages: "
-    "Design, Evaluation and Implemenation";
+    "Design, Evaluation and Implementation";
    
   auto outputs = make_output_list<bool, std::vector<int>, std::string>(
     src_bool, src_vector, src_string);
