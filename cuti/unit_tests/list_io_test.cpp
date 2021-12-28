@@ -169,7 +169,7 @@ struct messaging_client_t;
 
 template<typename... InputValues, typename... OutputValues>
 struct messaging_client_t<input_list_t<InputValues...>,
-                          input_list_t<OutputValues...>>
+                          output_list_t<OutputValues...>>
 {
   using result_value_t = void;
 
@@ -257,7 +257,7 @@ void perform_rpc(logging_context_t& context,
   final_result_t<void> result;
 
   messaging_client_t<
-    input_list_t<InputValues...> , input_list_t<OutputValues...>>
+    input_list_t<InputValues...> , output_list_t<OutputValues...>>
   client(result, inbuf, outbuf);
 
   client.start(inputs, outputs);
