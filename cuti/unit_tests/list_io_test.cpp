@@ -722,14 +722,14 @@ void do_run_tests(logging_context_t& context, std::size_t bufsize)
     make_nb_tcp_buffers(std::move(that_end), bufsize, bufsize);
   
   echo_nothing(context, *this_in, *that_out);
-  echo_int(context, *this_in, *that_out);
-  echo_vector(context, *this_in, *that_out);
-  echo_mixed(context, *this_in, *that_out);
   type_error(context, *this_in, *that_out);
-  streaming_vector(context, *this_in, *that_out);
+  echo_int(context, *this_in, *that_out);
   streaming_output_error(context, *this_in, *that_out);
+  echo_vector(context, *this_in, *that_out);
   streaming_input_error(context, *this_in, *that_out);
+  echo_mixed(context, *this_in, *that_out);
   double_streaming_error(context, *this_in, *that_out);
+  streaming_vector(context, *this_in, *that_out);
 
   if(auto msg = context.message_at(loglevel_t::info))
   {
