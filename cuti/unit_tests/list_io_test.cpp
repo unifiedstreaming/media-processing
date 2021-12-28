@@ -784,7 +784,8 @@ int run_tests(int argc, char const* const* argv)
   logger_t logger(std::make_unique<streambuf_backend_t>(std::cerr));
   logging_context_t context(logger, options.loglevel_);
 
-  std::size_t constexpr bufsizes[] = { 1, nb_inbuf_t::default_bufsize };
+  std::size_t constexpr bufsizes[] =
+    { 1, 8 * 1024, nb_inbuf_t::default_bufsize };
   for(auto bufsize : bufsizes)
   {
     do_run_tests(context, bufsize);
