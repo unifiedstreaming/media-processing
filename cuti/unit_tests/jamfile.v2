@@ -117,6 +117,10 @@ unit-test resolver_test
 : resolver_test.cpp
 ;
 
+unit-test rpc_engine_test
+: rpc_engine_test.cpp
+;
+
 unit-test scoped_guard_test
 : scoped_guard_test.cpp
 ;

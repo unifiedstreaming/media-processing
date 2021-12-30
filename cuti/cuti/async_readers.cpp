@@ -512,7 +512,7 @@ void identifier_reader_t::read_followers()
     return;
   }
 
-  result_.submit(identifier_t(std::move(wrapped_)));
+  result_.submit(std::move(wrapped_));
 }
 
 } // detail

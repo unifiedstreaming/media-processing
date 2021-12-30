@@ -48,6 +48,9 @@ struct CUTI_ABI request_handler_t
                     bound_outbuf_t& outbuf,
                     method_map_t<request_handler_t> const& method_map);
 
+  request_handler_t(request_handler_t const&) = delete;
+  request_handler_t& operator=(request_handler_t const&) = delete;
+  
   void start();
 
 private :

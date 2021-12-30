@@ -270,7 +270,7 @@ void test_bad_method(logging_context_t& context, std::size_t bufsize)
   final_result_t<std::string> request_result;
   request_t request(context, request_result,
     bound_client_in, bound_client_out);
-  request.start(identifier_t("tryme"), "and see");
+  request.start("tryme", "and see");
 
   unsigned int n_callbacks = 0;
   while(!request_result.available())

@@ -24,10 +24,6 @@
 namespace cuti
 {
 
-scoped_thread_t::scoped_thread_t(std::function<void()> f)
-: thread_(std::move(f))
-{ }
-
 scoped_thread_t::~scoped_thread_t()
 {
   thread_.join();

@@ -47,7 +47,7 @@ using namespace cuti::io_test_utils;
  */
 remote_error_t an_error()
 {
-  return remote_error_t(identifier_t("EIEIO"), "farmyard error");
+  return remote_error_t("EIEIO", "farmyard error");
 }
 
 std::vector<remote_error_t> many_errors()

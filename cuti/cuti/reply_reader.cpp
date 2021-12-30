@@ -17,39 +17,4 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#ifndef CUTI_SCOPED_THREAD_HPP_
-#define CUTI_SCOPED_THREAD_HPP_
-
-#include "linkage.h"
-
-#include <thread>
-#include <type_traits>
-#include <utility>
-
-namespace cuti
-{
-
-/*
- * Wrapper for std::thread automatically joining the thread upon
- * destruction.
- */
-struct CUTI_ABI scoped_thread_t
-{
-  template<typename F, typename = std::enable_if_t<
-    !std::is_convertible_v<std::decay_t<F>*, scoped_thread_t const*>>>
-  explicit scoped_thread_t(F&& f)
-  : thread_(std::forward<F>(f))
-  { }
-
-  scoped_thread_t(scoped_thread_t const&) = delete;
-  scoped_thread_t& operator=(scoped_thread_t const&) = delete;
-
-  ~scoped_thread_t();
-
-private :
-  std::thread thread_;
-};
-
-} // namespace cuti
-
-#endif
+#include "reply_reader.hpp"

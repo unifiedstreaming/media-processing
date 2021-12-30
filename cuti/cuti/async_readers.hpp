@@ -960,6 +960,7 @@ using sequence_reader_t = detail::sequence_reader_t<T>;
 using begin_structure_reader_t = detail::begin_structure_reader_t;
 using end_structure_reader_t = detail::end_structure_reader_t;
 
+using eof_checker_t = detail::expected_checker_t<eof>;
 using eom_checker_t = detail::eom_checker_t;
 using message_drainer_t = detail::message_drainer_t;
 

@@ -55,6 +55,10 @@ struct identifier_t
   : wrapped_(std::move(wrapped))
   { }
 
+  identifier_t(char const* wrapped)
+  : identifier_t((assert(wrapped != nullptr), std::string(wrapped)))
+  { }
+
   bool is_valid() const
   {
     auto begin = wrapped_.begin();
