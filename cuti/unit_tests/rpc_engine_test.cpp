@@ -21,6 +21,7 @@
 #include <cuti/async_readers.hpp>
 #include <cuti/cmdline_reader.hpp>
 #include <cuti/default_scheduler.hpp>
+#include <cuti/echo_handler.hpp>
 #include <cuti/final_result.hpp>
 #include <cuti/nb_tcp_buffers.hpp>
 #include <cuti/option_walker.hpp>
@@ -35,7 +36,9 @@
 #include <iostream>
 #include <limits>
 #include <memory>
+#include <stdexcept>
 #include <tuple>
+#include <utility>
 
 #undef NDEBUG
 #include <cassert>
@@ -44,6 +47,108 @@ namespace // anonymous
 {
 
 using namespace cuti;
+
+char constexpr censored[] = "*** CENSORED ***";
+
+struct string_source_t
+{
+  explicit string_source_t(bool force_error = false)
+  : count_(0)
+  , end_sent_(false)
+  , force_error_(force_error)
+  { }
+
+  std::optional<std::string> operator()()
+  {
+    assert(!end_sent_);
+
+    std::optional<std::string> result;
+
+    if(count_ != 400)
+    {
+      if(count_ == 200)
+      {
+        if(force_error_)
+        {
+          end_sent_ = true;
+          throw std::runtime_error("forced output error");
+        }
+        result.emplace(censored);
+      }
+      else
+      {
+        result.emplace(
+          "A man, a plan, a canal: Panama! (" + std::to_string(count_) + ")");
+      }
+      ++count_;
+    }
+    else
+    {
+      end_sent_ = true;
+    }
+
+    return result;
+  }
+
+private :
+  unsigned int count_;
+  bool end_sent_;
+  bool force_error_;
+};
+
+struct string_sink_t
+{
+  explicit string_sink_t(std::vector<std::string>& target,
+                         bool force_error = false)
+  : target_(target)
+  , end_seen_(false)
+  , count_(0)
+  , force_error_(force_error)
+  { }
+
+  void operator()(std::optional<std::string> value)
+  {
+    assert(!end_seen_);
+    
+    if(value != std::nullopt)
+    {
+      if(count_ == 200 && force_error_)
+      {
+        end_seen_ = true;
+        throw std::runtime_error("forced input error");
+      }
+        
+      ++count_;
+      target_.push_back(std::move(*value));
+    }
+    else
+    {
+      end_seen_ = true;
+    }
+  }
+
+private :
+  std::vector<std::string>& target_;
+  bool end_seen_;
+  unsigned int count_;
+  bool force_error_;
+};
+      
+std::vector<std::string> make_echo_args()
+{
+  std::vector<std::string> result;
+
+  string_source_t source;
+  std::optional<std::string> opt_string;
+  while((opt_string = source()) != std::nullopt)
+  {
+    result.push_back(std::move(*opt_string));
+  }
+
+  return result;
+}
+
+std::vector<std::string> const echo_args = make_echo_args();
 
 void run_scheduler(logging_context_t& context, default_scheduler_t& scheduler)
 {
@@ -125,6 +230,31 @@ void handle_requests(logging_context_t& context,
   }
 }
 
+template<typename... ReplyArgs, typename... RequestArgs>
+void check_rpc_failure(logging_context_t& context,
+                       nb_inbuf_t& inbuf,
+                       nb_outbuf_t& outbuf,
+                       identifier_t method,
+                       input_list_t<ReplyArgs...>& reply_args,
+                       output_list_t<RequestArgs...>& request_args)
+{
+  bool caught = false;
+  try
+  {
+    perform_rpc(inbuf, outbuf, std::move(method), reply_args, request_args);
+  }
+  catch(std::exception const& ex)
+  {
+    caught = true;
+
+    if(auto msg = context.message_at(loglevel_t::info))
+    {
+      *msg << __func__ << ": caught expected exception: " << ex.what();
+    }
+  }
+  assert(caught);
+}
+
 void test_add(logging_context_t& context,
               nb_inbuf_t& inbuf,
               nb_outbuf_t& outbuf)
@@ -134,14 +264,14 @@ void test_add(logging_context_t& context,
     *msg << __func__ << ": starting";
   }
 
-  int result{};
-  auto reply_args = make_input_list<int>(result);
+  int reply{};
+  auto reply_args = make_input_list<int>(reply);
 
   auto request_args = make_output_list<int, int>(42, 4711);
 
   perform_rpc(inbuf, outbuf, "add", reply_args, request_args);
 
-  assert(result == 4753);
+  assert(reply == 4753);
 
   if(auto msg = context.message_at(loglevel_t::info))
   {
@@ -158,27 +288,13 @@ void test_overflow(logging_context_t& context,
     *msg << __func__ << ": starting";
   }
 
-  int result{};
-  auto reply_args = make_input_list<int>(result);
+  int reply{};
+  auto reply_args = make_input_list<int>(reply);
 
   auto request_args = make_output_list<int, int>(
     std::numeric_limits<int>::max(), 1);
 
-  bool caught = false;
-  try
-  {
-    perform_rpc(inbuf, outbuf, "add", reply_args, request_args);
-  }
-  catch(std::exception const& ex)
-  {
-    if(auto msg = context.message_at(loglevel_t::info))
-    {
-      *msg << __func__ << ": caught expected exception: " << ex.what();
-    }
-
-    caught = true;
-  }
-  assert(caught);
+  check_rpc_failure(context, inbuf, outbuf, "add", reply_args, request_args);
 
   if(auto msg = context.message_at(loglevel_t::info))
   {
@@ -195,26 +311,12 @@ void test_bad_method(logging_context_t& context,
     *msg << __func__ << ": starting";
   }
 
-  int result{};
-  auto reply_args = make_input_list<int>(result);
+  int reply{};
+  auto reply_args = make_input_list<int>(reply);
 
   auto request_args = make_output_list<int, int>(42, 4711);
 
-  bool caught = false;
-  try
-  {
-    perform_rpc(inbuf, outbuf, "huh", reply_args, request_args);
-  }
-  catch(std::exception const& ex)
-  {
-    if(auto msg = context.message_at(loglevel_t::info))
-    {
-      *msg << __func__ << ": caught expected exception: " << ex.what();
-    }
-
-    caught = true;
-  }
-  assert(caught);
+  check_rpc_failure(context, inbuf, outbuf, "huh", reply_args, request_args);
 
   if(auto msg = context.message_at(loglevel_t::info))
   {
@@ -222,23 +324,23 @@ void test_bad_method(logging_context_t& context,
   }
 }
   
-void test_sub(logging_context_t& context,
-              nb_inbuf_t& inbuf,
-              nb_outbuf_t& outbuf)
+void test_subtract(logging_context_t& context,
+                   nb_inbuf_t& inbuf,
+                   nb_outbuf_t& outbuf)
 {
   if(auto msg = context.message_at(loglevel_t::info))
   {
     *msg << __func__ << ": starting";
   }
 
-  int result{};
-  auto reply_args = make_input_list<int>(result);
+  int reply{};
+  auto reply_args = make_input_list<int>(reply);
 
   auto request_args = make_output_list<int, int>(4753, 4711);
 
-  perform_rpc(inbuf, outbuf, "sub", reply_args, request_args);
+  perform_rpc(inbuf, outbuf, "subtract", reply_args, request_args);
 
-  assert(result == 42);
+  assert(reply == 42);
 
   if(auto msg = context.message_at(loglevel_t::info))
   {
@@ -255,27 +357,190 @@ void test_underflow(logging_context_t& context,
     *msg << __func__ << ": starting";
   }
 
-  int result{};
-  auto reply_args = make_input_list<int>(result);
+  int reply{};
+  auto reply_args = make_input_list<int>(reply);
 
   auto request_args = make_output_list<int, int>(
     std::numeric_limits<int>::min(), 1);
 
-  bool caught = false;
-  try
-  {
-    perform_rpc(inbuf, outbuf, "sub", reply_args, request_args);
-  }
-  catch(std::exception const& ex)
-  {
-    if(auto msg = context.message_at(loglevel_t::info))
-    {
-      *msg << __func__ << ": caught expected exception: " << ex.what();
-    }
+  check_rpc_failure(context, inbuf, outbuf, "subtract",
+    reply_args, request_args);
 
-    caught = true;
+  if(auto msg = context.message_at(loglevel_t::info))
+  {
+    *msg << __func__ << ": done";
   }
-  assert(caught);
+}
+
+void test_vector_echo(logging_context_t& context,
+                      nb_inbuf_t& inbuf,
+                      nb_outbuf_t& outbuf)
+{
+  if(auto msg = context.message_at(loglevel_t::info))
+  {
+    *msg << __func__ << ": starting";
+  }
+
+  std::vector<std::string> reply;
+  auto reply_args = make_input_list<std::vector<std::string>>(reply);
+
+  auto request_args = make_output_list<std::vector<std::string>>(echo_args);
+
+  perform_rpc(inbuf, outbuf, "echo", reply_args, request_args);
+
+  assert(reply == echo_args);
+
+  if(auto msg = context.message_at(loglevel_t::info))
+  {
+    *msg << __func__ << ": done";
+  }
+}
+  
+void test_vector_censored_echo(logging_context_t& context,
+                               nb_inbuf_t& inbuf,
+                               nb_outbuf_t& outbuf)
+{
+  if(auto msg = context.message_at(loglevel_t::info))
+  {
+    *msg << __func__ << ": starting";
+  }
+
+  std::vector<std::string> reply;
+  auto reply_args = make_input_list<std::vector<std::string>>(reply);
+
+  auto request_args = make_output_list<std::vector<std::string>>(echo_args);
+
+  check_rpc_failure(context, inbuf, outbuf, "censored_echo",
+    reply_args, request_args);
+
+  if(auto msg = context.message_at(loglevel_t::info))
+  {
+    *msg << __func__ << ": done";
+  }
+}
+  
+void test_streaming_echo(logging_context_t& context,
+                         nb_inbuf_t& inbuf,
+                         nb_outbuf_t& outbuf)
+{
+  if(auto msg = context.message_at(loglevel_t::info))
+  {
+    *msg << __func__ << ": starting";
+  }
+
+  std::vector<std::string> reply;
+  auto reply_args = make_input_list<streaming_tag_t<std::string>>(
+    string_sink_t(reply));
+
+  auto request_args = make_output_list<streaming_tag_t<std::string>>(
+    string_source_t());
+
+  perform_rpc(inbuf, outbuf, "echo", reply_args, request_args);
+
+  assert(reply == echo_args);
+
+  if(auto msg = context.message_at(loglevel_t::info))
+  {
+    *msg << __func__ << ": done";
+  }
+}
+  
+void test_streaming_censored_echo(logging_context_t& context,
+                                         nb_inbuf_t& inbuf,
+                                         nb_outbuf_t& outbuf)
+{
+  if(auto msg = context.message_at(loglevel_t::info))
+  {
+    *msg << __func__ << ": starting";
+  }
+
+  std::vector<std::string> reply;
+  auto reply_args = make_input_list<streaming_tag_t<std::string>>(
+    string_sink_t(reply));
+
+  auto request_args = make_output_list<streaming_tag_t<std::string>>(
+    string_source_t());
+
+  check_rpc_failure(context, inbuf, outbuf, "censored_echo",
+    reply_args, request_args);
+
+  if(auto msg = context.message_at(loglevel_t::info))
+  {
+    *msg << __func__ << ": done";
+  }
+}
+  
+void test_streaming_output_error(logging_context_t& context,
+                                 nb_inbuf_t& inbuf,
+                                 nb_outbuf_t& outbuf)
+{
+  if(auto msg = context.message_at(loglevel_t::info))
+  {
+    *msg << __func__ << ": starting";
+  }
+
+  std::vector<std::string> reply;
+  auto reply_args = make_input_list<streaming_tag_t<std::string>>(
+    string_sink_t(reply));
+
+  bool force_error = true;
+  auto request_args = make_output_list<streaming_tag_t<std::string>>(
+    string_source_t(force_error));
+
+  check_rpc_failure(context, inbuf, outbuf, "echo",
+    reply_args, request_args);
+
+  if(auto msg = context.message_at(loglevel_t::info))
+  {
+    *msg << __func__ << ": done";
+  }
+}
+  
+void test_streaming_input_error(logging_context_t& context,
+                                nb_inbuf_t& inbuf,
+                                nb_outbuf_t& outbuf)
+{
+  if(auto msg = context.message_at(loglevel_t::info))
+  {
+    *msg << __func__ << ": starting";
+  }
+
+  bool force_error = true;
+  std::vector<std::string> reply;
+  auto reply_args = make_input_list<streaming_tag_t<std::string>>(
+    string_sink_t(reply, force_error));
+
+  auto request_args = make_output_list<streaming_tag_t<std::string>>(
+    string_source_t());
+
+  check_rpc_failure(context, inbuf, outbuf, "echo",
+    reply_args, request_args);
+
+  if(auto msg = context.message_at(loglevel_t::info))
+  {
+    *msg << __func__ << ": done";
+  }
+}
+  
+void test_streaming_multiple_errors(logging_context_t& context,
+                                    nb_inbuf_t& inbuf,
+                                    nb_outbuf_t& outbuf)
+{
+  if(auto msg = context.message_at(loglevel_t::info))
+  {
+    *msg << __func__ << ": starting";
+  }
+
+  bool force_error = true;
+  std::vector<std::string> reply;
+  auto reply_args = make_input_list<streaming_tag_t<std::string>>(
+    string_sink_t(reply, force_error));
+
+  auto request_args = make_output_list<streaming_tag_t<std::string>>(
+    string_source_t(force_error));
+
+  check_rpc_failure(context, inbuf, outbuf, "censored_echo",
+    reply_args, request_args);
 
   if(auto msg = context.message_at(loglevel_t::info))
   {
@@ -295,8 +560,15 @@ void run_engine_tests(logging_context_t& context,
   test_add(context, inbuf, outbuf);
   test_overflow(context, inbuf, outbuf);
   test_bad_method(context, inbuf, outbuf);
-  test_sub(context, inbuf, outbuf);
+  test_subtract(context, inbuf, outbuf);
   test_underflow(context, inbuf, outbuf);
+  test_vector_echo(context, inbuf, outbuf);
+  test_vector_censored_echo(context, inbuf, outbuf);
+  test_streaming_echo(context, inbuf, outbuf);
+  test_streaming_censored_echo(context, inbuf, outbuf);
+  test_streaming_output_error(context, inbuf, outbuf);
+  test_streaming_input_error(context, inbuf, outbuf);
+  test_streaming_multiple_errors(context, inbuf, outbuf);
 
   if(auto msg = context.message_at(loglevel_t::info))
   {
@@ -304,6 +576,17 @@ void run_engine_tests(logging_context_t& context,
   }
 }
 
+auto censored_echo_method_factory(std::string censored)
+{
+  return [ censored = std::move(censored) ](
+    auto& parent, auto on_failure,
+    logging_context_t& context, bound_inbuf_t& inbuf, bound_outbuf_t& outbuf)
+  {
+    return make_method<echo_handler_t>(
+      parent, on_failure, context, inbuf, outbuf, censored);
+  };
+}
+    
 void do_run_tests(logging_context_t& client_context,
                   logging_context_t& server_context,
                   std::size_t bufsize)
@@ -317,7 +600,11 @@ void do_run_tests(logging_context_t& client_context,
   map.add_method_factory(
     "add", default_method_factory<add_handler_t>());
   map.add_method_factory(
-    "sub", default_method_factory<subtract_handler_t>());
+    "censored_echo", censored_echo_method_factory(censored));
+  map.add_method_factory(
+    "echo", default_method_factory<echo_handler_t>());
+  map.add_method_factory(
+    "subtract", default_method_factory<subtract_handler_t>());
 
   std::unique_ptr<tcp_connection_t> server_side;
   std::unique_ptr<tcp_connection_t> client_side;
@@ -410,7 +697,8 @@ int run_tests(int argc, char const* const* argv)
     options.enable_server_logging_ ? cerr_logger : null_logger,
     options.loglevel_);
 
-  std::size_t constexpr bufsizes[] = { 1, nb_inbuf_t::default_bufsize };
+  std::size_t constexpr bufsizes[] =
+    { 1, 8 * 1024, nb_inbuf_t::default_bufsize };
   for(auto bufsize : bufsizes)
   {
     do_run_tests(client_context, server_context, bufsize);

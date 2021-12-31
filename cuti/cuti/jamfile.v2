@@ -83,6 +83,7 @@ lib cuti
   default_backend.cpp
   default_scheduler.cpp
   dispatcher.cpp
+  echo_handler.cpp
   endpoint.cpp
   eof_reader.cpp
   epoll_selector.cpp
