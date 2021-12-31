@@ -25,6 +25,7 @@
 #include <cuti/final_result.hpp>
 #include <cuti/nb_tcp_buffers.hpp>
 #include <cuti/option_walker.hpp>
+#include <cuti/quoted_string.hpp>
 #include <cuti/request_handler.hpp>
 #include <cuti/rpc_engine.hpp>
 #include <cuti/scoped_thread.hpp>
@@ -50,106 +51,129 @@ using namespace cuti;
 
 char constexpr censored[] = "*** CENSORED ***";
 
+std::vector<std::string> make_echo_args()
+{
+  std::vector<std::string> result;
+  result.reserve(400);
+
+  for(unsigned int i = 0; i != 400; ++i)
+  {
+    if(i == 200)
+    {
+      result.push_back(censored);
+    }
+    else
+    {
+      result.push_back(
+        "A man, a plan, a canal: Panama! (" + std::to_string(i) + ")");
+    }
+  }
+  
+  return result;
+}
+
+std::vector<std::string> const echo_args = make_echo_args();
+
 struct string_source_t
 {
-  explicit string_source_t(bool force_error = false)
-  : count_(0)
-  , end_sent_(false)
-  , force_error_(force_error)
+  explicit string_source_t(logging_context_t& context,
+                           bool force_error = false)
+  : context_(context)
+  , first_(echo_args.begin())
+  , last_(echo_args.end())
+  , error_(force_error ? first_ + (last_ - first_) / 2 : last_)
   { }
 
   std::optional<std::string> operator()()
   {
-    assert(!end_sent_);
-
     std::optional<std::string> result;
 
-    if(count_ != 400)
+    if(first_ != last_)
     {
-      if(count_ == 200)
+      if(first_ == error_)
       {
-        if(force_error_)
+        if(auto msg = context_.message_at(loglevel_t::info))
         {
-          end_sent_ = true;
-          throw std::runtime_error("forced output error");
+          *msg << "string_source: forcing output error";
         }
-        result.emplace(censored);
+        throw std::runtime_error("forced output error");
       }
-      else
+
+      if(auto msg = context_.message_at(loglevel_t::info))
       {
-        result.emplace(
-          "A man, a plan, a canal: Panama! (" + std::to_string(count_) + ")");
+        *msg << "string_source: producing " << quoted_string(*first_);
       }
-      ++count_;
+
+      result.emplace(*first_);
+      ++first_;
     }
     else
     {
-      end_sent_ = true;
+      if(auto msg = context_.message_at(loglevel_t::info))
+      {
+        *msg << "string_source: producing nullopt";
+      }
     }
+    
 
     return result;
   }
 
 private :
-  unsigned int count_;
-  bool end_sent_;
-  bool force_error_;
+  logging_context_t& context_;
+  std::vector<std::string>::const_iterator first_;
+  std::vector<std::string>::const_iterator last_;
+  std::vector<std::string>::const_iterator error_;
 };
 
 struct string_sink_t
 {
-  explicit string_sink_t(std::vector<std::string>& target,
+  explicit string_sink_t(logging_context_t& context,
+                         std::vector<std::string>& target,
                          bool force_error = false)
-  : target_(target)
-  , end_seen_(false)
+  : context_(context)
+  , target_(target)
   , count_(0)
   , force_error_(force_error)
   { }
 
   void operator()(std::optional<std::string> value)
   {
-    assert(!end_seen_);
-    
     if(value != std::nullopt)
     {
-      if(count_ == 200 && force_error_)
+      if(force_error_ && count_ == echo_args.size() / 2)
       {
-        end_seen_ = true;
+        if(auto msg = context_.message_at(loglevel_t::info))
+        {
+          *msg << "string_sink: forcing input error";
+        }
         throw std::runtime_error("forced input error");
       }
         
+      if(auto msg = context_.message_at(loglevel_t::info))
+      {
+        *msg << "string_sink: consuming " << quoted_string(*value);
+      }
+
       ++count_;
       target_.push_back(std::move(*value));
     }
     else
     {
-      end_seen_ = true;
+      if(auto msg = context_.message_at(loglevel_t::info))
+      {
+        *msg << "string_sink: consuming nullopt";
+      }
     }
   }
 
 private :
+  logging_context_t& context_;
   std::vector<std::string>& target_;
-  bool end_seen_;
   unsigned int count_;
   bool force_error_;
 };
       
-std::vector<std::string> make_echo_args()
-{
-  std::vector<std::string> result;
-
-  string_source_t source;
-  std::optional<std::string> opt_string;
-  while((opt_string = source()) != std::nullopt)
-  {
-    result.push_back(std::move(*opt_string));
-  }
-
-  return result;
-}
-
-std::vector<std::string> const echo_args = make_echo_args();
-
 void run_scheduler(logging_context_t& context, default_scheduler_t& scheduler)
 {
   if(auto msg = context.message_at(loglevel_t::info))
@@ -430,10 +454,10 @@ void test_streaming_echo(logging_context_t& context,
 
   std::vector<std::string> reply;
   auto reply_args = make_input_list<streaming_tag_t<std::string>>(
-    string_sink_t(reply));
+    string_sink_t(context, reply));
 
   auto request_args = make_output_list<streaming_tag_t<std::string>>(
-    string_source_t());
+    string_source_t(context));
 
   perform_rpc(inbuf, outbuf, "echo", reply_args, request_args);
 
@@ -456,10 +480,10 @@ void test_streaming_censored_echo(logging_context_t& context,
 
   std::vector<std::string> reply;
   auto reply_args = make_input_list<streaming_tag_t<std::string>>(
-    string_sink_t(reply));
+    string_sink_t(context, reply));
 
   auto request_args = make_output_list<streaming_tag_t<std::string>>(
-    string_source_t());
+    string_source_t(context));
 
   check_rpc_failure(context, inbuf, outbuf, "censored_echo",
     reply_args, request_args);
@@ -481,11 +505,11 @@ void test_streaming_output_error(logging_context_t& context,
 
   std::vector<std::string> reply;
   auto reply_args = make_input_list<streaming_tag_t<std::string>>(
-    string_sink_t(reply));
+    string_sink_t(context, reply));
 
   bool force_error = true;
   auto request_args = make_output_list<streaming_tag_t<std::string>>(
-    string_source_t(force_error));
+    string_source_t(context, force_error));
 
   check_rpc_failure(context, inbuf, outbuf, "echo",
     reply_args, request_args);
@@ -508,10 +532,10 @@ void test_streaming_input_error(logging_context_t& context,
   bool force_error = true;
   std::vector<std::string> reply;
   auto reply_args = make_input_list<streaming_tag_t<std::string>>(
-    string_sink_t(reply, force_error));
+    string_sink_t(context, reply, force_error));
 
   auto request_args = make_output_list<streaming_tag_t<std::string>>(
-    string_source_t());
+    string_source_t(context));
 
   check_rpc_failure(context, inbuf, outbuf, "echo",
     reply_args, request_args);
@@ -534,10 +558,10 @@ void test_streaming_multiple_errors(logging_context_t& context,
   bool force_error = true;
   std::vector<std::string> reply;
   auto reply_args = make_input_list<streaming_tag_t<std::string>>(
-    string_sink_t(reply, force_error));
+    string_sink_t(context, reply, force_error));
 
   auto request_args = make_output_list<streaming_tag_t<std::string>>(
-    string_source_t(force_error));
+    string_source_t(context, force_error));
 
   check_rpc_failure(context, inbuf, outbuf, "censored_echo",
     reply_args, request_args);
@@ -698,7 +722,7 @@ int run_tests(int argc, char const* const* argv)
     options.loglevel_);
 
   std::size_t constexpr bufsizes[] =
-    { 1, 8 * 1024, nb_inbuf_t::default_bufsize };
+    { 1, 4 * 1024, nb_inbuf_t::default_bufsize };
   for(auto bufsize : bufsizes)
   {
     do_run_tests(client_context, server_context, bufsize);
