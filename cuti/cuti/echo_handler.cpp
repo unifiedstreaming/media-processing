@@ -28,7 +28,7 @@ namespace cuti
 {
 
 echo_handler_t::echo_handler_t(result_t<void>& result,
-                               logging_context_t& context,
+                               logging_context_t const& context,
                                bound_inbuf_t& inbuf,
                                bound_outbuf_t& outbuf,
                                std::optional<std::string> censored)

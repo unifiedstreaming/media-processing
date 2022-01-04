@@ -39,7 +39,7 @@ namespace // anoymous
 using namespace cuti;
 using namespace cuti::io_test_utils;
 
-void test_failing_reads(logging_context_t& context, std::size_t bufsize)
+void test_failing_reads(logging_context_t const& context, std::size_t bufsize)
 {
   using VI = std::vector<int>;
 
@@ -146,7 +146,7 @@ std::vector<T> char_vector(std::size_t size)
   return result;
 }
   
-void test_roundtrips(logging_context_t& context, std::size_t bufsize)
+void test_roundtrips(logging_context_t const& context, std::size_t bufsize)
 {
   test_roundtrip(context, bufsize, std::vector<int>{});
   test_roundtrip(context, bufsize, std::vector<int>{ 42 });

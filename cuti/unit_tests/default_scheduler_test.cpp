@@ -51,7 +51,7 @@ loglevel_t const loglevel = loglevel_t::info;
  */
 struct dos_protector_t
 {
-  dos_protector_t(logging_context_t& context,
+  dos_protector_t(logging_context_t const& context,
                   endpoint_t const& interface,
                   int count,
                   duration_t timeout = minutes_t(1))
@@ -190,7 +190,7 @@ private :
   }
 
 private :
-  logging_context_t& context_;
+  logging_context_t const& context_;
   tcp_acceptor_t acceptor_;
   int count_;
   bool timed_out_;
@@ -199,7 +199,7 @@ private :
   cancellation_ticket_t timeout_ticket_;
 };
 
-void check_alarm_order(logging_context_t& context,
+void check_alarm_order(logging_context_t const& context,
                        selector_factory_t const& factory)
 {
   if(auto msg = context.message_at(loglevel))
@@ -226,7 +226,7 @@ void check_alarm_order(logging_context_t& context,
   assert(order[2] == 2);
 }
   
-void check_alarm_order(logging_context_t& context)
+void check_alarm_order(logging_context_t const& context)
 {
   auto factories = available_selector_factories();
   for(auto const& factory : factories)
@@ -235,7 +235,7 @@ void check_alarm_order(logging_context_t& context)
   }
 }
 
-void empty_scheduler(logging_context_t& context,
+void empty_scheduler(logging_context_t const& context,
                      selector_factory_t const& factory)
 {
   if(auto msg = context.message_at(loglevel))
@@ -248,7 +248,7 @@ void empty_scheduler(logging_context_t& context,
   assert(scheduler.wait() == nullptr);
 }
 
-void empty_scheduler(logging_context_t& context)
+void empty_scheduler(logging_context_t const& context)
 {
   auto factories = available_selector_factories();
   for(auto const& factory : factories)
@@ -257,7 +257,7 @@ void empty_scheduler(logging_context_t& context)
   }
 }
 
-void no_client(logging_context_t& context,
+void no_client(logging_context_t const& context,
                selector_factory_t const& factory,
                endpoint_t const& interface)
 {
@@ -283,7 +283,7 @@ void no_client(logging_context_t& context,
   assert(protector->timed_out());
 }
 
-void no_client(logging_context_t& context)
+void no_client(logging_context_t const& context)
 {
   auto factories = available_selector_factories();
   auto interfaces = local_interfaces(any_port);
@@ -297,7 +297,7 @@ void no_client(logging_context_t& context)
   }
 }
 
-void single_client(logging_context_t& context,
+void single_client(logging_context_t const& context,
                    selector_factory_t const& factory,
                    endpoint_t const& interface)
 {
@@ -329,7 +329,7 @@ void single_client(logging_context_t& context,
   assert(protector->done());
 }
 
-void single_client(logging_context_t& context)
+void single_client(logging_context_t const& context)
 {
   auto factories = available_selector_factories();
   auto interfaces = local_interfaces(any_port);
@@ -343,7 +343,7 @@ void single_client(logging_context_t& context)
   }
 }
 
-void multiple_clients(logging_context_t& context,
+void multiple_clients(logging_context_t const& context,
                       selector_factory_t const& factory,
                       endpoint_t const& interface)
 {
@@ -377,7 +377,7 @@ void multiple_clients(logging_context_t& context,
   assert(protector->done());
 }
 
-void multiple_clients(logging_context_t& context)
+void multiple_clients(logging_context_t const& context)
 {
   auto factories = available_selector_factories();
   auto interfaces = local_interfaces(any_port);
@@ -391,7 +391,7 @@ void multiple_clients(logging_context_t& context)
   }
 }
 
-void multiple_acceptors(logging_context_t& context,
+void multiple_acceptors(logging_context_t const& context,
                         selector_factory_t const& factory,
                         endpoint_t const& interface)
 {
@@ -432,7 +432,7 @@ void multiple_acceptors(logging_context_t& context,
   assert(protector2->done());
 }
 
-void multiple_acceptors(logging_context_t& context)
+void multiple_acceptors(logging_context_t const& context)
 {
   auto factories = available_selector_factories();
   auto interfaces = local_interfaces(any_port);
@@ -446,7 +446,7 @@ void multiple_acceptors(logging_context_t& context)
   }
 }
 
-void one_idle_acceptor(logging_context_t& context,
+void one_idle_acceptor(logging_context_t const& context,
                        selector_factory_t const& factory,
                        endpoint_t const& interface)
 {
@@ -487,7 +487,7 @@ void one_idle_acceptor(logging_context_t& context,
   assert(protector2->timed_out());
 }
 
-void one_idle_acceptor(logging_context_t& context)
+void one_idle_acceptor(logging_context_t const& context)
 {
   auto factories = available_selector_factories();
   auto interfaces = local_interfaces(any_port);
@@ -501,7 +501,7 @@ void one_idle_acceptor(logging_context_t& context)
   }
 }
 
-void scheduler_switch(logging_context_t& context,
+void scheduler_switch(logging_context_t const& context,
                      selector_factory_t const& factory,
                      endpoint_t const& interface)
 {
@@ -548,7 +548,7 @@ void scheduler_switch(logging_context_t& context,
   assert(scheduler2.wait() == nullptr);
 }
 
-void scheduler_switch(logging_context_t& context)
+void scheduler_switch(logging_context_t const& context)
 {
   auto factories = available_selector_factories();
   auto interfaces = local_interfaces(any_port);

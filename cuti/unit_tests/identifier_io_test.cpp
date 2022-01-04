@@ -38,7 +38,7 @@ using namespace cuti::io_test_utils;
 
 constexpr char const *prefixes[] = { "", "\t", "\r", "\t\r " };
 
-void test_failing_reads(logging_context_t& context, std::size_t bufsize)
+void test_failing_reads(logging_context_t const& context, std::size_t bufsize)
 {
   for(auto prefix : prefixes)
   {
@@ -52,7 +52,7 @@ void test_failing_reads(logging_context_t& context, std::size_t bufsize)
   }
 }
 
-void test_roundtrips(logging_context_t& context, std::size_t bufsize)
+void test_roundtrips(logging_context_t const& context, std::size_t bufsize)
 {
   test_roundtrip(context, bufsize, identifier_t{"a"});
   test_roundtrip(context, bufsize, identifier_t{"A"});

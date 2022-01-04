@@ -61,7 +61,7 @@ std::vector<remote_error_t> many_errors()
   return result;
 }
 
-void test_roundtrips(logging_context_t& context, std::size_t bufsize)
+void test_roundtrips(logging_context_t const& context, std::size_t bufsize)
 {
   auto eq_error = [](remote_error_t const& lhs, remote_error_t const& rhs)
   {

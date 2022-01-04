@@ -78,7 +78,7 @@ std::vector<std::string> const echo_args = make_echo_args();
 struct string_source_t
 {
   explicit string_source_t(
-    logging_context_t& context,
+    logging_context_t const& context,
     std::optional<std::size_t> error_index = std::nullopt)
   : context_(context)
   , first_(echo_args.begin())
@@ -125,7 +125,7 @@ struct string_source_t
   }
 
 private :
-  logging_context_t& context_;
+  logging_context_t const& context_;
   std::vector<std::string>::const_iterator first_;
   std::vector<std::string>::const_iterator last_;
   std::optional<std::size_t> error_index_;
@@ -133,7 +133,7 @@ private :
 
 struct string_sink_t
 {
-  explicit string_sink_t(logging_context_t& context,
+  explicit string_sink_t(logging_context_t const& context,
                          std::vector<std::string>& target,
                          std::optional<std::size_t> error_index = std::nullopt)
   : context_(context)
@@ -175,12 +175,13 @@ struct string_sink_t
   }
 
 private :
-  logging_context_t& context_;
+  logging_context_t const& context_;
   std::vector<std::string>& target_;
   std::optional<std::size_t> error_index_;
 };
       
-void run_scheduler(logging_context_t& context, default_scheduler_t& scheduler)
+void run_scheduler(logging_context_t const& context,
+                   default_scheduler_t& scheduler)
 {
   if(auto msg = context.message_at(loglevel_t::info))
   {
@@ -202,7 +203,7 @@ void run_scheduler(logging_context_t& context, default_scheduler_t& scheduler)
   }
 }
     
-bool at_eof(logging_context_t& context, nb_inbuf_t& inbuf)
+bool at_eof(logging_context_t const& context, nb_inbuf_t& inbuf)
 {
   default_scheduler_t scheduler;
   stack_marker_t base_marker;
@@ -218,7 +219,7 @@ bool at_eof(logging_context_t& context, nb_inbuf_t& inbuf)
   return result.value();
 }
 
-void handle_request(logging_context_t& context,
+void handle_request(logging_context_t const& context,
                     nb_inbuf_t& inbuf,
                     nb_outbuf_t& outbuf,
                     method_map_t<request_handler_t> const& method_map)
@@ -239,7 +240,7 @@ void handle_request(logging_context_t& context,
   result.value();
 }
   
-void handle_requests(logging_context_t& context,
+void handle_requests(logging_context_t const& context,
                      nb_inbuf_t& inbuf,
                      nb_outbuf_t& outbuf,
                      method_map_t<request_handler_t> const& method_map)
@@ -261,7 +262,7 @@ void handle_requests(logging_context_t& context,
 }
 
 template<typename... ReplyArgs, typename... RequestArgs>
-void check_rpc_failure(logging_context_t& context,
+void check_rpc_failure(logging_context_t const& context,
                        nb_inbuf_t& inbuf,
                        nb_outbuf_t& outbuf,
                        identifier_t method,
@@ -285,7 +286,7 @@ void check_rpc_failure(logging_context_t& context,
   assert(caught);
 }
 
-void test_add(logging_context_t& context,
+void test_add(logging_context_t const& context,
               nb_inbuf_t& inbuf,
               nb_outbuf_t& outbuf)
 {
@@ -309,7 +310,7 @@ void test_add(logging_context_t& context,
   }
 }
   
-void test_overflow(logging_context_t& context,
+void test_overflow(logging_context_t const& context,
                    nb_inbuf_t& inbuf,
                    nb_outbuf_t& outbuf)
 {
@@ -332,7 +333,7 @@ void test_overflow(logging_context_t& context,
   }
 }
   
-void test_bad_method(logging_context_t& context,
+void test_bad_method(logging_context_t const& context,
                      nb_inbuf_t& inbuf,
                      nb_outbuf_t& outbuf)
 {
@@ -354,7 +355,7 @@ void test_bad_method(logging_context_t& context,
   }
 }
   
-void test_subtract(logging_context_t& context,
+void test_subtract(logging_context_t const& context,
                    nb_inbuf_t& inbuf,
                    nb_outbuf_t& outbuf)
 {
@@ -378,7 +379,7 @@ void test_subtract(logging_context_t& context,
   }
 }
   
-void test_underflow(logging_context_t& context,
+void test_underflow(logging_context_t const& context,
                     nb_inbuf_t& inbuf,
                     nb_outbuf_t& outbuf)
 {
@@ -402,7 +403,7 @@ void test_underflow(logging_context_t& context,
   }
 }
 
-void test_vector_echo(logging_context_t& context,
+void test_vector_echo(logging_context_t const& context,
                       nb_inbuf_t& inbuf,
                       nb_outbuf_t& outbuf)
 {
@@ -426,7 +427,7 @@ void test_vector_echo(logging_context_t& context,
   }
 }
   
-void test_vector_censored_echo(logging_context_t& context,
+void test_vector_censored_echo(logging_context_t const& context,
                                nb_inbuf_t& inbuf,
                                nb_outbuf_t& outbuf)
 {
@@ -449,7 +450,7 @@ void test_vector_censored_echo(logging_context_t& context,
   }
 }
   
-void test_streaming_echo(logging_context_t& context,
+void test_streaming_echo(logging_context_t const& context,
                          nb_inbuf_t& inbuf,
                          nb_outbuf_t& outbuf)
 {
@@ -475,9 +476,9 @@ void test_streaming_echo(logging_context_t& context,
   }
 }
   
-void test_streaming_censored_echo(logging_context_t& context,
-                                         nb_inbuf_t& inbuf,
-                                         nb_outbuf_t& outbuf)
+void test_streaming_censored_echo(logging_context_t const& context,
+                                  nb_inbuf_t& inbuf,
+                                  nb_outbuf_t& outbuf)
 {
   if(auto msg = context.message_at(loglevel_t::info))
   {
@@ -500,7 +501,7 @@ void test_streaming_censored_echo(logging_context_t& context,
   }
 }
   
-void test_streaming_output_error(logging_context_t& context,
+void test_streaming_output_error(logging_context_t const& context,
                                  nb_inbuf_t& inbuf,
                                  nb_outbuf_t& outbuf)
 {
@@ -525,7 +526,7 @@ void test_streaming_output_error(logging_context_t& context,
   }
 }
   
-void test_streaming_input_error(logging_context_t& context,
+void test_streaming_input_error(logging_context_t const& context,
                                 nb_inbuf_t& inbuf,
                                 nb_outbuf_t& outbuf)
 {
@@ -550,7 +551,7 @@ void test_streaming_input_error(logging_context_t& context,
   }
 }
   
-void test_streaming_multiple_errors(logging_context_t& context,
+void test_streaming_multiple_errors(logging_context_t const& context,
                                     nb_inbuf_t& inbuf,
                                     nb_outbuf_t& outbuf)
 {
@@ -575,7 +576,7 @@ void test_streaming_multiple_errors(logging_context_t& context,
   }
 }
   
-void run_engine_tests(logging_context_t& context,
+void run_engine_tests(logging_context_t const& context,
                       nb_inbuf_t& inbuf,
                       nb_outbuf_t& outbuf)
 {
@@ -607,15 +608,16 @@ auto censored_echo_method_factory(std::string censored)
 {
   return [ censored = std::move(censored) ](
     auto& parent, auto on_failure,
-    logging_context_t& context, bound_inbuf_t& inbuf, bound_outbuf_t& outbuf)
+    logging_context_t const& context,
+    bound_inbuf_t& inbuf, bound_outbuf_t& outbuf)
   {
     return make_method<echo_handler_t>(
       parent, on_failure, context, inbuf, outbuf, censored);
   };
 }
     
-void do_run_tests(logging_context_t& client_context,
-                  logging_context_t& server_context,
+void do_run_tests(logging_context_t const& client_context,
+                  logging_context_t const& server_context,
                   std::size_t bufsize)
 {
   if(auto msg = client_context.message_at(loglevel_t::info))

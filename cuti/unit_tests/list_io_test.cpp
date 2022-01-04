@@ -237,7 +237,7 @@ private :
 };
 
 template<typename... InputValues, typename... OutputValues>
-void perform_rpc(logging_context_t& context,
+void perform_rpc(logging_context_t const& context,
                  input_list_t<InputValues...>& inputs,
                  nb_inbuf_t& nb_inbuf,
                  output_list_t<OutputValues...>& outputs,
@@ -291,7 +291,7 @@ void perform_rpc(logging_context_t& context,
   }
 }
 
-void echo_nothing(logging_context_t& context,
+void echo_nothing(logging_context_t const& context,
                   nb_inbuf_t& inbuf,
                   nb_outbuf_t& outbuf)
 {
@@ -311,7 +311,7 @@ void echo_nothing(logging_context_t& context,
   }
 }
   
-void echo_int(logging_context_t& context,
+void echo_int(logging_context_t const& context,
               nb_inbuf_t& inbuf,
               nb_outbuf_t& outbuf)
 {
@@ -335,7 +335,7 @@ void echo_int(logging_context_t& context,
   }
 }
   
-void echo_vector(logging_context_t& context,
+void echo_vector(logging_context_t const& context,
                  nb_inbuf_t& inbuf,
                  nb_outbuf_t& outbuf)
 {
@@ -365,7 +365,7 @@ void echo_vector(logging_context_t& context,
   }
 }
   
-void echo_mixed(logging_context_t& context,
+void echo_mixed(logging_context_t const& context,
                 nb_inbuf_t& inbuf,
                 nb_outbuf_t& outbuf)
 {
@@ -408,7 +408,7 @@ void echo_mixed(logging_context_t& context,
   }
 }
 
-void type_error(logging_context_t& context,
+void type_error(logging_context_t const& context,
                 nb_inbuf_t& inbuf,
                 nb_outbuf_t& outbuf)
 {
@@ -456,7 +456,7 @@ void type_error(logging_context_t& context,
   }
 }
 
-void streaming_vector(logging_context_t& context,
+void streaming_vector(logging_context_t const& context,
                       nb_inbuf_t& inbuf,
                       nb_outbuf_t& outbuf)
 {
@@ -508,7 +508,7 @@ void streaming_vector(logging_context_t& context,
   }
 }
   
-void streaming_output_error(logging_context_t& context,
+void streaming_output_error(logging_context_t const& context,
                             nb_inbuf_t& inbuf,
                             nb_outbuf_t& outbuf)
 {
@@ -570,7 +570,7 @@ void streaming_output_error(logging_context_t& context,
   }
 }
   
-void streaming_input_error(logging_context_t& context,
+void streaming_input_error(logging_context_t const& context,
                            nb_inbuf_t& inbuf,
                            nb_outbuf_t& outbuf)
 {
@@ -633,7 +633,7 @@ void streaming_input_error(logging_context_t& context,
   }
 }
   
-void double_streaming_error(logging_context_t& context,
+void double_streaming_error(logging_context_t const& context,
                             nb_inbuf_t& inbuf,
                             nb_outbuf_t& outbuf)
 {
@@ -700,7 +700,7 @@ void double_streaming_error(logging_context_t& context,
   }
 }
   
-void do_run_tests(logging_context_t& context, std::size_t bufsize)
+void do_run_tests(logging_context_t const& context, std::size_t bufsize)
 {
   if(auto msg = context.message_at(loglevel_t::info))
   {

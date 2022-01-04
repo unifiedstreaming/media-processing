@@ -44,7 +44,7 @@ struct servant_t
 {
   using result_value_t = void;
 
-  servant_t(logging_context_t& context,
+  servant_t(logging_context_t const& context,
             result_t<void>& result,
             bound_inbuf_t& inbuf,
             bound_outbuf_t& outbuf)
@@ -138,7 +138,7 @@ private :
   }
 
 private :
-  logging_context_t& context_;
+  logging_context_t const& context_;
   result_t<void>& result_;
   subroutine_t<servant_t, reader_t<identifier_t>,
     failure_mode_t::handle_in_parent> method_reader_;
@@ -153,7 +153,7 @@ struct request_t
 {
   using result_value_t = std::string;
 
-  request_t(logging_context_t& context,
+  request_t(logging_context_t const& context,
             result_t<std::string>& result,
             bound_inbuf_t& inbuf,
             bound_outbuf_t& outbuf)
@@ -222,7 +222,7 @@ private :
   }
   
 private :
-  logging_context_t& context_;
+  logging_context_t const& context_;
   result_t<std::string>& result_;
   subroutine_t<request_t, reader_t<std::string>> reply_reader_;
   subroutine_t<request_t, writer_t<identifier_t>> method_writer_;
@@ -232,7 +232,7 @@ private :
   std::string argument_;
 };
   
-void test_bad_method(logging_context_t& context, std::size_t bufsize)
+void test_bad_method(logging_context_t const& context, std::size_t bufsize)
 {
   if(auto msg = context.message_at(loglevel_t::info))
   {

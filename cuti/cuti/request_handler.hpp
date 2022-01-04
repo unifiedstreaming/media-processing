@@ -43,7 +43,7 @@ struct CUTI_ABI request_handler_t
   using result_value_t = void;
 
   request_handler_t(result_t<void>& result,
-                    logging_context_t& context,
+                    logging_context_t const& context,
                     bound_inbuf_t& inbuf,
                     bound_outbuf_t& outbuf,
                     method_map_t<request_handler_t> const& method_map);
@@ -70,7 +70,7 @@ private :
 
 private :
   result_t<void>& result_;
-  logging_context_t& context_;
+  logging_context_t const& context_;
   bound_inbuf_t& inbuf_;
   bound_outbuf_t& outbuf_;
   method_map_t<request_handler_t> const& method_map_;

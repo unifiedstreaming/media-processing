@@ -23,7 +23,7 @@ namespace cuti
 {
 
 subtract_handler_t::subtract_handler_t(result_t<void>& result,
-                                       logging_context_t& context,
+                                       logging_context_t const& context,
                                        bound_inbuf_t& inbuf,
                                        bound_outbuf_t& outbuf)
 : result_(result)

@@ -45,7 +45,7 @@ using namespace cuti;
 template<bool use_bulk_io>
 struct copier_t
 {
-  copier_t(logging_context_t& context,
+  copier_t(logging_context_t const& context,
            scheduler_t& scheduler,
            std::unique_ptr<nb_inbuf_t> inbuf,
            std::unique_ptr<nb_outbuf_t> outbuf,
@@ -212,7 +212,7 @@ private :
   }
   
 private :
-  logging_context_t& context_;
+  logging_context_t const& context_;
   scheduler_t& scheduler_;
   std::unique_ptr<nb_inbuf_t> inbuf_;
   std::unique_ptr<nb_outbuf_t> outbuf_;
@@ -222,7 +222,7 @@ private :
 };
 
 template<bool use_bulk_io>
-void do_test_string_buffers(logging_context_t& context,
+void do_test_string_buffers(logging_context_t const& context,
                             std::size_t circ_bufsize)
 {
   if(auto msg = context.message_at(loglevel_t::info))
@@ -279,7 +279,7 @@ void do_test_string_buffers(logging_context_t& context,
   }
 }
 
-void test_string_buffers(logging_context_t& context)
+void test_string_buffers(logging_context_t const& context)
 {
   do_test_string_buffers<false>(context, 1);
   do_test_string_buffers<false>(context, 16 * 1024);
@@ -304,7 +304,7 @@ std::string make_large_payload()
 }
   
 template<bool use_bulk_io>
-void do_test_tcp_buffers(logging_context_t& context,
+void do_test_tcp_buffers(logging_context_t const& context,
                          std::size_t circ_bufsize,
                          std::size_t client_bufsize,
                          std::size_t server_bufsize,
@@ -370,7 +370,7 @@ void do_test_tcp_buffers(logging_context_t& context,
   assert(input == output);
 }
 
-void test_tcp_buffers(logging_context_t& context)
+void test_tcp_buffers(logging_context_t const& context)
 {
   std::string const small_payload = "Hello peer";
   std::string const large_payload = make_large_payload();
@@ -452,7 +452,7 @@ void flood_n(scheduler_t& scheduler, nb_outbuf_t& outbuf, std::size_t n)
   }
 }
 
-void test_inbuf_throughput_checking(logging_context_t& context,
+void test_inbuf_throughput_checking(logging_context_t const& context,
                                     bool enable_while_running,
                                     selector_factory_t const& factory)
 {
@@ -509,7 +509,7 @@ void test_inbuf_throughput_checking(logging_context_t& context,
   assert(server_in->error_status() == timeout_system_error());
 }
 
-void test_outbuf_throughput_checking(logging_context_t& context,
+void test_outbuf_throughput_checking(logging_context_t const& context,
                                      bool enable_while_running,
                                      selector_factory_t const& factory)
 {
@@ -565,7 +565,7 @@ void test_outbuf_throughput_checking(logging_context_t& context,
   assert(client_out->error_status() == timeout_system_error());
 }
 
-void test_throughput_checking(logging_context_t& context)
+void test_throughput_checking(logging_context_t const& context)
 {
   for(auto const& factory : available_selector_factories())
   {

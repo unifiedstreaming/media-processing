@@ -43,7 +43,7 @@ struct CUTI_ABI echo_handler_t
   using result_value_t = void;
 
   echo_handler_t(result_t<void>& result,
-                 logging_context_t& context,
+                 logging_context_t const& context,
                  bound_inbuf_t& inbuf,
                  bound_outbuf_t& outbuf,
                  std::optional<std::string> censored = std::nullopt);
@@ -62,7 +62,7 @@ private :
 
 private :
   result_t<void>& result_;
-  logging_context_t& context_;
+  logging_context_t const& context_;
   std::optional<std::string> censored_;
 
   subroutine_t<echo_handler_t, begin_sequence_reader_t> begin_reader_;

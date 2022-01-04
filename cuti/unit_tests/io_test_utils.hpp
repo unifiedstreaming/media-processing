@@ -60,7 +60,8 @@ namespace io_test_utils
 {
 
 template<typename T>
-void test_failing_read(logging_context_t& context, std::size_t bufsize,
+void test_failing_read(logging_context_t const& context,
+                       std::size_t bufsize,
                        std::string input)
 {
   if(auto msg = context.message_at(loglevel_t::info))
@@ -114,7 +115,7 @@ void test_failing_read(logging_context_t& context, std::size_t bufsize,
 }
 
 template<typename T, typename Eq>
-void test_roundtrip(logging_context_t& context,
+void test_roundtrip(logging_context_t const& context,
                     std::size_t bufsize,
                     T value,
                     Eq eq)
@@ -241,7 +242,7 @@ void test_roundtrip(logging_context_t& context,
 }
 
 template<typename T>
-void test_roundtrip(logging_context_t& context,
+void test_roundtrip(logging_context_t const& context,
                     std::size_t bufsize,
                     T value)
 {

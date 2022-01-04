@@ -80,7 +80,7 @@ struct method_map_t
   create_method_instance(identifier_t const& name,
                          Parent& parent,
                          void (Parent::*on_failure)(std::exception_ptr),
-                         logging_context_t& context,
+                         logging_context_t const& context,
                          bound_inbuf_t& inbuf,
                          bound_outbuf_t& outbuf) const
   {
@@ -107,7 +107,7 @@ private :
     virtual std::unique_ptr<method_t<Parent>>
     operator()(Parent& parent,
                void (Parent::*on_failure)(std::exception_ptr),
-               logging_context_t& context,
+               logging_context_t const& context,
                bound_inbuf_t& inbuf,
                bound_outbuf_t& outbuf) const = 0;
 
@@ -131,7 +131,7 @@ private :
     std::unique_ptr<method_t<Parent>>
     operator()(Parent& parent,
                void (Parent::*on_failure)(std::exception_ptr),
-               logging_context_t& context,
+               logging_context_t const& context,
                bound_inbuf_t& inbuf,
                bound_outbuf_t& outbuf) const override
     {
@@ -160,7 +160,7 @@ auto default_method_factory()
   return [](
     auto& parent,
     auto on_failure,
-    logging_context_t& context,
+    logging_context_t const& context,
     bound_inbuf_t& inbuf,
     bound_outbuf_t& outbuf)
   {

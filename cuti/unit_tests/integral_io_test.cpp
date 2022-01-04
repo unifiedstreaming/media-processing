@@ -118,7 +118,7 @@ std::vector<std::string> digit_expected_inputs()
 }
     
 template<typename T>
-void test_digit_expected(logging_context_t& context, std::size_t bufsize)
+void test_digit_expected(logging_context_t const& context, std::size_t bufsize)
 {
   auto inputs = digit_expected_inputs<T>();
   for(auto prefix : prefixes)
@@ -148,7 +148,7 @@ std::vector<std::string> overflow_inputs()
 }
     
 template<typename T>
-void test_overflow(logging_context_t& context, std::size_t bufsize)
+void test_overflow(logging_context_t const& context, std::size_t bufsize)
 {
   auto inputs = overflow_inputs<T>();
   for(auto prefix : prefixes)
@@ -176,7 +176,7 @@ std::vector<std::string> unexpected_eof_inputs()
 }  
 
 template<typename T>
-void test_unexpected_eof(logging_context_t& context, std::size_t bufsize)
+void test_unexpected_eof(logging_context_t const& context, std::size_t bufsize)
 {
   auto inputs = unexpected_eof_inputs<T>();
   for(auto prefix : prefixes)
@@ -190,7 +190,7 @@ void test_unexpected_eof(logging_context_t& context, std::size_t bufsize)
 }
     
 template<typename T>
-void test_roundtrips(logging_context_t& context, std::size_t bufsize)
+void test_roundtrips(logging_context_t const& context, std::size_t bufsize)
 {
   auto values = testing_values<T>();
 
@@ -201,7 +201,7 @@ void test_roundtrips(logging_context_t& context, std::size_t bufsize)
 }
 
 template<typename T>
-void run_tests_for(logging_context_t& context, std::size_t bufsize)
+void run_tests_for(logging_context_t const& context, std::size_t bufsize)
 {
   test_digit_expected<T>(context, bufsize);
   test_overflow<T>(context, bufsize);

@@ -77,8 +77,8 @@ private :
   int value_;
 };
 
-int run_int_request(logging_context_t& client_context,
-                    logging_context_t& server_context,
+int run_int_request(logging_context_t const& client_context,
+                    logging_context_t const& server_context,
                     std::size_t bufsize,
                     method_map_t<request_handler_t> const& method_map,
                     std::string request)
@@ -147,8 +147,8 @@ int run_int_request(logging_context_t& client_context,
   }
 }
 
-void fail_int_request(logging_context_t& client_context,
-                      logging_context_t& server_context,
+void fail_int_request(logging_context_t const& client_context,
+                      logging_context_t const& server_context,
                       std::size_t bufsize,
                       method_map_t<request_handler_t> const& method_map,
                       std::string request)
@@ -170,8 +170,8 @@ void fail_int_request(logging_context_t& client_context,
   assert(caught);
 }
   
-void do_run_tests(logging_context_t& client_context,
-                  logging_context_t& server_context,
+void do_run_tests(logging_context_t const& client_context,
+                  logging_context_t const& server_context,
                   std::size_t bufsize)
 {
   method_map_t<request_handler_t> map;

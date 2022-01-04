@@ -39,7 +39,7 @@ namespace // anoymous
 using namespace cuti;
 using namespace cuti::io_test_utils;
 
-void test_failing_reads(logging_context_t& context, std::size_t bufsize)
+void test_failing_reads(logging_context_t const& context, std::size_t bufsize)
 {
   // missing opening curly
   test_failing_read<std::tuple<>>(context, bufsize, "");
@@ -115,7 +115,7 @@ auto marx_families()
   return result;
 }
     
-void test_roundtrips(logging_context_t& context, std::size_t bufsize)
+void test_roundtrips(logging_context_t const& context, std::size_t bufsize)
 {
   test_roundtrip(context, bufsize, std::tuple<>{});
   test_roundtrip(context, bufsize, std::tuple<int>{42});

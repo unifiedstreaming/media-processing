@@ -38,7 +38,8 @@ using namespace cuti;
 using namespace cuti::io_test_utils;
 
 template<typename T>
-void do_test_failing_reads(logging_context_t& context, std::size_t bufsize)
+void do_test_failing_reads(logging_context_t const& context,
+                           std::size_t bufsize)
 {
   // unexpected eof
   test_failing_read<T>(context, bufsize, "");
@@ -68,20 +69,20 @@ std::vector<T> make_vector()
 }
 
 template<typename T>
-void do_test_roundtrips(logging_context_t& context, std::size_t bufsize)
+void do_test_roundtrips(logging_context_t const& context, std::size_t bufsize)
 {
   test_roundtrip(context, bufsize, T(false));
   test_roundtrip(context, bufsize, T(true));
   test_roundtrip(context, bufsize, make_vector<T>());
 }
 
-void test_failing_reads(logging_context_t& context, std::size_t bufsize)
+void test_failing_reads(logging_context_t const& context, std::size_t bufsize)
 {
   do_test_failing_reads<bool>(context, bufsize);
   do_test_failing_reads<flag_t>(context, bufsize);
 }
 
-void test_roundtrips(logging_context_t& context, std::size_t bufsize)
+void test_roundtrips(logging_context_t const& context, std::size_t bufsize)
 {
   do_test_roundtrips<bool>(context, bufsize);
   do_test_roundtrips<flag_t>(context, bufsize);

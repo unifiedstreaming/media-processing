@@ -40,7 +40,7 @@ struct CUTI_ABI subtract_handler_t
   using result_value_t = void;
 
   subtract_handler_t(result_t<void>& result,
-                     logging_context_t& context,
+                     logging_context_t const& context,
                      bound_inbuf_t& inbuf,
                      bound_outbuf_t& outbuf);
 
@@ -56,7 +56,7 @@ private :
 
 private :
   result_t<void>& result_;
-  logging_context_t& context_;
+  logging_context_t const& context_;
   subroutine_t<subtract_handler_t, reader_t<int>> int_reader_;
   subroutine_t<subtract_handler_t, writer_t<int>> int_writer_;
 

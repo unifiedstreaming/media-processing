@@ -26,7 +26,7 @@ namespace cuti
 
 request_handler_t::request_handler_t(
   result_t<void>& result,
-  logging_context_t& context,
+  logging_context_t const& context,
   bound_inbuf_t& inbuf,
   bound_outbuf_t& outbuf,
   method_map_t<request_handler_t> const& method_map)

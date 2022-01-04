@@ -41,7 +41,7 @@ struct succeed_t
   using result_value_t = void;
 
   succeed_t(result_t<void>& result,
-            logging_context_t& /* ignored */,
+            logging_context_t const& /* ignored */,
             bound_inbuf_t& /* ignored */,
             bound_outbuf_t& /* ignored */)
   : result_(result)
@@ -64,7 +64,7 @@ struct fail_t
   using result_value_t = void;
 
   fail_t(result_t<void>& result,
-         logging_context_t& /* ignored */,
+         logging_context_t const& /* ignored */,
          bound_inbuf_t& /* ignored */,
          bound_outbuf_t& /* ignored */)
   : result_(result)
@@ -87,7 +87,7 @@ struct configurable_t
   using result_value_t = void;
 
   configurable_t(result_t<void>& result,
-                 logging_context_t& /* ignored */,
+                 logging_context_t const& /* ignored */,
                  bound_inbuf_t& /* ignored */,
                  bound_outbuf_t& /* ignored */,
                  bool fail)
@@ -115,7 +115,8 @@ auto configurable_method_factory(bool fail)
 {
   return [fail = fail](
     auto& parent, auto on_failure,
-    logging_context_t& context, bound_inbuf_t& inbuf, bound_outbuf_t& outbuf)
+    logging_context_t const& context,
+    bound_inbuf_t& inbuf, bound_outbuf_t& outbuf)
   {
     return make_method<configurable_t>(
       parent, on_failure, context, inbuf, outbuf, fail);
@@ -127,7 +128,7 @@ struct sample_request_handler_t
   using result_value_t = void;
 
   sample_request_handler_t(result_t<void>& result,
-                           logging_context_t& context,
+                           logging_context_t const& context,
                            bound_inbuf_t& inbuf,
                            bound_outbuf_t& outbuf,
                            method_map_t<sample_request_handler_t> const& map)
@@ -167,7 +168,7 @@ private :
 
 private :
   result_t<void>& result_;
-  logging_context_t& context_;
+  logging_context_t const& context_;
   bound_inbuf_t& inbuf_;
   bound_outbuf_t& outbuf_;
   method_map_t<sample_request_handler_t> const& map_;
