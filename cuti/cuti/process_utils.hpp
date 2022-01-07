@@ -17,8 +17,8 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#ifndef CUTI_PROCESS_HPP_
-#define CUTI_PROCESS_HPP_
+#ifndef CUTI_PROCESS_UTILS_HPP_
+#define CUTI_PROCESS_UTILS_HPP_
 
 #include "linkage.h"
 
