@@ -101,8 +101,8 @@ unit-test output_list_test
 : output_list_test.cpp
 ;
 
-unit-test process_test
-: process_test.cpp
+unit-test process_utils_test
+: process_utils_test.cpp
 ;
 
 unit-test relational_ops_test

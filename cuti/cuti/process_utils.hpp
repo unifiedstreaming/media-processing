@@ -44,8 +44,8 @@ struct CUTI_ABI pidfile_t
   explicit pidfile_t(absolute_path_t path);
   pidfile_t(absolute_path_t path, int pid);
 
-  pidfile_t(pidfile_t const&);
-  pidfile_t& operator=(pidfile_t const&);
+  pidfile_t(pidfile_t const&) = delete;
+  pidfile_t& operator=(pidfile_t const&) = delete;
   
   ~pidfile_t();
 

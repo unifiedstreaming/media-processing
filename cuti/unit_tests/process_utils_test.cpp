@@ -19,7 +19,7 @@
 
 #include <cuti/cmdline_reader.hpp>
 #include <cuti/option_walker.hpp>
-#include <cuti/process.hpp>
+#include <cuti/process_utils.hpp>
 
 #include <exception>
 #include <iostream>
