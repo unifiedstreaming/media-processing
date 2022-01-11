@@ -23,6 +23,7 @@
 #include <cuti/default_scheduler.hpp>
 #include <cuti/logging_context.hpp>
 #include <cuti/option_walker.hpp>
+#include <cuti/scoped_guard.hpp>
 #include <cuti/scoped_thread.hpp>
 #include <cuti/streambuf_backend.hpp>
 
@@ -80,6 +81,8 @@ void test_wakeup(logging_context_t const& context,
 
   {
     std::unique_ptr<scoped_thread_t> threads[n_threads];
+    auto guard = make_scoped_guard([&] { signal.activate(); });
+
     for(int i = 0; i != n_threads; ++i)
     {
       threads[i] = std::make_unique<scoped_thread_t>(
@@ -90,9 +93,6 @@ void test_wakeup(logging_context_t const& context,
     {
       *msg << __func__ << ": activating signal";
     }
-
-    signal.activate();
-    assert(signal.active());
   }
 
   if(auto msg = context.message_at(loglevel_t::info))
@@ -100,6 +100,7 @@ void test_wakeup(logging_context_t const& context,
     *msg << __func__ << ": threads joined";
   }
 
+  assert(signal.active());
   signal.deactivate();
   assert(!signal.active());
 }
