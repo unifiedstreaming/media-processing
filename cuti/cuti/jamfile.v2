@@ -157,6 +157,7 @@ lib cuti
   tuple_mapping.cpp
   type_list.cpp
   viewbuf.cpp
+  wakeup_signal.cpp
   advapi32
   ws2_32
 :
