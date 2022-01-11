@@ -62,6 +62,7 @@ void wakeup_signal_t::deactivate() noexcept
 {
   std::scoped_lock<std::mutex> lock(mutex_);
 
+  assert(activation_count_ != 0);
   --activation_count_;
 
   if(activation_count_ == 0)
