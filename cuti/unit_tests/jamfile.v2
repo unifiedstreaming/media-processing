@@ -168,7 +168,3 @@ unit-test user_type_io_test
 unit-test vector_io_test
 : vector_io_test.cpp
 ;
-
-unit-test wakeup_signal_test
-: wakeup_signal_test.cpp
-;
