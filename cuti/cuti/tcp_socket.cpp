@@ -20,6 +20,7 @@
 #include "tcp_socket.hpp"
 
 #include "endpoint.hpp"
+#include "io_utils.hpp"
 #include "system_error.hpp"
 
 #include <cassert>
@@ -102,45 +103,11 @@ int to_fd(SOCKET sock)
   return static_cast<int>(sock);
 }
 
-void set_nonblocking(int fd, bool enable)
-{
-  u_long arg = enable;
-  int r = ioctlsocket(fd, FIONBIO, &arg);
-  if(r == SOCKET_ERROR)
-  {
-    int cause = last_system_error();
-    throw system_exception_t("Error setting FIONBIO", cause);
-  }
-}
-
 #else // POSIX
 
 int to_fd(int fd)
 {
   return fd;
-}
-
-void set_nonblocking(int fd, bool enable)
-{
-  int r = fcntl(fd, F_GETFL);
-  if(r != -1)
-  {
-    if(enable)
-    {
-      r |= O_NONBLOCK;
-    }
-    else
-    {
-      r &= ~O_NONBLOCK;
-    }
-    r = fcntl(fd, F_SETFL, r);
-  }
-
-  if(r == -1)
-  {
-    int cause = last_system_error();
-    throw system_exception_t("Error setting O_NONBLOCK", cause);
-  }
 }
 
 void set_reuseaddr(int fd, bool enable)
@@ -154,38 +121,6 @@ void set_reuseaddr(int fd, bool enable)
     throw system_exception_t("Error setting SO_REUSEADDR", cause);
   }
 }
-
-#ifndef SOCK_CLOEXEC
-
-/*
- * In the absence of SOCK_CLOEXEC, a socket leak will occur when a
- * concurrent thread calls fork() before a fresh socket's
- * close-on-exec flag is set. All we can do here is call set_cloexec()
- * ASAP.
- */
-void set_cloexec(int fd, bool enable)
-{
-  int r = fcntl(fd, F_GETFD);
-  if(r != -1)
-  {
-    if(enable)
-    {
-      r |= FD_CLOEXEC;
-    }
-    else
-    {
-      r &= ~FD_CLOEXEC;
-    }
-    r = fcntl(fd, F_SETFD, r);
-  }
-  if(r == -1)
-  {
-    int cause = last_system_error();
-    throw system_exception_t("Error setting FD_CLOEXEC", cause);
-  }
-}
-
-#endif // !SOCK_CLOEXEC
 
 #endif // POSIX
 
@@ -216,48 +151,6 @@ void set_initial_connection_flags(int fd)
 #endif
 }
 
-bool is_wouldblock(int error)
-{
-#ifdef _WIN32
-  return error == WSAEWOULDBLOCK;
-#else
-  return error == EAGAIN || error == EWOULDBLOCK;
-#endif
-}
-
-bool is_fatal_socket_error(int error)
-{
-  switch(error)
-  {
-#ifdef _WIN32
-  case WSAEACCES :
-  case WSAEFAULT :
-  case WSAEINPROGRESS :
-  case WSAEINVAL :
-  case WSAEINTR :
-  case WSAEMFILE :
-  case WSAEMSGSIZE :
-  case WSAENOBUFS :
-  case WSAENETDOWN :
-  case WSAENOTSOCK :
-  case WSANOTINITIALISED :
-#else // POSIX
-  case EACCES :
-  case EBADF :
-  case EFAULT :
-  case EINVAL :
-  case EMFILE :
-  case ENFILE :
-  case ENOBUFS :
-  case ENOMEM :
-  case ENOTSOCK :
-#endif
-    return true;
-  default :
-    return false;
-  }
-}
-  
 } // anonymous
 
 tcp_socket_t::tcp_socket_t(int family)
@@ -401,7 +294,7 @@ int tcp_socket_t::accept(tcp_socket_t& accepted)
     int cause = last_system_error();
     if(!is_wouldblock(cause))
     {
-      if(is_fatal_socket_error(cause))
+      if(is_fatal_io_error(cause))
       {
         throw system_exception_t("accept() failure", cause);
       }
@@ -446,7 +339,7 @@ int tcp_socket_t::write(char const* first, char const* last, char const*& next)
     {
       next = nullptr;
     }
-    else if(is_fatal_socket_error(cause))
+    else if(is_fatal_io_error(cause))
     {
       throw system_exception_t("send() failure", cause);
     }
@@ -476,7 +369,7 @@ int tcp_socket_t::close_write_end()
   if(r == -1)
   {
     int cause = last_system_error();
-    if(is_fatal_socket_error(cause))
+    if(is_fatal_io_error(cause))
     {
       throw system_exception_t("shutdown() failure", cause);
     }
@@ -507,7 +400,7 @@ int tcp_socket_t::read(char* first, char const* last, char*& next)
     {
       next = nullptr;
     }
-    else if(is_fatal_socket_error(cause))
+    else if(is_fatal_io_error(cause))
     {
       throw system_exception_t("recv() failure()", cause);
     }

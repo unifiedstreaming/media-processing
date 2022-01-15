@@ -98,6 +98,7 @@ lib cuti
   indexed_heap.cpp
   input_list.cpp
   input_list_reader.cpp
+  io_utils.cpp
   kqueue_selector.cpp
   linkage.cpp
   list_arena.cpp
