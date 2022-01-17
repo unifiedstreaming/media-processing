@@ -87,6 +87,7 @@ lib cuti
   endpoint.cpp
   eof_reader.cpp
   epoll_selector.cpp
+  event_pipe.cpp
   exception_builder.cpp
   file_backend.cpp
   final_result.cpp

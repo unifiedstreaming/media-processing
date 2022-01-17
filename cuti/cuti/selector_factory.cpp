@@ -66,7 +66,6 @@ std::vector<selector_factory_t> available_selector_factories()
   return result;
 }
 
-CUTI_ABI
 void parse_optval(char const* name, args_reader_t const& reader,
                   char const* in, selector_factory_t& out)
 {
