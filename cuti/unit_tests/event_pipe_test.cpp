@@ -425,9 +425,9 @@ void scheduled_transfer(logging_context_t const& context)
   }
 }
 
-void pull_mcq(logging_context_t const& context,
-              int tid,
-              mcq_t& queue)
+unsigned int pull_mcq(logging_context_t const& context,
+                      int tid,
+                      mcq_t& queue)
 {
   if(auto msg = context.message_at(loglevel_t::info))
   {
@@ -448,6 +448,8 @@ void pull_mcq(logging_context_t const& context,
     *msg << __func__ << "(tid " << tid <<
       "): pulling done (eof after reading " << count << " events)";
   }
+
+  return count;
 }
 
 void test_mcq(logging_context_t const& context,
@@ -462,6 +464,7 @@ void test_mcq(logging_context_t const& context,
   }
 
   mcq_t queue(factory);
+  unsigned int counts[n_threads];
   {
     std::unique_ptr<scoped_thread_t> threads[n_threads];
     auto guard = make_scoped_guard([&] { queue.push(eof); });
@@ -471,7 +474,7 @@ void test_mcq(logging_context_t const& context,
       threads[tid] = std::make_unique<scoped_thread_t>(
         [&, tid]
 	{
-	  pull_mcq(context, tid, queue);
+	  counts[tid] = pull_mcq(context, tid, queue);
 	}); 
     }
 
@@ -488,7 +491,19 @@ void test_mcq(logging_context_t const& context,
 
   if(auto msg = context.message_at(loglevel_t::info))
   {
-    *msg << __func__ << ": threads joined; done";
+    *msg << __func__ << ": threads joined";
+  }
+
+  unsigned int total = 0;
+  for(unsigned int i = 0; i != n_threads; ++i)
+  {
+    total += counts[i];
+  }
+  assert(total == n_threads * n_events);
+
+  if(auto msg = context.message_at(loglevel_t::info))
+  {
+    *msg << __func__ << ": done";
   }
 }
 
@@ -501,87 +516,12 @@ void test_mcq(logging_context_t const& context)
   }
 }
 
-void pull_mcq_n(logging_context_t const& context,
-                int tid,
-                mcq_t& queue,
-                unsigned int count)
-{
-  if(auto msg = context.message_at(loglevel_t::info))
-  {
-    *msg << __func__ <<
-      "(tid " << tid << "): pulling (count: " << count << ")";
-  }
-
-  while(count)
-  {
-    assert(queue.pull() == '*');
-    --count;
-  }
-
-  if(auto msg = context.message_at(loglevel_t::info))
-  {
-    *msg << __func__ << "(tid " << tid << "): pulling done";
-  }
-}
-
-void test_mcq_n(logging_context_t const& context,
-                selector_factory_t const& factory)
-{
-  static unsigned int constexpr n_threads = 17;
-  static unsigned int constexpr n_events = 100;
-
-  if(auto msg = context.message_at(loglevel_t::info))
-  {
-    *msg << __func__ << ": starting (selector: " << factory << ")";
-  }
-
-  mcq_t queue(factory);
-  {
-    std::unique_ptr<scoped_thread_t> threads[n_threads];
-    auto guard = make_scoped_guard([&] { queue.push(eof); });
-
-    for(unsigned int tid = 0; tid != n_threads; ++tid)
-    {
-      threads[tid] = std::make_unique<scoped_thread_t>(
-        [&, tid, count = n_events]
-	{
-	  pull_mcq_n(context, tid, queue, count);
-	}); 
-    }
-
-    for(unsigned int i = 0; i != n_threads * n_events; ++i)
-    {
-      queue.push('*');
-    }
-
-    if(auto msg = context.message_at(loglevel_t::info))
-    {
-      *msg << __func__ << ": pushing done";
-    }
-  }
-
-  if(auto msg = context.message_at(loglevel_t::info))
-  {
-    *msg << __func__ << ": threads joined; done";
-  }
-}
-
-void test_mcq_n(logging_context_t const& context)
-{
-  auto factories = available_selector_factories();
-  for(auto const& factory : factories)
-  {
-    test_mcq_n(context, factory);
-  }
-}
-
 void do_run_tests(logging_context_t const& context)
 {
   blocking_transfer(context);
   nonblocking_transfer(context);
   scheduled_transfer(context);
   test_mcq(context);
-  test_mcq_n(context);
 }
 
 struct options_t
