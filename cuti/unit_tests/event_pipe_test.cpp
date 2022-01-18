@@ -23,9 +23,12 @@
 #include <cuti/default_scheduler.hpp>
 #include <cuti/logging_context.hpp>
 #include <cuti/option_walker.hpp>
+#include <cuti/scoped_thread.hpp>
 #include <cuti/streambuf_backend.hpp>
 
 #include <iostream>
+#include <condition_variable>
+#include <mutex>
 #include <utility>
 
 #undef NDEBUG
@@ -35,101 +38,6 @@ using namespace cuti;
 
 namespace // anonymous
 {
-
-void blocking_transfer(logging_context_t const& context)
-{
-  if(auto msg = context.message_at(loglevel_t::info))
-  {
-    *msg << __func__ << ": starting";
-  }
-
-  std::unique_ptr<event_pipe_reader_t> reader;
-  std::unique_ptr<event_pipe_writer_t> writer;
-
-  std::tie(reader, writer) = make_event_pipe();
-
-  for(int i = 0; i != 256; ++i)
-  {
-    assert(writer->write(static_cast<unsigned char>(i)));
-    auto r = reader->read();
-    assert(r != std::nullopt);
-    assert(*r == i);
-  }
-
-  writer.reset();
-  auto r = reader->read();
-  assert(r != std::nullopt);
-  assert(*r == eof);
-
-  if(auto msg = context.message_at(loglevel_t::info))
-  {
-    *msg << __func__ << ": done";
-  }
-}
-  
-void nonblocking_transfer(logging_context_t const& context)
-{
-  if(auto msg = context.message_at(loglevel_t::info))
-  {
-    *msg << __func__ << ": starting";
-  }
-
-  std::unique_ptr<event_pipe_reader_t> reader;
-  std::unique_ptr<event_pipe_writer_t> writer;
-
-  std::tie(reader, writer) = make_event_pipe();
-  reader->set_nonblocking();
-  writer->set_nonblocking();
-  
-  std::optional<int> r;
-
-  unsigned int write_spins = 0;
-  unsigned int read_spins = 0;
-
-  for(int i = 0; i != 256; ++i)
-  {
-    while(writer->write(static_cast<unsigned char>(i)) == false)
-    {
-      ++write_spins;
-    }
-
-    while((r = reader->read()) == std::nullopt)
-    {
-      ++read_spins;
-    }
-
-    assert(*r == i);
-  }
-
-  if(auto msg = context.message_at(loglevel_t::info))
-  {
-    *msg << __func__ << ": write spins in loop: " << write_spins <<
-      " read spins in loop: " << read_spins;
-  }
-
-  r = reader->read();
-  assert(r == std::nullopt);
-
-  writer.reset();
-
-  read_spins = 0;
-  while((r = reader->read()) == std::nullopt)
-  {
-    ++read_spins;
-  }
-
-  assert(*r == eof);
-
-  if(auto msg = context.message_at(loglevel_t::info))
-  {
-    *msg << __func__ << ": read spins expecting eof: " << read_spins;
-  }
-
-  if(auto msg = context.message_at(loglevel_t::info))
-  {
-    *msg << __func__ << ": done";
-  }
-}
 
 struct event_producer_t
 {
@@ -263,6 +171,206 @@ private :
   cancellation_ticket_t ticket_;
 };
 
+/*
+ * A simple scheduler-based multiple consumer queue.
+ */
+struct mcq_t
+{
+  explicit mcq_t(selector_factory_t const& factory)
+  : mutex_()
+  , loaded_(false)
+  , check_loaded_()
+  , reader_(nullptr)
+  , writer_(nullptr)
+  , scheduler_(factory)
+  , selecting_(false)
+  , check_selecting_()
+  {
+    std::tie(reader_, writer_) = make_event_pipe();
+  }
+
+  mcq_t(mcq_t const&) = delete;
+  mcq_t& operator=(mcq_t const&) = delete;
+  
+  void push(int c)
+  {
+    std::unique_lock<std::mutex> lock(mutex_);
+
+    while(loaded_)
+    {
+      assert(writer_ != nullptr);
+      check_loaded_.wait(lock);
+    }
+
+    assert(writer_ != nullptr);
+
+    if(c != eof)
+    {
+      writer_->write(static_cast<unsigned char>(c));
+    }
+    else
+    {
+      writer_.reset();
+    }
+      
+    loaded_ = true;
+  }
+
+  int pull()
+  {
+    {
+      std::unique_lock<std::mutex> lock(mutex_);
+      while(selecting_)
+      {
+        check_selecting_.wait(lock);
+      }
+      selecting_ = true;
+    }
+
+    std::optional<int> rr = std::nullopt;
+    while(rr == std::nullopt)
+    {
+      bool readable = false;
+      reader_->call_when_readable(scheduler_, [&] { readable = true; });
+      while(!readable)
+      {
+        auto cb = scheduler_.wait();
+        assert(cb != nullptr);
+        cb();
+      }
+
+      {
+        std::unique_lock<std::mutex> lock(mutex_);
+        if(loaded_)
+        {
+          rr = reader_->read();
+          assert(rr != std::nullopt);
+
+          if(*rr != eof)
+          {
+            loaded_ = false;
+          }
+          selecting_ = false;
+        }
+        else
+        {
+          // spurious wakeup: retry
+        }
+      }
+    }
+
+    check_loaded_.notify_all();
+    check_selecting_.notify_one();
+
+    return *rr;
+  }
+
+private :
+  mutable std::mutex mutex_;
+  bool loaded_;
+  std::condition_variable check_loaded_;
+  std::unique_ptr<event_pipe_reader_t> reader_; // readable when set
+  std::unique_ptr<event_pipe_writer_t> writer_; // nullptr when closed
+  default_scheduler_t scheduler_;
+  bool selecting_;
+  std::condition_variable check_selecting_;
+};
+
+void blocking_transfer(logging_context_t const& context)
+{
+  if(auto msg = context.message_at(loglevel_t::info))
+  {
+    *msg << __func__ << ": starting";
+  }
+
+  std::unique_ptr<event_pipe_reader_t> reader;
+  std::unique_ptr<event_pipe_writer_t> writer;
+
+  std::tie(reader, writer) = make_event_pipe();
+
+  for(int i = 0; i != 256; ++i)
+  {
+    assert(writer->write(static_cast<unsigned char>(i)));
+    auto r = reader->read();
+    assert(r != std::nullopt);
+    assert(*r == i);
+  }
+
+  writer.reset();
+  auto r = reader->read();
+  assert(r != std::nullopt);
+  assert(*r == eof);
+
+  if(auto msg = context.message_at(loglevel_t::info))
+  {
+    *msg << __func__ << ": done";
+  }
+}
+  
+void nonblocking_transfer(logging_context_t const& context)
+{
+  if(auto msg = context.message_at(loglevel_t::info))
+  {
+    *msg << __func__ << ": starting";
+  }
+
+  std::unique_ptr<event_pipe_reader_t> reader;
+  std::unique_ptr<event_pipe_writer_t> writer;
+
+  std::tie(reader, writer) = make_event_pipe();
+  reader->set_nonblocking();
+  writer->set_nonblocking();
+  
+  std::optional<int> r;
+
+  unsigned int write_spins = 0;
+  unsigned int read_spins = 0;
+
+  for(int i = 0; i != 256; ++i)
+  {
+    while(writer->write(static_cast<unsigned char>(i)) == false)
+    {
+      ++write_spins;
+    }
+
+    while((r = reader->read()) == std::nullopt)
+    {
+      ++read_spins;
+    }
+
+    assert(*r == i);
+  }
+
+  if(auto msg = context.message_at(loglevel_t::info))
+  {
+    *msg << __func__ << ": write spins in loop: " << write_spins <<
+      " read spins in loop: " << read_spins;
+  }
+
+  r = reader->read();
+  assert(r == std::nullopt);
+
+  writer.reset();
+
+  read_spins = 0;
+  while((r = reader->read()) == std::nullopt)
+  {
+    ++read_spins;
+  }
+
+  assert(*r == eof);
+
+  if(auto msg = context.message_at(loglevel_t::info))
+  {
+    *msg << __func__ << ": read spins expecting eof: " << read_spins;
+  }
+
+  if(auto msg = context.message_at(loglevel_t::info))
+  {
+    *msg << __func__ << ": done";
+  }
+}
+
 void scheduled_transfer(logging_context_t const& context,
                         selector_factory_t const& factory,
                         unsigned int count)
@@ -317,11 +425,83 @@ void scheduled_transfer(logging_context_t const& context)
   }
 }
 
+void pull_mcq(logging_context_t const& context,
+              int tid,
+              mcq_t& queue,
+              unsigned int count)
+{
+  if(auto msg = context.message_at(loglevel_t::info))
+  {
+    *msg << __func__ <<
+      "(tid " << tid << "): pulling (count: " << count << ")";
+  }
+
+  while(count)
+  {
+    assert(queue.pull() == '*');
+    --count;
+  }
+
+  if(auto msg = context.message_at(loglevel_t::info))
+  {
+    *msg << __func__ << "(tid " << tid << "): pulling done";
+  }
+}
+
+void test_mcq(logging_context_t const& context,
+              selector_factory_t const& factory)
+{
+  static unsigned int constexpr n_threads = 17;
+  static unsigned int constexpr n_events = 100;
+
+  if(auto msg = context.message_at(loglevel_t::info))
+  {
+    *msg << __func__ << ": starting (selector: " << factory << ")";
+  }
+
+  mcq_t queue(factory);
+  {
+    std::unique_ptr<scoped_thread_t> threads[n_threads];
+    auto guard = make_scoped_guard([&] { queue.push(eof); });
+
+    for(unsigned int tid = 0; tid != n_threads; ++tid)
+    {
+      threads[tid] = std::make_unique<scoped_thread_t>(
+        [&, tid, count = n_events] { pull_mcq(context, tid, queue, count); }); 
+    }
+
+    for(unsigned int i = 0; i != n_threads * n_events; ++i)
+    {
+      queue.push('*');
+    }
+
+    if(auto msg = context.message_at(loglevel_t::info))
+    {
+      *msg << __func__ << ": pushing done";
+    }
+  }
+
+  if(auto msg = context.message_at(loglevel_t::info))
+  {
+    *msg << __func__ << ": threads joined; done";
+  }
+}
+
+void test_mcq(logging_context_t const& context)
+{
+  auto factories = available_selector_factories();
+  for(auto const& factory : factories)
+  {
+    test_mcq(context, factory);
+  }
+}
+
 void do_run_tests(logging_context_t const& context)
 {
   blocking_transfer(context);
   nonblocking_transfer(context);
   scheduled_transfer(context);
+  test_mcq(context);
 }
 
 struct options_t
