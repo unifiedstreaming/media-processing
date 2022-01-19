@@ -178,8 +178,8 @@ struct mcq_t
 {
   explicit mcq_t(selector_factory_t const& factory)
   : mutex_()
-  , loaded_(false)
-  , check_loaded_()
+  , active_(false)
+  , check_active_()
   , reader_(nullptr)
   , writer_(nullptr)
   , scheduler_(factory)
@@ -196,10 +196,10 @@ struct mcq_t
   {
     std::unique_lock<std::mutex> lock(mutex_);
 
-    while(loaded_)
+    while(active_)
     {
       assert(writer_ != nullptr);
-      check_loaded_.wait(lock);
+      check_active_.wait(lock);
     }
 
     assert(writer_ != nullptr);
@@ -213,7 +213,7 @@ struct mcq_t
       writer_.reset();
     }
       
-    loaded_ = true;
+    active_ = true;
   }
 
   int pull()
@@ -228,27 +228,27 @@ struct mcq_t
     }
 
     std::optional<int> rr = std::nullopt;
-    while(rr == std::nullopt)
+    do
     {
       bool readable = false;
       reader_->call_when_readable(scheduler_, [&] { readable = true; });
-      while(!readable)
+      do 
       {
         auto cb = scheduler_.wait();
         assert(cb != nullptr);
         cb();
-      }
+      } while(!readable);
 
       {
         std::unique_lock<std::mutex> lock(mutex_);
-        if(loaded_)
+        if(active_)
         {
           rr = reader_->read();
           assert(rr != std::nullopt);
 
           if(*rr != eof)
           {
-            loaded_ = false;
+            active_ = false;
           }
           selecting_ = false;
         }
@@ -257,9 +257,9 @@ struct mcq_t
           // spurious wakeup: retry
         }
       }
-    }
+    } while(rr == std::nullopt);
 
-    check_loaded_.notify_all();
+    check_active_.notify_all();
     check_selecting_.notify_one();
 
     return *rr;
@@ -267,9 +267,9 @@ struct mcq_t
 
 private :
   mutable std::mutex mutex_;
-  bool loaded_;
-  std::condition_variable check_loaded_;
-  std::unique_ptr<event_pipe_reader_t> reader_; // readable when loaded
+  bool active_;
+  std::condition_variable check_active_;
+  std::unique_ptr<event_pipe_reader_t> reader_; // readable when active
   std::unique_ptr<event_pipe_writer_t> writer_; // nullptr when closed
   default_scheduler_t scheduler_;
   bool selecting_;
@@ -452,11 +452,11 @@ unsigned int pull_mcq(logging_context_t const& context,
   return count;
 }
 
-void test_mcq(logging_context_t const& context,
-              selector_factory_t const& factory)
+void multiple_consumer_queue(logging_context_t const& context,
+                             selector_factory_t const& factory)
 {
   static unsigned int constexpr n_threads = 17;
-  static unsigned int constexpr n_events = 100;
+  static unsigned int constexpr n_events = n_threads * 100;
 
   if(auto msg = context.message_at(loglevel_t::info))
   {
@@ -472,13 +472,10 @@ void test_mcq(logging_context_t const& context,
     for(unsigned int tid = 0; tid != n_threads; ++tid)
     {
       threads[tid] = std::make_unique<scoped_thread_t>(
-        [&, tid]
-	{
-	  counts[tid] = pull_mcq(context, tid, queue);
-	}); 
+        [&, tid] { counts[tid] = pull_mcq(context, tid, queue); }); 
     }
 
-    for(unsigned int i = 0; i != n_threads * n_events; ++i)
+    for(unsigned int i = 0; i != n_events; ++i)
     {
       queue.push('*');
     }
@@ -494,12 +491,12 @@ void test_mcq(logging_context_t const& context,
     *msg << __func__ << ": threads joined";
   }
 
-  unsigned int total = 0;
+  unsigned int total_count = 0;
   for(unsigned int i = 0; i != n_threads; ++i)
   {
-    total += counts[i];
+    total_count += counts[i];
   }
-  assert(total == n_threads * n_events);
+  assert(total_count == n_events);
 
   if(auto msg = context.message_at(loglevel_t::info))
   {
@@ -507,12 +504,12 @@ void test_mcq(logging_context_t const& context,
   }
 }
 
-void test_mcq(logging_context_t const& context)
+void multiple_consumer_queue(logging_context_t const& context)
 {
   auto factories = available_selector_factories();
   for(auto const& factory : factories)
   {
-    test_mcq(context, factory);
+    multiple_consumer_queue(context, factory);
   }
 }
 
@@ -521,7 +518,7 @@ void do_run_tests(logging_context_t const& context)
   blocking_transfer(context);
   nonblocking_transfer(context);
   scheduled_transfer(context);
-  test_mcq(context);
+  multiple_consumer_queue(context);
 }
 
 struct options_t
