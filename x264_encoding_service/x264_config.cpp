@@ -150,7 +150,7 @@ std::unique_ptr<cuti::pidfile_t> x264_config_t::create_pidfile() const
 
 std::unique_ptr<cuti::service_t>
 x264_config_t::create_service(cuti::logging_context_t& context,
-                              cuti::tcp_connection_t& control_connection) const
+                              cuti::event_pipe_reader_t& control_pipe) const
 {
   context.level(loglevel_);
 
@@ -161,7 +161,7 @@ x264_config_t::create_service(cuti::logging_context_t& context,
   }
 
   auto result = std::make_unique<x264_service_t>(
-      context, control_connection, selector_, endpoints);
+      context, control_pipe, selector_, endpoints);
   if(dry_run_)
   {
     result.reset();

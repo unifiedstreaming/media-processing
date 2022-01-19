@@ -29,7 +29,7 @@ namespace cuti
 {
 
 dispatcher_t::dispatcher_t(logging_context_t const& logging_context,
-                           tcp_connection_t& control,
+                           event_pipe_reader_t& control,
                            selector_factory_t const& selector_factory)
 : logging_context_(logging_context)
 , control_(control)
@@ -77,22 +77,19 @@ void dispatcher_t::run()
 
 void dispatcher_t::on_control()
 {
-  char buf[1];
-  char* next;
-  control_.read(buf, buf + 1, next);
+  std::optional<int> rr = control_.read();
 
-  if(next == nullptr)
+  if(rr == std::nullopt)
   {
     // spurious callback
   }
-  else if(next == buf)
+  else if(*rr == eof)
   {
-    throw system_exception_t("unexpected EOF on control connection");
+    throw system_exception_t("unexpected EOF on control pipe");
   }
   else
   {
-    assert(next == buf + 1);
-    sig_ = buf[0];
+    sig_ = *rr;
     assert(sig_ != 0);
   }
 

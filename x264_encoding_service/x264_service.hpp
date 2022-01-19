@@ -39,7 +39,7 @@ struct tcp_connection_t;
 struct x264_service_t : cuti::service_t
 {
   x264_service_t(cuti::logging_context_t const& context,
-                 cuti::tcp_connection_t& control_connection,
+                 cuti::event_pipe_reader_t& control_pipe,
                  cuti::selector_factory_t const& selector_factory,
                  std::vector<cuti::endpoint_t> const& endpoints);
 

@@ -21,6 +21,7 @@
 #define CUTI_DISPATCHER_HPP_
 
 #include "default_scheduler.hpp"
+#include "event_pipe.hpp"
 #include "linkage.h"
 #include "listener.hpp"
 #include "selector_factory.hpp"
@@ -38,7 +39,7 @@ struct tcp_connection_t;
 struct CUTI_ABI dispatcher_t
 {
   dispatcher_t(logging_context_t const& logging_context,
-               tcp_connection_t& control,
+               event_pipe_reader_t& control,
                selector_factory_t const& selector_factory);
 
   dispatcher_t(dispatcher_t const&) = delete;
@@ -54,7 +55,7 @@ private :
 
 private :
   logging_context_t const& logging_context_;
-  tcp_connection_t& control_;
+  event_pipe_reader_t& control_;
   std::string selector_name_;
   default_scheduler_t scheduler_;
   int sig_;

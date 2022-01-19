@@ -60,30 +60,27 @@ constexpr auto default_loglevel = loglevel_t::warning;
 struct control_pair_t
 {
   control_pair_t()
-  : connections_(make_connected_pair())
-  { connections_.first->set_nonblocking(); }
+  : event_pipe_(make_event_pipe())
+  { event_pipe_.second->set_nonblocking(); }
 
   control_pair_t(control_pair_t const&) = delete;
   control_pair_t& operator=(control_pair_t const&) = delete;
   
-  tcp_connection_t& sender()
-  { return *connections_.first; }
+  event_pipe_reader_t& reader()
+  { return *event_pipe_.first; }
   
-  tcp_connection_t& receiver()
-  { return *connections_.second; }
+  event_pipe_writer_t& writer()
+  { return *event_pipe_.second; }
   
 private :
-  std::pair<std::unique_ptr<tcp_connection_t>,
-            std::unique_ptr<tcp_connection_t>>
-  connections_;
+  std::pair<std::unique_ptr<event_pipe_reader_t>,
+            std::unique_ptr<event_pipe_writer_t>>
+  event_pipe_;
 };
 
 void send_signal(control_pair_t& control_pair, int sig)
 {
-  char buf[1];
-  buf[0] = static_cast<char>(sig);
-  char const* next;
-  control_pair.sender().write(buf, buf + 1, next);
+  control_pair.writer().write(static_cast<unsigned char>(sig));
 }
                  
 void run_attended(control_pair_t& control_pair,
@@ -126,7 +123,7 @@ void run_attended(control_pair_t& control_pair,
   }
 
   logging_context_t context(logger, default_loglevel);
-  if(auto service = config.create_service(context, control_pair.receiver()))
+  if(auto service = config.create_service(context, control_pair.reader()))
   {
     service->run();
   }
@@ -329,7 +326,7 @@ void service_main(DWORD dwNumServiceArgs, LPSTR* lpServiceArgVectors)
       cuti::change_directory(dir);
     }
 
-    auto service = config->create_service(context, control_pair.receiver());
+    auto service = config->create_service(context, control_pair.reader());
 
     running_state_t running_state(status_reporter);
     if(service !=  nullptr)
@@ -588,7 +585,7 @@ void run_as_daemon(service_config_t const& config, char const* argv0)
       }
 
       logging_context_t context(logger, default_loglevel);
-      auto service = config.create_service(context, control_pair.receiver());
+      auto service = config.create_service(context, control_pair.reader());
 
       redirect_standard_fds();
 

@@ -22,10 +22,10 @@
 
 #include "linkage.h"
 
+#include "event_pipe.hpp"
 #include "logging_backend.hpp"
 #include "logging_context.hpp"
 #include "process_utils.hpp"
-#include "tcp_connection.hpp"
 
 #include <memory>
 #include <string>
@@ -111,15 +111,14 @@ struct CUTI_ABI service_config_t
   /*
    * Creates the actual service application object.
    * The service should log via <logging_context>.
-   * <control_connection> yields byte-sized shutdown signal
-   * numbers; the service must respond to any input by returning from
-   * its run() method.
+   * <control_pipe> yields shutdown signal numbers; the service must
+   * respond to any input by returning from its run() method.
    * If this function returns nullptr, run_service() returns
    * immediately.
    */
   virtual std::unique_ptr<service_t>
   create_service(logging_context_t& logging_context,
-                 tcp_connection_t& control_connection) const = 0;
+                 event_pipe_reader_t& control_pipe) const = 0;
 
   virtual ~service_config_t();
 };
