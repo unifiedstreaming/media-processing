@@ -30,6 +30,7 @@
 #include <exception>
 #include <iostream>
 #include <memory>
+#include <tuple>
 #include <utility>
 
 #ifdef _WIN32
@@ -60,22 +61,25 @@ constexpr auto default_loglevel = loglevel_t::warning;
 struct control_pair_t
 {
   control_pair_t()
-  : event_pipe_(make_event_pipe())
-  { event_pipe_.second->set_nonblocking(); }
+  : reader_()
+  , writer_()
+  {
+    std::tie(reader_, writer_) = make_event_pipe();
+    writer_->set_nonblocking();
+  }
 
   control_pair_t(control_pair_t const&) = delete;
   control_pair_t& operator=(control_pair_t const&) = delete;
   
   event_pipe_reader_t& reader()
-  { return *event_pipe_.first; }
+  { return *reader_; }
   
   event_pipe_writer_t& writer()
-  { return *event_pipe_.second; }
+  { return *writer_; }
   
 private :
-  std::pair<std::unique_ptr<event_pipe_reader_t>,
-            std::unique_ptr<event_pipe_writer_t>>
-  event_pipe_;
+  std::unique_ptr<event_pipe_reader_t> reader_;
+  std::unique_ptr<event_pipe_writer_t> writer_;
 };
 
 void send_signal(control_pair_t& control_pair, int sig)
@@ -392,12 +396,10 @@ namespace // anonymous
 struct confirmation_pipe_t
 {
   confirmation_pipe_t()
+  : reader_()
+  , writer_()
   {
-    if(::pipe(fds_) == -1)
-    {
-      int cause = last_system_error();
-      throw system_exception_t("can't create pipe", cause);
-    }
+    std::tie(reader_, writer_) = make_event_pipe();
   }
 
   confirmation_pipe_t(confirmation_pipe_t const&) = delete;
@@ -405,60 +407,33 @@ struct confirmation_pipe_t
 
   void confirm()
   {
-    close_read_end();
-    
-    char buf[1];
-    buf[0] = '\0';
-    int r = ::write(fds_[1], &buf, 1);
-    if(r != 1)
-    {
-      throw system_exception_t("confirmation pipe write error");
-    }
+    reader_.reset();
 
-    close_write_end();
+    bool wr = writer_->write('\0');
+    static_cast<void>(wr);
+    assert(wr);
+
+    writer_.reset();
   }
 
   void await()
   {
-    close_write_end();
+    writer_.reset();
 
-    char buf[1];
-    int r = ::read(fds_[0], &buf, 1);
-    if(r != 1)
+    std::optional<int> rr = reader_->read();
+    assert(rr != std::nullopt);
+
+    if(*rr == eof)
     {
       throw system_exception_t("service failed to initialize");
     }
 
-    close_read_end();
+    reader_.reset();
   }
     
-  ~confirmation_pipe_t()
-  {
-    close_write_end();
-    close_read_end();
-  }
-
 private :
-  void close_read_end()
-  {
-    if(fds_[0] != -1)
-    {
-      ::close(fds_[0]);
-      fds_[0] = -1;
-    }
-  }
-
-  void close_write_end()
-  {
-    if(fds_[1] != -1)
-    {
-      ::close(fds_[1]);
-      fds_[1] = -1;
-    }
-  }
-
-private :
-  int fds_[2];
+  std::unique_ptr<event_pipe_reader_t> reader_;
+  std::unique_ptr<event_pipe_writer_t> writer_;
 };
 
 void redirect_standard_fds()
