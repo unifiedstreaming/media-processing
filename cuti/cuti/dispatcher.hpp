@@ -20,15 +20,12 @@
 #ifndef CUTI_DISPATCHER_HPP_
 #define CUTI_DISPATCHER_HPP_
 
-#include "default_scheduler.hpp"
 #include "event_pipe.hpp"
 #include "linkage.h"
 #include "listener.hpp"
 #include "selector_factory.hpp"
 
 #include <memory>
-#include <string>
-#include <vector>
 
 namespace cuti
 {
@@ -48,17 +45,11 @@ struct CUTI_ABI dispatcher_t
   
   void run();
 
-private :
-  void on_control();
-  void on_listener(listener_t& listener);
+  ~dispatcher_t();
 
 private :
-  logging_context_t const& logging_context_;
-  event_pipe_reader_t& control_;
-  std::string selector_name_;
-  default_scheduler_t scheduler_;
-  int sig_;
-  std::vector<std::unique_ptr<listener_t>> listeners_;
+  struct impl_t;
+  std::unique_ptr<impl_t> impl_;
 };
 
 } // cuti
