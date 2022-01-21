@@ -29,18 +29,16 @@ request_handler_t::request_handler_t(
   logging_context_t const& context,
   bound_inbuf_t& inbuf,
   bound_outbuf_t& outbuf,
-  method_map_t<request_handler_t> const& method_map)
+  method_map_t const& map)
 : result_(result)
 , context_(context)
-, inbuf_(inbuf)
-, outbuf_(outbuf)
-, method_map_(method_map)
-, method_reader_(*this, &request_handler_t::on_method_reader_failure, inbuf_)
-, method_(nullptr)
-, eom_checker_(*this, &request_handler_t::on_eom_checker_failure, inbuf_)
-, exception_writer_(*this, result_, outbuf_)
-, eom_writer_(*this, result_, outbuf_)
-, request_drainer_(*this, result_, inbuf_)
+, method_reader_(*this, &request_handler_t::on_method_reader_failure, inbuf)
+, method_runner_(*this, &request_handler_t::on_method_failure,
+   context_, inbuf, outbuf, map)
+, eom_checker_(*this, &request_handler_t::on_eom_checker_failure, inbuf)
+, exception_writer_(*this, result_, outbuf)
+, eom_writer_(*this, result_, outbuf)
+, request_drainer_(*this, result_, inbuf)
 { }
 
 void request_handler_t::start()
@@ -50,23 +48,12 @@ void request_handler_t::start()
 
 void request_handler_t::start_method(identifier_t name)
 {
-  method_ = method_map_.create_method_instance(
-    name, *this, &request_handler_t::on_method_failure,
-    context_, inbuf_, outbuf_);
-
-  if(method_ == nullptr)
-  {
-    this->report_failure("bad_method",
-      "method \'" + name.as_string() + "\' not found");
-    return;
-  }
-
   if(auto msg = context_.message_at(loglevel_t::info))
   {
     *msg << "request_handler: starting method " << name;
   }
 
-  method_->start(&request_handler_t::on_method_succeeded);
+  method_runner_.start(&request_handler_t::on_method_succeeded, name);
 }
   
 void request_handler_t::on_method_succeeded()
@@ -106,12 +93,6 @@ void request_handler_t::report_failure(std::string type, std::exception_ptr ex)
     description = stdex.what();
   }
 
-  this->report_failure(std::move(type), std::move(description));
-}
-
-void request_handler_t::report_failure(std::string type,
-                                       std::string description)
-{
   remote_error_t error(type, description);
 
   if(auto msg = context_.message_at(loglevel_t::error))

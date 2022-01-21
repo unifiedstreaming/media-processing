@@ -17,9 +17,13 @@
  * <http://www.gnu.org/licenses/>.
  */
 
+#include <cuti/bound_inbuf.hpp>
+#include <cuti/bound_outbuf.hpp>
 #include <cuti/default_scheduler.hpp>
 #include <cuti/final_result.hpp>
+#include <cuti/logging_context.hpp>
 #include <cuti/method_map.hpp>
+#include <cuti/method_runner.hpp>
 #include <cuti/nb_string_inbuf.hpp>
 #include <cuti/nb_string_outbuf.hpp>
 
@@ -114,70 +118,18 @@ private :
 auto configurable_method_factory(bool fail)
 {
   return [fail = fail](
-    auto& parent, auto on_failure,
+    result_t<void>& result,
     logging_context_t const& context,
-    bound_inbuf_t& inbuf, bound_outbuf_t& outbuf)
+    bound_inbuf_t& inbuf,
+    bound_outbuf_t& outbuf)
   {
     return make_method<configurable_t>(
-      parent, on_failure, context, inbuf, outbuf, fail);
+      result, context, inbuf, outbuf, fail);
   };
 }
     
-struct sample_request_handler_t
-{
-  using result_value_t = void;
-
-  sample_request_handler_t(result_t<void>& result,
-                           logging_context_t const& context,
-                           bound_inbuf_t& inbuf,
-                           bound_outbuf_t& outbuf,
-                           method_map_t<sample_request_handler_t> const& map)
-  : result_(result)
-  , context_(context)
-  , inbuf_(inbuf)
-  , outbuf_(outbuf)
-  , map_(map)
-  , method_(nullptr)
-  { }
-
-  void start(identifier_t method_name)
-  {
-    method_ = map_.create_method_instance(method_name,
-      *this, &sample_request_handler_t::on_failure,
-      context_, inbuf_, outbuf_);
-
-    if(method_ == nullptr)
-    {
-      result_.fail(std::runtime_error("method not found"));
-      return;
-    }
-
-    method_->start(&sample_request_handler_t::on_success);
-  }
-
-private :
-  void on_success()
-  {
-    result_.submit();
-  }
-
-  void on_failure(std::exception_ptr ex)
-  {
-    result_.fail(std::move(ex));
-  }
-
-private :
-  result_t<void>& result_;
-  logging_context_t const& context_;
-  bound_inbuf_t& inbuf_;
-  bound_outbuf_t& outbuf_;
-  method_map_t<sample_request_handler_t> const& map_;
-
-  std::unique_ptr<method_t<sample_request_handler_t>> method_;
-};
-
-void test_handler_method(
-  method_map_t<sample_request_handler_t> const& method_map,
+void test_method(
+  method_map_t const& method_map,
   std::string const& method_name,
   std::string const& expected_what = "")
 {
@@ -199,14 +151,14 @@ void test_handler_method(
   bound_outbuf_t bound_outbuf(base_marker, *nb_outbuf, scheduler);
 
   /*
-   * Set up request handler
+   * Set up method runner
    */
   final_result_t<void> final_result;
-  sample_request_handler_t request_handler(final_result,
+  method_runner_t runner(final_result,
     logging_context, bound_inbuf, bound_outbuf, method_map);
 
   // All sample methods used here submit immediately
-  request_handler.start(method_name);
+  runner.start(method_name);
   assert(final_result.available());
 
   if(expected_what == "")
@@ -229,9 +181,9 @@ void test_handler_method(
   }
 }
 
-void test_handler_methods()
+void test_methods()
 {
-  method_map_t<sample_request_handler_t> map;
+  method_map_t map;
 
   // Default method factories
   map.add_method_factory("succeed", default_method_factory<succeed_t>());
@@ -243,18 +195,18 @@ void test_handler_methods()
   map.add_method_factory("configured_to_fail",
     configurable_method_factory(true));
     
-  test_handler_method(map, "succeed");
-  test_handler_method(map, "unknown", "method not found");
-  test_handler_method(map, "fail", "method failed");
-  test_handler_method(map, "configured_to_succeed");
-  test_handler_method(map, "configured_to_fail", "configured to fail");
+  test_method(map, "succeed");
+  test_method(map, "unknown", "method \'unknown\' not found");
+  test_method(map, "fail", "method failed");
+  test_method(map, "configured_to_succeed");
+  test_method(map, "configured_to_fail", "configured to fail");
 }  
 
 } // anonymous
 
 int main()
 {
-  test_handler_methods();
+  test_methods();
 
   return 0;
 }

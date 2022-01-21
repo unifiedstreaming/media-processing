@@ -80,7 +80,7 @@ private :
 int run_int_request(logging_context_t const& client_context,
                     logging_context_t const& server_context,
                     std::size_t bufsize,
-                    method_map_t<request_handler_t> const& method_map,
+                    method_map_t const& method_map,
                     std::string request)
 {
   if(auto msg = client_context.message_at(loglevel_t::info))
@@ -150,7 +150,7 @@ int run_int_request(logging_context_t const& client_context,
 void fail_int_request(logging_context_t const& client_context,
                       logging_context_t const& server_context,
                       std::size_t bufsize,
-                      method_map_t<request_handler_t> const& method_map,
+                      method_map_t const& method_map,
                       std::string request)
 {
   bool caught = false;
@@ -174,7 +174,7 @@ void do_run_tests(logging_context_t const& client_context,
                   logging_context_t const& server_context,
                   std::size_t bufsize)
 {
-  method_map_t<request_handler_t> map;
+  method_map_t map;
   map.add_method_factory(
     "add", default_method_factory<add_handler_t>());
   map.add_method_factory(

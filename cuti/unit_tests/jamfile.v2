@@ -89,8 +89,8 @@ unit-test membuf_test
 : membuf_test.cpp
 ;
 
-unit-test method_map_test
-: method_map_test.cpp
+unit-test method_runner_test
+: method_runner_test.cpp
 ;
 
 unit-test nb_buffers_test

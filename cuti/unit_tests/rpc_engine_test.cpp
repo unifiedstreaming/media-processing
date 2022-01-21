@@ -222,7 +222,7 @@ bool at_eof(logging_context_t const& context, nb_inbuf_t& inbuf)
 void handle_request(logging_context_t const& context,
                     nb_inbuf_t& inbuf,
                     nb_outbuf_t& outbuf,
-                    method_map_t<request_handler_t> const& method_map)
+                    method_map_t const& method_map)
 {
   default_scheduler_t scheduler;
   stack_marker_t base_marker;
@@ -243,7 +243,7 @@ void handle_request(logging_context_t const& context,
 void handle_requests(logging_context_t const& context,
                      nb_inbuf_t& inbuf,
                      nb_outbuf_t& outbuf,
-                     method_map_t<request_handler_t> const& method_map)
+                     method_map_t const& method_map)
 {
   if(auto msg = context.message_at(loglevel_t::info))
   {
@@ -607,12 +607,13 @@ void run_engine_tests(logging_context_t const& context,
 auto censored_echo_method_factory(std::string censored)
 {
   return [ censored = std::move(censored) ](
-    auto& parent, auto on_failure,
+    result_t<void>& result,
     logging_context_t const& context,
-    bound_inbuf_t& inbuf, bound_outbuf_t& outbuf)
+    bound_inbuf_t& inbuf,
+    bound_outbuf_t& outbuf)
   {
     return make_method<echo_handler_t>(
-      parent, on_failure, context, inbuf, outbuf, censored);
+      result, context, inbuf, outbuf, censored);
   };
 }
     
@@ -625,7 +626,7 @@ void do_run_tests(logging_context_t const& client_context,
     *msg << __func__ << ": starting; bufsize: " << bufsize;
   }
 
-  method_map_t<request_handler_t> map;
+  method_map_t map;
   map.add_method_factory(
     "add", default_method_factory<add_handler_t>());
   map.add_method_factory(

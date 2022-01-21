@@ -29,6 +29,7 @@
 #include "logging_context.hpp"
 #include "method.hpp"
 #include "method_map.hpp"
+#include "method_runner.hpp"
 #include "result.hpp"
 #include "subroutine.hpp"
 
@@ -46,7 +47,7 @@ struct CUTI_ABI request_handler_t
                     logging_context_t const& context,
                     bound_inbuf_t& inbuf,
                     bound_outbuf_t& outbuf,
-                    method_map_t<request_handler_t> const& method_map);
+                    method_map_t const& map);
 
   request_handler_t(request_handler_t const&) = delete;
   request_handler_t& operator=(request_handler_t const&) = delete;
@@ -62,7 +63,6 @@ private :
   void on_eom_checker_failure(std::exception_ptr ex);
 
   void report_failure(std::string type, std::exception_ptr ex);
-  void report_failure(std::string type, std::string description);
 
   void write_eom();
   void drain_request();
@@ -71,13 +71,11 @@ private :
 private :
   result_t<void>& result_;
   logging_context_t const& context_;
-  bound_inbuf_t& inbuf_;
-  bound_outbuf_t& outbuf_;
-  method_map_t<request_handler_t> const& method_map_;
 
   subroutine_t<request_handler_t, reader_t<identifier_t>,
     failure_mode_t::handle_in_parent> method_reader_;
-  std::unique_ptr<method_t<request_handler_t>> method_;
+  subroutine_t<request_handler_t, method_runner_t,
+    failure_mode_t::handle_in_parent> method_runner_;
   subroutine_t<request_handler_t, eom_checker_t,
     failure_mode_t::handle_in_parent> eom_checker_;
   subroutine_t<request_handler_t, exception_writer_t> exception_writer_;

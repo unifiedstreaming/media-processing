@@ -20,29 +20,33 @@
 #ifndef CUTI_METHOD_HPP_
 #define CUTI_METHOD_HPP_
 
-#include "subroutine.hpp"
+#include "linkage.h"
+#include "result.hpp"
 
-#include <exception>
 #include <memory>
 #include <utility>
 
 namespace cuti
 {
 
+struct logging_context_t;
+struct bound_inbuf_t;
+struct bound_outbuf_t;
+
 /*
- * Interface type for an asynchronous method instance living under
- * request handler type Parent.
+ * Interface type for an asynchronous method instance.
  */
-template<typename Parent>
-struct method_t
+struct CUTI_ABI method_t
 {
+  using result_value_t = void;
+
   method_t()
   { }
 
   method_t(method_t const&) = delete;
   method_t& operator=(method_t const&) = delete;
 
-  virtual void start(void (Parent::*on_success)()) = 0;
+  virtual void start() = 0;
 
   virtual ~method_t()
   { }
@@ -52,36 +56,40 @@ struct method_t
  * Concrete asynchronous method instance type delegating to
  * asynchronous routine type Impl.
  */
-template<typename Parent, typename Impl>
-struct method_inst_t : method_t<Parent>
+template<typename Impl>
+struct method_inst_t : method_t
 {
-  template<typename... ImplArgs>
-  method_inst_t(Parent& parent,
-                void (Parent::*on_failure)(std::exception_ptr),
-                ImplArgs&&... impl_args)
-  : subroutine_(parent, on_failure, std::forward<ImplArgs>(impl_args)...)
+  template<typename... Others>
+  method_inst_t(result_t<void>& result,
+                logging_context_t const& context,
+                bound_inbuf_t& inbuf,
+                bound_outbuf_t& outbuf,
+                Others&&... others)
+  : impl_(result, context, inbuf, outbuf, std::forward<Others>(others)...)
   { }
 
-  void start(void (Parent::*on_success)()) override
+  void start() override
   {
-    subroutine_.start(on_success);
+    impl_.start();
   }
 
 private :
-  subroutine_t<Parent, Impl, failure_mode_t::handle_in_parent> subroutine_;
+  Impl impl_;
 };
 
 /*
  * Convenience function for creating a method instance.
  */
-template<typename Impl, typename Parent, typename... ImplArgs>
-std::unique_ptr<method_t<Parent>>
-make_method(Parent& parent,
-            void (Parent::*on_failure)(std::exception_ptr),
-            ImplArgs&&... impl_args)
+template<typename Impl, typename... Others>
+std::unique_ptr<method_t>
+make_method(result_t<void>& result,
+            logging_context_t const& context,
+            bound_inbuf_t& inbuf,
+            bound_outbuf_t& outbuf,
+            Others&&... others)
 {
-  return std::make_unique<method_inst_t<Parent, Impl>>(
-    parent, on_failure, std::forward<ImplArgs>(impl_args)...);
+  return std::make_unique<method_inst_t<Impl>>(
+    result, context, inbuf, outbuf, std::forward<Others>(others)...);
 }
 
 } // cuti

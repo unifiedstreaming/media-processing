@@ -111,6 +111,7 @@ lib cuti
   membuf.cpp
   method.cpp
   method_map.cpp
+  method_runner.cpp
   nb_inbuf.cpp
   nb_outbuf.cpp
   nb_sink.cpp

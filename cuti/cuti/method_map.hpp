@@ -20,14 +20,10 @@
 #ifndef CUTI_METHOD_MAP_HPP_
 #define CUTI_METHOD_MAP_HPP_
 
-#include "bound_inbuf.hpp"
-#include "bound_outbuf.hpp"
 #include "identifier.hpp"
-#include "logging_context.hpp"
 #include "method.hpp"
 
 #include <cassert>
-#include <exception>
 #include <map>
 #include <memory>
 #include <tuple>
@@ -38,28 +34,16 @@ namespace cuti
 {
 
 /*
- * Factory creating method instances by name for request handler type
- * Parent.
+ * Factory creating method instances by name.
  */
-template<typename Parent>
-struct method_map_t
+struct CUTI_ABI method_map_t
 {
   method_map_t()
   : factories_()
   { }
 
   /*
-   * Adds a method factory for the method named name.  The
-   * method_factory functor must accept the following arguments...
-   *
-   * - a reference to a Parent
-   * - a member function pointer to the Parent's failure handler
-   * - a reference to a logging_context_t
-   * - a reference to a bound_inbuf_t
-   * - a reference to a bound_outbuf_t
-   *
-   * ...and return (something convertible to) a
-   * std::unique_ptr<method_t<Parent>>.
+   * Adds a method factory for the method named name.
    */
   template<typename MethodFactory>
   void add_method_factory(std::string name, MethodFactory&& method_factory)
@@ -76,23 +60,22 @@ struct method_map_t
    * Creates a method instance for the method named name, returning
    * nullptr if name is not found.
    */
-  std::unique_ptr<method_t<Parent>>
+  std::unique_ptr<method_t>
   create_method_instance(identifier_t const& name,
-                         Parent& parent,
-                         void (Parent::*on_failure)(std::exception_ptr),
+                         result_t<void>& result,
                          logging_context_t const& context,
                          bound_inbuf_t& inbuf,
                          bound_outbuf_t& outbuf) const
   {
-    std::unique_ptr<method_t<Parent>> result = nullptr;
+    std::unique_ptr<method_t> method = nullptr;
 
     auto pos = factories_.find(name);
     if(pos != factories_.end())
     {
-      result = (*pos->second)(parent, on_failure, context, inbuf, outbuf);
+      method = (*pos->second)(result, context, inbuf, outbuf);
     }
 
-    return result;
+    return method;
   }
     
 private :
@@ -104,9 +87,8 @@ private :
     factory_wrapper_t(factory_wrapper_t const&) = delete;
     factory_wrapper_t& operator=(factory_wrapper_t const&) = delete;
 
-    virtual std::unique_ptr<method_t<Parent>>
-    operator()(Parent& parent,
-               void (Parent::*on_failure)(std::exception_ptr),
+    virtual std::unique_ptr<method_t>
+    operator()(result_t<void>& result,
                logging_context_t const& context,
                bound_inbuf_t& inbuf,
                bound_outbuf_t& outbuf) const = 0;
@@ -128,14 +110,13 @@ private :
       }
     }
 
-    std::unique_ptr<method_t<Parent>>
-    operator()(Parent& parent,
-               void (Parent::*on_failure)(std::exception_ptr),
+    std::unique_ptr<method_t>
+    operator()(result_t<void>& result,
                logging_context_t const& context,
                bound_inbuf_t& inbuf,
                bound_outbuf_t& outbuf) const override
     {
-      return wrapped_(parent, on_failure, context, inbuf, outbuf);
+      return wrapped_(result, context, inbuf, outbuf);
     }
 
   private :
@@ -157,14 +138,12 @@ private :
 template<typename Impl>
 auto default_method_factory()
 {
-  return [](
-    auto& parent,
-    auto on_failure,
-    logging_context_t const& context,
-    bound_inbuf_t& inbuf,
-    bound_outbuf_t& outbuf)
+  return [](result_t<void>& result,
+            logging_context_t const& context,
+            bound_inbuf_t& inbuf,
+            bound_outbuf_t& outbuf)
   {
-    return make_method<Impl>(parent, on_failure, context, inbuf, outbuf);
+    return make_method<Impl>(result, context, inbuf, outbuf);
   };
 }
 
