@@ -42,6 +42,9 @@ struct CUTI_ABI method_map_t
   : factories_()
   { }
 
+  method_map_t(method_map_t const&) = delete;
+  method_map_t& operator=(method_map_t const&) = delete;
+  
   /*
    * Adds a method factory for the method named name.
    */
