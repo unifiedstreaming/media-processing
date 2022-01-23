@@ -19,22 +19,23 @@
 
 #include "x264_service.hpp"
 
-#include "x264_listener.hpp"
-
 #include <cuti/dispatcher.hpp>
+#include <cuti/method_map.hpp>
 
 x264_service_t::x264_service_t(
   cuti::logging_context_t const& context,
   cuti::event_pipe_reader_t& control_pipe,
   cuti::selector_factory_t const& selector_factory,
   std::vector<cuti::endpoint_t> const& endpoints)
-: dispatcher_(std::make_unique<cuti::dispatcher_t>(
+: map_(std::make_unique<cuti::method_map_t>())
+, dispatcher_(std::make_unique<cuti::dispatcher_t>(
                 context, control_pipe, selector_factory))
 {
+  // TODO: add methods to map
+
   for(auto const& endpoint : endpoints)
   {
-    dispatcher_->add_listener(std::make_unique<x264_listener_t>(
-      context, endpoint));
+    dispatcher_->add_listener(endpoint, *map_);
   }
 }
 

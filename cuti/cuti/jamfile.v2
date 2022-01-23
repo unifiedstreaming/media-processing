@@ -75,7 +75,6 @@ lib cuti
   charclass.cpp
   chrono_types.cpp
   circular_buffer.cpp
-  client.cpp
   clock_object.cpp
   cmdline_reader.cpp
   config_file_reader.cpp
@@ -103,7 +102,6 @@ lib cuti
   kqueue_selector.cpp
   linkage.cpp
   list_arena.cpp
-  listener.cpp
   logger.cpp
   logging_backend.cpp
   logging_context.cpp

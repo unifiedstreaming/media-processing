@@ -31,6 +31,7 @@ namespace cuti
 
 struct dispatcher_t;
 struct logging_context_t;
+struct method_map_t;
 struct selector_factory_t;
 struct tcp_connection_t;
 
@@ -48,6 +49,7 @@ struct x264_service_t : cuti::service_t
   ~x264_service_t() override;
       
 private :
+  std::unique_ptr<cuti::method_map_t> map_;
   std::unique_ptr<cuti::dispatcher_t> dispatcher_;
 };
 

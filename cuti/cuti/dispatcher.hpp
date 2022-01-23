@@ -20,17 +20,18 @@
 #ifndef CUTI_DISPATCHER_HPP_
 #define CUTI_DISPATCHER_HPP_
 
-#include "event_pipe.hpp"
 #include "linkage.h"
-#include "listener.hpp"
-#include "selector_factory.hpp"
 
 #include <memory>
 
 namespace cuti
 {
 
+struct endpoint_t;
+struct event_pipe_reader_t;
 struct logging_context_t;
+struct method_map_t;
+struct selector_factory_t;
 
 struct CUTI_ABI dispatcher_t
 {
@@ -41,7 +42,7 @@ struct CUTI_ABI dispatcher_t
   dispatcher_t(dispatcher_t const&) = delete;
   dispatcher_t& operator=(dispatcher_t const&) = delete;
 
-  void add_listener(std::unique_ptr<listener_t> listener);
+  void add_listener(endpoint_t const& endpoint, method_map_t const& map);
   
   void run();
 

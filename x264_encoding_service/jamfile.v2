@@ -21,10 +21,8 @@ import package ;
 
 exe x264_encoding_service
 : main.cpp
-  x264_client.cpp
   x264_config.cpp
   x264_config_reader.cpp
-  x264_listener.cpp
   x264_service.cpp
   /cuti//cuti
 : <threading>multi
