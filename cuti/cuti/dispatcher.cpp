@@ -19,14 +19,22 @@
 
 #include "dispatcher.hpp"
 
+#include "async_readers.hpp"
+#include "bound_inbuf.hpp"
+#include "bound_outbuf.hpp"
 #include "default_scheduler.hpp"
 #include "event_pipe.hpp"
+#include "final_result.hpp"
 #include "logging_context.hpp"
 #include "method_map.hpp"
+#include "nb_tcp_buffers.hpp"
+#include "request_handler.hpp"
 #include "tcp_acceptor.hpp"
 #include "tcp_connection.hpp"
 
+#include <list>
 #include <string>
+#include <tuple>
 #include <utility>
 #include <vector>
 
@@ -42,39 +50,82 @@ struct client_t
            std::unique_ptr<tcp_connection_t> connection,
            method_map_t const& map)
   : context_(context)
-  , connection_(std::move(connection))
-  // , map_(map)
+  , nb_inbuf_()
+  , nb_outbuf_()
+  , map_(map)
   {
-    connection_->set_nonblocking();
+    std::tie(nb_inbuf_, nb_outbuf_) =
+      make_nb_tcp_buffers(std::move(connection));
+
     if(auto msg = context.message_at(loglevel_t::info))
     {
-      *msg << "accepted client " << *connection_;
+      *msg << "accepted client " << *nb_inbuf_;
     }
   }
 
-  cancellation_ticket_t call_when_readable(
+  void call_when_readable(
     scheduler_t& scheduler, callback_t callback)
   {
-    return connection_->call_when_readable(scheduler, std::move(callback));
+    nb_inbuf_->call_when_readable(scheduler, std::move(callback));
   }
 
   bool on_readable()
   {
-    return false;
+    default_scheduler_t scheduler;
+    stack_marker_t base_marker;
+    bound_inbuf_t bound_inbuf(base_marker, *nb_inbuf_, scheduler);
+    bound_outbuf_t bound_outbuf(base_marker, *nb_outbuf_, scheduler);
+
+    final_result_t<bool> at_eof;
+    eof_checker_t eof_checker(at_eof, bound_inbuf);
+    eof_checker.start();
+
+    while(!at_eof.available())
+    {
+      auto cb = scheduler.wait();
+      assert(cb != nullptr);
+      cb();
+    }
+
+    if(at_eof.value())
+    {
+      if(auto msg = context_.message_at(loglevel_t::info))
+      {
+        *msg << "eof on client " << *nb_inbuf_;
+      }
+
+      return false;
+    }
+
+    final_result_t<void> handler_result;
+    request_handler_t request_handler(
+      handler_result, context_, bound_inbuf, bound_outbuf, map_);
+    request_handler.start();
+
+    while(!handler_result.available())
+    {
+      auto cb = scheduler.wait();
+      assert(cb != nullptr);
+      cb();
+    }
+
+    handler_result.value();
+    return true;
   }
 
   ~client_t()
   {
     if(auto msg = context_.message_at(loglevel_t::info))
     {
-      *msg << "disconnecting client " << *connection_;
+      *msg << "disconnecting client " << *nb_inbuf_;
     }
   }
 
 private :
   logging_context_t const& context_;
-  std::unique_ptr<tcp_connection_t> connection_;
-  // method_map_t const& map_;
+  std::unique_ptr<nb_inbuf_t> nb_inbuf_;
+  std::unique_ptr<nb_outbuf_t> nb_outbuf_;
+  method_map_t const& map_;
 };
 
 struct listener_t
@@ -150,6 +201,7 @@ struct dispatcher_t::impl_t
   , listeners_()
   , selector_name_(selector_factory.name())
   , scheduler_(selector_factory)
+  , clients_()
   , sig_(0)
   {
     auto callback = [this] { this->on_control(); };
@@ -166,8 +218,8 @@ struct dispatcher_t::impl_t
     scoped_guard_t guard([&] { listeners_.pop_back(); });
 
     listener_t& last = *listeners_.back();
-    auto callback = [this, &last ] { this->on_listener(last); };
-    last.call_when_ready(scheduler_, callback);
+    last.call_when_ready(
+      scheduler_, [this, &last ] { this->on_listener(last); } );
   
     guard.dismiss();
   }
@@ -218,12 +270,30 @@ private :
 
   void on_listener(listener_t& listener)
   {
-    std::unique_ptr<client_t> client = listener.on_ready();
-    // TODO: have scheduler monitor client
-    client.reset();
+    auto client = listener.on_ready();
+    if(client != nullptr)
+    {
+      auto pos = clients_.insert(clients_.end(), std::move(client));
+      (*pos)->call_when_readable(
+        scheduler_, [this, pos] { this->on_client(pos); });
+    }
   
-    auto callback = [this, &listener] { this->on_listener(listener); };
-    listener.call_when_ready(scheduler_, callback);
+    listener.call_when_ready(
+      scheduler_, [this, &listener] { this->on_listener(listener); } );
+  }
+
+  void on_client(std::list<std::unique_ptr<client_t>>::iterator pos)
+  {
+    bool more = (*pos)->on_readable();
+    if(more)
+    {
+      (*pos)->call_when_readable(
+        scheduler_, [this, pos] { this->on_client(pos); });
+    }
+    else
+    {
+      clients_.erase(pos);
+    }
   }
 
 private :
@@ -232,6 +302,7 @@ private :
   std::vector<std::unique_ptr<listener_t>> listeners_;
   std::string selector_name_;
   default_scheduler_t scheduler_;
+  std::list<std::unique_ptr<client_t>> clients_;
   int sig_;
 };
 

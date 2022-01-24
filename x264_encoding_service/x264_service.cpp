@@ -20,6 +20,7 @@
 #include "x264_service.hpp"
 
 #include <cuti/dispatcher.hpp>
+#include <cuti/echo_handler.hpp>
 #include <cuti/method_map.hpp>
 
 x264_service_t::x264_service_t(
@@ -31,7 +32,9 @@ x264_service_t::x264_service_t(
 , dispatcher_(std::make_unique<cuti::dispatcher_t>(
                 context, control_pipe, selector_factory))
 {
-  // TODO: add methods to map
+  // add echo method (for manual testing)
+  map_->add_method_factory(
+    "echo", cuti::default_method_factory<cuti::echo_handler_t>());
 
   for(auto const& endpoint : endpoints)
   {
