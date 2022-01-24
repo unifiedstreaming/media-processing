@@ -91,25 +91,25 @@ struct client_t
     {
       if(auto msg = context_.message_at(loglevel_t::info))
       {
-        *msg << "eof on client " << *nb_inbuf_;
+        *msg << "eof on client " << bound_inbuf;
       }
 
       return false;
     }
 
-    final_result_t<void> handler_result;
+    final_result_t<void> request_handler_result;
     request_handler_t request_handler(
-      handler_result, context_, bound_inbuf, bound_outbuf, map_);
+      request_handler_result, context_, bound_inbuf, bound_outbuf, map_);
     request_handler.start();
 
-    while(!handler_result.available())
+    while(!request_handler_result.available())
     {
       auto cb = scheduler.wait();
       assert(cb != nullptr);
       cb();
     }
 
-    handler_result.value();
+    request_handler_result.value();
     return true;
   }
 

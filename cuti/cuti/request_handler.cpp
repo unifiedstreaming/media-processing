@@ -32,13 +32,14 @@ request_handler_t::request_handler_t(
   method_map_t const& map)
 : result_(result)
 , context_(context)
-, method_reader_(*this, &request_handler_t::on_method_reader_failure, inbuf)
+, inbuf_(inbuf)
+, method_reader_(*this, &request_handler_t::on_method_reader_failure, inbuf_)
 , method_runner_(*this, &request_handler_t::on_method_failure,
-   context_, inbuf, outbuf, map)
-, eom_checker_(*this, &request_handler_t::on_eom_checker_failure, inbuf)
+   context_, inbuf_, outbuf, map)
+, eom_checker_(*this, &request_handler_t::on_eom_checker_failure, inbuf_)
 , exception_writer_(*this, result_, outbuf)
 , eom_writer_(*this, result_, outbuf)
-, request_drainer_(*this, result_, inbuf)
+, request_drainer_(*this, result_, inbuf_)
 { }
 
 void request_handler_t::start()
@@ -50,7 +51,8 @@ void request_handler_t::start_method(identifier_t name)
 {
   if(auto msg = context_.message_at(loglevel_t::info))
   {
-    *msg << "request_handler: starting method " << name;
+    *msg << "request_handler " << inbuf_ << ": starting method \'" <<
+      name << "\'";
   }
 
   method_runner_.start(&request_handler_t::on_method_succeeded, name);
@@ -60,7 +62,7 @@ void request_handler_t::on_method_succeeded()
 {
   if(auto msg = context_.message_at(loglevel_t::info))
   {
-    *msg << "request_handler: method succeeded";
+    *msg << "request_handler " << inbuf_ << ": method succeeded";
   }
 
   eom_checker_.start(&request_handler_t::write_eom);
@@ -97,7 +99,7 @@ void request_handler_t::report_failure(std::string type, std::exception_ptr ex)
 
   if(auto msg = context_.message_at(loglevel_t::error))
   {
-    *msg << "request_handler: reporting error: " << error;
+    *msg << "request_handler " << inbuf_ << ": reporting error: " << error;
   }
 
   exception_writer_.start(&request_handler_t::write_eom, std::move(error));

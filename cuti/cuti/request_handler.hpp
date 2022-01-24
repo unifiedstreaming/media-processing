@@ -71,6 +71,7 @@ private :
 private :
   result_t<void>& result_;
   logging_context_t const& context_;
+  bound_inbuf_t& inbuf_;
 
   subroutine_t<request_handler_t, reader_t<identifier_t>,
     failure_mode_t::handle_in_parent> method_reader_;

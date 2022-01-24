@@ -25,6 +25,7 @@
 #include "nb_inbuf.hpp"
 #include "stack_marker.hpp"
 
+#include <ostream>
 #include <utility>
 
 namespace cuti
@@ -87,6 +88,11 @@ struct CUTI_ABI bound_inbuf_t
   ~bound_inbuf_t()
   {
     this->cancel_when_readable();
+  }
+
+  friend std::ostream& operator<<(std::ostream& os, bound_inbuf_t& buf)
+  {
+    return os << buf.inbuf_;
   }
 
 private :

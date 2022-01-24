@@ -25,6 +25,7 @@
 #include "nb_outbuf.hpp"
 #include "stack_marker.hpp"
 
+#include <ostream>
 #include <utility>
 
 namespace cuti
@@ -87,6 +88,11 @@ struct CUTI_ABI bound_outbuf_t
   ~bound_outbuf_t()
   {
     this->cancel_when_writable();
+  }
+
+  friend std::ostream& operator<<(std::ostream& os, bound_outbuf_t& buf)
+  {
+    return os << buf.outbuf_;
   }
 
 private :
