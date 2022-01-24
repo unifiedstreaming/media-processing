@@ -43,7 +43,7 @@ struct client_t
            method_map_t const& map)
   : context_(context)
   , connection_(std::move(connection))
-  , map_(map)
+  // , map_(map)
   {
     connection_->set_nonblocking();
     if(auto msg = context.message_at(loglevel_t::info))
@@ -74,7 +74,7 @@ struct client_t
 private :
   logging_context_t const& context_;
   std::unique_ptr<tcp_connection_t> connection_;
-  method_map_t const& map_;
+  // method_map_t const& map_;
 };
 
 struct listener_t
