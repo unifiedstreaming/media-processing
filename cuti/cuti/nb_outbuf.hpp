@@ -40,6 +40,7 @@ struct scheduler_t;
 struct CUTI_ABI nb_outbuf_t
 {
   static std::size_t constexpr default_bufsize = 256 * 1024;
+  static duration_t constexpr default_tick_length = seconds_t(1);
 
   nb_outbuf_t(std::unique_ptr<nb_sink_t> sink,
               std::size_t bufsize = default_bufsize);
@@ -51,9 +52,10 @@ struct CUTI_ABI nb_outbuf_t
    * Enable throughput checking, which is disabled by default.  See
    * throughput_checker.hpp for details.
    */
-  void enable_throughput_checking(std::size_t min_bytes_per_tick,
-                                  unsigned int low_ticks_limit,
-                                  duration_t tick_length = seconds_t(1));
+  void enable_throughput_checking(
+    std::size_t min_bytes_per_tick,
+    unsigned int low_ticks_limit,
+    duration_t tick_length = default_tick_length);
 
   /*
    * Disable throughput checking.

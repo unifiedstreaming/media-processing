@@ -39,6 +39,9 @@ struct scheduler_t;
  */
 struct CUTI_ABI bound_outbuf_t
 {
+  static duration_t constexpr default_tick_length =
+    nb_outbuf_t::default_tick_length;
+
   bound_outbuf_t(stack_marker_t& base_marker,
                  nb_outbuf_t& outbuf,
                  scheduler_t& scheduler)
@@ -55,6 +58,11 @@ struct CUTI_ABI bound_outbuf_t
     return base_marker_;
   }
   
+  int error_status() const noexcept
+  {
+    return outbuf_.error_status();
+  }
+
   bool writable() const
   {
     return outbuf_.writable();
@@ -85,9 +93,24 @@ struct CUTI_ABI bound_outbuf_t
     outbuf_.cancel_when_writable();
   }
 
+  void enable_throughput_checking(
+    std::size_t min_bytes_per_tick,
+    unsigned int low_ticks_limit,
+    duration_t tick_length = default_tick_length)
+  {
+    outbuf_.enable_throughput_checking(
+      min_bytes_per_tick, low_ticks_limit, tick_length);
+  }
+
+  void disable_throughput_checking()
+  {
+    outbuf_.disable_throughput_checking();
+  }
+
   ~bound_outbuf_t()
   {
     this->cancel_when_writable();
+    this->disable_throughput_checking();
   }
 
   friend std::ostream& operator<<(std::ostream& os, bound_outbuf_t& buf)

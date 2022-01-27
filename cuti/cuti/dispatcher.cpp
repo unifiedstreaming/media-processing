@@ -29,9 +29,11 @@
 #include "method_map.hpp"
 #include "nb_tcp_buffers.hpp"
 #include "request_handler.hpp"
+#include "system_error.hpp"
 #include "tcp_acceptor.hpp"
 #include "tcp_connection.hpp"
 
+#include <cassert>
 #include <list>
 #include <string>
 #include <tuple>
@@ -73,27 +75,42 @@ struct client_t
   {
     default_scheduler_t scheduler;
     stack_marker_t base_marker;
-    bound_inbuf_t bound_inbuf(base_marker, *nb_inbuf_, scheduler);
-    bound_outbuf_t bound_outbuf(base_marker, *nb_outbuf_, scheduler);
 
-    final_result_t<bool> at_eof;
-    eof_checker_t eof_checker(at_eof, bound_inbuf);
+    bound_inbuf_t bound_inbuf(base_marker, *nb_inbuf_, scheduler);
+    bound_inbuf.enable_throughput_checking(
+      min_bytes_per_tick, low_ticks_limit, tick_length);
+
+    bound_outbuf_t bound_outbuf(base_marker, *nb_outbuf_, scheduler);
+    bound_outbuf.enable_throughput_checking(
+      min_bytes_per_tick, low_ticks_limit, tick_length);
+
+    final_result_t<bool> at_eof_result;
+    eof_checker_t eof_checker(at_eof_result, bound_inbuf);
     eof_checker.start();
 
-    while(!at_eof.available())
+    while(!at_eof_result.available())
     {
       auto cb = scheduler.wait();
       assert(cb != nullptr);
       cb();
     }
 
-    if(at_eof.value())
+    if(at_eof_result.value())
     {
-      if(auto msg = context_.message_at(loglevel_t::info))
+      if(int status = bound_inbuf.error_status())
       {
-        *msg << "eof on client " << bound_inbuf;
+        if(auto msg = context_.message_at(loglevel_t::error))
+        {
+          *msg << "client " << bound_inbuf << ": input error: " <<
+            system_error_string(status);
+        }
+        return false;
       }
 
+      if(auto msg = context_.message_at(loglevel_t::info))
+      {
+        *msg << "client " << bound_inbuf << ": end of input";
+      }
       return false;
     }
 
@@ -110,6 +127,27 @@ struct client_t
     }
 
     request_handler_result.value();
+
+    if(int status = bound_inbuf.error_status())
+    {
+      if(auto msg = context_.message_at(loglevel_t::error))
+      {
+        *msg << "client " << bound_inbuf << ": input error: " <<
+          system_error_string(status);
+      }
+      return false;
+    }
+
+    if(int status = bound_outbuf.error_status())
+    {
+      if(auto msg = context_.message_at(loglevel_t::error))
+      {
+        *msg << "client " << bound_outbuf << ": output error: " <<
+          system_error_string(status);
+      }
+      return false;
+    }
+
     return true;
   }
 
@@ -120,6 +158,12 @@ struct client_t
       *msg << "disconnecting client " << *nb_inbuf_;
     }
   }
+
+private :
+  // throughput checking settings
+  static std::size_t constexpr min_bytes_per_tick = 512;
+  static unsigned int constexpr low_ticks_limit = 120;
+  static duration_t constexpr tick_length = seconds_t(1);
 
 private :
   logging_context_t const& context_;
