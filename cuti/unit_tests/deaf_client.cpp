@@ -33,17 +33,17 @@ using namespace cuti;
 struct options_t
 {
   options_t()
-  : endpoint_()
+  : target_()
   { }
 
-  endpoint_t endpoint_;
+  endpoint_t target_;
 };
 
 void print_usage(std::ostream& os, char const* argv0)
 {
   os << "usage: " << argv0 << " [<option> ...]\n";
   os << "options are:\n";
-  os << "  --endpoint <port>@<ip>  set endpoint\n";
+  os << "  --target <port>@<ip>  specifies target endpoint\n";
   os << std::flush;
 }
 
@@ -52,7 +52,7 @@ void read_options(options_t& options, option_walker_t& walker)
   while(!walker.done())
   {
     if(!walker.match(
-         "--endpoint", options.endpoint_))
+         "--target", options.target_))
     {
       break;
     }
@@ -72,9 +72,9 @@ int real_main(int argc, char const* const* argv)
     return 1;
   }
 
-  if(!options.endpoint_.empty())
+  if(!options.target_.empty())
   {
-    tcp_connection_t conn(options.endpoint_);
+    tcp_connection_t conn(options.target_);
     std::cout << "connected: " << conn << std::endl;
 
     std::string const s = "y\n";
@@ -114,4 +114,3 @@ int main(int argc, char* argv[])
 
   return 1;
 }
-
