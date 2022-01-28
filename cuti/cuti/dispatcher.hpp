@@ -20,29 +20,41 @@
 #ifndef CUTI_DISPATCHER_HPP_
 #define CUTI_DISPATCHER_HPP_
 
+#include "endpoint.hpp"
 #include "linkage.h"
+#include "selector_factory.hpp"
 
 #include <memory>
 
 namespace cuti
 {
 
-struct endpoint_t;
 struct event_pipe_reader_t;
 struct logging_context_t;
 struct method_map_t;
-struct selector_factory_t;
+
+struct CUTI_ABI dispatcher_config_t
+{
+  static selector_factory_t default_selector_factory()
+  { return selector_factory_t(); }
+
+  dispatcher_config_t()
+  : selector_factory_(default_selector_factory())
+  { }
+
+  selector_factory_t selector_factory_;
+};
 
 struct CUTI_ABI dispatcher_t
 {
   dispatcher_t(logging_context_t const& logging_context,
                event_pipe_reader_t& control,
-               selector_factory_t const& selector_factory);
+               dispatcher_config_t const& config);
 
   dispatcher_t(dispatcher_t const&) = delete;
   dispatcher_t& operator=(dispatcher_t const&) = delete;
 
-  void add_listener(endpoint_t const& endpoint, method_map_t const& map);
+  endpoint_t add_listener(endpoint_t const& endpoint, method_map_t const& map);
   
   void run();
 

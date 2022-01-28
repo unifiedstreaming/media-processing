@@ -20,6 +20,7 @@
 #ifndef X264_CONFIG_HPP_
 #define X264_CONFIG_HPP_
 
+#include <cuti/dispatcher.hpp>
 #include <cuti/endpoint.hpp>
 #include <cuti/flag.hpp>
 #include <cuti/fs_utils.hpp>
@@ -88,7 +89,7 @@ private :
   cuti::loglevel_t loglevel_;
   cuti::absolute_path_t pidfile_;
   unsigned int rotation_depth_;
-  cuti::selector_factory_t selector_;
+  cuti::dispatcher_config_t dispatcher_config_;
   unsigned int size_limit_;
   cuti::flag_t syslog_;  
   std::string syslog_name_;

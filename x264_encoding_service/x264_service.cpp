@@ -26,11 +26,11 @@
 x264_service_t::x264_service_t(
   cuti::logging_context_t const& context,
   cuti::event_pipe_reader_t& control_pipe,
-  cuti::selector_factory_t const& selector_factory,
+  cuti::dispatcher_config_t const& dispatcher_config,
   std::vector<cuti::endpoint_t> const& endpoints)
 : map_(std::make_unique<cuti::method_map_t>())
 , dispatcher_(std::make_unique<cuti::dispatcher_t>(
-                context, control_pipe, selector_factory))
+                context, control_pipe, dispatcher_config))
 {
   // add echo method (for manual testing)
   map_->add_method_factory(

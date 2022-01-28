@@ -71,7 +71,7 @@ x264_config_t::x264_config_t(int argc, char const* const argv[])
 , loglevel_(default_loglevel)
 , pidfile_()
 , rotation_depth_(cuti::file_backend_t::default_rotation_depth)
-, selector_()
+, dispatcher_config_()
 , size_limit_(cuti::file_backend_t::no_size_limit)
 , syslog_(false)
 , syslog_name_("")
@@ -161,7 +161,7 @@ x264_config_t::create_service(cuti::logging_context_t& context,
   }
 
   auto result = std::make_unique<x264_service_t>(
-      context, control_pipe, selector_, endpoints);
+      context, control_pipe, dispatcher_config_, endpoints);
   if(dry_run_)
   {
     result.reset();
@@ -244,7 +244,7 @@ void x264_config_t::read_options(cuti::args_reader_t& reader,
       !walker.match("--loglevel", loglevel_) &&
       !walker.match("--pidfile", pidfile_) &&
       !walker.match("--rotation-depth", rotation_depth_) &&
-      !walker.match("--selector", selector_) &&
+      !walker.match("--selector", dispatcher_config_.selector_factory_) &&
       !walker.match("--size-limit", size_limit_) &&
 #ifndef _WIN32
       !walker.match("--umask", umask_) &&
@@ -314,7 +314,7 @@ void x264_config_t::print_usage(std::ostream& os)
     cuti::file_backend_t::default_rotation_depth << ')' << std::endl;
   os << "  --selector <type>        " <<
     "sets selector type (default: " <<
-    cuti::selector_factory_t() << ")" << std::endl;
+    cuti::dispatcher_config_t::default_selector_factory() << ")" << std::endl;
   os << "  --size-limit <limit>     " <<
     "sets logfile size limit (default: none)" << std::endl;
   os << "  --syslog                 " <<

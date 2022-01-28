@@ -192,6 +192,11 @@ struct listener_t
   listener_t(listener_t const&) = delete;
   listener_t& operator=(listener_t const&) = delete;
 
+  endpoint_t const& endpoint() const
+  {
+    return acceptor_->local_endpoint();
+  }
+
   cancellation_ticket_t call_when_ready(
     scheduler_t& scheduler, callback_t callback)
   {
@@ -239,12 +244,12 @@ struct dispatcher_t::impl_t
 {
   impl_t(logging_context_t const& logging_context,
          event_pipe_reader_t& control,
-         selector_factory_t const& selector_factory)
+         dispatcher_config_t const& config)
   : logging_context_(logging_context)
   , control_(control)
   , listeners_()
-  , selector_name_(selector_factory.name())
-  , scheduler_(selector_factory)
+  , selector_name_(config.selector_factory_.name())
+  , scheduler_(config.selector_factory_)
   , clients_()
   , sig_(0)
   {
@@ -255,7 +260,7 @@ struct dispatcher_t::impl_t
   impl_t(impl_t const&) = delete;
   impl_t& operator=(impl_t const&) = delete;
 
-  void add_listener(endpoint_t const& endpoint, method_map_t const& map)
+  endpoint_t add_listener(endpoint_t const& endpoint, method_map_t const& map)
   {
     listeners_.push_back(
       std::make_unique<listener_t>(logging_context_, endpoint, map));
@@ -266,6 +271,8 @@ struct dispatcher_t::impl_t
       scheduler_, [this, &last ] { this->on_listener(last); } );
   
     guard.dismiss();
+
+    return last.endpoint();
   }
   
   void run()
@@ -352,14 +359,14 @@ private :
 
 dispatcher_t::dispatcher_t(logging_context_t const& logging_context,
                            event_pipe_reader_t& control,
-                           selector_factory_t const& selector_factory)
-: impl_(std::make_unique<impl_t>(logging_context, control, selector_factory))
+                           dispatcher_config_t const& config)
+: impl_(std::make_unique<impl_t>(logging_context, control, config))
 { }
 
-void dispatcher_t::add_listener(
+endpoint_t dispatcher_t::add_listener(
   endpoint_t const& endpoint, method_map_t const& map)
 {
-  impl_->add_listener(endpoint, map);
+  return impl_->add_listener(endpoint, map);
 }
 
 void dispatcher_t::run()

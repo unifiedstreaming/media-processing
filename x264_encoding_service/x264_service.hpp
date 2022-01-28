@@ -20,6 +20,7 @@
 #ifndef X264_SERVICE_HPP_
 #define X264_SERVICE_HPP_
 
+#include <cuti/dispatcher.hpp>
 #include <cuti/endpoint.hpp>
 #include <cuti/service.hpp>
 
@@ -29,10 +30,8 @@
 namespace cuti
 {
 
-struct dispatcher_t;
 struct logging_context_t;
 struct method_map_t;
-struct selector_factory_t;
 struct tcp_connection_t;
 
 } // cuti
@@ -41,7 +40,7 @@ struct x264_service_t : cuti::service_t
 {
   x264_service_t(cuti::logging_context_t const& context,
                  cuti::event_pipe_reader_t& control_pipe,
-                 cuti::selector_factory_t const& selector_factory,
+                 cuti::dispatcher_config_t const& dispatcher_config,
                  std::vector<cuti::endpoint_t> const& endpoints);
 
   void run() override;
