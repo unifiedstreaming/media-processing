@@ -235,8 +235,8 @@ void nb_inbuf_t::on_next_tick()
     // schedule next tick
     auto guard = make_scoped_guard(
       [this] { this->cancel_when_readable(); });
-    alarm_ticket_ = scheduler_->call_alarm(
-      checker_->next_tick(), [this] { this->on_next_tick(); });
+    alarm_ticket_ = scheduler_->call_alarm(checker_->next_tick(),
+      [this] { this->on_next_tick(); });
     guard.dismiss();
     return;
   }
