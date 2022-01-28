@@ -21,10 +21,10 @@
 #define CUTI_NB_INBUF_HPP_
 
 #include "callback.hpp"
+#include "cancellation_ticket.hpp"
 #include "charclass.hpp"
 #include "linkage.h"
 #include "nb_source.hpp"
-#include "nb_tickets_holder.hpp"
 #include "throughput_checker.hpp"
 
 #include <cassert>
@@ -62,7 +62,7 @@ struct CUTI_ABI nb_inbuf_t
   /*
    * Disable throughput checking.
    */
-  void disable_throughput_checking();  
+  void disable_throughput_checking() noexcept;
 
   /*
    * Returns the buffer's error status, which is either 0 for no error
@@ -137,14 +137,18 @@ struct CUTI_ABI nb_inbuf_t
   }
     
 private :
-  void check_readable(scheduler_t& scheduler);
+  void on_already_readable();
+  void on_source_readable();
+  void on_next_tick();
 
 private :
   std::unique_ptr<nb_source_t> source_;
-
-  nb_tickets_holder_t<nb_inbuf_t, &nb_inbuf_t::check_readable> holder_;
-  callback_t callback_;
   std::optional<throughput_checker_t<>> checker_;
+
+  cancellation_ticket_t readable_ticket_;
+  cancellation_ticket_t alarm_ticket_;
+  scheduler_t* scheduler_;
+  callback_t callback_;
 
   char* const buf_;
   char const* rp_;

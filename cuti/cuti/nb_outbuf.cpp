@@ -20,6 +20,7 @@
 #include "nb_outbuf.hpp"
 
 #include "scheduler.hpp"
+#include "scoped_guard.hpp"
 #include "system_error.hpp"
 
 #include <algorithm>
@@ -31,9 +32,11 @@ namespace cuti
 nb_outbuf_t::nb_outbuf_t(std::unique_ptr<nb_sink_t> sink,
                          std::size_t bufsize)
 : sink_((assert(sink != nullptr), std::move(sink)))
-, holder_(*this)
-, callback_(nullptr)
 , checker_(std::nullopt)
+, writable_ticket_()
+, alarm_ticket_()
+, scheduler_(nullptr)
+, callback_(nullptr)
 , buf_((assert(bufsize != 0), new char[bufsize]))
 , rp_(buf_)
 , wp_(buf_)
@@ -66,44 +69,31 @@ void nb_outbuf_t::enable_throughput_checking(std::size_t min_bytes_per_tick,
                                              unsigned int low_ticks_limit,
                                              duration_t tick_length)
 {
-  auto guard = make_scoped_guard([this]
-  {
-    checker_.reset();
-    callback_ = nullptr;
-    holder_.cancel();
-  });
+  this->disable_throughput_checking();
 
   checker_.emplace(min_bytes_per_tick, low_ticks_limit, tick_length);
-
-  scheduler_t* scheduler = holder_.current_scheduler();
-  if(scheduler != nullptr && !this->writable())
+  if(!writable_ticket_.empty())
   {
-    // Schedule timeout on next tick
-    assert(callback_ != nullptr);
-    holder_.call_when_writable(*scheduler, *sink_, checker_->next_tick());
+    assert(alarm_ticket_.empty());
+    assert(scheduler_ != nullptr);
+    
+    auto guard = make_scoped_guard(
+      [&] { checker_.reset(); });
+    alarm_ticket_ = scheduler_->call_alarm(checker_->next_tick(),
+      [this] { this->on_next_tick(); });
+    guard.dismiss();
   }
-
-  guard.dismiss();
 }
   
-void nb_outbuf_t::disable_throughput_checking()
+void nb_outbuf_t::disable_throughput_checking() noexcept
 {
   checker_.reset();
-  auto guard = make_scoped_guard([this]
+  if(!writable_ticket_.empty() && !alarm_ticket_.empty())
   {
-    callback_ = nullptr;
-    holder_.cancel();
-  });
-
-  scheduler_t* scheduler = holder_.current_scheduler();
-  if(scheduler != nullptr && !this->writable())
-  {
-    // Cancel timeout on next tick
-    assert(callback_ != nullptr);
-    holder_.call_when_writable(*scheduler, *sink_);
+    assert(scheduler_ != nullptr);
+    scheduler_->cancel(alarm_ticket_);
+    alarm_ticket_.clear();
   }
-
-  guard.dismiss();
 }
 
 void nb_outbuf_t::call_when_writable(scheduler_t& scheduler,
@@ -113,83 +103,164 @@ void nb_outbuf_t::call_when_writable(scheduler_t& scheduler,
 
   callback_ = nullptr;
 
+  this->cancel_when_writable();
+
   if(this->writable())
   {
-    holder_.call_asap(scheduler);
-  }
-  else if(checker_ != std::nullopt)
-  {
-    holder_.call_when_writable(scheduler, *sink_, checker_->next_tick());
+    alarm_ticket_ = scheduler.call_alarm(duration_t(0),
+      [this] { this->on_already_writable(); });
   }
   else
   {
-    holder_.call_when_writable(scheduler, *sink_);
+    auto writable_ticket = sink_->call_when_writable(scheduler,
+      [this] { this->on_sink_writable(); });
+    if(checker_ != std::nullopt)
+    {
+      auto guard = make_scoped_guard(
+        [&] { scheduler.cancel(writable_ticket); });
+      alarm_ticket_ = scheduler.call_alarm(checker_->next_tick(),
+        [this] { this->on_next_tick(); });
+      guard.dismiss();
+    }
+    writable_ticket_ = writable_ticket;
   }
-  
+
+  scheduler_ = &scheduler;
   callback_ = std::move(callback);
 }
 
 void nb_outbuf_t::cancel_when_writable() noexcept
 {
+  if(!writable_ticket_.empty())
+  {
+    assert(scheduler_ != nullptr);
+    scheduler_->cancel(writable_ticket_);
+    writable_ticket_.clear();
+  }
+
+  if(!alarm_ticket_.empty())
+  {
+    assert(scheduler_ != nullptr);
+    scheduler_->cancel(alarm_ticket_);
+    alarm_ticket_.clear();
+  }
+
+  scheduler_ = nullptr;
   callback_ = nullptr;
-  holder_.cancel();
 }
 
 nb_outbuf_t::~nb_outbuf_t()
 {
+  this->cancel_when_writable();
   delete[] buf_;
 }
 
-void nb_outbuf_t::check_writable(scheduler_t& scheduler)
+void nb_outbuf_t::on_already_writable()
 {
+  assert(writable_ticket_.empty());
+  assert(!alarm_ticket_.empty());
   assert(callback_ != nullptr);
-  callback_t callback = std::move(callback_);
 
-  if(!this->writable())
-  {
-    assert(rp_ != wp_);
-    assert(error_status_ == 0);
-
-    char const* next;
-    error_status_ = sink_->write(rp_, wp_, next);
-    assert(error_status_ == 0 || next == wp_);
-
-    if(error_status_ == 0 && checker_ != std::nullopt)
-    {
-      error_status_ = checker_->record_transfer(
-        next != nullptr ? next - rp_ : 0);
-      if(error_status_ != 0)
-      {
-        next = wp_;
-      }
-    }
-
-    if(next != nullptr)
-    {
-      rp_ = next;
-    }
-
-    if(rp_ != wp_)
-    {
-      // more to write: reschedule
-      if(checker_ != std::nullopt)
-      {
-        holder_.call_when_writable(scheduler, *sink_, checker_->next_tick());
-      }
-      else
-      {
-        holder_.call_when_writable(scheduler, *sink_);
-      }
-      callback_ = std::move(callback);
-      return;
-    }
-      
-    rp_ = buf_;
-    wp_ = buf_;
-    limit_ = ebuf_;
-  }
+  alarm_ticket_.clear();
+  scheduler_ = nullptr;
+  auto callback = std::move(callback_);
 
   callback();
 }
+  
+void nb_outbuf_t::on_sink_writable()
+{
+  assert(!this->writable());
+
+  assert(!writable_ticket_.empty());
+  assert(scheduler_ != nullptr);
+  assert(callback_ != nullptr);
+  assert(error_status_ == 0);
+
+  writable_ticket_.clear();
+
+  char const* next;
+  error_status_ = sink_->write(rp_, wp_, next);
+  if(error_status_ == 0)
+  {
+    if(next == nullptr)
+    {
+      // spurious wakeup
+      next = rp_;
+    }
+    else if(checker_ != std::nullopt)
+    {
+      checker_->record_transfer(next - rp_);
+    }
+
+    rp_ = next;
+    if(rp_ != wp_)
+    {
+      // more to write: reschedule
+      auto guard = make_scoped_guard(
+        [this] { this->cancel_when_writable(); });
+      writable_ticket_ = sink_->call_when_writable(*scheduler_,
+        [this] { this->on_sink_writable(); });
+      guard.dismiss();
+      return;
+    }
+  }
+
+  // Enter writable state
+  if(!alarm_ticket_.empty())
+  {
+    assert(checker_ != std::nullopt);
+    scheduler_->cancel(alarm_ticket_);
+    alarm_ticket_.clear();
+  }
+
+  rp_ = buf_;
+  wp_ = buf_;
+  limit_ = ebuf_;
+  
+  scheduler_ = nullptr;
+  auto callback = std::move(callback_);
+
+  callback();
+}
+
+void nb_outbuf_t::on_next_tick()
+{
+  assert(!this->writable());
+
+  assert(checker_ != std::nullopt);
+  assert(!writable_ticket_.empty());
+  assert(!alarm_ticket_.empty());
+  assert(scheduler_ != nullptr);
+  assert(callback_ != nullptr);
+  assert(error_status_ == 0);
+
+  alarm_ticket_.clear();
+
+  error_status_ = checker_->record_transfer(0);
+  if(error_status_ == 0)
+  {
+    // schedule next tick
+    auto guard = make_scoped_guard(
+      [this] { this->cancel_when_writable(); });
+    alarm_ticket_ = scheduler_->call_alarm(
+      checker_->next_tick(), [this] { this->on_next_tick(); });
+    guard.dismiss();
+    return;
+  }
+
+  // Enter writable state
+  scheduler_->cancel(writable_ticket_);
+  writable_ticket_.clear();
+    
+  rp_ = buf_;
+  wp_ = buf_;
+  limit_ = ebuf_;
+  
+  scheduler_ = nullptr;
+  auto callback = std::move(callback_);
+
+  callback();
+}    
 
 } // cuti

@@ -32,9 +32,11 @@ namespace cuti
 nb_inbuf_t::nb_inbuf_t(std::unique_ptr<nb_source_t> source,
                        std::size_t bufsize)
 : source_((assert(source != nullptr), std::move(source)))
-, holder_(*this)
-, callback_(nullptr)
 , checker_(std::nullopt)
+, readable_ticket_()
+, alarm_ticket_()
+, scheduler_(nullptr)
+, callback_(nullptr)
 , buf_((assert(bufsize != 0), new char[bufsize]))
 , rp_(buf_)
 , ep_(buf_)
@@ -47,44 +49,30 @@ void nb_inbuf_t::enable_throughput_checking(std::size_t min_bytes_per_tick,
                                             unsigned int low_ticks_limit,
                                             duration_t tick_length)
 {
-  auto guard = make_scoped_guard([this]
-  {
-    checker_.reset();
-    callback_ = nullptr;
-    holder_.cancel();
-  });
+  this->disable_throughput_checking();
 
   checker_.emplace(min_bytes_per_tick, low_ticks_limit, tick_length);
-
-  scheduler_t* scheduler = holder_.current_scheduler();
-  if(scheduler != nullptr && !this->readable())
+  if(!readable_ticket_.empty())
   {
-    // Schedule timeout on next tick
-    assert(callback_ != nullptr);
-    holder_.call_when_readable(*scheduler, *source_, checker_->next_tick());
+    assert(alarm_ticket_.empty());
+    assert(scheduler_ != nullptr);
+    
+    auto guard = make_scoped_guard([&] { checker_.reset(); });
+    alarm_ticket_ = scheduler_->call_alarm(
+      checker_->next_tick(), [this] { this->on_next_tick(); });
+    guard.dismiss();
   }
-
-  guard.dismiss();
 }
   
-void nb_inbuf_t::disable_throughput_checking()
+void nb_inbuf_t::disable_throughput_checking() noexcept
 {
   checker_.reset();
-  auto guard = make_scoped_guard([this]
+  if(!readable_ticket_.empty() && !alarm_ticket_.empty())
   {
-    callback_ = nullptr;
-    holder_.cancel();
-  });
-
-  scheduler_t* scheduler = holder_.current_scheduler();
-  if(scheduler != nullptr && !this->readable())
-  {
-    // Cancel timeout on next tick
-    assert(callback_ != nullptr);
-    holder_.call_when_readable(*scheduler, *source_);
+    assert(scheduler_ != nullptr);
+    scheduler_->cancel(alarm_ticket_);
+    alarm_ticket_.clear();
   }
-
-  guard.dismiss();
 }
 
 char* nb_inbuf_t::read(char *first, char const* last)
@@ -109,77 +97,162 @@ void nb_inbuf_t::call_when_readable(scheduler_t& scheduler,
 {
   assert(callback != nullptr);
 
-  callback_ = nullptr;
+  this->cancel_when_readable();
 
   if(this->readable())
   {
-    holder_.call_asap(scheduler);
-  }
-  else if(checker_ != std::nullopt)
-  {
-    holder_.call_when_readable(scheduler, *source_, checker_->next_tick());
+    alarm_ticket_ = scheduler.call_alarm(duration_t(0),
+      [this] { this->on_already_readable(); });
   }
   else
   {
-    holder_.call_when_readable(scheduler, *source_);
+    auto readable_ticket = source_->call_when_readable(scheduler,
+      [this] { this->on_source_readable(); });
+    if(checker_ != std::nullopt)
+    {
+      auto guard = make_scoped_guard(
+        [&] { scheduler.cancel(readable_ticket); });
+      alarm_ticket_ = scheduler.call_alarm(checker_->next_tick(),
+        [this] { this->on_next_tick(); });
+      guard.dismiss();
+    }
+    readable_ticket_ = readable_ticket;
   }
-
+        
+  scheduler_ = &scheduler;
   callback_ = std::move(callback);
 }
 
 void nb_inbuf_t::cancel_when_readable() noexcept
 {
+  if(!readable_ticket_.empty())
+  {
+    assert(scheduler_ != nullptr);
+    scheduler_->cancel(readable_ticket_);
+    readable_ticket_.clear();
+  }
+  
+  if(!alarm_ticket_.empty())
+  {
+    assert(scheduler_ != nullptr);
+    scheduler_->cancel(alarm_ticket_);
+    alarm_ticket_.clear();
+  }
+
+  scheduler_ = nullptr;
   callback_ = nullptr;
-  holder_.cancel();
 }
 
 nb_inbuf_t::~nb_inbuf_t()
 {
+  this->cancel_when_readable();
   delete[] buf_;
 }
 
-void nb_inbuf_t::check_readable(scheduler_t& scheduler)
+void nb_inbuf_t::on_already_readable()
 {
+  assert(readable_ticket_.empty());
+  assert(!alarm_ticket_.empty());
   assert(callback_ != nullptr);
-  callback_t callback = std::move(callback_);
 
-  if(!this->readable())
-  {
-    char *next;
-    error_status_ = source_->read(buf_, ebuf_, next);
-    assert(error_status_ == 0 || next == buf_);
-
-    if(error_status_ == 0 && checker_ != std::nullopt)
-    {
-      error_status_ = checker_->record_transfer(
-        next != nullptr ? next - buf_ : 0);
-      if(error_status_ != 0)
-      {
-        next = buf_;
-      }
-    }
-
-    if(next == nullptr)
-    {
-      // spurious wakeup: reschedule
-      if(checker_ != std::nullopt)
-      {
-        holder_.call_when_readable(scheduler, *source_, checker_->next_tick());
-      }
-      else
-      {
-        holder_.call_when_readable(scheduler, *source_);
-      }
-      callback_ = std::move(callback);
-      return;
-    }
-
-    rp_ = buf_;
-    ep_ = next;
-    at_eof_ = rp_ == ep_;
-  }
-    
+  alarm_ticket_.clear();
+  scheduler_ = nullptr;
+  auto callback = std::move(callback_);
+  
   callback();
 }
 
+void nb_inbuf_t::on_source_readable()
+{
+  assert(!this->readable());
+
+  assert(!readable_ticket_.empty());
+  assert(scheduler_ != nullptr);
+  assert(callback_ != nullptr);
+  assert(error_status_ == 0);
+
+  readable_ticket_.clear();
+
+  char* next;
+  error_status_ = source_->read(buf_, ebuf_, next);
+  if(error_status_ == 0)
+  {
+    if(next == nullptr)
+    {
+      // spurious wakeup: reschedule
+      auto guard = make_scoped_guard(
+        [this] { this->cancel_when_readable(); });
+      readable_ticket_ = source_->call_when_readable(*scheduler_,
+        [this] { this->on_source_readable(); });
+      guard.dismiss();
+      return;
+    }
+
+    if(checker_ != std::nullopt)
+    {
+      checker_->record_transfer(next - buf_);
+    }
+  }
+  else
+  {
+    next = buf_;
+  }
+    
+  // Enter readable state
+  if(!alarm_ticket_.empty())
+  {
+    assert(checker_ != std::nullopt);
+    scheduler_->cancel(alarm_ticket_);
+    alarm_ticket_.clear();
+  }
+
+  rp_ = buf_;
+  ep_ = next;
+  at_eof_ = rp_ == ep_;
+
+  scheduler_ = nullptr;
+  auto callback = std::move(callback_);
+
+  callback();
+}
+
+void nb_inbuf_t::on_next_tick()
+{
+  assert(!this->readable());
+
+  assert(checker_ != std::nullopt);
+  assert(!readable_ticket_.empty());
+  assert(!alarm_ticket_.empty());
+  assert(scheduler_ != nullptr);
+  assert(callback_ != nullptr);
+  assert(error_status_ == 0);
+
+  alarm_ticket_.clear();
+
+  error_status_ = checker_->record_transfer(0);
+  if(error_status_ == 0)
+  {
+    // schedule next tick
+    auto guard = make_scoped_guard(
+      [this] { this->cancel_when_readable(); });
+    alarm_ticket_ = scheduler_->call_alarm(
+      checker_->next_tick(), [this] { this->on_next_tick(); });
+    guard.dismiss();
+    return;
+  }
+
+  // Enter readable state
+  scheduler_->cancel(readable_ticket_);
+  readable_ticket_.clear();
+  
+  rp_ = buf_;
+  ep_ = buf_;
+  at_eof_ = true;
+
+  scheduler_ = nullptr;
+  auto callback = std::move(callback_);
+
+  callback();
+}    
+    
 } // cuti
