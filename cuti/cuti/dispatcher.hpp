@@ -20,10 +20,12 @@
 #ifndef CUTI_DISPATCHER_HPP_
 #define CUTI_DISPATCHER_HPP_
 
+#include "chrono_types.hpp"
 #include "endpoint.hpp"
 #include "linkage.h"
 #include "selector_factory.hpp"
 
+#include <cstddef>
 #include <memory>
 
 namespace cuti
@@ -38,18 +40,33 @@ struct CUTI_ABI dispatcher_config_t
   static selector_factory_t default_selector_factory()
   { return selector_factory_t(); }
 
+  static std::size_t default_min_bytes_per_tick()
+  { return 512; }
+
+  static unsigned int default_low_ticks_limit()
+  { return 120; }
+
+  static duration_t default_tick_length()
+  { return seconds_t(1); }
+  
   dispatcher_config_t()
   : selector_factory_(default_selector_factory())
+  , min_bytes_per_tick_(default_min_bytes_per_tick())
+  , low_ticks_limit_(default_low_ticks_limit())
+  , tick_length_(default_tick_length())
   { }
 
   selector_factory_t selector_factory_;
+  std::size_t min_bytes_per_tick_;
+  unsigned int low_ticks_limit_;
+  duration_t tick_length_;
 };
 
 struct CUTI_ABI dispatcher_t
 {
   dispatcher_t(logging_context_t const& logging_context,
                event_pipe_reader_t& control,
-               dispatcher_config_t const& config);
+               dispatcher_config_t config);
 
   dispatcher_t(dispatcher_t const&) = delete;
   dispatcher_t& operator=(dispatcher_t const&) = delete;

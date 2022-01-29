@@ -50,11 +50,13 @@ struct client_t
 {
   client_t(logging_context_t const& context,
            std::unique_ptr<tcp_connection_t> connection,
-           method_map_t const& map)
+           method_map_t const& map,
+           dispatcher_config_t const& config)
   : context_(context)
   , nb_inbuf_()
   , nb_outbuf_()
   , map_(map)
+  , config_(config)
   {
     std::tie(nb_inbuf_, nb_outbuf_) =
       make_nb_tcp_buffers(std::move(connection));
@@ -78,11 +80,15 @@ struct client_t
 
     bound_inbuf_t bound_inbuf(base_marker, *nb_inbuf_, scheduler);
     bound_inbuf.enable_throughput_checking(
-      min_bytes_per_tick, low_ticks_limit, tick_length);
+      config_.min_bytes_per_tick_,
+      config_.low_ticks_limit_,
+      config_.tick_length_);
 
     bound_outbuf_t bound_outbuf(base_marker, *nb_outbuf_, scheduler);
     bound_outbuf.enable_throughput_checking(
-      min_bytes_per_tick, low_ticks_limit, tick_length);
+      config_.min_bytes_per_tick_,
+      config_.low_ticks_limit_,
+      config_.tick_length_);
 
     final_result_t<bool> at_eof_result;
     eof_checker_t eof_checker(at_eof_result, bound_inbuf);
@@ -160,26 +166,23 @@ struct client_t
   }
 
 private :
-  // throughput checking settings
-  static std::size_t constexpr min_bytes_per_tick = 512;
-  static unsigned int constexpr low_ticks_limit = 120;
-  static duration_t constexpr tick_length = seconds_t(1);
-
-private :
   logging_context_t const& context_;
   std::unique_ptr<nb_inbuf_t> nb_inbuf_;
   std::unique_ptr<nb_outbuf_t> nb_outbuf_;
   method_map_t const& map_;
+  dispatcher_config_t const& config_;
 };
 
 struct listener_t
 {
   listener_t(logging_context_t const& context,
              endpoint_t const& endpoint,
-             method_map_t const& map)
+             method_map_t const& map,
+             dispatcher_config_t const& config)
   : context_(context)
   , acceptor_(std::make_unique<tcp_acceptor_t>(endpoint))
   , map_(map)
+  , config_(config)
   {
     acceptor_->set_nonblocking();
 
@@ -226,7 +229,8 @@ struct listener_t
     }
     else
     {
-      result = std::make_unique<client_t>(context_, std::move(accepted), map_);
+      result = std::make_unique<client_t>(
+        context_, std::move(accepted), map_, config_);
     }
 
     return result;
@@ -236,6 +240,7 @@ private :
   logging_context_t const& context_;
   std::unique_ptr<tcp_acceptor_t> acceptor_;
   method_map_t const& map_;
+  dispatcher_config_t const& config_;
 };
 
 } // anonymous
@@ -244,12 +249,12 @@ struct dispatcher_t::impl_t
 {
   impl_t(logging_context_t const& logging_context,
          event_pipe_reader_t& control,
-         dispatcher_config_t const& config)
+         dispatcher_config_t config)
   : logging_context_(logging_context)
   , control_(control)
+  , config_(std::move(config))
   , listeners_()
-  , selector_name_(config.selector_factory_.name())
-  , scheduler_(config.selector_factory_)
+  , scheduler_(config_.selector_factory_)
   , clients_()
   , sig_(0)
   {
@@ -263,7 +268,7 @@ struct dispatcher_t::impl_t
   endpoint_t add_listener(endpoint_t const& endpoint, method_map_t const& map)
   {
     listeners_.push_back(
-      std::make_unique<listener_t>(logging_context_, endpoint, map));
+      std::make_unique<listener_t>(logging_context_, endpoint, map, config_));
     scoped_guard_t guard([&] { listeners_.pop_back(); });
 
     listener_t& last = *listeners_.back();
@@ -279,7 +284,8 @@ struct dispatcher_t::impl_t
   {
     if(auto msg = logging_context_.message_at(loglevel_t::info))
     {
-      *msg << "dispatcher running (selector: " << selector_name_ << ")";
+      *msg << "dispatcher running (selector: " <<
+        config_.selector_factory_.name() << ")";
     }
 
     sig_ = 0;
@@ -350,8 +356,8 @@ private :
 private :
   logging_context_t const& logging_context_;
   event_pipe_reader_t& control_;
+  dispatcher_config_t config_;
   std::vector<std::unique_ptr<listener_t>> listeners_;
-  std::string selector_name_;
   default_scheduler_t scheduler_;
   std::list<std::unique_ptr<client_t>> clients_;
   int sig_;
@@ -359,8 +365,8 @@ private :
 
 dispatcher_t::dispatcher_t(logging_context_t const& logging_context,
                            event_pipe_reader_t& control,
-                           dispatcher_config_t const& config)
-: impl_(std::make_unique<impl_t>(logging_context, control, config))
+                           dispatcher_config_t config)
+: impl_(std::make_unique<impl_t>(logging_context, control, std::move(config)))
 { }
 
 endpoint_t dispatcher_t::add_listener(
