@@ -139,11 +139,68 @@ void test_deaf_client(logging_context_t const& client_context,
   }
 }
 
+void test_slow_client(logging_context_t const& client_context,
+                      logging_context_t const& server_context,
+                      std::size_t bufsize)
+{
+
+  method_map_t map;
+  map.add_method_factory("echo", default_method_factory<echo_handler_t>());
+
+  dispatcher_config_t config;
+  config.bufsize_ = bufsize;
+  config.min_bytes_per_tick_ = 512;
+  config.low_ticks_limit_ = 10;
+  config.tick_length_ = milliseconds_t(100);
+
+  dispatcher_t dispatcher(server_context, config);
+
+  endpoint_t server_address = dispatcher.add_listener(
+    local_interfaces(0).front(), map);
+
+  tcp_connection_t client_side(server_address);
+  client_side.set_blocking();
+  
+  std::string const incomplete_request = "echo [ \"hello";
+
+  if(auto msg = client_context.message_at(loglevel_t::info))
+  {
+    *msg << __func__ << '(' << client_side <<
+      "): testing incomplete request (bufsize: " << bufsize << ")...";
+  }
+
+  std::size_t bytes_received = 0;
+  {
+    scoped_thread_t server_thread([&] { dispatcher.run(); });
+    auto stop_guard = make_scoped_guard([&] { dispatcher.stop(SIGINT); });
+  
+    assert(send_request(client_side, incomplete_request) == 0);
+
+    // wait for eof caused by server-side request reading timeout
+    char buf[512];
+    char* next;
+    do
+    {
+      assert(client_side.read(buf, buf + sizeof buf, next) == 0);
+      assert(next != nullptr);
+      bytes_received += next - buf;
+    } while(next != buf);
+  }
+
+  if(auto msg = client_context.message_at(loglevel_t::info))
+  {
+    *msg << __func__ << '(' << client_side <<
+      "): got expected eof after receiving " << bytes_received <<
+      " bytes";
+  }
+}
+
 void do_run_tests(logging_context_t const& client_context,
                   logging_context_t const& server_context,
                   std::size_t bufsize)
 {
   test_deaf_client(client_context, server_context, bufsize);
+  test_slow_client(client_context, server_context, bufsize);
 }
 
 struct options_t
