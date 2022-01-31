@@ -113,7 +113,7 @@ void test_deaf_client(logging_context_t const& client_context,
   
   std::string const request = some_echo_request();
 
-  if(auto msg = client_context.message_at(loglevel_t::error))
+  if(auto msg = client_context.message_at(loglevel_t::info))
   {
     *msg << __func__ << '(' << client_side <<
       "): flooding server (bufsize: " << bufsize << ")...";
