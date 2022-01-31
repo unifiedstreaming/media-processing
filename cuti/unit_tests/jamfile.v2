@@ -41,10 +41,6 @@ unit-test config_file_reader_test
 : config_file_reader_test.cpp
 ;
 
-unit-test deaf_client
-: deaf_client.cpp
-;
-
 unit-test default_scheduler_test
 : default_scheduler_test.cpp
 ;
