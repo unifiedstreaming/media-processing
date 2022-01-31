@@ -60,8 +60,7 @@ struct x264_config_t : cuti::service_config_t
   create_pidfile() const override;
 
   std::unique_ptr<cuti::service_t>
-  create_service(cuti::logging_context_t& context,
-                 cuti::event_pipe_reader_t& control_pipe) const override;
+  create_service(cuti::logging_context_t& context) const override;
 
   ~x264_config_t() override;
 

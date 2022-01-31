@@ -19,6 +19,7 @@
 
 #include "service.hpp"
 
+#include "event_pipe.hpp"
 #include "fs_utils.hpp"
 #include "scoped_guard.hpp"
 #include "signal_handler.hpp"
@@ -58,42 +59,8 @@ namespace // anonymous
 
 constexpr auto default_loglevel = loglevel_t::warning;
 
-struct control_pair_t
+void run_attended(service_config_t const& config, char const* argv0)
 {
-  control_pair_t()
-  : reader_()
-  , writer_()
-  {
-    std::tie(reader_, writer_) = make_event_pipe();
-    writer_->set_nonblocking();
-  }
-
-  control_pair_t(control_pair_t const&) = delete;
-  control_pair_t& operator=(control_pair_t const&) = delete;
-  
-  event_pipe_reader_t& reader()
-  { return *reader_; }
-  
-  event_pipe_writer_t& writer()
-  { return *writer_; }
-  
-private :
-  std::unique_ptr<event_pipe_reader_t> reader_;
-  std::unique_ptr<event_pipe_writer_t> writer_;
-};
-
-void send_signal(control_pair_t& control_pair, int sig)
-{
-  control_pair.writer().write(static_cast<unsigned char>(sig));
-}
-                 
-void run_attended(control_pair_t& control_pair,
-                  service_config_t const& config,
-                  char const* argv0)
-{
-  auto on_sigint = [&] { send_signal(control_pair, SIGINT); };
-  signal_handler_t sigint_handler(SIGINT, on_sigint);
-
 #ifndef _WIN32
   if(auto group_id = config.group_id())
   {
@@ -127,8 +94,9 @@ void run_attended(control_pair_t& control_pair,
   }
 
   logging_context_t context(logger, default_loglevel);
-  if(auto service = config.create_service(context, control_pair.reader()))
+  if(auto service = config.create_service(context))
   {
+    signal_handler_t handler(SIGINT, [&] { service->stop(SIGINT); });
     service->run();
   }
 }
@@ -145,7 +113,6 @@ struct service_main_args_t
   int argc_;
   char const* const* argv_;
   service_config_reader_t const* config_reader_;
-  control_pair_t* control_pair_;
 };
 
 /*
@@ -153,21 +120,6 @@ struct service_main_args_t
  * up.
  */
 service_main_args_t service_main_args;
-
-void control_handler(DWORD control)
-{
-  assert(service_main_args.control_pair_ != nullptr);
-
-  switch(control)
-  {
-  case SERVICE_CONTROL_STOP :
-  case SERVICE_CONTROL_SHUTDOWN :
-    send_signal(*service_main_args.control_pair_, SIGTERM);
-    break;
-  default :
-    break;
-  }
-}
 
 struct status_reporter_t
 {
@@ -197,8 +149,11 @@ struct status_reporter_t
   status_reporter_t(status_reporter_t const&) = delete;
   status_reporter_t& operator=(status_reporter_t const&) = delete;
   
-  void report_running()
+  void report_running(service_t *service)
   {
+    assert(current_service_ == nullptr);
+    current_service_ = service;
+
     SERVICE_STATUS status;
     std::memset(&status, '\0', sizeof status);
     status.dwServiceType = SERVICE_WIN32_OWN_PROCESS;
@@ -209,6 +164,7 @@ struct status_reporter_t
     if(!SetServiceStatus(handle_, &status))
     {
       int cause = last_system_error();
+      current_service_ = nullptr;
       throw system_exception_t("SetServiceStatus() failure", cause);
     }
   }
@@ -223,6 +179,7 @@ struct status_reporter_t
 
     SetServiceStatus(handle_, &status);
 
+    current_service_ = nullptr;
     exit_code_ = exit_code;
   }
 
@@ -238,19 +195,39 @@ struct status_reporter_t
   }
 
 private :
+  static void control_handler(DWORD control)
+  {
+    switch(control)
+    {
+    case SERVICE_CONTROL_STOP :
+    case SERVICE_CONTROL_SHUTDOWN :
+      if(current_service_ != nullptr)
+      {
+        current_service_->stop(SIGTERM);
+      }
+      break;
+    default :
+      break;
+    }
+  }
+
+private :
   static constexpr DWORD wait_hint = 30000;
+  static service_t* current_service_;
 
   int exit_code_;
   SERVICE_STATUS_HANDLE handle_;
 };
 
+service_t* status_reporter_t::current_service_ = nullptr;
+
 struct running_state_t
 {
-  explicit running_state_t(status_reporter_t& reporter)
+  running_state_t(status_reporter_t& reporter, service_t* service)
   : exit_code_(1)
   , reporter_(reporter)
   {
-    reporter_.report_running();
+    reporter_.report_running(service);
   }
 
   running_state_t(running_state_t const&) = delete;
@@ -299,9 +276,6 @@ void service_main(DWORD dwNumServiceArgs, LPSTR* lpServiceArgVectors)
   service_config_reader_t const& config_reader =
     *service_main_args.config_reader_;
   
-  assert(service_main_args.control_pair_ != nullptr);
-  control_pair_t& control_pair = *service_main_args.control_pair_;
-
   /*
    * To be able to report configuration errors, we enable a
    * default-configured logger before parsing the command line.
@@ -330,9 +304,9 @@ void service_main(DWORD dwNumServiceArgs, LPSTR* lpServiceArgVectors)
       cuti::change_directory(dir);
     }
 
-    auto service = config->create_service(context, control_pair.reader());
+    auto service = config->create_service(context);
 
-    running_state_t running_state(status_reporter);
+    running_state_t running_state(status_reporter, service.get());
     if(service !=  nullptr)
     {
       service->run();
@@ -355,13 +329,10 @@ void run_service(service_config_reader_t const& config_reader,
 {
   assert(argc > 0);
 
-  control_pair_t control_pair;
-
   // Initialize args for service_main
   service_main_args.argc_ = argc;
   service_main_args.argv_ = argv;
   service_main_args.config_reader_ = &config_reader;
-  service_main_args.control_pair_ = &control_pair;
 
   static constexpr SERVICE_TABLE_ENTRY service_table[] = {
     { "", service_main },
@@ -384,7 +355,7 @@ void run_service(service_config_reader_t const& config_reader,
     auto config = config_reader.read_config(argc, argv);
     assert(config != nullptr);
 
-    run_attended(control_pair, *config, argv[0]);
+    run_attended(*config, argv[0]);
   }
 }
   
@@ -523,11 +494,6 @@ void run_as_daemon(service_config_t const& config, char const* argv0)
     if(grandchild == 0)
     {
       // in grandchild
-      control_pair_t control_pair;
-
-      auto on_sigterm = [&] { send_signal(control_pair, SIGTERM); };
-      signal_handler_t sigterm_handler(SIGTERM, on_sigterm);
-
       if(auto group_id = config.group_id())
       {
         group_id->apply();
@@ -548,7 +514,7 @@ void run_as_daemon(service_config_t const& config, char const* argv0)
       {
         logging_backend = std::make_unique<syslog_backend_t>(
           default_syslog_name(argv0));
-       }
+      }
 
       logger_t logger(std::move(logging_backend));
 
@@ -560,7 +526,16 @@ void run_as_daemon(service_config_t const& config, char const* argv0)
       }
 
       logging_context_t context(logger, default_loglevel);
-      auto service = config.create_service(context, control_pair.reader());
+      auto service = config.create_service(context);
+
+      auto request_stop = [&]
+      {
+        if(service != nullptr)
+        {
+          service->stop(SIGTERM);
+        }
+      };
+      signal_handler_t handler(SIGTERM, request_stop);
 
       redirect_standard_fds();
 
@@ -592,8 +567,7 @@ void run_as_daemon(service_config_t const& config, char const* argv0)
 
 void run_in_foreground(service_config_t const& config, char const* argv0)
 {
-  control_pair_t control_pair;
-  run_attended(control_pair, config, argv0);
+  run_attended(config, argv0);
 }
   
 } // anonymous

@@ -31,7 +31,6 @@
 namespace cuti
 {
 
-struct event_pipe_reader_t;
 struct logging_context_t;
 struct method_map_t;
 
@@ -65,7 +64,6 @@ struct CUTI_ABI dispatcher_config_t
 struct CUTI_ABI dispatcher_t
 {
   dispatcher_t(logging_context_t const& logging_context,
-               event_pipe_reader_t& control,
                dispatcher_config_t config);
 
   dispatcher_t(dispatcher_t const&) = delete;
@@ -74,6 +72,12 @@ struct CUTI_ABI dispatcher_t
   endpoint_t add_listener(endpoint_t const& endpoint, method_map_t const& map);
   
   void run();
+
+  /*
+   * Causes the current or next call to run() to return as soon as
+   * possible.  This function is signal- and thread-safe.
+   */
+  void stop(int sig);
 
   ~dispatcher_t();
 

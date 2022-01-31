@@ -34,6 +34,7 @@
 #include "tcp_connection.hpp"
 
 #include <cassert>
+#include <limits>
 #include <list>
 #include <string>
 #include <tuple>
@@ -248,18 +249,21 @@ private :
 struct dispatcher_t::impl_t
 {
   impl_t(logging_context_t const& logging_context,
-         event_pipe_reader_t& control,
          dispatcher_config_t config)
   : logging_context_(logging_context)
-  , control_(control)
   , config_(std::move(config))
+  , sig_(0)
+  , stop_reader_()
+  , stop_writer_()
   , listeners_()
   , scheduler_(config_.selector_factory_)
   , clients_()
-  , sig_(0)
   {
-    auto callback = [this] { this->on_control(); };
-    control_.call_when_readable(scheduler_, callback);
+    std::tie(stop_reader_, stop_writer_) = make_event_pipe();
+    stop_reader_->set_nonblocking();
+    stop_writer_->set_nonblocking();
+    stop_reader_->call_when_readable(scheduler_,
+      [this] { this->on_stop_reader(); });
   }
 
   impl_t(impl_t const&) = delete;
@@ -288,41 +292,31 @@ struct dispatcher_t::impl_t
         config_.selector_factory_.name() << ")";
     }
 
-    sig_ = 0;
+    sig_ = std::nullopt;
     do
     {
       auto callback = scheduler_.wait();
       assert(callback != nullptr);
       callback();
-    } while(sig_ == 0);
+    } while(sig_ == std::nullopt);
 
     if(auto msg = logging_context_.message_at(loglevel_t::info))
     {
-      *msg << "caught signal " << sig_ << ", stopping dispatcher";
+      *msg << "caught signal " << *sig_ << ", stopping dispatcher";
     }
   }
 
-private :
-  void on_control()
+  void stop(int sig)
   {
-    std::optional<int> rr = control_.read();
+    stop_writer_->write(static_cast<unsigned char>(sig));
+  }
 
-    if(rr == std::nullopt)
-    {
-      // spurious callback
-    }
-    else if(*rr == eof)
-    {
-      throw system_exception_t("unexpected EOF on control pipe");
-    }
-    else
-    {
-      sig_ = *rr;
-      assert(sig_ != 0);
-    }
-
-    auto callback = [this] { this->on_control(); };
-    control_.call_when_readable(scheduler_, callback);
+private :
+  void on_stop_reader()
+  {
+    sig_ = stop_reader_->read();
+    stop_reader_->call_when_readable(scheduler_,
+      [this] { this->on_stop_reader(); });
   }
 
   void on_listener(listener_t& listener)
@@ -355,18 +349,18 @@ private :
 
 private :
   logging_context_t const& logging_context_;
-  event_pipe_reader_t& control_;
   dispatcher_config_t config_;
+  std::optional<int> sig_;
+  std::unique_ptr<event_pipe_reader_t> stop_reader_;
+  std::unique_ptr<event_pipe_writer_t> stop_writer_;
   std::vector<std::unique_ptr<listener_t>> listeners_;
   default_scheduler_t scheduler_;
   std::list<std::unique_ptr<client_t>> clients_;
-  int sig_;
 };
 
 dispatcher_t::dispatcher_t(logging_context_t const& logging_context,
-                           event_pipe_reader_t& control,
                            dispatcher_config_t config)
-: impl_(std::make_unique<impl_t>(logging_context, control, std::move(config)))
+: impl_(std::make_unique<impl_t>(logging_context, std::move(config)))
 { }
 
 endpoint_t dispatcher_t::add_listener(
@@ -378,6 +372,11 @@ endpoint_t dispatcher_t::add_listener(
 void dispatcher_t::run()
 {
   impl_->run();
+}
+
+void dispatcher_t::stop(int sig)
+{
+  impl_->stop(sig);
 }
 
 dispatcher_t::~dispatcher_t()

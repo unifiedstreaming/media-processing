@@ -39,11 +39,11 @@ struct tcp_connection_t;
 struct x264_service_t : cuti::service_t
 {
   x264_service_t(cuti::logging_context_t const& context,
-                 cuti::event_pipe_reader_t& control_pipe,
                  cuti::dispatcher_config_t const& dispatcher_config,
                  std::vector<cuti::endpoint_t> const& endpoints);
 
   void run() override;
+  void stop(int sig) override;
 
   ~x264_service_t() override;
       

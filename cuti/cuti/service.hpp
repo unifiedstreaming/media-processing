@@ -22,7 +22,6 @@
 
 #include "linkage.h"
 
-#include "event_pipe.hpp"
 #include "logging_backend.hpp"
 #include "logging_context.hpp"
 #include "process_utils.hpp"
@@ -47,6 +46,13 @@ struct CUTI_ABI service_t
    * Runs the service, returning when done.
    */
   virtual void run() = 0;
+
+  /*
+   * Causes the current or next call to run() to return as soon as
+   * possible.  The implementation of this function must be signal-
+   * and thread-safe.
+   */
+  virtual void stop(int sig) = 0;
 
   virtual ~service_t();
 };
@@ -117,8 +123,7 @@ struct CUTI_ABI service_config_t
    * immediately.
    */
   virtual std::unique_ptr<service_t>
-  create_service(logging_context_t& logging_context,
-                 event_pipe_reader_t& control_pipe) const = 0;
+  create_service(logging_context_t& logging_context) const = 0;
 
   virtual ~service_config_t();
 };
