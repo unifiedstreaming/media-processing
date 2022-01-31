@@ -93,7 +93,6 @@ void test_deaf_client(logging_context_t const& client_context,
                       logging_context_t const& server_context,
                       std::size_t bufsize)
 {
-
   method_map_t map;
   map.add_method_factory("echo", default_method_factory<echo_handler_t>());
 
@@ -106,7 +105,7 @@ void test_deaf_client(logging_context_t const& client_context,
   dispatcher_t dispatcher(server_context, config);
 
   endpoint_t server_address = dispatcher.add_listener(
-    local_interfaces(0).front(), map);
+    local_interfaces(any_port).front(), map);
 
   tcp_connection_t client_side(server_address);
   client_side.set_blocking();
@@ -143,7 +142,6 @@ void test_slow_client(logging_context_t const& client_context,
                       logging_context_t const& server_context,
                       std::size_t bufsize)
 {
-
   method_map_t map;
   map.add_method_factory("echo", default_method_factory<echo_handler_t>());
 
@@ -156,7 +154,7 @@ void test_slow_client(logging_context_t const& client_context,
   dispatcher_t dispatcher(server_context, config);
 
   endpoint_t server_address = dispatcher.add_listener(
-    local_interfaces(0).front(), map);
+    local_interfaces(any_port).front(), map);
 
   tcp_connection_t client_side(server_address);
   client_side.set_blocking();
