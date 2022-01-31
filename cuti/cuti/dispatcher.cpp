@@ -59,8 +59,8 @@ struct client_t
   , map_(map)
   , config_(config)
   {
-    std::tie(nb_inbuf_, nb_outbuf_) =
-      make_nb_tcp_buffers(std::move(connection));
+    std::tie(nb_inbuf_, nb_outbuf_) = make_nb_tcp_buffers(
+      std::move(connection), config_.bufsize_, config_.bufsize_);
 
     if(auto msg = context.message_at(loglevel_t::info))
     {

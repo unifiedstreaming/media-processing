@@ -90,13 +90,15 @@ std::string some_echo_request()
 }
 
 void test_deaf_client(logging_context_t const& client_context,
-                      logging_context_t const& server_context)
+                      logging_context_t const& server_context,
+                      std::size_t bufsize)
 {
 
   method_map_t map;
   map.add_method_factory("echo", default_method_factory<echo_handler_t>());
 
   dispatcher_config_t config;
+  config.bufsize_ = bufsize;
   config.min_bytes_per_tick_ = 512;
   config.low_ticks_limit_ = 10;
   config.tick_length_ = milliseconds_t(100);
@@ -111,9 +113,10 @@ void test_deaf_client(logging_context_t const& client_context,
   
   std::string const request = some_echo_request();
 
-  if(auto msg = client_context.message_at(loglevel_t::info))
+  if(auto msg = client_context.message_at(loglevel_t::error))
   {
-    *msg << __func__ << '(' << client_side << "): flooding server...";
+    *msg << __func__ << '(' << client_side <<
+      "): flooding server (bufsize: " << bufsize << ")...";
   }
 
   unsigned int n_sent = 0;
@@ -137,9 +140,10 @@ void test_deaf_client(logging_context_t const& client_context,
 }
 
 void do_run_tests(logging_context_t const& client_context,
-                  logging_context_t const& server_context)
+                  logging_context_t const& server_context,
+                  std::size_t bufsize)
 {
-  test_deaf_client(client_context, server_context);
+  test_deaf_client(client_context, server_context, bufsize);
 }
 
 struct options_t
@@ -199,7 +203,13 @@ int run_tests(int argc, char const* const* argv)
     options.enable_server_logging_ ? cerr_logger : null_logger,
     options.loglevel_);
 
-  do_run_tests(client_context, server_context);
+  static std::size_t constexpr bufsizes[] =
+    { 512, 8 * 1024, dispatcher_config_t::default_bufsize() };
+
+  for(auto bufsize: bufsizes)
+  {
+    do_run_tests(client_context, server_context, bufsize);
+  }
   
   return 0;
 }
