@@ -49,6 +49,10 @@ unit-test default_scheduler_test
 : default_scheduler_test.cpp
 ;
 
+unit-test dispatcher_test
+: dispatcher_test.cpp
+;
+
 unit-test event_pipe_test
 : event_pipe_test.cpp
 ;
