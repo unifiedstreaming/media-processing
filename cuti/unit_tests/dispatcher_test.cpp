@@ -79,12 +79,27 @@ std::size_t drain_connection(tcp_connection_t& conn)
   return count;
 }
 
+std::string some_string()
+{
+  std::string str;
+
+  while(str.size() < 250)
+  {
+    str += "This is the story or the hare who lost his spectacles... ";
+  }
+
+  return str;
+}
+
 std::string some_echo_request()
 {
+  std::string str = some_string();
   std::string request = "echo [ ";
   while(request.size() < 10000)
   {
-    request += "\"abacadabra\" ";
+    request += "\"";
+    request += str;
+    request += "\" ";
   }
   request += "]\n";
 
