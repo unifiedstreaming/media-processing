@@ -380,17 +380,17 @@ void test_tcp_buffers(logging_context_t const& context)
   do_test_tcp_buffers<true>(context,
     1, 1, 1, small_payload);
   do_test_tcp_buffers<false>(context,
-    128 * 1024, 256 * 1024, 256 * 1024, large_payload);
+    4 * 1024, 8 * 1024, 8 * 1024, large_payload);
   do_test_tcp_buffers<true>(context,
-    128 * 1024, 256 * 1024, 256 * 1024, large_payload);
+    4 * 1024, 8 * 1024, 8 * 1024, large_payload);
   do_test_tcp_buffers<false>(context,
-    256 * 1024, 128 * 1024, 128 * 1024, large_payload);
+    8 * 1024, 4 * 1024, 4 * 1024, large_payload);
   do_test_tcp_buffers<true>(context,
-    256 * 1024, 128 * 1024, 128 * 1024, large_payload);
+    8 * 1024, 4 * 1024, 4 * 1024, large_payload);
   do_test_tcp_buffers<false>(context,
-    256 * 1024, 256 * 1024, 256 * 1024, large_payload);
+    8 * 1024, 8 * 1024, 8 * 1024, large_payload);
   do_test_tcp_buffers<true>(context,
-    256 * 1024, 256 * 1024, 256 * 1024, large_payload);
+    8 * 1024, 8 * 1024, 8 * 1024, large_payload);
 }
 
 void drain(scheduler_t& scheduler, nb_inbuf_t& inbuf)

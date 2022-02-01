@@ -85,7 +85,7 @@ std::string some_string()
 
   while(str.size() < 250)
   {
-    str += "This is the story or the hare who lost his spectacles... ";
+    str += "This is the story of the hare who lost his spectacles... ";
   }
 
   return str;
@@ -269,7 +269,7 @@ int run_tests(int argc, char const* const* argv)
     options.loglevel_);
 
   static std::size_t constexpr bufsizes[] =
-    { 512, 8 * 1024, dispatcher_config_t::default_bufsize() };
+    { 512, dispatcher_config_t::default_bufsize() };
 
   for(auto bufsize: bufsizes)
   {

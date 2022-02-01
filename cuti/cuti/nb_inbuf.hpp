@@ -41,7 +41,7 @@ struct scheduler_t;
 
 struct CUTI_ABI nb_inbuf_t
 {
-  static std::size_t constexpr default_bufsize = 256 * 1024;
+  static std::size_t constexpr default_bufsize = 8 * 1024;
   static duration_t constexpr default_tick_length = seconds_t(1);
 
   nb_inbuf_t(std::unique_ptr<nb_source_t> source,

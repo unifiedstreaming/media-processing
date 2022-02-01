@@ -785,7 +785,7 @@ int run_tests(int argc, char const* const* argv)
   logging_context_t context(logger, options.loglevel_);
 
   std::size_t constexpr bufsizes[] =
-    { 1, 8 * 1024, nb_inbuf_t::default_bufsize };
+    { 1, nb_inbuf_t::default_bufsize };
   for(auto bufsize : bufsizes)
   {
     do_run_tests(context, bufsize);
