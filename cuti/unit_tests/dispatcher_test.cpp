@@ -63,26 +63,28 @@ int send_request(tcp_connection_t& conn, std::string const& request)
   return error;
 }
 
-std::string some_string()
+std::size_t drain_connection(tcp_connection_t& conn)
 {
-   std::string result;
-   while(result.size() < 100)
-   {
-     result += "abacabra ";
-   }
-   return result;
+  std::size_t count = 0;
+
+  char buf[512];
+  char* next;
+  do
+  {
+    assert(conn.read(buf, buf + sizeof buf, next) == 0);
+    assert(next != nullptr);
+    count += next - buf;
+  } while(next != buf);
+
+  return count;
 }
 
 std::string some_echo_request()
 {
-  std::string str = some_string();
-
   std::string request = "echo [ ";
   while(request.size() < 10000)
   {
-    request += '\"';
-    request += str;
-    request += "\" ";
+    request += "\"abacadabra\" ";
   }
   request += "]\n";
 
@@ -118,7 +120,7 @@ void test_deaf_client(logging_context_t const& client_context,
       "): flooding server (bufsize: " << bufsize << ")...";
   }
 
-  unsigned int n_sent = 0;
+  unsigned int n_requests = 0;
   int error = 0;
   {
     scoped_thread_t server_thread([&] { dispatcher.run(); });
@@ -126,14 +128,14 @@ void test_deaf_client(logging_context_t const& client_context,
   
     while((error = send_request(client_side, request)) == 0)
     {
-      ++n_sent;
+      ++n_requests;
     }
   }
 
   if(auto msg = client_context.message_at(loglevel_t::info))
   {
     *msg << __func__ << '(' << client_side <<
-      "): got expected error after sending " << n_sent <<
+      "): got expected error after sending " << n_requests <<
       " requests: " << system_error_string(error);
   }
 }
@@ -149,7 +151,7 @@ void test_slow_client(logging_context_t const& client_context,
   config.bufsize_ = bufsize;
   config.min_bytes_per_tick_ = 512;
   config.low_ticks_limit_ = 10;
-  config.tick_length_ = milliseconds_t(100);
+  config.tick_length_ = milliseconds_t(10);
 
   dispatcher_t dispatcher(server_context, config);
 
@@ -175,14 +177,7 @@ void test_slow_client(logging_context_t const& client_context,
     assert(send_request(client_side, incomplete_request) == 0);
 
     // wait for eof caused by server-side request reading timeout
-    char buf[512];
-    char* next;
-    do
-    {
-      assert(client_side.read(buf, buf + sizeof buf, next) == 0);
-      assert(next != nullptr);
-      bytes_received += next - buf;
-    } while(next != buf);
+    bytes_received = drain_connection(client_side);
   }
 
   if(auto msg = client_context.message_at(loglevel_t::info))
