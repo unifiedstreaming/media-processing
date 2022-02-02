@@ -478,6 +478,11 @@ void test_inbuf_throughput_checking(logging_context_t const& context,
   std::tie(server_in, server_out) =
     make_nb_tcp_buffers(std::move(server_side));
 
+  throughput_checker_settings_t settings;
+  settings.min_bytes_per_tick_ = 512;
+  settings.low_ticks_limit_ = 20;
+  settings.tick_length_ = milliseconds_t(1);
+
   if(enable_while_running)
   {
     client_out->call_when_writable(scheduler,
@@ -485,11 +490,11 @@ void test_inbuf_throughput_checking(logging_context_t const& context,
     server_in->call_when_readable(scheduler,
       [&] { drain(scheduler, *server_in); });
 
-    server_in->enable_throughput_checking(512, 20, milliseconds_t(1));
+    server_in->enable_throughput_checking(settings);
   }
   else
   {
-    server_in->enable_throughput_checking(512, 20, milliseconds_t(1));
+    server_in->enable_throughput_checking(settings);
 
     client_out->call_when_writable(scheduler,
       [&] { flood_n(scheduler, *client_out, 1234567); });
@@ -535,6 +540,11 @@ void test_outbuf_throughput_checking(logging_context_t const& context,
   std::tie(server_in, server_out) =
     make_nb_tcp_buffers(std::move(server_side));
 
+  throughput_checker_settings_t settings;
+  settings.min_bytes_per_tick_ = 512;
+  settings.low_ticks_limit_ = 20;
+  settings.tick_length_ = milliseconds_t(1);
+
   if(enable_while_running)
   {
     client_out->call_when_writable(scheduler,
@@ -542,11 +552,11 @@ void test_outbuf_throughput_checking(logging_context_t const& context,
     server_in->call_when_readable(scheduler,
       [&] { drain_n(scheduler, *server_in, 1234567); });
 
-    client_out->enable_throughput_checking(512, 20, milliseconds_t(1));
+    client_out->enable_throughput_checking(settings);
   }
   else
   {
-    client_out->enable_throughput_checking(512, 20, milliseconds_t(1));
+    client_out->enable_throughput_checking(settings);
 
     client_out->call_when_writable(scheduler,
       [&] { flood(scheduler, *client_out); });

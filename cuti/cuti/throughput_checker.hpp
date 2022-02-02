@@ -31,6 +31,23 @@
 namespace cuti
 {
 
+struct CUTI_ABI throughput_checker_settings_t
+{
+  static std::size_t constexpr default_min_bytes_per_tick = 512;
+  static unsigned int constexpr default_low_ticks_limit = 120;
+  static duration_t constexpr default_tick_length = seconds_t(1);
+
+  constexpr throughput_checker_settings_t()
+  : min_bytes_per_tick_(default_min_bytes_per_tick)
+  , low_ticks_limit_(default_low_ticks_limit)
+  , tick_length_(default_tick_length)
+  { }
+
+  std::size_t min_bytes_per_tick_;
+  unsigned int low_ticks_limit_;
+  duration_t tick_length_;
+};
+
 template<typename ClockObjectT = default_clock_object_t>
 struct throughput_checker_t
 {
@@ -39,15 +56,12 @@ struct throughput_checker_t
    * be low if less than min_bytes_per_tick were transferred for at
    * least low_ticks_limit ticks.
    */
-  throughput_checker_t(std::size_t min_bytes_per_tick,
-                       unsigned int low_ticks_limit,
-                       duration_t tick_length,
-                       ClockObjectT clock = ClockObjectT{})
+  explicit throughput_checker_t(
+    throughput_checker_settings_t const& settings,
+    ClockObjectT clock = ClockObjectT{})
   : clock_(std::move(clock))
-  , min_bytes_per_tick_(min_bytes_per_tick)
-  , low_ticks_limit_(low_ticks_limit)
-  , tick_length_((assert(tick_length > duration_t::zero()), tick_length))
-  , next_tick_(clock_.now() + tick_length_)
+  , settings_((assert(settings.tick_length_ > duration_t::zero()), settings))
+  , next_tick_(clock_.now() + settings_.tick_length_)
   , current_tick_bytes_(0)
   , n_low_ticks_(0)
   { }
@@ -74,9 +88,9 @@ struct throughput_checker_t
     time_point_t now = clock_.now();
     while(next_tick_ <= now)
     {
-      if(n_low_ticks_ < low_ticks_limit_)
+      if(n_low_ticks_ < settings_.low_ticks_limit_)
       {
-        if(current_tick_bytes_ < min_bytes_per_tick_)
+        if(current_tick_bytes_ < settings_.min_bytes_per_tick_)
         {
           ++n_low_ticks_;
         }
@@ -87,26 +101,25 @@ struct throughput_checker_t
       }
 
       current_tick_bytes_ = 0;
-      next_tick_ += tick_length_;
+      next_tick_ += settings_.tick_length_;
     }
 
-    if(n_bytes < min_bytes_per_tick_ - current_tick_bytes_)
+    if(n_bytes < settings_.min_bytes_per_tick_ - current_tick_bytes_)
     {
       current_tick_bytes_ += n_bytes;
     }
     else
     {
-      current_tick_bytes_ = min_bytes_per_tick_;
+      current_tick_bytes_ = settings_.min_bytes_per_tick_;
     }
 
-    return n_low_ticks_ < low_ticks_limit_ ? 0 : timeout_system_error();
+    return n_low_ticks_ < settings_.low_ticks_limit_ ?
+      0 : timeout_system_error();
   }
 
 private :
   ClockObjectT clock_;
-  std::size_t min_bytes_per_tick_;
-  unsigned int low_ticks_limit_;
-  duration_t tick_length_;
+  throughput_checker_settings_t settings_;
   time_point_t next_tick_;
   std::size_t current_tick_bytes_;
   unsigned int n_low_ticks_;

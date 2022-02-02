@@ -25,6 +25,7 @@
 #include "linkage.h"
 #include "nb_inbuf.hpp"
 #include "selector_factory.hpp"
+#include "throughput_checker.hpp"
 
 #include <cstddef>
 #include <memory>
@@ -43,28 +44,19 @@ struct CUTI_ABI dispatcher_config_t
   static std::size_t constexpr default_bufsize()
   { return nb_inbuf_t::default_bufsize; }
 
-  static std::size_t constexpr default_min_bytes_per_tick()
-  { return 512; }
+  static throughput_checker_settings_t constexpr
+  default_throughput_checker_settings()
+  { return throughput_checker_settings_t(); }
 
-  static unsigned int constexpr default_low_ticks_limit()
-  { return 120; }
-
-  static duration_t constexpr default_tick_length()
-  { return seconds_t(1); }
-  
   dispatcher_config_t()
   : selector_factory_(default_selector_factory())
   , bufsize_(default_bufsize())
-  , min_bytes_per_tick_(default_min_bytes_per_tick())
-  , low_ticks_limit_(default_low_ticks_limit())
-  , tick_length_(default_tick_length())
+  , throughput_checker_settings_(default_throughput_checker_settings())
   { }
 
   selector_factory_t selector_factory_;
   std::size_t bufsize_;
-  std::size_t min_bytes_per_tick_;
-  unsigned int low_ticks_limit_;
-  duration_t tick_length_;
+  throughput_checker_settings_t throughput_checker_settings_;
 };
 
 struct CUTI_ABI dispatcher_t

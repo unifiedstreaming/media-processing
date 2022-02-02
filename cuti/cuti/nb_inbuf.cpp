@@ -45,13 +45,12 @@ nb_inbuf_t::nb_inbuf_t(std::unique_ptr<nb_source_t> source,
 , error_status_(0)
 { }
 
-void nb_inbuf_t::enable_throughput_checking(std::size_t min_bytes_per_tick,
-                                            unsigned int low_ticks_limit,
-                                            duration_t tick_length)
+void nb_inbuf_t::enable_throughput_checking(
+  throughput_checker_settings_t const& settings)
 {
   this->disable_throughput_checking();
 
-  checker_.emplace(min_bytes_per_tick, low_ticks_limit, tick_length);
+  checker_.emplace(settings);
   if(!readable_ticket_.empty())
   {
     assert(alarm_ticket_.empty());

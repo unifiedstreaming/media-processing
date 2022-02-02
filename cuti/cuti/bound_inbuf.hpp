@@ -94,12 +94,9 @@ struct CUTI_ABI bound_inbuf_t
   }
 
   void enable_throughput_checking(
-    std::size_t min_bytes_per_tick,
-    unsigned int low_ticks_limit,
-    duration_t tick_length = default_tick_length)
+    throughput_checker_settings_t const& settings)
   {
-    inbuf_.enable_throughput_checking(
-      min_bytes_per_tick, low_ticks_limit, tick_length);
+    inbuf_.enable_throughput_checking(settings);
   }
 
   void disable_throughput_checking()

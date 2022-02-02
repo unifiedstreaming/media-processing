@@ -34,9 +34,14 @@ void test_next_tick()
    * checking for low speed each set the next tick to somewhere in the
    * future.
    */
+  throughput_checker_settings_t settings;
+  settings.min_bytes_per_tick_ = 1;
+  settings.low_ticks_limit_ = 1;
+  settings.tick_length_ = seconds_t(1);
+  
   time_point_t clock = cuti_clock_t::now();
   throughput_checker_t<user_clock_object_t> checker(
-    1, 1, seconds_t(1), user_clock_object_t(clock));
+    settings, user_clock_object_t(clock));
 
   auto next = checker.next_tick();
   assert(next > clock);
@@ -56,9 +61,14 @@ void test_speed()
 {
   {
     // a zero low ticks limit must report immediate and persistent failure
+    throughput_checker_settings_t settings;
+    settings.min_bytes_per_tick_ = 512;
+    settings.low_ticks_limit_ = 0;
+    settings.tick_length_ = seconds_t(1);
+
     time_point_t clock = cuti_clock_t::now();
     throughput_checker_t<user_clock_object_t> checker(
-      512, 0, seconds_t(1), user_clock_object_t(clock));
+      settings, user_clock_object_t(clock));
     assert(checker.record_transfer(1024) != 0);
 
     clock += seconds_t(1);
@@ -66,9 +76,14 @@ void test_speed()
   }
 
   {
+    throughput_checker_settings_t settings;
+    settings.min_bytes_per_tick_ = 512;
+    settings.low_ticks_limit_ = 1;
+    settings.tick_length_ = seconds_t(1);
+
     time_point_t clock = cuti_clock_t::now();
     throughput_checker_t<user_clock_object_t> checker(
-      512, 1, seconds_t(1), user_clock_object_t(clock));
+      settings, user_clock_object_t(clock));
     assert(checker.record_transfer(0) == 0);
 
     clock += seconds_t(1);
@@ -76,32 +91,14 @@ void test_speed()
   }
 
   {
+    throughput_checker_settings_t settings;
+    settings.min_bytes_per_tick_ = 512;
+    settings.low_ticks_limit_ = 2;
+    settings.tick_length_ = seconds_t(1);
+
     time_point_t clock = cuti_clock_t::now();
     throughput_checker_t<user_clock_object_t> checker(
-      512, 2, seconds_t(1), user_clock_object_t(clock));
-    assert(checker.record_transfer(0) == 0);
-
-    clock += seconds_t(1);
-    assert(checker.record_transfer(0) == 0);
-
-    clock += seconds_t(1);
-    assert(checker.record_transfer(0) != 0);
-  }
-
-  {
-    time_point_t clock = cuti_clock_t::now();
-    throughput_checker_t<user_clock_object_t> checker(
-      512, 1, seconds_t(1), user_clock_object_t(clock));
-    assert(checker.record_transfer(0) == 0);
-
-    clock += seconds_t(1);
-    assert(checker.record_transfer(0) != 0);
-  }
-
-  {
-    time_point_t clock = cuti_clock_t::now();
-    throughput_checker_t<user_clock_object_t> checker(
-      512, 2, seconds_t(1), user_clock_object_t(clock));
+      settings, user_clock_object_t(clock));
     assert(checker.record_transfer(0) == 0);
 
     clock += seconds_t(1);
@@ -112,9 +109,47 @@ void test_speed()
   }
 
   {
+    throughput_checker_settings_t settings;
+    settings.min_bytes_per_tick_ = 512;
+    settings.low_ticks_limit_ = 1;
+    settings.tick_length_ = seconds_t(1);
+
     time_point_t clock = cuti_clock_t::now();
     throughput_checker_t<user_clock_object_t> checker(
-      512, 1, seconds_t(1), user_clock_object_t(clock));
+      settings, user_clock_object_t(clock));
+    assert(checker.record_transfer(0) == 0);
+
+    clock += seconds_t(1);
+    assert(checker.record_transfer(0) != 0);
+  }
+
+  {
+    throughput_checker_settings_t settings;
+    settings.min_bytes_per_tick_ = 512;
+    settings.low_ticks_limit_ = 2;
+    settings.tick_length_ = seconds_t(1);
+
+    time_point_t clock = cuti_clock_t::now();
+    throughput_checker_t<user_clock_object_t> checker(
+      settings, user_clock_object_t(clock));
+    assert(checker.record_transfer(0) == 0);
+
+    clock += seconds_t(1);
+    assert(checker.record_transfer(0) == 0);
+
+    clock += seconds_t(1);
+    assert(checker.record_transfer(0) != 0);
+  }
+
+  {
+    throughput_checker_settings_t settings;
+    settings.min_bytes_per_tick_ = 512;
+    settings.low_ticks_limit_ = 1;
+    settings.tick_length_ = seconds_t(1);
+
+    time_point_t clock = cuti_clock_t::now();
+    throughput_checker_t<user_clock_object_t> checker(
+      settings, user_clock_object_t(clock));
     assert(checker.record_transfer(511) == 0);
 
     clock += seconds_t(1);
@@ -122,9 +157,14 @@ void test_speed()
   }
 
   {
+    throughput_checker_settings_t settings;
+    settings.min_bytes_per_tick_ = 512;
+    settings.low_ticks_limit_ = 2;
+    settings.tick_length_ = seconds_t(1);
+
     time_point_t clock = cuti_clock_t::now();
     throughput_checker_t<user_clock_object_t> checker(
-      512, 2, seconds_t(1), user_clock_object_t(clock));
+      settings, user_clock_object_t(clock));
     assert(checker.record_transfer(511) == 0);
 
     clock += seconds_t(1);
@@ -135,9 +175,14 @@ void test_speed()
   }
 
   {
+    throughput_checker_settings_t settings;
+    settings.min_bytes_per_tick_ = 512;
+    settings.low_ticks_limit_ = 1;
+    settings.tick_length_ = seconds_t(1);
+
     time_point_t clock = cuti_clock_t::now();
     throughput_checker_t<user_clock_object_t> checker(
-      512, 1, seconds_t(1), user_clock_object_t(clock));
+      settings, user_clock_object_t(clock));
     assert(checker.record_transfer(512) == 0);
 
     clock += seconds_t(1);
@@ -148,9 +193,14 @@ void test_speed()
   }
 
   {
+    throughput_checker_settings_t settings;
+    settings.min_bytes_per_tick_ = 512;
+    settings.low_ticks_limit_ = 120;
+    settings.tick_length_ = seconds_t(1);
+
     time_point_t clock = cuti_clock_t::now();
     throughput_checker_t<user_clock_object_t> checker(
-      512, 120, seconds_t(1), user_clock_object_t(clock));
+      settings, user_clock_object_t(clock));
     assert(checker.record_transfer(512) == 0);
 
     for(unsigned int i = 0; i != 120; ++i)

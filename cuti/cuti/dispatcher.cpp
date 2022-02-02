@@ -81,15 +81,11 @@ struct client_t
 
     bound_inbuf_t bound_inbuf(base_marker, *nb_inbuf_, scheduler);
     bound_inbuf.enable_throughput_checking(
-      config_.min_bytes_per_tick_,
-      config_.low_ticks_limit_,
-      config_.tick_length_);
+      config_.throughput_checker_settings_);
 
     bound_outbuf_t bound_outbuf(base_marker, *nb_outbuf_, scheduler);
     bound_outbuf.enable_throughput_checking(
-      config_.min_bytes_per_tick_,
-      config_.low_ticks_limit_,
-      config_.tick_length_);
+      config_.throughput_checker_settings_);
 
     final_result_t<bool> at_eof_result;
     eof_checker_t eof_checker(at_eof_result, bound_inbuf);

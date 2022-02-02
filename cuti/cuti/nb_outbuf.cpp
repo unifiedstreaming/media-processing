@@ -65,13 +65,12 @@ char const* nb_outbuf_t::write(char const* first, char const* last)
   return first + count;
 }
 
-void nb_outbuf_t::enable_throughput_checking(std::size_t min_bytes_per_tick,
-                                             unsigned int low_ticks_limit,
-                                             duration_t tick_length)
+void nb_outbuf_t::enable_throughput_checking(
+  throughput_checker_settings_t const& settings)
 {
   this->disable_throughput_checking();
 
-  checker_.emplace(min_bytes_per_tick, low_ticks_limit, tick_length);
+  checker_.emplace(settings);
   if(!writable_ticket_.empty())
   {
     assert(alarm_ticket_.empty());

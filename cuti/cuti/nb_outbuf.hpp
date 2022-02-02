@@ -53,9 +53,7 @@ struct CUTI_ABI nb_outbuf_t
    * throughput_checker.hpp for details.
    */
   void enable_throughput_checking(
-    std::size_t min_bytes_per_tick,
-    unsigned int low_ticks_limit,
-    duration_t tick_length = default_tick_length);
+    throughput_checker_settings_t const& settings);
 
   /*
    * Disable throughput checking.
