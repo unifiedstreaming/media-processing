@@ -27,6 +27,8 @@
 #include <cuti/nb_string_inbuf.hpp>
 #include <cuti/nb_string_outbuf.hpp>
 
+#include <algorithm>
+#include <cstring>
 #include <stdexcept>
 
 #undef NDEBUG
@@ -161,8 +163,9 @@ void test_method(
   runner.start(method_name);
   assert(final_result.available());
 
-  auto trailer_size = expected_trailer.size();
-  if(trailer_size == 0)
+  auto begin_trailer = expected_trailer.begin();
+  auto end_trailer = expected_trailer.end();
+  if(begin_trailer == end_trailer)
   {
     final_result.value();
   }
@@ -175,10 +178,11 @@ void test_method(
     }
     catch(std::exception const& ex)
     {
-      std::string what_str = ex.what();
-      auto what_size = what_str.size();
-      assert(what_size >= trailer_size);
-      assert(what_str.substr(what_size - trailer_size) == expected_trailer);
+      char const* begin_what = ex.what();
+      char const* end_what = begin_what + std::strlen(begin_what);
+      assert(end_what - begin_what >= end_trailer - begin_trailer);
+      assert(std::equal(end_what - (end_trailer - begin_trailer), end_what,
+                        begin_trailer, end_trailer));
       caught = true;
     }
     assert(caught);
