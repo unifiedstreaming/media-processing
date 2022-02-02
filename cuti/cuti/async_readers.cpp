@@ -20,7 +20,9 @@
 #include "async_readers.hpp"
 
 #include "charclass.hpp"
+#include "exception_builder.hpp"
 #include "parse_error.hpp"
+#include "quoted.hpp"
 #include "remote_error.hpp"
 #include "stack_marker.hpp"
 
@@ -110,7 +112,9 @@ void digits_reader_t<T>::read_digits()
     T udval = static_cast<T>(dval);
     if(value_ > max_ / 10 || udval > max_ - 10 * value_)
     {
-      result_.fail(parse_error_t("integral type overflow"));
+      exception_builder_t<parse_error_t> builder;
+      builder << buf_ << ": integral type overflow";
+      result_.fail(builder.exception_object());
       return;
     }
 
@@ -128,14 +132,18 @@ void digits_reader_t<T>::read_digits()
 
   if(!digit_seen_)
   {
-    result_.fail(parse_error_t("digit expected"));
+    exception_builder_t<parse_error_t> builder;
+    builder << buf_ << ": digit expected, but got " << quoted_char(c);
+    result_.fail(builder.exception_object());
     return;
   }
 
   if(c == eof)
   {
     // avoid submitting a half-baked value on remote hangup
-    result_.fail(parse_error_t("unexpected eof in integral value"));
+    exception_builder_t<parse_error_t> builder;
+    builder << buf_ << ": unexpected eof in integral value";
+    result_.fail(builder.exception_object());
     return;
   }
 
@@ -169,10 +177,13 @@ void hex_digits_reader_t::read_digits()
 
   while(shift_ != 0 && buf_.readable())
   {
-    int dval = hex_digit_value(buf_.peek());
+    int c = buf_.peek();
+    int dval = hex_digit_value(c);
     if(dval < 0)
     {
-      result_.fail(parse_error_t("hex digit expected"));
+      exception_builder_t<parse_error_t> builder;
+      builder << buf_ << ": hex digit expected, but got " << quoted_char(c);
+      result_.fail(builder.exception_object());
       return;
     }
 
@@ -220,8 +231,14 @@ void boolean_reader_t<T>::on_whitespace_skipped(int c)
     value = true;
     break;
   default :
-    result_.fail(parse_error_t("boolean value (\'&\' or \'|\') expected"));
-    return;
+    {
+      exception_builder_t<parse_error_t> builder;
+      builder << buf_ << ": boolean value (" << 
+        quoted_char('&') << " or " << quoted_char('|') <<
+        ") expected, but got " << quoted_char(c);
+      result_.fail(builder.exception_object());
+      return;
+    }
   }
   buf_.skip();
 
@@ -345,7 +362,10 @@ void blob_reader_t<T>::read_leading_dq(int c)
 
   if(c != '\"')
   {
-    result_.fail(parse_error_t("opening double quote ('\"') expected"));
+    exception_builder_t<parse_error_t> builder;
+    builder << buf_ << ": opening double quote (" << quoted_char('\"') <<
+      ") expected, but got " << quoted_char(c);
+    result_.fail(builder.exception_object());
     return;
   }
   buf_.skip();
@@ -362,11 +382,19 @@ void blob_reader_t<T>::read_contents()
     switch(c)
     {
     case eof :
-      result_.fail(parse_error_t("unexpected eof in string value"));
-      return;
+      {
+        exception_builder_t<parse_error_t> builder;
+        builder << buf_ << ": unexpected eof in string value";
+        result_.fail(builder.exception_object());
+        return;
+      }
     case '\n' :
-      result_.fail(parse_error_t("non-escaped newline string value"));
-      return;
+      {
+        exception_builder_t<parse_error_t> builder;
+        builder << buf_ << ": non-escaped newline in string value";
+        result_.fail(builder.exception_object());
+        return;
+      }
     case '\\' :
       buf_.skip();
       this->read_escaped();
@@ -397,7 +425,8 @@ void blob_reader_t<T>::read_escaped()
     return;
   }
 
-  switch(buf_.peek())
+  int c = buf_.peek();
+  switch(c)
   {
   case 't' :
     value_.push_back('\t');
@@ -422,8 +451,13 @@ void blob_reader_t<T>::read_escaped()
     value_.push_back('\\');
     break;
   default :
-    result_.fail(parse_error_t("unknown escape sequence in string value"));
-    return;
+    {
+      exception_builder_t<parse_error_t> builder;
+      builder << buf_ << ": unknown escape sequence: " << quoted_char(c) <<
+        " after backslash in string value";
+      result_.fail(builder.exception_object());
+      return;
+    }
   }
 
   buf_.skip();
@@ -480,7 +514,9 @@ void identifier_reader_t::read_leader(int c)
 
   if(!identifier_t::is_leader(c))
   {
-    result_.fail(parse_error_t("identifier expected"));
+    exception_builder_t<parse_error_t> builder;
+    builder << buf_ << ": identifier expected, but got " << quoted_char(c);
+    result_.fail(builder.exception_object());
     return;
   }
 
@@ -508,7 +544,9 @@ void identifier_reader_t::read_followers()
   if(c == eof)
   {
     // avoid submitting a half-baked value on remote hangup
-    result_.fail(parse_error_t("unexpected eof in identifier value"));
+    exception_builder_t<parse_error_t> builder;
+    builder << buf_ << ": unexpected eof in identifier value";
+    result_.fail(builder.exception_object());
     return;
   }
 

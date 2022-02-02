@@ -131,7 +131,7 @@ auto configurable_method_factory(bool fail)
 void test_method(
   method_map_t const& method_map,
   std::string const& method_name,
-  std::string const& expected_what = "")
+  std::string const& expected_trailer = "")
 {
   /*
    * Set up required logging context, bound_inbuf, bound_outbuf (not used)
@@ -161,7 +161,8 @@ void test_method(
   runner.start(method_name);
   assert(final_result.available());
 
-  if(expected_what == "")
+  auto trailer_size = expected_trailer.size();
+  if(trailer_size == 0)
   {
     final_result.value();
   }
@@ -174,8 +175,11 @@ void test_method(
     }
     catch(std::exception const& ex)
     {
+      std::string what_str = ex.what();
+      auto what_size = what_str.size();
+      assert(what_size >= trailer_size);
+      assert(what_str.substr(what_size - trailer_size) == expected_trailer);
       caught = true;
-      assert(ex.what() == expected_what);
     }
     assert(caught);
   }

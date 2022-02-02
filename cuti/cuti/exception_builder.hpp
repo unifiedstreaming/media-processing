@@ -41,10 +41,16 @@ struct exception_builder_t : std::ostream
   exception_builder_t& operator=(exception_builder_t const&) = delete;
 
   template<typename... Args>
+  T exception_object(Args&&... args) const
+  {
+    return T(std::string(buf_.begin(), buf_.end()),
+             std::forward<Args>(args)...);
+  }
+
+  template<typename... Args>
   void explode(Args&&... args) const
   {
-    throw T(std::string(buf_.begin(), buf_.end()),
-            std::forward<Args>(args)...);
+    throw this->exception_object(std::forward<Args>(args)...);
   }
 
 private :

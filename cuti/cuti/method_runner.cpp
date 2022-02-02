@@ -19,6 +19,8 @@
 
 #include "method_runner.hpp"
 
+#include "bound_inbuf.hpp"
+#include "exception_builder.hpp"
 #include "method.hpp"
 #include "method_map.hpp"
 #include "parse_error.hpp"
@@ -45,8 +47,9 @@ void method_runner_t::start(identifier_t const& name)
     name, result_, context_, inbuf_, outbuf_);
   if(method_ == nullptr)
   {
-    result_.fail(parse_error_t(
-      "method \'" + name.as_string() + "\' not found"));
+    exception_builder_t<parse_error_t> builder;
+    builder << inbuf_ << ": method \'" << name << "\' not found";
+    result_.fail(builder.exception_object());
     return;
   }
 

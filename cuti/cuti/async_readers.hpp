@@ -23,10 +23,12 @@
 #include "bound_inbuf.hpp"
 #include "charclass.hpp"
 #include "consumer.hpp"
+#include "exception_builder.hpp"
 #include "flag.hpp"
 #include "identifier.hpp"
 #include "linkage.h"
 #include "parse_error.hpp"
+#include "quoted.hpp"
 #include "result.hpp"
 #include "stack_marker.hpp"
 #include "subroutine.hpp"
@@ -215,20 +217,10 @@ private :
 
     if(c != C)
     {
-      if constexpr(C == eof)
-      {
-        result_.fail(parse_error_t("eof expected"));
-      }
-      else if constexpr(is_printable(C))
-      {
-        result_.fail(parse_error_t(std::string("\'") +
-          static_cast<char>(C) + "\' expected"));
-      }
-      else
-      {
-        result_.fail(parse_error_t("char(" +
-          std::to_string(C) + ") expected"));
-      }
+      exception_builder_t<parse_error_t> builder;
+      builder << buf_ << ": " <<
+        quoted_char(C) << " expected, but got " << quoted_char(c);
+      result_.fail(builder.exception_object());
       return;
     }
 
@@ -752,7 +744,8 @@ struct CUTI_ABI eom_checker_t
 
   eom_checker_t(result_t<void>& result, bound_inbuf_t& buf)
   : result_(result)
-  , skipper_(*this, result_, buf)
+  , buf_(buf)
+  , skipper_(*this, result_, buf_)
   { }
 
   void start()
@@ -765,7 +758,10 @@ private :
   {
     if(c != '\n')
     {
-      result_.fail(parse_error_t("end of message (newline) expected"));
+      exception_builder_t<parse_error_t> builder;
+      builder << buf_ << ": end of message (" << quoted_char('\n') <<
+        ") expected, but got " << quoted_char(c);
+      result_.fail(builder.exception_object());
       return;
     }
 
@@ -774,6 +770,7 @@ private :
 
 private :
   result_t<void>& result_;
+  bound_inbuf_t& buf_;
   subroutine_t<eom_checker_t, whitespace_skipper_t> skipper_;
 };
 
