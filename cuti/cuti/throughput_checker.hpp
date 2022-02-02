@@ -22,6 +22,7 @@
 
 #include "chrono_types.hpp"
 #include "clock_object.hpp"
+#include "linkage.h"
 #include "system_error.hpp"
 
 #include <cassert>
