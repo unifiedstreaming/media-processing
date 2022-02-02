@@ -124,7 +124,7 @@ lib cuti
   poll_selector.cpp
   process_utils.cpp
   producer.cpp
-  quoted_string.cpp
+  quoted.cpp
   relational_ops.cpp
   remote_error.cpp
   reply_reader.cpp

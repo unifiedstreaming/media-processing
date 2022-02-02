@@ -17,9 +17,10 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#ifndef CUTI_QUOTED_STRING_HPP_
-#define CUTI_QUOTED_STRING_HPP_
+#ifndef CUTI_QUOTED_HPP_
+#define CUTI_QUOTED_HPP_
 
+#include "charclass.hpp"
 #include "linkage.h"
 
 #include <cassert>
@@ -32,6 +33,36 @@
 
 namespace cuti
 {
+
+struct CUTI_ABI quoted_char_t
+{
+  explicit quoted_char_t(char c)
+  : c_(std::char_traits<char>::to_int_type(c))
+  { }
+
+  explicit quoted_char_t(unsigned char c)
+  : c_(std::char_traits<unsigned char>::to_int_type(c))
+  { }
+
+  explicit quoted_char_t(int c)
+  : c_(c)
+  { }
+
+  void print(std::streambuf& sb) const;
+
+  friend std::ostream& operator<<(std::ostream& os,
+                                  quoted_char_t const& q)
+  {
+    std::streambuf* sb = os.rdbuf();
+    assert(sb != nullptr);
+
+    q.print(*sb);
+    return os;
+  }
+
+private :
+  int c_;
+};
 
 struct CUTI_ABI quoted_string_t
 {
@@ -56,6 +87,24 @@ private :
   char const* first_;
   char const* last_;
 };
+
+inline CUTI_ABI
+quoted_char_t quoted_char(char c)
+{
+  return quoted_char_t(c);
+}
+
+inline CUTI_ABI
+quoted_char_t quoted_char(unsigned char c)
+{
+  return quoted_char_t(c);
+}
+
+inline CUTI_ABI
+quoted_char_t quoted_char(int c)
+{
+  return quoted_char_t(c);
+}
 
 inline CUTI_ABI
 quoted_string_t quoted_string(char const* str)

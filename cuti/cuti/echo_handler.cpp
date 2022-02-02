@@ -19,7 +19,7 @@
 
 #include "echo_handler.hpp"
 
-#include "quoted_string.hpp"
+#include "quoted.hpp"
 
 #include <stdexcept>
 #include <utility>

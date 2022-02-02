@@ -25,7 +25,7 @@
 #include <cuti/nb_string_inbuf.hpp>
 #include <cuti/nb_string_outbuf.hpp>
 #include <cuti/option_walker.hpp>
-#include <cuti/quoted_string.hpp>
+#include <cuti/quoted.hpp>
 #include <cuti/request_handler.hpp>
 #include <cuti/subtract_handler.hpp>
 #include <cuti/streambuf_backend.hpp>

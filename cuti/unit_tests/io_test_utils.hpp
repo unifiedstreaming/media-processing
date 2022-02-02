@@ -32,7 +32,7 @@
 #include <cuti/logging_context.hpp>
 #include <cuti/nb_string_inbuf.hpp>
 #include <cuti/nb_string_outbuf.hpp>
-#include <cuti/quoted_string.hpp>
+#include <cuti/quoted.hpp>
 #include <cuti/stack_marker.hpp>
 
 #include <cstddef>

@@ -25,7 +25,7 @@
 #include <cuti/final_result.hpp>
 #include <cuti/nb_tcp_buffers.hpp>
 #include <cuti/option_walker.hpp>
-#include <cuti/quoted_string.hpp>
+#include <cuti/quoted.hpp>
 #include <cuti/request_handler.hpp>
 #include <cuti/rpc_engine.hpp>
 #include <cuti/scoped_thread.hpp>
