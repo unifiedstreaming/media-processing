@@ -55,6 +55,17 @@ void test_next_tick()
 void test_speed()
 {
   {
+    // a zero low ticks limit must report immediate and persistent failure
+    time_point_t clock = cuti_clock_t::now();
+    throughput_checker_t<user_clock_object_t> checker(
+      512, 0, seconds_t(1), user_clock_object_t(clock));
+    assert(checker.record_transfer(1024) != 0);
+
+    clock += seconds_t(1);
+    assert(checker.record_transfer(1024) != 0);
+  }
+
+  {
     time_point_t clock = cuti_clock_t::now();
     throughput_checker_t<user_clock_object_t> checker(
       512, 1, seconds_t(1), user_clock_object_t(clock));
