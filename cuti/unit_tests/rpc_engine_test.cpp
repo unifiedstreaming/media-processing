@@ -21,19 +21,21 @@
 #include <cuti/async_readers.hpp>
 #include <cuti/cmdline_reader.hpp>
 #include <cuti/default_scheduler.hpp>
+#include <cuti/dispatcher.hpp>
 #include <cuti/echo_handler.hpp>
 #include <cuti/final_result.hpp>
+#include <cuti/method_map.hpp>
 #include <cuti/nb_tcp_buffers.hpp>
 #include <cuti/option_walker.hpp>
 #include <cuti/quoted.hpp>
-#include <cuti/request_handler.hpp>
+#include <cuti/resolver.hpp>
 #include <cuti/rpc_engine.hpp>
 #include <cuti/scoped_thread.hpp>
-#include <cuti/stack_marker.hpp>
 #include <cuti/streambuf_backend.hpp>
 #include <cuti/subtract_handler.hpp>
 #include <cuti/tcp_connection.hpp>
 
+#include <csignal>
 #include <iostream>
 #include <limits>
 #include <memory>
@@ -180,87 +182,6 @@ private :
   std::optional<std::size_t> error_index_;
 };
       
-void run_scheduler(logging_context_t const& context,
-                   default_scheduler_t& scheduler)
-{
-  if(auto msg = context.message_at(loglevel_t::info))
-  {
-    *msg << __func__ << ": starting";
-  }
-
-  unsigned int n_callbacks = 0;
-  
-  callback_t cb;
-  while((cb = scheduler.wait()) != nullptr)
-  {
-    cb();
-    ++n_callbacks;
-  }
-
-  if(auto msg = context.message_at(loglevel_t::info))
-  {
-    *msg << __func__ << ": done; n_callbacks: " << n_callbacks;
-  }
-}
-    
-bool at_eof(logging_context_t const& context, nb_inbuf_t& inbuf)
-{
-  default_scheduler_t scheduler;
-  stack_marker_t base_marker;
-  bound_inbuf_t bound_inbuf(base_marker, inbuf, scheduler);
-
-  final_result_t<bool> result;
-  eof_checker_t checker(result, bound_inbuf);
-  checker.start();
-
-  run_scheduler(context, scheduler);
-
-  assert(result.available());
-  return result.value();
-}
-
-void handle_request(logging_context_t const& context,
-                    nb_inbuf_t& inbuf,
-                    nb_outbuf_t& outbuf,
-                    method_map_t const& method_map)
-{
-  default_scheduler_t scheduler;
-  stack_marker_t base_marker;
-  bound_inbuf_t bound_inbuf(base_marker, inbuf, scheduler);
-  bound_outbuf_t bound_outbuf(base_marker, outbuf, scheduler);
-
-  final_result_t<void> result;
-  request_handler_t handler(
-    result, context, bound_inbuf, bound_outbuf, method_map);
-  handler.start();
-
-  run_scheduler(context, scheduler);
-
-  assert(result.available());
-  result.value();
-}
-  
-void handle_requests(logging_context_t const& context,
-                     nb_inbuf_t& inbuf,
-                     nb_outbuf_t& outbuf,
-                     method_map_t const& method_map)
-{
-  if(auto msg = context.message_at(loglevel_t::info))
-  {
-    *msg << __func__ << ": starting";
-  }
-
-  while(!at_eof(context, inbuf))
-  {
-    handle_request(context, inbuf, outbuf, method_map);
-  }
-    
-  if(auto msg = context.message_at(loglevel_t::info))
-  {
-    *msg << __func__ << ": done";
-  }
-}
-
 template<typename... ReplyArgs, typename... RequestArgs>
 void check_rpc_failure(logging_context_t const& context,
                        nb_inbuf_t& inbuf,
@@ -626,42 +547,37 @@ void do_run_tests(logging_context_t const& client_context,
     *msg << __func__ << ": starting; bufsize: " << bufsize;
   }
 
-  method_map_t map;
-  map.add_method_factory(
-    "add", default_method_factory<add_handler_t>());
-  map.add_method_factory(
-    "censored_echo", censored_echo_method_factory(censored));
-  map.add_method_factory(
-    "echo", default_method_factory<echo_handler_t>());
-  map.add_method_factory(
-    "subtract", default_method_factory<subtract_handler_t>());
+  dispatcher_config_t dispatcher_config;
+  dispatcher_config.bufsize_ = bufsize;
 
-  std::unique_ptr<tcp_connection_t> server_side;
-  std::unique_ptr<tcp_connection_t> client_side;
-  std::tie(server_side, client_side) = make_connected_pair();
+  method_map_t map;
+    map.add_method_factory(
+      "add", default_method_factory<add_handler_t>());
+  map.add_method_factory(
+      "censored_echo", censored_echo_method_factory(censored));
+  map.add_method_factory(
+      "echo", default_method_factory<echo_handler_t>());
+  map.add_method_factory(
+      "subtract", default_method_factory<subtract_handler_t>());
 
   {
-    /*
-     * Destruction order must be:
-     *
-     * ~client_{in,out} (closing initiates stop of server thread)
-     * ~server_thread   (thread no longer references *server_{in,out}) 
-     * ~server_{in,out}
-     */
-    std::unique_ptr<nb_inbuf_t> server_in;
-    std::unique_ptr<nb_outbuf_t> server_out;
-    std::tie(server_in, server_out) = make_nb_tcp_buffers(
-      std::move(server_side), bufsize, bufsize);
+    dispatcher_t dispatcher(server_context, dispatcher_config);
+  
+    endpoint_t server_endpoint = dispatcher.add_listener(
+      local_interfaces(any_port).front(), map);
 
-    scoped_thread_t server_thread([&]
-    { handle_requests(server_context, *server_in, *server_out, map); });
-   
     std::unique_ptr<nb_inbuf_t> client_in;
     std::unique_ptr<nb_outbuf_t> client_out;
+  
     std::tie(client_in, client_out) = make_nb_tcp_buffers(
-      std::move(client_side), bufsize, bufsize);
+      std::make_unique<tcp_connection_t>(server_endpoint), bufsize, bufsize);
 
-    run_engine_tests(client_context, *client_in, *client_out);
+    {
+      scoped_thread_t dispatcher_thread([&] { dispatcher.run(); });
+      auto guard = make_scoped_guard([&] { dispatcher.stop(SIGINT); });
+
+      run_engine_tests(client_context, *client_in, *client_out);
+    }
   }
 
   if(auto msg = client_context.message_at(loglevel_t::info))
