@@ -174,27 +174,31 @@ void nb_inbuf_t::on_source_readable()
 
   char* next;
   error_status_ = source_->read(buf_, ebuf_, next);
-  if(error_status_ == 0)
+  if(error_status_ == 0 && checker_ != std::nullopt)
   {
-    if(next == nullptr)
+    if(next != nullptr)
     {
-      // spurious wakeup: reschedule
-      auto guard = make_scoped_guard(
-        [this] { this->cancel_when_readable(); });
-      readable_ticket_ = source_->call_when_readable(*scheduler_,
-        [this] { this->on_source_readable(); });
-      guard.dismiss();
-      return;
+      error_status_ = checker_->record_transfer(next - buf_);
     }
-
-    if(checker_ != std::nullopt)
+    else
     {
-      checker_->record_transfer(next - buf_);
+      error_status_ = checker_->record_transfer(0);
     }
   }
-  else
+
+  if(error_status_ != 0)
   {
     next = buf_;
+  }
+  else if(next == nullptr)
+  {
+    // spurious wakeup: reschedule
+    auto guard = make_scoped_guard(
+      [this] { this->cancel_when_readable(); });
+    readable_ticket_ = source_->call_when_readable(*scheduler_,
+      [this] { this->on_source_readable(); });
+    guard.dismiss();
+    return;
   }
     
   // Enter readable state

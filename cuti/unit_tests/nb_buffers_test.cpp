@@ -454,12 +454,15 @@ void flood_n(scheduler_t& scheduler, nb_outbuf_t& outbuf, std::size_t n)
 
 void test_inbuf_throughput_checking(logging_context_t const& context,
                                     bool enable_while_running,
-                                    selector_factory_t const& factory)
+                                    selector_factory_t const& factory,
+                                    unsigned int low_ticks_limit)
 {
   if(auto msg = context.message_at(loglevel_t::info))
   {
-    *msg << "test_inbuf_throughput_checking: enable_while_running: " <<
-      enable_while_running << " selector: " << factory;
+    *msg << __func__ <<
+      ": enable_while_running: " << enable_while_running <<
+      " selector: " << factory <<
+      " low_ticks_limit: " << low_ticks_limit;
   }
 
   default_scheduler_t scheduler(factory);
@@ -480,7 +483,7 @@ void test_inbuf_throughput_checking(logging_context_t const& context,
 
   throughput_checker_settings_t settings;
   settings.min_bytes_per_tick_ = 512;
-  settings.low_ticks_limit_ = 20;
+  settings.low_ticks_limit_ = low_ticks_limit;
   settings.tick_length_ = milliseconds_t(1);
 
   if(enable_while_running)
@@ -512,16 +515,25 @@ void test_inbuf_throughput_checking(logging_context_t const& context,
   assert(server_in->readable());
   assert(server_in->peek() == eof);
   assert(server_in->error_status() == timeout_system_error());
+
+  if(auto msg = context.message_at(loglevel_t::info))
+  {
+    *msg << __func__ << ": got expected server error: " <<
+      system_error_string(server_in->error_status());
+  }
 }
 
 void test_outbuf_throughput_checking(logging_context_t const& context,
                                      bool enable_while_running,
-                                     selector_factory_t const& factory)
+                                     selector_factory_t const& factory,
+                                     unsigned int low_ticks_limit)
 {
   if(auto msg = context.message_at(loglevel_t::info))
   {
-    *msg << "test_outbuf_throughput_checking: enable_while_running: " <<
-      enable_while_running << " selector: " << factory;
+    *msg << __func__ <<
+      ": enable_while_running: " << enable_while_running <<
+      " selector: " << factory <<
+      " low_ticks_limit: " << low_ticks_limit;
   }
 
   default_scheduler_t scheduler(factory);
@@ -542,7 +554,7 @@ void test_outbuf_throughput_checking(logging_context_t const& context,
 
   throughput_checker_settings_t settings;
   settings.min_bytes_per_tick_ = 512;
-  settings.low_ticks_limit_ = 20;
+  settings.low_ticks_limit_ = low_ticks_limit;
   settings.tick_length_ = milliseconds_t(1);
 
   if(enable_while_running)
@@ -573,17 +585,28 @@ void test_outbuf_throughput_checking(logging_context_t const& context,
 
   assert(client_out->writable());
   assert(client_out->error_status() == timeout_system_error());
+
+  if(auto msg = context.message_at(loglevel_t::info))
+  {
+    *msg << __func__ << ": got expected client error: " <<
+      system_error_string(client_out->error_status());
+  }
 }
 
 void test_throughput_checking(logging_context_t const& context)
 {
-  for(auto const& factory : available_selector_factories())
-  {
-    test_inbuf_throughput_checking(context, false, factory);
-    test_inbuf_throughput_checking(context, true, factory);
+  static unsigned int constexpr low_ticks_limits[] = { 0, 20 };
 
-    test_outbuf_throughput_checking(context, false, factory);
-    test_outbuf_throughput_checking(context, true, factory);
+  for(auto limit : low_ticks_limits)
+  {
+    for(auto const& factory : available_selector_factories())
+    {
+      test_inbuf_throughput_checking(context, false, factory, limit);
+      test_inbuf_throughput_checking(context, true, factory, limit);
+
+      test_outbuf_throughput_checking(context, false, factory, limit);
+      test_outbuf_throughput_checking(context, true, factory, limit);
+    }
   }
 }
   

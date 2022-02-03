@@ -180,29 +180,36 @@ void nb_outbuf_t::on_sink_writable()
 
   char const* next;
   error_status_ = sink_->write(rp_, wp_, next);
-  if(error_status_ == 0)
+  if(error_status_ == 0 && checker_ != std::nullopt)
   {
-    if(next == nullptr)
+    if(next != nullptr)
     {
-      // spurious wakeup
-      next = rp_;
+      error_status_ = checker_->record_transfer(next - rp_);
     }
-    else if(checker_ != std::nullopt)
+    else
     {
-      checker_->record_transfer(next - rp_);
+      error_status_ = checker_->record_transfer(0);
     }
+  }
 
+  if(error_status_ != 0)
+  {
+    rp_ = wp_;
+  }
+  else if(next != nullptr)
+  {
     rp_ = next;
-    if(rp_ != wp_)
-    {
-      // more to write: reschedule
-      auto guard = make_scoped_guard(
-        [this] { this->cancel_when_writable(); });
-      writable_ticket_ = sink_->call_when_writable(*scheduler_,
-        [this] { this->on_sink_writable(); });
-      guard.dismiss();
-      return;
-    }
+  }
+
+  if(rp_ != wp_)
+  {
+    // more to write: reschedule
+    auto guard = make_scoped_guard(
+      [this] { this->cancel_when_writable(); });
+    writable_ticket_ = sink_->call_when_writable(*scheduler_,
+      [this] { this->on_sink_writable(); });
+    guard.dismiss();
+    return;
   }
 
   // Enter writable state
