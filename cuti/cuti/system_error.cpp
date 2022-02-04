@@ -42,8 +42,9 @@ int timeout_system_error()
 
 std::string system_error_string(int error)
 {
-  static const int bufsize = 256;
+  static int constexpr bufsize = 256;
   char buf[bufsize];
+  buf[bufsize - 1] = '\0';
 
   DWORD result = FormatMessage(
     FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS |
