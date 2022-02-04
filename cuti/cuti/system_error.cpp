@@ -65,6 +65,7 @@ std::string system_error_string(int error)
 #else // POSIX
 
 #include <errno.h>
+#include <stdio.h>
 #include <string.h>
 
 namespace cuti
@@ -80,35 +81,55 @@ int timeout_system_error()
   return ETIMEDOUT;
 }
 
+#if defined(__FreeBSD__)
+
 std::string system_error_string(int error)
 {
-  static const int bufsize = 256;
+  // On (some versions of) FreeBSD, strerror_r confuses thread sanitizer
+  if(error > 0 && error < sys_nerr)
+  {
+    return sys_errlist[error];
+  }
 
-  char buf[bufsize];
+  return "System error number #" + std::to_string(error);
+}
 
-#if !__GLIBC__ || \
+#elif !__GLIBC__ || \
   ((_POSIX_C_SOURCE >= 200112L || _XOPEN_SOURCE >= 600) && !_GNU_SOURCE)
 
-  // Posix version
+std::string system_error_string(int error)
+{
+  // Generic POSIX
+  static int constexpr bufsize = 256;
+  char buf[bufsize];
+  buf[bufsize - 1] = '\0';
+
   int r = strerror_r(error, buf, bufsize - 1);
   if(r == 0)
   {
     return buf;
   }
+
   return "System error number #" + std::to_string(error);
+}
 
 #else
 
+std::string system_error_string(int error)
+{
   // GNU-specific version
+  static int constexpr bufsize = 256;
+  char buf[bufsize];
+  buf[bufsize - 1] = '\0';
+
   return strerror_r(error, buf, bufsize - 1);
+}
 
 #endif
-
-}
 
 } // namespace cuti
 
-#endif
+#endif // POSIX
 
 namespace cuti
 {
