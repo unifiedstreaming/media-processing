@@ -32,6 +32,8 @@
 #include "result.hpp"
 #include "stack_marker.hpp"
 #include "subroutine.hpp"
+#include "system_error.hpp"
+#include "throughput_checker.hpp"
 #include "type_list.hpp"
 
 #include <cassert>
@@ -121,7 +123,8 @@ void perform_rpc(nb_inbuf_t& inbuf,
                  nb_outbuf_t& outbuf,
                  identifier_t method,
                  input_list_t<ReplyArgs...>& reply_args,
-                 output_list_t<RequestArgs...>& request_args)
+                 output_list_t<RequestArgs...>& request_args,
+                 throughput_settings_t settings)
 {
   final_result_t<void> result;
 
@@ -129,7 +132,10 @@ void perform_rpc(nb_inbuf_t& inbuf,
   stack_marker_t base_marker;
 
   bound_inbuf_t bound_inbuf(base_marker, inbuf, scheduler);
+  bound_inbuf.enable_throughput_checking(settings);
+  
   bound_outbuf_t bound_outbuf(base_marker, outbuf, scheduler);
+  bound_outbuf.enable_throughput_checking(settings);
   
   rpc_engine_t<type_list_t<ReplyArgs...>, type_list_t<RequestArgs...>>
   rpc_engine(result, bound_inbuf, bound_outbuf);
@@ -144,9 +150,37 @@ void perform_rpc(nb_inbuf_t& inbuf,
   }
   assert(scheduler.wait() == nullptr);
 
+  if(int status = bound_outbuf.error_status())
+  {
+    // Failed to write full request
+    system_exception_builder_t builder;
+    builder << bound_outbuf << ": output error";
+    builder.explode(status);
+  }
+
+  if(int status = bound_inbuf.error_status())
+  {
+    // Failed to read full reply
+    system_exception_builder_t builder;
+    builder << bound_inbuf << ": input error";
+    builder.explode(status);
+  }
+
+  // Throws on protocol (and remotely generated) errors
   result.value();
 }
     
+template<typename... ReplyArgs, typename... RequestArgs>
+void perform_rpc(nb_inbuf_t& inbuf,
+                 nb_outbuf_t& outbuf,
+                 identifier_t method,
+                 input_list_t<ReplyArgs...>& reply_args,
+                 output_list_t<RequestArgs...>& request_args)
+{
+  perform_rpc(inbuf, outbuf, std::move(method), reply_args, request_args,
+    throughput_settings_t());
+}
+
 } // cuti
 
 #endif

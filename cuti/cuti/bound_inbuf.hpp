@@ -93,10 +93,9 @@ struct CUTI_ABI bound_inbuf_t
     inbuf_.cancel_when_readable();
   }
 
-  void enable_throughput_checking(
-    throughput_checker_settings_t const& settings)
+  void enable_throughput_checking(throughput_settings_t settings)
   {
-    inbuf_.enable_throughput_checking(settings);
+    inbuf_.enable_throughput_checking(std::move(settings));
   }
 
   void disable_throughput_checking()

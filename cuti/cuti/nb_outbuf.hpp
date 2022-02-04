@@ -52,8 +52,7 @@ struct CUTI_ABI nb_outbuf_t
    * Enable throughput checking, which is disabled by default.  See
    * throughput_checker.hpp for details.
    */
-  void enable_throughput_checking(
-    throughput_checker_settings_t const& settings);
+  void enable_throughput_checking(throughput_settings_t settings);
 
   /*
    * Disable throughput checking.

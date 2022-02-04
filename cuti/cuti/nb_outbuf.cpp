@@ -65,12 +65,11 @@ char const* nb_outbuf_t::write(char const* first, char const* last)
   return first + count;
 }
 
-void nb_outbuf_t::enable_throughput_checking(
-  throughput_checker_settings_t const& settings)
+void nb_outbuf_t::enable_throughput_checking(throughput_settings_t settings)
 {
   this->disable_throughput_checking();
 
-  checker_.emplace(settings);
+  checker_.emplace(std::move(settings));
   if(!writable_ticket_.empty())
   {
     assert(alarm_ticket_.empty());

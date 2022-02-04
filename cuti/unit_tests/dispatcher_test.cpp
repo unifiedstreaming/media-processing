@@ -115,9 +115,9 @@ void test_deaf_client(logging_context_t const& client_context,
 
   dispatcher_config_t config;
   config.bufsize_ = bufsize;
-  config.throughput_checker_settings_.min_bytes_per_tick_ = 512;
-  config.throughput_checker_settings_.low_ticks_limit_ = 10;
-  config.throughput_checker_settings_.tick_length_ = milliseconds_t(100);
+  config.throughput_settings_.min_bytes_per_tick_ = 512;
+  config.throughput_settings_.low_ticks_limit_ = 10;
+  config.throughput_settings_.tick_length_ = milliseconds_t(100);
 
   dispatcher_t dispatcher(server_context, config);
 
@@ -164,9 +164,9 @@ void test_slow_client(logging_context_t const& client_context,
 
   dispatcher_config_t config;
   config.bufsize_ = bufsize;
-  config.throughput_checker_settings_.min_bytes_per_tick_ = 512;
-  config.throughput_checker_settings_.low_ticks_limit_ = 10;
-  config.throughput_checker_settings_.tick_length_ = milliseconds_t(10);
+  config.throughput_settings_.min_bytes_per_tick_ = 512;
+  config.throughput_settings_.low_ticks_limit_ = 10;
+  config.throughput_settings_.tick_length_ = milliseconds_t(10);
 
   dispatcher_t dispatcher(server_context, config);
 

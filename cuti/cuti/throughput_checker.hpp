@@ -32,13 +32,13 @@
 namespace cuti
 {
 
-struct CUTI_ABI throughput_checker_settings_t
+struct CUTI_ABI throughput_settings_t
 {
   static std::size_t constexpr default_min_bytes_per_tick = 512;
   static unsigned int constexpr default_low_ticks_limit = 120;
   static duration_t constexpr default_tick_length = seconds_t(1);
 
-  constexpr throughput_checker_settings_t()
+  constexpr throughput_settings_t()
   : min_bytes_per_tick_(default_min_bytes_per_tick)
   , low_ticks_limit_(default_low_ticks_limit)
   , tick_length_(default_tick_length)
@@ -58,10 +58,11 @@ struct throughput_checker_t
    * least low_ticks_limit ticks.
    */
   explicit throughput_checker_t(
-    throughput_checker_settings_t const& settings,
+    throughput_settings_t settings,
     ClockObjectT clock = ClockObjectT{})
   : clock_(std::move(clock))
-  , settings_((assert(settings.tick_length_ > duration_t::zero()), settings))
+  , settings_((assert(settings.tick_length_ > duration_t::zero()),
+               std::move(settings)))
   , next_tick_(clock_.now() + settings_.tick_length_)
   , current_tick_bytes_(0)
   , n_low_ticks_(0)
@@ -120,7 +121,7 @@ struct throughput_checker_t
 
 private :
   ClockObjectT clock_;
-  throughput_checker_settings_t settings_;
+  throughput_settings_t settings_;
   time_point_t next_tick_;
   std::size_t current_tick_bytes_;
   unsigned int n_low_ticks_;

@@ -481,7 +481,7 @@ void test_inbuf_throughput_checking(logging_context_t const& context,
   std::tie(server_in, server_out) =
     make_nb_tcp_buffers(std::move(server_side));
 
-  throughput_checker_settings_t settings;
+  throughput_settings_t settings;
   settings.min_bytes_per_tick_ = 512;
   settings.low_ticks_limit_ = low_ticks_limit;
   settings.tick_length_ = milliseconds_t(1);
@@ -552,7 +552,7 @@ void test_outbuf_throughput_checking(logging_context_t const& context,
   std::tie(server_in, server_out) =
     make_nb_tcp_buffers(std::move(server_side));
 
-  throughput_checker_settings_t settings;
+  throughput_settings_t settings;
   settings.min_bytes_per_tick_ = 512;
   settings.low_ticks_limit_ = low_ticks_limit;
   settings.tick_length_ = milliseconds_t(1);

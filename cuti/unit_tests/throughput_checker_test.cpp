@@ -34,7 +34,7 @@ void test_next_tick()
    * checking for low speed each set the next tick to somewhere in the
    * future.
    */
-  throughput_checker_settings_t settings;
+  throughput_settings_t settings;
   settings.min_bytes_per_tick_ = 1;
   settings.low_ticks_limit_ = 1;
   settings.tick_length_ = seconds_t(1);
@@ -61,7 +61,7 @@ void test_speed()
 {
   {
     // a zero low ticks limit must report immediate and persistent failure
-    throughput_checker_settings_t settings;
+    throughput_settings_t settings;
     settings.min_bytes_per_tick_ = 512;
     settings.low_ticks_limit_ = 0;
     settings.tick_length_ = seconds_t(1);
@@ -76,7 +76,7 @@ void test_speed()
   }
 
   {
-    throughput_checker_settings_t settings;
+    throughput_settings_t settings;
     settings.min_bytes_per_tick_ = 512;
     settings.low_ticks_limit_ = 1;
     settings.tick_length_ = seconds_t(1);
@@ -91,7 +91,7 @@ void test_speed()
   }
 
   {
-    throughput_checker_settings_t settings;
+    throughput_settings_t settings;
     settings.min_bytes_per_tick_ = 512;
     settings.low_ticks_limit_ = 2;
     settings.tick_length_ = seconds_t(1);
@@ -109,7 +109,7 @@ void test_speed()
   }
 
   {
-    throughput_checker_settings_t settings;
+    throughput_settings_t settings;
     settings.min_bytes_per_tick_ = 512;
     settings.low_ticks_limit_ = 1;
     settings.tick_length_ = seconds_t(1);
@@ -124,7 +124,7 @@ void test_speed()
   }
 
   {
-    throughput_checker_settings_t settings;
+    throughput_settings_t settings;
     settings.min_bytes_per_tick_ = 512;
     settings.low_ticks_limit_ = 2;
     settings.tick_length_ = seconds_t(1);
@@ -142,7 +142,7 @@ void test_speed()
   }
 
   {
-    throughput_checker_settings_t settings;
+    throughput_settings_t settings;
     settings.min_bytes_per_tick_ = 512;
     settings.low_ticks_limit_ = 1;
     settings.tick_length_ = seconds_t(1);
@@ -157,7 +157,7 @@ void test_speed()
   }
 
   {
-    throughput_checker_settings_t settings;
+    throughput_settings_t settings;
     settings.min_bytes_per_tick_ = 512;
     settings.low_ticks_limit_ = 2;
     settings.tick_length_ = seconds_t(1);
@@ -175,7 +175,7 @@ void test_speed()
   }
 
   {
-    throughput_checker_settings_t settings;
+    throughput_settings_t settings;
     settings.min_bytes_per_tick_ = 512;
     settings.low_ticks_limit_ = 1;
     settings.tick_length_ = seconds_t(1);
@@ -193,7 +193,7 @@ void test_speed()
   }
 
   {
-    throughput_checker_settings_t settings;
+    throughput_settings_t settings;
     settings.min_bytes_per_tick_ = 512;
     settings.low_ticks_limit_ = 120;
     settings.tick_length_ = seconds_t(1);

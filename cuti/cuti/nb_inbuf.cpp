@@ -45,12 +45,11 @@ nb_inbuf_t::nb_inbuf_t(std::unique_ptr<nb_source_t> source,
 , error_status_(0)
 { }
 
-void nb_inbuf_t::enable_throughput_checking(
-  throughput_checker_settings_t const& settings)
+void nb_inbuf_t::enable_throughput_checking(throughput_settings_t settings)
 {
   this->disable_throughput_checking();
 
-  checker_.emplace(settings);
+  checker_.emplace(std::move(settings));
   if(!readable_ticket_.empty())
   {
     assert(alarm_ticket_.empty());

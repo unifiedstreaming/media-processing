@@ -207,6 +207,7 @@ void check_rpc_failure(logging_context_t const& context,
   assert(caught);
 }
 
+
 void test_add(logging_context_t const& context,
               nb_inbuf_t& inbuf,
               nb_outbuf_t& outbuf)
@@ -497,34 +498,6 @@ void test_streaming_multiple_errors(logging_context_t const& context,
   }
 }
   
-void run_engine_tests(logging_context_t const& context,
-                      nb_inbuf_t& inbuf,
-                      nb_outbuf_t& outbuf)
-{
-  if(auto msg = context.message_at(loglevel_t::info))
-  {
-    *msg << __func__ << ": starting";
-  }
-
-  test_add(context, inbuf, outbuf);
-  test_overflow(context, inbuf, outbuf);
-  test_bad_method(context, inbuf, outbuf);
-  test_subtract(context, inbuf, outbuf);
-  test_underflow(context, inbuf, outbuf);
-  test_vector_echo(context, inbuf, outbuf);
-  test_vector_censored_echo(context, inbuf, outbuf);
-  test_streaming_echo(context, inbuf, outbuf);
-  test_streaming_censored_echo(context, inbuf, outbuf);
-  test_streaming_output_error(context, inbuf, outbuf);
-  test_streaming_input_error(context, inbuf, outbuf);
-  test_streaming_multiple_errors(context, inbuf, outbuf);
-
-  if(auto msg = context.message_at(loglevel_t::info))
-  {
-    *msg << __func__ << ": done";
-  }
-}
-
 auto censored_echo_method_factory(std::string censored)
 {
   return [ censored = std::move(censored) ](
@@ -538,9 +511,9 @@ auto censored_echo_method_factory(std::string censored)
   };
 }
     
-void do_run_tests(logging_context_t const& client_context,
-                  logging_context_t const& server_context,
-                  std::size_t bufsize)
+void run_logic_tests(logging_context_t const& client_context,
+                     logging_context_t const& server_context,
+                     std::size_t bufsize)
 {
   if(auto msg = client_context.message_at(loglevel_t::info))
   {
@@ -566,17 +539,28 @@ void do_run_tests(logging_context_t const& client_context,
     endpoint_t server_endpoint = dispatcher.add_listener(
       local_interfaces(any_port).front(), map);
 
-    std::unique_ptr<nb_inbuf_t> client_in;
-    std::unique_ptr<nb_outbuf_t> client_out;
+    std::unique_ptr<nb_inbuf_t> inbuf;
+    std::unique_ptr<nb_outbuf_t> outbuf;
   
-    std::tie(client_in, client_out) = make_nb_tcp_buffers(
+    std::tie(inbuf, outbuf) = make_nb_tcp_buffers(
       std::make_unique<tcp_connection_t>(server_endpoint), bufsize, bufsize);
 
     {
       scoped_thread_t dispatcher_thread([&] { dispatcher.run(); });
       auto guard = make_scoped_guard([&] { dispatcher.stop(SIGINT); });
 
-      run_engine_tests(client_context, *client_in, *client_out);
+      test_add(client_context, *inbuf, *outbuf);
+      test_overflow(client_context, *inbuf, *outbuf);
+      test_bad_method(client_context, *inbuf, *outbuf);
+      test_subtract(client_context, *inbuf, *outbuf);
+      test_underflow(client_context, *inbuf, *outbuf);
+      test_vector_echo(client_context, *inbuf, *outbuf);
+      test_vector_censored_echo(client_context, *inbuf, *outbuf);
+      test_streaming_echo(client_context, *inbuf, *outbuf);
+      test_streaming_censored_echo(client_context, *inbuf, *outbuf);
+      test_streaming_output_error(client_context, *inbuf, *outbuf);
+      test_streaming_input_error(client_context, *inbuf, *outbuf);
+      test_streaming_multiple_errors(client_context, *inbuf, *outbuf);
     }
   }
 
@@ -586,6 +570,198 @@ void do_run_tests(logging_context_t const& client_context,
   }
 }
   
+void throughput_echo_client(logging_context_t const& context,
+                            endpoint_t const& endpoint,
+                            std::size_t bufsize,
+                            throughput_settings_t const& settings,
+                            bool must_fail)
+{
+  if(auto msg = context.message_at(loglevel_t::info))
+  {
+    *msg << __func__ << ": starting";
+  }
+
+  std::vector<std::string> reply;
+  auto reply_args = make_input_list<std::vector<std::string>>(reply);
+
+  auto request_args = make_output_list<std::vector<std::string>>(echo_args);
+
+  std::unique_ptr<nb_inbuf_t> inbuf;
+  std::unique_ptr<nb_outbuf_t> outbuf;
+  std::tie(inbuf, outbuf) = make_nb_tcp_buffers(
+    std::make_unique<tcp_connection_t>(endpoint), bufsize, bufsize);
+  
+  bool caught = false;
+  try
+  {
+    perform_rpc(*inbuf, *outbuf, "echo", reply_args, request_args, settings);
+  }
+  catch(std::exception const& ex)
+  {
+    caught = true;
+
+    if(auto msg = context.message_at(loglevel_t::info))
+    {
+      *msg << __func__ << ": caught expected exception: " << ex.what();
+    }
+  }
+
+  if(must_fail)
+  {
+    assert(caught);
+  }
+
+  if(auto msg = context.message_at(loglevel_t::info))
+  {
+    *msg << __func__ << ": done";
+  }
+}
+
+void test_throughput(logging_context_t const& client_context,
+                     throughput_settings_t const& client_settings,
+                     logging_context_t const& server_context,
+                     throughput_settings_t const& server_settings,
+                     std::size_t bufsize,
+                     bool must_fail)
+{
+  if(auto msg = client_context.message_at(loglevel_t::info))
+  {
+    *msg << __func__ << ": starting;" <<
+      " client low ticks limit: " << client_settings.low_ticks_limit_ <<
+      " server low ticks limit: " << server_settings.low_ticks_limit_ <<
+      " bufsize: " << bufsize;
+  }
+
+  dispatcher_config_t dispatcher_config;
+  dispatcher_config.bufsize_ = bufsize;
+  dispatcher_config.throughput_settings_ = server_settings;
+  
+  method_map_t map;
+  map.add_method_factory("echo", default_method_factory<echo_handler_t>());
+
+  {
+    dispatcher_t dispatcher(server_context, dispatcher_config);
+    endpoint_t endpoint = dispatcher.add_listener(
+      local_interfaces(any_port).front(), map);
+    {
+      scoped_thread_t dispatcher_thread([&] { dispatcher.run(); });
+      auto guard = make_scoped_guard([&] { dispatcher.stop(SIGINT); });
+
+      throughput_echo_client(client_context, endpoint, bufsize,
+        client_settings, must_fail);
+    }
+  }
+
+  if(auto msg = client_context.message_at(loglevel_t::info))
+  {
+    *msg << __func__ << ": done";
+  }
+}
+  
+void test_impatient_client(logging_context_t const& client_context,
+                           logging_context_t const& server_context,
+                           std::size_t bufsize)
+{
+  if(auto msg = client_context.message_at(loglevel_t::info))
+  {
+    *msg << __func__ << ": starting; bufsize: " << bufsize;
+  }
+
+  throughput_settings_t client_settings;
+  client_settings.low_ticks_limit_ = 0;
+  client_settings.tick_length_ = milliseconds_t(1);
+
+  throughput_settings_t server_settings;
+
+  bool const must_fail = true;
+  test_throughput(client_context, client_settings,
+                  server_context, server_settings,
+                  bufsize, must_fail);
+
+  if(auto msg = client_context.message_at(loglevel_t::info))
+  {
+    *msg << __func__ << ": done";
+  }
+}
+  
+void test_impatient_server(logging_context_t const& client_context,
+                           logging_context_t const& server_context,
+                           std::size_t bufsize)
+{
+  if(auto msg = client_context.message_at(loglevel_t::info))
+  {
+    *msg << __func__ << ": starting; bufsize: " << bufsize;
+  }
+
+  throughput_settings_t client_settings;
+
+  throughput_settings_t server_settings;
+  server_settings.low_ticks_limit_ = 0;
+  server_settings.tick_length_ = milliseconds_t(1);
+
+  /*
+   * The server-side dispatcher will only enable throughput checking
+   * after receiving the first chunk of data.  Therefore, even an
+   * impatient server may succeed if the buffer size is big enough.
+   */
+  bool const must_fail = false;
+  test_throughput(client_context, client_settings,
+                  server_context, server_settings,
+                  bufsize, must_fail);
+
+  if(auto msg = client_context.message_at(loglevel_t::info))
+  {
+    *msg << __func__ << ": done";
+  }
+}
+  
+void test_impatient_client_and_server(logging_context_t const& client_context,
+                                      logging_context_t const& server_context,
+                                      std::size_t bufsize)
+{
+  if(auto msg = client_context.message_at(loglevel_t::info))
+  {
+    *msg << __func__ << ": starting; bufsize: " << bufsize;
+  }
+
+  throughput_settings_t client_settings;
+  client_settings.low_ticks_limit_ = 0;
+  client_settings.tick_length_ = milliseconds_t(1);
+
+  throughput_settings_t server_settings;
+  server_settings.low_ticks_limit_ = 0;
+  server_settings.tick_length_ = milliseconds_t(1);
+
+  bool const must_fail = true;
+  test_throughput(client_context, client_settings,
+                  server_context, server_settings,
+                  bufsize, must_fail);
+
+  if(auto msg = client_context.message_at(loglevel_t::info))
+  {
+    *msg << __func__ << ": done";
+  }
+}
+  
+void run_throughput_tests(logging_context_t const& client_context,
+                          logging_context_t const& server_context,
+                          std::size_t bufsize)
+{
+  if(auto msg = client_context.message_at(loglevel_t::info))
+  {
+    *msg << __func__ << ": starting; bufsize: " << bufsize;
+  }
+
+  test_impatient_client(client_context, server_context, bufsize);
+  test_impatient_server(client_context, server_context, bufsize);
+  test_impatient_client_and_server(client_context, server_context, bufsize);
+
+  if(auto msg = client_context.message_at(loglevel_t::info))
+  {
+    *msg << __func__ << ": done";
+  }
+}
+
 struct options_t
 {
   static loglevel_t constexpr default_loglevel = loglevel_t::error;
@@ -645,9 +821,15 @@ int run_tests(int argc, char const* const* argv)
 
   std::size_t constexpr bufsizes[] =
     { 1, 1024, nb_inbuf_t::default_bufsize };
+
   for(auto bufsize : bufsizes)
   {
-    do_run_tests(client_context, server_context, bufsize);
+    run_logic_tests(client_context, server_context, bufsize);
+  }
+  
+  for(auto bufsize : bufsizes)
+  {
+    run_throughput_tests(client_context, server_context, bufsize);
   }
   
   return 0;
