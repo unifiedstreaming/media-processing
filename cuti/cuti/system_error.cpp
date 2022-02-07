@@ -82,20 +82,7 @@ int timeout_system_error()
   return ETIMEDOUT;
 }
 
-#if defined(__FreeBSD__)
-
-std::string system_error_string(int error)
-{
-  // On (some versions of) FreeBSD, strerror_r confuses thread sanitizer
-  if(error > 0 && error < sys_nerr)
-  {
-    return sys_errlist[error];
-  }
-
-  return "System error number #" + std::to_string(error);
-}
-
-#elif !__GLIBC__ || \
+#if !__GLIBC__ || \
   ((_POSIX_C_SOURCE >= 200112L || _XOPEN_SOURCE >= 600) && !_GNU_SOURCE)
 
 std::string system_error_string(int error)
