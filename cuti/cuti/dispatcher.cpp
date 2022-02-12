@@ -75,15 +75,14 @@ struct wakeup_pipe_t
 
   bool woken_up()
   {
-    unsigned int old_cnt;
-
-    while((old_cnt = wakeup_cnt_.load(std::memory_order_acquire)) != 0)
+    unsigned int old_cnt = 1;
+    do
     {
-      if(wakeup_cnt_.compare_exchange_strong(old_cnt, old_cnt - 1))
+      if(wakeup_cnt_.compare_exchange_weak(old_cnt, old_cnt - 1))
       {
         break;
       }
-    }
+    } while(old_cnt != 0);
 
     if(old_cnt == 1)
     {
@@ -141,8 +140,8 @@ private :
       
 private :
   static_assert(std::atomic<unsigned int>::is_always_lock_free);
-
   std::atomic<unsigned int> wakeup_cnt_;
+
   std::unique_ptr<event_pipe_reader_t> pipe_reader_;
   std::unique_ptr<event_pipe_writer_t> pipe_writer_;
 
@@ -530,7 +529,7 @@ struct dispatcher_t::impl_t
   impl_t(logging_context_t const& context, dispatcher_config_t config)
   : context_(context)
   , config_(std::move(config))
-  , core_dispatcher_(context, config_.selector_factory_,
+  , core_dispatcher_(context_, config_.selector_factory_,
       config_.bufsize_, config_.throughput_settings_)
   , signal_(0)
   { }
@@ -576,6 +575,8 @@ private :
   logging_context_t const& context_;
   dispatcher_config_t config_;
   core_dispatcher_t core_dispatcher_;
+
+  static_assert(std::atomic<int>::is_always_lock_free);
   std::atomic<int> signal_;
 };
 
