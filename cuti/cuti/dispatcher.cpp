@@ -436,7 +436,7 @@ struct core_dispatcher_t
         if(auto msg = context_.message_at(loglevel_t::error))
         {
           *msg << "maximum number of connections (" << max_connections_ <<
-	    ") reached; evicting least recently active connection " <<
+	    ") exceeded; evicting least recently active connection " <<
 	    oldest_client->nb_inbuf();
         }
         monitored_clients_.erase(oldest_client);
