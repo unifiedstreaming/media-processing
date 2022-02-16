@@ -345,7 +345,7 @@ struct core_dispatcher_t
   , selected_client_()
   {
     wakeup_pipe_.call_when_woken_up(scheduler_,
-      [this] { this->on_wakeup_pipe(); });
+      [this] { this->on_wakeup(); });
 
     if(auto msg = context.message_at(loglevel_t::info))
     {
@@ -433,7 +433,7 @@ struct core_dispatcher_t
   }
     
 private :
-  void on_wakeup_pipe()
+  void on_wakeup()
   {
     if(wakeup_pipe_.woken_up())
     {
@@ -441,7 +441,7 @@ private :
     }
 
     wakeup_pipe_.call_when_woken_up(scheduler_,
-      [this] { this->on_wakeup_pipe(); });
+      [this] { this->on_wakeup(); });
   }
 
   void on_listener_ready(std::list<listener_t>::iterator listener)
@@ -500,10 +500,10 @@ private :
   std::optional<std::list<client_t>::iterator> selected_client_;
 };
 
-struct dispatcher_mutex_t
+struct core_mutex_t
 {
-  explicit dispatcher_mutex_t(core_dispatcher_t& dispatcher)
-  : dispatcher_(dispatcher)
+  explicit core_mutex_t(core_dispatcher_t& core)
+  : core_(core)
   , internal_mutex_()
   , n_waiters_(0)
   , n_urgent_waiters_(0)
@@ -512,8 +512,8 @@ struct dispatcher_mutex_t
   , unlocked_without_urgent_waiters_()
   { }
 
-  dispatcher_mutex_t(dispatcher_mutex_t const&) = delete;
-  dispatcher_mutex_t& operator=(dispatcher_mutex_t const&) = delete;
+  core_mutex_t(core_mutex_t const&) = delete;
+  core_mutex_t& operator=(core_mutex_t const&) = delete;
 
   void urgent_lock()
   {
@@ -524,7 +524,7 @@ struct dispatcher_mutex_t
 
     if(locked_)
     {
-      dispatcher_.wakeup();
+      core_.wakeup();
       do
       {
         unlocked_with_urgent_waiters_.wait(internal_lock);
@@ -582,7 +582,7 @@ struct dispatcher_mutex_t
   }
     
 private :
-  core_dispatcher_t& dispatcher_;
+  core_dispatcher_t& core_;
   mutable std::mutex internal_mutex_;
   unsigned int n_waiters_;
   unsigned int n_urgent_waiters_;
@@ -591,9 +591,9 @@ private :
   std::condition_variable unlocked_without_urgent_waiters_;
 };
 
-struct dispatcher_lock_t
+struct core_lock_t
 {
-  dispatcher_lock_t(dispatcher_mutex_t& mutex, bool urgent)
+  core_lock_t(core_mutex_t& mutex, bool urgent)
   : mutex_(mutex)
   {
     if(urgent)
@@ -606,20 +606,196 @@ struct dispatcher_lock_t
     }
   }
 
-  dispatcher_lock_t(dispatcher_lock_t const&) = delete;
-  dispatcher_lock_t& operator=(dispatcher_lock_t const&) = delete;
+  core_lock_t(core_lock_t const&) = delete;
+  core_lock_t& operator=(core_lock_t const&) = delete;
   
-  ~dispatcher_lock_t()
+  ~core_lock_t()
   {
     mutex_.unlock();
   }
 
 private :
-  dispatcher_mutex_t& mutex_;
+  core_mutex_t& mutex_;
 };
 
-void handle_request(default_scheduler_t& scheduler, client_t& client)
+struct thread_pool_t;
+
+struct pooled_thread_t
 {
+  template<typename F>
+  pooled_thread_t(logging_context_t const& context,
+                  thread_pool_t& pool,
+                  std::size_t id,
+                  F&& f)
+  : context_(context)
+  , pool_(pool)
+  , id_(id)
+  , scheduler_()
+  , cancellation_pipe_()
+  , mutex_()
+  , joined_(false)
+  , just_joined_()
+  , thread_([this, f = std::forward<F>(f) ] { this->run(f); })
+  { }
+
+  pooled_thread_t(pooled_thread_t const&) = delete;
+  pooled_thread_t& operator=(pooled_thread_t const&) = delete;
+
+  thread_pool_t& pool() const
+  {
+    return pool_;
+  }
+
+  std::size_t id() const
+  {
+    return id_;
+  }
+
+  default_scheduler_t& scheduler()
+  {
+    return scheduler_;
+  }
+
+  wakeup_pipe_t& cancellation_pipe()
+  {
+    return cancellation_pipe_;
+  }
+  
+  void join()
+  {
+    std::unique_lock lock(mutex_);
+
+    if(!joined_)
+    {
+      cancellation_pipe_.wakeup();
+      do
+      {
+        just_joined_.wait(lock);
+      } while(!joined_);
+    }
+  }
+      
+  ~pooled_thread_t()
+  {
+    this->join();
+  }
+
+private :
+  template<typename F>
+  void run(F& f)
+  {
+    try
+    {
+      f(*this);
+    }
+    catch(std::exception const& ex)
+    {
+      if(auto msg = context_.message_at(loglevel_t::error))
+      {
+        *msg << "FATAL: exception in dispatcher thread " <<
+	  id_ << ": " << ex.what();
+      }
+      std::abort();
+    }
+    catch(...)
+    {
+      if(auto msg = context_.message_at(loglevel_t::error))
+      {
+        *msg << "FATAL: exception of unkwown type in dispatcher thread " <<
+	  id_;
+      }
+      std::abort();
+    }
+    
+    {
+      std::unique_lock<std::mutex> lock(mutex_);
+      joined_ = true;
+    }
+    just_joined_.notify_all();
+  }
+      
+private :
+  logging_context_t const& context_;
+  thread_pool_t& pool_;
+  std::size_t const id_;
+  default_scheduler_t scheduler_;
+  wakeup_pipe_t cancellation_pipe_;
+  std::mutex mutex_;
+  bool joined_;
+  std::condition_variable just_joined_;
+  scoped_thread_t thread_;
+};
+
+struct thread_pool_t
+{
+  thread_pool_t(logging_context_t const& context, std::size_t max_size)
+  : context_(context)
+  , max_size_(max_size)
+  , mutex_()
+  , frozen_(false)
+  , threads_()
+  { }
+
+  thread_pool_t(thread_pool_t const&) = delete;
+  thread_pool_t& operator=(thread_pool_t const&) = delete;
+  
+  template<typename F>
+  bool add(F&& f)
+  {
+    std::unique_lock<std::mutex> lock(mutex_);
+
+    if(frozen_ || (max_size_ != 0 && threads_.size() == max_size_))
+    {
+      return false;
+    }
+
+    threads_.emplace_back(
+      context_, *this, threads_.size(), std::forward<F>(f));
+
+    if(threads_.size() == max_size_)
+    {
+      if(auto msg = context_.message_at(loglevel_t::warning))
+      {
+        *msg << "maximum thread pool size (" << max_size_ <<
+          ") reached; further requests may be delayed";
+      }
+    }
+
+    return true;
+  }
+
+  void join()
+  {
+    {
+      std::unique_lock<std::mutex> lock(mutex_);
+      frozen_ = true;
+    }
+
+    for(auto& thread : threads_)
+    {
+      thread.join();
+    }
+  }
+
+  ~thread_pool_t()
+  {
+    this->join();
+  }
+      
+private :
+  logging_context_t const& context_;
+  std::size_t const max_size_;
+  std::mutex mutex_;
+  bool frozen_;
+  std::list<pooled_thread_t> threads_;
+};
+
+void handle_request(default_scheduler_t& scheduler,
+                    wakeup_pipe_t& cancellation_pipe,
+                    client_t& client)
+{
+  // TODO: monitor cancellation pipe
+
   stack_marker_t base_marker;
 
   bound_inbuf_t bound_inbuf(base_marker, client.nb_inbuf(), scheduler);
@@ -650,12 +826,16 @@ struct dispatcher_t::impl_t
   impl_t(logging_context_t const& context, dispatcher_config_t config)
   : context_(context)
   , config_(std::move(config))
-  , core_(context_, config_.selector_factory_, config_.bufsize_,
-      config_.throughput_settings_)
+  , core_(context_, config_.selector_factory_,config_.bufsize_,
+          config_.throughput_settings_)
   , mutex_(core_)
-  , signal_(0)
   , stopping_(false)
-  { }
+  , signal_reader_()
+  , signal_writer_()
+  {
+    std::tie(signal_reader_, signal_writer_) = make_event_pipe();
+    signal_writer_->set_nonblocking();
+  }
 
   impl_t(impl_t const&) = delete;
   impl_t& operator=(impl_t const&) = delete;
@@ -667,45 +847,50 @@ struct dispatcher_t::impl_t
   
   void run()
   {
-    std::list<scoped_thread_t> thread_pool;
+    thread_pool_t pool(context_, config_.max_thread_pool_size_);
 
     if(auto msg = context_.message_at(loglevel_t::info))
     {
       *msg << "dispatcher running";
     }
 
-    this->loop(0, thread_pool);
+    bool first_thread_added = pool.add(
+      [this](pooled_thread_t& thread) { this->serve(thread); });
+    assert(first_thread_added);
+    static_cast<void>(first_thread_added);
 
-    auto sig = signal_.load(std::memory_order_acquire);
+    std::optional<int> sig = signal_reader_->read();
+    assert(sig.has_value());
     if(auto msg = context_.message_at(loglevel_t::info))
     {
-      *msg << "caught signal " << sig << ", stopping dispatcher";
+      *msg << "caught signal " << *sig << ", stopping dispatcher";
     }
-  }
 
-  void stop(int sig)
-  {
-    signal_.store(sig, std::memory_order_release);
     stopping_.store(true, std::memory_order_release);
     core_.wakeup();
+    pool.join();
   }
-
+  
+  void stop(int sig)
+  {
+    signal_writer_->write(static_cast<unsigned char>(sig));
+  }
+  
 private :
-  void loop(std::size_t loop_id, std::list<scoped_thread_t>& thread_pool)
+  void serve(pooled_thread_t& thread)
   {
     if(auto msg = context_.message_at(loglevel_t::info))
     {
-      *msg << "starting dispatcher loop " << loop_id;
+      *msg << "started dispatcher thread " << thread.id();
     }
 
-    default_scheduler_t loop_scheduler;
-    std::optional<std::list<client_t>::iterator> client = std::nullopt;
+    std::optional<std::list<client_t>::iterator> client{std::nullopt};
 
     for(;;)
     {
       {
         bool urgent = client.has_value();
-        dispatcher_lock_t lock(mutex_, urgent);
+        core_lock_t lock(mutex_, urgent);
 
         if(client.has_value())
         {
@@ -719,13 +904,10 @@ private :
 
         client = core_.select_client();
 
-        if(client.has_value() &&
-           !mutex_.has_waiting_threads() &&
-           thread_pool.size() != config_.max_thread_pool_size_)
+        if(client.has_value() && !mutex_.has_waiting_threads())
         {
-          std::size_t new_loop_id = thread_pool.size() + 1;
-          thread_pool.emplace_back([this, new_loop_id, &thread_pool]
-            { this->loop(new_loop_id, thread_pool); });
+          thread.pool().add(
+            [this](pooled_thread_t& new_thread) { this->serve(new_thread); });
         }
       }
         
@@ -733,29 +915,31 @@ private :
       {
         if(auto msg = context_.message_at(loglevel_t::info))
         {
-          *msg << "handling request on dispatcher loop " << loop_id;
+          *msg << "handling request from " << (*client)->nb_inbuf() <<
+            " on dispatcher thread " << thread.id();
         }
-        handle_request(loop_scheduler, **client);
+        handle_request(thread.scheduler(), thread.cancellation_pipe(),
+          **client);
       }
     }
       
     if(auto msg = context_.message_at(loglevel_t::info))
     {
-      *msg << "dispatcher loop " << loop_id << " stopped";
+      *msg << "dispatcher thread " << thread.id() << " stopped";
     }
   }
-      
+
 private :
   logging_context_t const& context_;
   dispatcher_config_t const config_;
   core_dispatcher_t core_;
-  dispatcher_mutex_t mutex_;
-
-  static_assert(std::atomic<int>::is_always_lock_free);
-  std::atomic<int> signal_;
+  core_mutex_t mutex_;
 
   static_assert(std::atomic<bool>::is_always_lock_free);
   std::atomic<bool> stopping_;
+
+  std::unique_ptr<event_pipe_reader_t> signal_reader_;
+  std::unique_ptr<event_pipe_writer_t> signal_writer_;
 };
 
 dispatcher_t::dispatcher_t(logging_context_t const& context,
@@ -763,8 +947,8 @@ dispatcher_t::dispatcher_t(logging_context_t const& context,
 : impl_(std::make_unique<impl_t>(context, std::move(config)))
 { }
 
-endpoint_t dispatcher_t::add_listener(
-  endpoint_t const& endpoint, method_map_t const& map)
+endpoint_t dispatcher_t::add_listener(endpoint_t const& endpoint,
+                                      method_map_t const& map)
 {
   return impl_->add_listener(endpoint, map);
 }
