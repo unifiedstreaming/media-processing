@@ -332,7 +332,7 @@ struct core_dispatcher_t
   core_dispatcher_t(logging_context_t const& context,
                     selector_factory_t const& factory,
                     std::size_t client_bufsize,
-		    std::size_t max_connections,
+                    std::size_t max_connections,
                     throughput_settings_t settings)
   : context_(context)
   , scheduler_(factory)
@@ -432,16 +432,16 @@ struct core_dispatcher_t
          monitored_clients_.size() == max_connections_)
       {
         auto oldest_client = monitored_clients_.end();
-	--oldest_client;
+        --oldest_client;
         if(auto msg = context_.message_at(loglevel_t::error))
         {
           *msg << "maximum number of connections (" << max_connections_ <<
-	    ") exceeded; evicting least recently active connection " <<
-	    oldest_client->nb_inbuf();
+            ") exceeded; evicting least recently active connection " <<
+            oldest_client->nb_inbuf();
         }
         monitored_clients_.erase(oldest_client);
       }
-	
+
       monitored_clients_.splice(monitored_clients_.begin(),
         other_clients_, client);
       client->nb_inbuf().call_when_readable(scheduler_,
