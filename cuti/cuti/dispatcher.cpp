@@ -394,9 +394,19 @@ struct core_dispatcher_t
     return result;
   }
     
-  void resume_monitoring(std::list<client_t>::iterator client)
+  void resume_monitoring(std::list<client_t>::iterator client,
+                         bool interrupted)
   {
-    if(int status = client->nb_inbuf().error_status())
+    if(interrupted)
+    {
+      if(auto msg = context_.message_at(loglevel_t::error))
+      {
+        *msg << "request handling on connection " << client->nb_inbuf() <<
+          " interrupted";
+      }
+      other_clients_.erase(client);
+    }
+    else if(int status = client->nb_inbuf().error_status())
     {
       if(auto msg = context_.message_at(loglevel_t::error))
       {
@@ -452,7 +462,8 @@ private :
       auto new_client = other_clients_.emplace(other_clients_.begin(),
         context_, std::move(accepted),
         bufsize_, settings_, listener->method_map());
-      this->resume_monitoring(new_client);
+      bool interrupted = false;
+      this->resume_monitoring(new_client, interrupted);
     }
 
     listener->call_when_ready(scheduler_,
@@ -630,13 +641,19 @@ struct pooled_thread_t
   : context_(context)
   , pool_(pool)
   , id_(id)
+  , interrupted_(false)
   , scheduler_()
-  , cancellation_pipe_()
+  , wakeup_pipe_()
   , mutex_()
   , joined_(false)
   , just_joined_()
-  , thread_([this, f = std::forward<F>(f) ] { this->run(f); })
-  { }
+  , thread_()
+  {
+    wakeup_pipe_.call_when_woken_up(scheduler_,
+      [this] { this->on_wakeup(); });
+    thread_.emplace(
+      [this, f = std::forward<F>(f) ] { this->run(f); });
+  }
 
   pooled_thread_t(pooled_thread_t const&) = delete;
   pooled_thread_t& operator=(pooled_thread_t const&) = delete;
@@ -651,23 +668,23 @@ struct pooled_thread_t
     return id_;
   }
 
+  bool interrupted() const
+  {
+    return interrupted_;
+  }
+  
   default_scheduler_t& scheduler()
   {
     return scheduler_;
   }
 
-  wakeup_pipe_t& cancellation_pipe()
-  {
-    return cancellation_pipe_;
-  }
-  
   void join()
   {
     std::unique_lock lock(mutex_);
 
     if(!joined_)
     {
-      cancellation_pipe_.wakeup();
+      wakeup_pipe_.wakeup();
       do
       {
         just_joined_.wait(lock);
@@ -681,6 +698,19 @@ struct pooled_thread_t
   }
 
 private :
+  void on_wakeup()
+  {
+    if(wakeup_pipe_.woken_up())
+    {
+      interrupted_ = true;
+    }
+    else
+    {
+      wakeup_pipe_.call_when_woken_up(scheduler_,
+        [this] { this->on_wakeup(); });
+    }
+  }
+      
   template<typename F>
   void run(F& f)
   {
@@ -693,7 +723,7 @@ private :
       if(auto msg = context_.message_at(loglevel_t::error))
       {
         *msg << "FATAL: exception in dispatcher thread " <<
-	  id_ << ": " << ex.what();
+          id_ << ": " << ex.what();
       }
       std::abort();
     }
@@ -701,8 +731,8 @@ private :
     {
       if(auto msg = context_.message_at(loglevel_t::error))
       {
-        *msg << "FATAL: exception of unkwown type in dispatcher thread " <<
-	  id_;
+        *msg << "FATAL: exception of unknown type in dispatcher thread " <<
+          id_;
       }
       std::abort();
     }
@@ -718,12 +748,14 @@ private :
   logging_context_t const& context_;
   thread_pool_t& pool_;
   std::size_t const id_;
+  bool interrupted_;
   default_scheduler_t scheduler_;
-  wakeup_pipe_t cancellation_pipe_;
+  wakeup_pipe_t wakeup_pipe_;
+
   std::mutex mutex_;
   bool joined_;
   std::condition_variable just_joined_;
-  scoped_thread_t thread_;
+  std::optional<scoped_thread_t> thread_;
 };
 
 struct thread_pool_t
@@ -790,11 +822,9 @@ private :
   std::list<pooled_thread_t> threads_;
 };
 
-void handle_request(default_scheduler_t& scheduler,
-                    wakeup_pipe_t& cancellation_pipe,
-                    client_t& client)
+void handle_request(pooled_thread_t& thread, client_t& client)
 {
-  // TODO: monitor cancellation pipe
+  default_scheduler_t& scheduler = thread.scheduler();
 
   stack_marker_t base_marker;
 
@@ -809,14 +839,17 @@ void handle_request(default_scheduler_t& scheduler,
     client.context(), bound_inbuf, bound_outbuf, client.method_map());
   request_handler.start();
 
-  while(!result.available())
+  while(!thread.interrupted() && !result.available())
   {
     auto cb = scheduler.wait();
     assert(cb != nullptr);
     cb();
   }
 
-  result.value();
+  if(!thread.interrupted())
+  {
+    result.value();
+  }
 }
 
 } // anonymous
@@ -894,7 +927,7 @@ private :
 
         if(client.has_value())
         {
-          core_.resume_monitoring(*client);
+          core_.resume_monitoring(*client, thread.interrupted());
         }
 
         if(stopping_.load(std::memory_order_acquire))
@@ -918,8 +951,7 @@ private :
           *msg << "handling request from " << (*client)->nb_inbuf() <<
             " on dispatcher thread " << thread.id();
         }
-        handle_request(thread.scheduler(), thread.cancellation_pipe(),
-          **client);
+        handle_request(thread, **client);
       }
     }
       
