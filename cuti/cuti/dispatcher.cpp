@@ -332,11 +332,13 @@ struct core_dispatcher_t
   core_dispatcher_t(logging_context_t const& context,
                     selector_factory_t const& factory,
                     std::size_t client_bufsize,
+		    std::size_t max_connections,
                     throughput_settings_t settings)
   : context_(context)
   , scheduler_(factory)
   , wakeup_pipe_()
   , bufsize_(client_bufsize)
+  , max_connections_(max_connections)
   , settings_(std::move(settings))
   , listeners_()
   , monitored_clients_()
@@ -426,7 +428,20 @@ struct core_dispatcher_t
     }
     else
     {
-      // TODO: evict older clients based on maximum count?
+      if(max_connections_ != 0 &&
+         monitored_clients_.size() == max_connections_)
+      {
+        auto oldest_client = monitored_clients_.end();
+	--oldest_client;
+        if(auto msg = context_.message_at(loglevel_t::error))
+        {
+          *msg << "maximum number of connections (" << max_connections_ <<
+	    ") reached; evicting least recently active connection " <<
+	    oldest_client->nb_inbuf();
+        }
+        monitored_clients_.erase(oldest_client);
+      }
+	
       monitored_clients_.splice(monitored_clients_.begin(),
         other_clients_, client);
       client->nb_inbuf().call_when_readable(scheduler_,
@@ -501,6 +516,7 @@ private :
   default_scheduler_t scheduler_;
   wakeup_pipe_t wakeup_pipe_;
   std::size_t const bufsize_;
+  std::size_t const max_connections_;
   throughput_settings_t settings_;
 
   std::list<listener_t> listeners_;
@@ -859,8 +875,8 @@ struct dispatcher_t::impl_t
   impl_t(logging_context_t const& context, dispatcher_config_t config)
   : context_(context)
   , config_(std::move(config))
-  , core_(context_, config_.selector_factory_,config_.bufsize_,
-          config_.throughput_settings_)
+  , core_(context_, config_.selector_factory_, config_.bufsize_,
+          config_.max_connections_, config_.throughput_settings_)
   , mutex_(core_)
   , stopping_(false)
   , signal_reader_()

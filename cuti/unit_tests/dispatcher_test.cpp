@@ -23,8 +23,10 @@
 #include <cuti/echo_handler.hpp>
 #include <cuti/logging_context.hpp>
 #include <cuti/method_map.hpp>
+#include <cuti/nb_tcp_buffers.hpp>
 #include <cuti/option_walker.hpp>
 #include <cuti/resolver.hpp>
+#include <cuti/rpc_engine.hpp>
 #include <cuti/scoped_guard.hpp>
 #include <cuti/scoped_thread.hpp>
 #include <cuti/streambuf_backend.hpp>
@@ -104,6 +106,19 @@ std::string some_echo_request()
   request += "]\n";
 
   return request;
+}
+
+void echo_nothing(nb_inbuf_t& inbuf, nb_outbuf_t& outbuf)
+{
+  std::vector<std::string> inputs;
+  auto input_args = make_input_list<std::vector<std::string>>(inputs);
+
+  std::vector<std::string> outputs;
+  auto output_args = make_output_list<std::vector<std::string>>(outputs);
+
+  perform_rpc(inbuf, outbuf, "echo", input_args, output_args);
+
+  assert(inputs.empty());
 }
 
 void test_deaf_client(logging_context_t const& client_context,
@@ -203,12 +218,87 @@ void test_slow_client(logging_context_t const& client_context,
   }
 }
 
+void test_eviction(logging_context_t const& client_context,
+                   logging_context_t const& server_context,
+                   std::size_t bufsize)
+{
+  method_map_t map;
+  map.add_method_factory("echo", default_method_factory<echo_handler_t>());
+
+  dispatcher_config_t config;
+  config.bufsize_ = bufsize;
+  config.max_connections_ = 1;
+
+  dispatcher_t dispatcher(server_context, config);
+
+  endpoint_t server_address = dispatcher.add_listener(
+    local_interfaces(any_port).front(), map);
+
+  {
+    scoped_thread_t server_thread([&] { dispatcher.run(); });
+    auto stop_guard = make_scoped_guard([&] { dispatcher.stop(SIGINT); });
+
+    if(auto msg = client_context.message_at(loglevel_t::info))
+    {
+      *msg << __func__ << '(' << server_address <<
+        "): trying two clients (bufsize: " << bufsize << ")...";
+    }
+
+    std::unique_ptr<nb_inbuf_t> inbuf1;
+    std::unique_ptr<nb_outbuf_t> outbuf1;
+    std::tie(inbuf1, outbuf1) = make_nb_tcp_buffers(
+      std::make_unique<tcp_connection_t>(server_address));
+
+    if(auto msg = client_context.message_at(loglevel_t::info))
+    {
+      *msg << __func__ << ": using connection " << *inbuf1;
+    }
+    echo_nothing(*inbuf1, *outbuf1);
+
+    std::unique_ptr<nb_inbuf_t> inbuf2;
+    std::unique_ptr<nb_outbuf_t> outbuf2;
+    std::tie(inbuf2, outbuf2) = make_nb_tcp_buffers(
+      std::make_unique<tcp_connection_t>(server_address));
+
+    if(auto msg = client_context.message_at(loglevel_t::info))
+    {
+      *msg << __func__ << ": using connection " << *inbuf2;
+    }
+    echo_nothing(*inbuf2, *outbuf2);
+
+    bool caught = false;
+    try
+    {
+      if(auto msg = client_context.message_at(loglevel_t::info))
+      {
+        *msg << __func__ << ": re-using connection " << *inbuf1;
+      }
+      echo_nothing(*inbuf1, *outbuf1);
+    }
+    catch(const std::exception& ex)
+    {
+      if(auto msg = client_context.message_at(loglevel_t::info))
+      {
+        *msg << __func__ << ": got expected exception " << ex.what();
+      }
+      caught = true;
+    }
+    assert(caught);
+  }
+  
+  if(auto msg = client_context.message_at(loglevel_t::info))
+  {
+    *msg << __func__ << ": done";
+  }
+}
+
 void do_run_tests(logging_context_t const& client_context,
                   logging_context_t const& server_context,
                   std::size_t bufsize)
 {
   test_deaf_client(client_context, server_context, bufsize);
   test_slow_client(client_context, server_context, bufsize);
+  test_eviction(client_context, server_context, bufsize);
 }
 
 struct options_t
