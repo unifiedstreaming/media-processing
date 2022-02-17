@@ -395,8 +395,13 @@ void test_concurrent_requests(logging_context_t const& client_context,
     std::list<scoped_thread_t> client_threads;
     for(auto& client : clients)
     {
-      client_threads.emplace_back(
-        [&] { remote_sleep(*client.first, *client.second, 100); });
+      client_threads.emplace_back([&]
+      {
+        for(int i = 0; i != 4; ++i)
+	{
+          remote_sleep(*client.first, *client.second, 25);
+	}
+      });
     }
   }
   
