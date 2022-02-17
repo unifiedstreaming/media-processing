@@ -78,7 +78,7 @@ void test_multiple_values()
   put_inputs(inputs, true, 4711, "Charlie");
 
   assert(b == true);
-  assert(i = 4711);
+  assert(i == 4711);
   assert(s == "Charlie");
 }
 

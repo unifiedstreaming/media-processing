@@ -327,7 +327,7 @@ void echo_int(logging_context_t const& context,
 
   perform_rpc(context, inputs, inbuf, outputs, outbuf);
 
-  assert(echoed = 42);
+  assert(echoed == 42);
 
   if(auto msg = context.message_at(loglevel_t::info))
   {
