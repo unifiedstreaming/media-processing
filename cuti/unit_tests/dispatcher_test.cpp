@@ -19,6 +19,8 @@
 
 #include <cuti/dispatcher.hpp>
 
+#include <cuti/async_readers.hpp>
+#include <cuti/chrono_types.hpp>
 #include <cuti/cmdline_reader.hpp>
 #include <cuti/echo_handler.hpp>
 #include <cuti/logging_context.hpp>
@@ -35,6 +37,9 @@
 
 #include <csignal>
 #include <iostream>
+#include <list>
+#include <thread>
+#include <vector>
 
 #undef NDEBUG
 #include <cassert>
@@ -43,6 +48,61 @@ namespace // anonymous
 {
 
 using namespace cuti;
+
+/*
+ * Simple blocking 'sleep' handler
+ */
+struct sleep_handler_t
+{
+  using result_value_t = void;
+
+  sleep_handler_t(result_t<void>& result,
+                  logging_context_t const& context,
+                  bound_inbuf_t& inbuf,
+                  bound_outbuf_t& outbuf)
+  : result_(result)
+  , context_(context)
+  , msecs_reader_(*this, result_, inbuf)
+  { }
+
+  void start()
+  {
+    if(auto msg = context_.message_at(loglevel_t::info))
+    {
+      *msg << "sleep_handler: starting";
+    }
+    msecs_reader_.start(&sleep_handler_t::on_msecs);
+  }
+
+private :
+  void on_msecs(unsigned int msecs)
+  {
+    if(auto msg = context_.message_at(loglevel_t::info))
+    {
+      *msg << "sleep_handler: sleeping for " << msecs << " msecs";
+    }
+
+    auto now = cuti_clock_t::now();
+    auto limit = now + milliseconds_t(msecs);
+    while(now < limit)
+    {
+      std::this_thread::sleep_for(limit - now);
+      now = cuti_clock_t::now();
+    }
+
+    if(auto msg = context_.message_at(loglevel_t::info))
+    {
+      *msg << "sleep_handler: done";
+    }
+
+    result_.submit();
+  }
+    
+private :
+  result_t<void>& result_;
+  logging_context_t const& context_;
+  subroutine_t<sleep_handler_t, reader_t<unsigned int>> msecs_reader_;
+};
 
 int send_request(tcp_connection_t& conn, std::string const& request)
 {
@@ -119,6 +179,14 @@ void echo_nothing(nb_inbuf_t& inbuf, nb_outbuf_t& outbuf)
   perform_rpc(inbuf, outbuf, "echo", input_args, output_args);
 
   assert(inputs.empty());
+}
+
+void remote_sleep(nb_inbuf_t& inbuf, nb_outbuf_t& outbuf, unsigned int msecs)
+{
+  auto input_args = make_input_list<>();
+  auto output_args = make_output_list<unsigned int>(msecs);
+
+  perform_rpc(inbuf, outbuf, "sleep", input_args, output_args);
 }
 
 void test_deaf_client(logging_context_t const& client_context,
@@ -248,7 +316,7 @@ void test_eviction(logging_context_t const& client_context,
     std::unique_ptr<nb_inbuf_t> inbuf1;
     std::unique_ptr<nb_outbuf_t> outbuf1;
     std::tie(inbuf1, outbuf1) = make_nb_tcp_buffers(
-      std::make_unique<tcp_connection_t>(server_address));
+      std::make_unique<tcp_connection_t>(server_address), bufsize, bufsize);
 
     if(auto msg = client_context.message_at(loglevel_t::info))
     {
@@ -259,7 +327,7 @@ void test_eviction(logging_context_t const& client_context,
     std::unique_ptr<nb_inbuf_t> inbuf2;
     std::unique_ptr<nb_outbuf_t> outbuf2;
     std::tie(inbuf2, outbuf2) = make_nb_tcp_buffers(
-      std::make_unique<tcp_connection_t>(server_address));
+      std::make_unique<tcp_connection_t>(server_address), bufsize, bufsize);
 
     if(auto msg = client_context.message_at(loglevel_t::info))
     {
@@ -293,6 +361,51 @@ void test_eviction(logging_context_t const& client_context,
   }
 }
 
+void test_concurrent_requests(logging_context_t const& client_context,
+                              logging_context_t const& server_context,
+                              std::size_t bufsize)
+{
+  if(auto msg = client_context.message_at(loglevel_t::info))
+  {
+    *msg << __func__ << ": starting (bufsize: " << bufsize << ")";
+  }
+
+  method_map_t map;
+  map.add_method_factory("sleep", default_method_factory<sleep_handler_t>());
+
+  dispatcher_config_t config;
+  config.bufsize_ = bufsize;
+  dispatcher_t dispatcher(server_context, config);
+  endpoint_t server_address = dispatcher.add_listener(
+    local_interfaces(any_port).front(), map);
+
+  {
+    scoped_thread_t server_thread([&] { dispatcher.run(); });
+    auto stop_guard = make_scoped_guard([&] { dispatcher.stop(SIGINT); });
+
+    std::vector<
+      std::pair<std::unique_ptr<nb_inbuf_t>, std::unique_ptr<nb_outbuf_t>>
+    > clients;
+    while(clients.size() != config.max_thread_pool_size_)
+    {
+      clients.push_back(make_nb_tcp_buffers(
+        std::make_unique<tcp_connection_t>(server_address), bufsize, bufsize));
+    }
+
+    std::list<scoped_thread_t> client_threads;
+    for(auto& client : clients)
+    {
+      client_threads.emplace_back(
+        [&] { remote_sleep(*client.first, *client.second, 100); });
+    }
+  }
+  
+  if(auto msg = client_context.message_at(loglevel_t::info))
+  {
+    *msg << __func__ << ": done";
+  }
+}
+
 void do_run_tests(logging_context_t const& client_context,
                   logging_context_t const& server_context,
                   std::size_t bufsize)
@@ -300,6 +413,7 @@ void do_run_tests(logging_context_t const& client_context,
   test_deaf_client(client_context, server_context, bufsize);
   test_slow_client(client_context, server_context, bufsize);
   test_eviction(client_context, server_context, bufsize);
+  test_concurrent_requests(client_context, server_context, bufsize);
 }
 
 struct options_t
