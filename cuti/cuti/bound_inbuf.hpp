@@ -39,9 +39,6 @@ struct scheduler_t;
  */
 struct CUTI_ABI bound_inbuf_t
 {
-  static duration_t constexpr default_tick_length =
-    nb_inbuf_t::default_tick_length;
-
   bound_inbuf_t(stack_marker_t& base_marker,
                 nb_inbuf_t& inbuf,
                 scheduler_t& scheduler)
