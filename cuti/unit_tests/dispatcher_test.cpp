@@ -280,7 +280,7 @@ void test_eviction(logging_context_t const& client_context,
     {
       if(auto msg = client_context.message_at(loglevel_t::info))
       {
-        *msg << __func__ << ": got expected exception " << ex.what();
+        *msg << __func__ << ": got expected exception: " << ex.what();
       }
       caught = true;
     }

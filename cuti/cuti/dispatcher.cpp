@@ -805,7 +805,7 @@ struct thread_pool_t
       if(auto msg = context_.message_at(loglevel_t::warning))
       {
         *msg << "maximum thread pool size (" << max_size_ <<
-          ") reached; further requests may be delayed";
+          ") reached; concurrent requests may be delayed";
       }
     }
 
@@ -964,8 +964,9 @@ private :
       {
         if(auto msg = context_.message_at(loglevel_t::info))
         {
-          *msg << "handling request from " << (*client)->nb_inbuf() <<
-            " on dispatcher thread " << thread.id();
+          *msg << "handling request on connection " <<
+            (*client)->nb_inbuf() <<
+            " using dispatcher thread " << thread.id();
         }
         handle_request(thread, **client);
       }
