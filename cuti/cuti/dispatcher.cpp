@@ -877,6 +877,7 @@ struct dispatcher_t::impl_t
   , config_(std::move(config))
   , core_(context_, config_.selector_factory_, config_.bufsize_,
           config_.max_connections_, config_.throughput_settings_)
+  , n_idle_threads_(0)
   , mutex_(core_)
   , stopping_(false)
   , signal_reader_()
@@ -898,15 +899,18 @@ struct dispatcher_t::impl_t
   {
     thread_pool_t pool(context_, config_.max_thread_pool_size_);
 
+    assert(n_idle_threads_ == 0);
+    n_idle_threads_ = 1;
+
+    bool first_added = pool.add(
+      [this](pooled_thread_t& added) { this->serve(added); });
+    assert(first_added);
+    static_cast<void>(first_added);
+
     if(auto msg = context_.message_at(loglevel_t::info))
     {
       *msg << "dispatcher running";
     }
-
-    bool first_thread_added = pool.add(
-      [this](pooled_thread_t& thread) { this->serve(thread); });
-    assert(first_thread_added);
-    static_cast<void>(first_thread_added);
 
     std::optional<int> sig = signal_reader_->read();
     assert(sig.has_value());
@@ -918,6 +922,8 @@ struct dispatcher_t::impl_t
     stopping_.store(true, std::memory_order_release);
     core_.wakeup();
     pool.join();
+
+    assert(n_idle_threads_ == 0);
   }
   
   void stop(int sig)
@@ -944,19 +950,32 @@ private :
         if(client.has_value())
         {
           core_.resume_monitoring(*client, thread.interrupted());
+
+          // Current thread done with handling a request
+          ++n_idle_threads_;
         }
 
         if(stopping_.load(std::memory_order_acquire))
         {
+          --n_idle_threads_;
           break;
         }
 
+        // Wait for next request or pushed aside
         client = core_.select_client();
 
-        if(client.has_value() && !mutex_.has_waiting_threads())
+        if(client.has_value())
         {
-          thread.pool().add(
-            [this](pooled_thread_t& new_thread) { this->serve(new_thread); });
+          // Current thread will handle request on selected client
+          if(--n_idle_threads_ == 0)
+          {
+            // Try to add another thread to wait for further requests
+            if(thread.pool().add(
+              [this](pooled_thread_t& added) { this->serve(added); }))
+            {
+              ++n_idle_threads_;
+            }
+          }
         }
       }
         
@@ -982,6 +1001,7 @@ private :
   logging_context_t const& context_;
   dispatcher_config_t const config_;
   core_dispatcher_t core_;
+  std::size_t n_idle_threads_;
   core_mutex_t mutex_;
 
   static_assert(std::atomic<bool>::is_always_lock_free);
