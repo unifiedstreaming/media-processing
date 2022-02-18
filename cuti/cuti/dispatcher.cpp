@@ -815,7 +815,7 @@ struct thread_pool_t
     threads_.emplace_back(
       context_, *this, threads_.size(), std::forward<F>(f));
 
-    if(threads_.size() == max_size_)
+    if(max_size_ > 1 && threads_.size() == max_size_)
     {
       if(auto msg = context_.message_at(loglevel_t::warning))
       {
