@@ -76,7 +76,7 @@ struct wakeup_pipe_t
     }
   }
 
-  bool is_active()
+  bool is_active() const
   {
     return n_activations_.load(std::memory_order_acquire) != 0;
   }
