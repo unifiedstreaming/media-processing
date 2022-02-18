@@ -182,18 +182,18 @@ private :
   std::optional<std::size_t> error_index_;
 };
       
-template<typename... ReplyArgs, typename... RequestArgs>
+template<typename... InputArgs, typename... OutputArgs>
 void check_rpc_failure(logging_context_t const& context,
-                       nb_inbuf_t& inbuf,
-                       nb_outbuf_t& outbuf,
                        identifier_t method,
-                       input_list_t<ReplyArgs...>& reply_args,
-                       output_list_t<RequestArgs...>& request_args)
+                       nb_inbuf_t& inbuf,
+                       input_list_t<InputArgs...>& input_args,
+                       nb_outbuf_t& outbuf,
+                       output_list_t<OutputArgs...>& output_args)
 {
   bool caught = false;
   try
   {
-    perform_rpc(inbuf, outbuf, std::move(method), reply_args, request_args);
+    perform_rpc(std::move(method), inbuf, input_args, outbuf, output_args);
   }
   catch(std::exception const& ex)
   {
@@ -218,11 +218,11 @@ void test_add(logging_context_t const& context,
   }
 
   int reply{};
-  auto reply_args = make_input_list<int>(reply);
+  auto input_args = make_input_list<int>(reply);
 
-  auto request_args = make_output_list<int, int>(42, 4711);
+  auto output_args = make_output_list<int, int>(42, 4711);
 
-  perform_rpc(inbuf, outbuf, "add", reply_args, request_args);
+  perform_rpc("add", inbuf, input_args, outbuf, output_args);
 
   assert(reply == 4753);
 
@@ -242,12 +242,13 @@ void test_overflow(logging_context_t const& context,
   }
 
   int reply{};
-  auto reply_args = make_input_list<int>(reply);
+  auto input_args = make_input_list<int>(reply);
 
-  auto request_args = make_output_list<int, int>(
+  auto output_args = make_output_list<int, int>(
     std::numeric_limits<int>::max(), 1);
 
-  check_rpc_failure(context, inbuf, outbuf, "add", reply_args, request_args);
+  check_rpc_failure(context,
+    "add", inbuf, input_args, outbuf, output_args);
 
   if(auto msg = context.message_at(loglevel_t::info))
   {
@@ -265,11 +266,12 @@ void test_bad_method(logging_context_t const& context,
   }
 
   int reply{};
-  auto reply_args = make_input_list<int>(reply);
+  auto input_args = make_input_list<int>(reply);
 
-  auto request_args = make_output_list<int, int>(42, 4711);
+  auto output_args = make_output_list<int, int>(42, 4711);
 
-  check_rpc_failure(context, inbuf, outbuf, "huh", reply_args, request_args);
+  check_rpc_failure(context,
+    "huh", inbuf, input_args, outbuf, output_args);
 
   if(auto msg = context.message_at(loglevel_t::info))
   {
@@ -287,11 +289,11 @@ void test_subtract(logging_context_t const& context,
   }
 
   int reply{};
-  auto reply_args = make_input_list<int>(reply);
+  auto input_args = make_input_list<int>(reply);
 
-  auto request_args = make_output_list<int, int>(4753, 4711);
+  auto output_args = make_output_list<int, int>(4753, 4711);
 
-  perform_rpc(inbuf, outbuf, "subtract", reply_args, request_args);
+  perform_rpc("subtract", inbuf, input_args, outbuf, output_args);
 
   assert(reply == 42);
 
@@ -311,13 +313,13 @@ void test_underflow(logging_context_t const& context,
   }
 
   int reply{};
-  auto reply_args = make_input_list<int>(reply);
+  auto input_args = make_input_list<int>(reply);
 
-  auto request_args = make_output_list<int, int>(
+  auto output_args = make_output_list<int, int>(
     std::numeric_limits<int>::min(), 1);
 
-  check_rpc_failure(context, inbuf, outbuf, "subtract",
-    reply_args, request_args);
+  check_rpc_failure(context,
+    "subtract", inbuf, input_args, outbuf, output_args);
 
   if(auto msg = context.message_at(loglevel_t::info))
   {
@@ -335,11 +337,11 @@ void test_vector_echo(logging_context_t const& context,
   }
 
   std::vector<std::string> reply;
-  auto reply_args = make_input_list<std::vector<std::string>>(reply);
+  auto input_args = make_input_list<std::vector<std::string>>(reply);
 
-  auto request_args = make_output_list<std::vector<std::string>>(echo_args);
+  auto output_args = make_output_list<std::vector<std::string>>(echo_args);
 
-  perform_rpc(inbuf, outbuf, "echo", reply_args, request_args);
+  perform_rpc("echo", inbuf, input_args, outbuf, output_args);
 
   assert(reply == echo_args);
 
@@ -359,12 +361,12 @@ void test_vector_censored_echo(logging_context_t const& context,
   }
 
   std::vector<std::string> reply;
-  auto reply_args = make_input_list<std::vector<std::string>>(reply);
+  auto input_args = make_input_list<std::vector<std::string>>(reply);
 
-  auto request_args = make_output_list<std::vector<std::string>>(echo_args);
+  auto output_args = make_output_list<std::vector<std::string>>(echo_args);
 
-  check_rpc_failure(context, inbuf, outbuf, "censored_echo",
-    reply_args, request_args);
+  check_rpc_failure(context,
+    "censored_echo", inbuf, input_args, outbuf, output_args);
 
   if(auto msg = context.message_at(loglevel_t::info))
   {
@@ -382,13 +384,13 @@ void test_streaming_echo(logging_context_t const& context,
   }
 
   std::vector<std::string> reply;
-  auto reply_args = make_input_list<streaming_tag_t<std::string>>(
+  auto input_args = make_input_list<streaming_tag_t<std::string>>(
     string_sink_t(context, reply));
 
-  auto request_args = make_output_list<streaming_tag_t<std::string>>(
+  auto output_args = make_output_list<streaming_tag_t<std::string>>(
     string_source_t(context));
 
-  perform_rpc(inbuf, outbuf, "echo", reply_args, request_args);
+  perform_rpc("echo", inbuf, input_args, outbuf, output_args);
 
   assert(reply == echo_args);
 
@@ -408,14 +410,14 @@ void test_streaming_censored_echo(logging_context_t const& context,
   }
 
   std::vector<std::string> reply;
-  auto reply_args = make_input_list<streaming_tag_t<std::string>>(
+  auto input_args = make_input_list<streaming_tag_t<std::string>>(
     string_sink_t(context, reply));
 
-  auto request_args = make_output_list<streaming_tag_t<std::string>>(
+  auto output_args = make_output_list<streaming_tag_t<std::string>>(
     string_source_t(context));
 
-  check_rpc_failure(context, inbuf, outbuf, "censored_echo",
-    reply_args, request_args);
+  check_rpc_failure(context,
+    "censored_echo", inbuf, input_args, outbuf, output_args);
 
   if(auto msg = context.message_at(loglevel_t::info))
   {
@@ -433,14 +435,14 @@ void test_streaming_output_error(logging_context_t const& context,
   }
 
   std::vector<std::string> reply;
-  auto reply_args = make_input_list<streaming_tag_t<std::string>>(
+  auto input_args = make_input_list<streaming_tag_t<std::string>>(
     string_sink_t(context, reply));
 
-  auto request_args = make_output_list<streaming_tag_t<std::string>>(
+  auto output_args = make_output_list<streaming_tag_t<std::string>>(
     string_source_t(context, n_echo_args / 2));
 
-  check_rpc_failure(context, inbuf, outbuf, "echo",
-    reply_args, request_args);
+  check_rpc_failure(context,
+    "echo", inbuf, input_args, outbuf, output_args);
 
   if(auto msg = context.message_at(loglevel_t::info))
   {
@@ -458,14 +460,14 @@ void test_streaming_input_error(logging_context_t const& context,
   }
 
   std::vector<std::string> reply;
-  auto reply_args = make_input_list<streaming_tag_t<std::string>>(
+  auto input_args = make_input_list<streaming_tag_t<std::string>>(
     string_sink_t(context, reply, n_echo_args / 2));
 
-  auto request_args = make_output_list<streaming_tag_t<std::string>>(
+  auto output_args = make_output_list<streaming_tag_t<std::string>>(
     string_source_t(context));
 
-  check_rpc_failure(context, inbuf, outbuf, "echo",
-    reply_args, request_args);
+  check_rpc_failure(context,
+    "echo", inbuf, input_args, outbuf, output_args);
 
   if(auto msg = context.message_at(loglevel_t::info))
   {
@@ -483,14 +485,14 @@ void test_streaming_multiple_errors(logging_context_t const& context,
   }
 
   std::vector<std::string> reply;
-  auto reply_args = make_input_list<streaming_tag_t<std::string>>(
+  auto input_args = make_input_list<streaming_tag_t<std::string>>(
     string_sink_t(context, reply, n_echo_args / 4));
 
-  auto request_args = make_output_list<streaming_tag_t<std::string>>(
+  auto output_args = make_output_list<streaming_tag_t<std::string>>(
     string_source_t(context, 3 * (n_echo_args / 4)));
 
-  check_rpc_failure(context, inbuf, outbuf, "censored_echo",
-    reply_args, request_args);
+  check_rpc_failure(context,
+    "censored_echo", inbuf, input_args, outbuf, output_args);
 
   if(auto msg = context.message_at(loglevel_t::info))
   {
@@ -582,9 +584,9 @@ void throughput_echo_client(logging_context_t const& context,
   }
 
   std::vector<std::string> reply;
-  auto reply_args = make_input_list<std::vector<std::string>>(reply);
+  auto input_args = make_input_list<std::vector<std::string>>(reply);
 
-  auto request_args = make_output_list<std::vector<std::string>>(echo_args);
+  auto output_args = make_output_list<std::vector<std::string>>(echo_args);
 
   std::unique_ptr<nb_inbuf_t> inbuf;
   std::unique_ptr<nb_outbuf_t> outbuf;
@@ -594,7 +596,7 @@ void throughput_echo_client(logging_context_t const& context,
   bool caught = false;
   try
   {
-    perform_rpc(*inbuf, *outbuf, "echo", reply_args, request_args, settings);
+    perform_rpc("echo", *inbuf, input_args, *outbuf, output_args, settings);
   }
   catch(std::exception const& ex)
   {

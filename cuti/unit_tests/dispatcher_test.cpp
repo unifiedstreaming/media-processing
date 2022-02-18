@@ -168,25 +168,30 @@ std::string some_echo_request()
   return request;
 }
 
+void echo_strings(nb_inbuf_t& inbuf,
+                  std::vector<std::string>& inputs,
+                  nb_outbuf_t& outbuf,
+                  std::vector<std::string> const& outputs)
+{
+  auto input_list = make_input_list<std::vector<std::string>>(inputs);
+  auto output_list = make_output_list<std::vector<std::string>>(outputs);
+
+  perform_rpc("echo", inbuf, input_list, outbuf, output_list);
+}
+
 void echo_nothing(nb_inbuf_t& inbuf, nb_outbuf_t& outbuf)
 {
   std::vector<std::string> inputs;
-  auto input_args = make_input_list<std::vector<std::string>>(inputs);
-
-  std::vector<std::string> outputs;
-  auto output_args = make_output_list<std::vector<std::string>>(outputs);
-
-  perform_rpc(inbuf, outbuf, "echo", input_args, output_args);
-
+  echo_strings(inbuf, inputs, outbuf, {});
   assert(inputs.empty());
 }
-
+  
 void remote_sleep(nb_inbuf_t& inbuf, nb_outbuf_t& outbuf, unsigned int msecs)
 {
   auto input_args = make_input_list<>();
   auto output_args = make_output_list<unsigned int>(msecs);
 
-  perform_rpc(inbuf, outbuf, "sleep", input_args, output_args);
+  perform_rpc("sleep", inbuf, input_args, outbuf, output_args);
 }
 
 void test_deaf_client(logging_context_t const& client_context,

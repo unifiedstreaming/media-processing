@@ -43,12 +43,12 @@
 namespace cuti
 {
 
-template<typename ReplyArgsList, typename RequestArgsList>
+template<typename InputArgsList, typename OutputArgsList>
 struct rpc_engine_t;
 
-template<typename... ReplyArgs, typename... RequestArgs>
-struct rpc_engine_t<type_list_t<ReplyArgs...>,
-                    type_list_t<RequestArgs...>>
+template<typename... InputArgs, typename... OutputArgs>
+struct rpc_engine_t<type_list_t<InputArgs...>,
+                    type_list_t<OutputArgs...>>
 {
   rpc_engine_t(result_t<void>& result,
                bound_inbuf_t& inbuf,
@@ -64,8 +64,8 @@ struct rpc_engine_t<type_list_t<ReplyArgs...>,
   rpc_engine_t& operator=(rpc_engine_t const&) = delete;
   
   void start(identifier_t method,
-             input_list_t<ReplyArgs...>& reply_args,
-             output_list_t<RequestArgs...>& request_args)
+             input_list_t<InputArgs...>& reply_args,
+             output_list_t<OutputArgs...>& request_args)
   {
     pending_children_ = 2;
     ex_ = nullptr;
@@ -109,21 +109,21 @@ private :
 
 private :
   result_t<void>& result_;
-  subroutine_t<rpc_engine_t, reply_reader_t<ReplyArgs...>,
+  subroutine_t<rpc_engine_t, reply_reader_t<InputArgs...>,
     failure_mode_t::handle_in_parent> reply_reader_;
-  subroutine_t<rpc_engine_t, request_writer_t<RequestArgs...>,
+  subroutine_t<rpc_engine_t, request_writer_t<OutputArgs...>,
     failure_mode_t::handle_in_parent> request_writer_;
 
   unsigned int pending_children_;
   std::exception_ptr ex_;
 };
 
-template<typename... ReplyArgs, typename... RequestArgs>
-void perform_rpc(nb_inbuf_t& inbuf,
+template<typename... InputArgs, typename... OutputArgs>
+void perform_rpc(identifier_t method,
+                 nb_inbuf_t& inbuf,
+                 input_list_t<InputArgs...>& input_args,
                  nb_outbuf_t& outbuf,
-                 identifier_t method,
-                 input_list_t<ReplyArgs...>& reply_args,
-                 output_list_t<RequestArgs...>& request_args,
+                 output_list_t<OutputArgs...>& output_args,
                  throughput_settings_t settings)
 {
   final_result_t<void> result;
@@ -137,10 +137,10 @@ void perform_rpc(nb_inbuf_t& inbuf,
   bound_outbuf_t bound_outbuf(base_marker, outbuf, scheduler);
   bound_outbuf.enable_throughput_checking(settings);
   
-  rpc_engine_t<type_list_t<ReplyArgs...>, type_list_t<RequestArgs...>>
+  rpc_engine_t<type_list_t<InputArgs...>, type_list_t<OutputArgs...>>
   rpc_engine(result, bound_inbuf, bound_outbuf);
 
-  rpc_engine.start(std::move(method), reply_args, request_args);
+  rpc_engine.start(std::move(method), input_args, output_args);
 
   while(!result.available())
   {
@@ -170,14 +170,14 @@ void perform_rpc(nb_inbuf_t& inbuf,
   result.value();
 }
     
-template<typename... ReplyArgs, typename... RequestArgs>
-void perform_rpc(nb_inbuf_t& inbuf,
+template<typename... InputArgs, typename... OutputArgs>
+void perform_rpc(identifier_t method,
+                 nb_inbuf_t& inbuf,
+                 input_list_t<InputArgs...>& input_args,
                  nb_outbuf_t& outbuf,
-                 identifier_t method,
-                 input_list_t<ReplyArgs...>& reply_args,
-                 output_list_t<RequestArgs...>& request_args)
+                 output_list_t<OutputArgs...>& output_args)
 {
-  perform_rpc(inbuf, outbuf, std::move(method), reply_args, request_args,
+  perform_rpc(std::move(method), inbuf, input_args, outbuf, output_args,
     throughput_settings_t());
 }
 
