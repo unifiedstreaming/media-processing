@@ -155,7 +155,7 @@ std::string some_string()
 
 std::string some_echo_request()
 {
-  std::string str = some_string();
+  std::string const str = some_string();
   std::string request = "echo [ ";
   while(request.size() < 10000)
   {
@@ -166,6 +166,21 @@ std::string some_echo_request()
   request += "]\n";
 
   return request;
+}
+
+std::vector<std::string> some_strings()
+{
+  std::string const str = some_string();
+
+  std::vector<std::string> result;
+  std::size_t total_length = 0;
+  while(total_length < 10000)
+  {
+    result.push_back(str);
+    total_length += str.length();
+  }
+  
+  return result;
 }
 
 void echo_strings(nb_inbuf_t& inbuf,
@@ -184,6 +199,14 @@ void echo_nothing(nb_inbuf_t& inbuf, nb_outbuf_t& outbuf)
   std::vector<std::string> inputs;
   echo_strings(inbuf, inputs, outbuf, {});
   assert(inputs.empty());
+}
+
+void echo_some_strings(nb_inbuf_t& inbuf, nb_outbuf_t& outbuf)
+{
+  std::vector<std::string> inputs;
+  std::vector<std::string> const outputs = some_strings();
+  echo_strings(inbuf, inputs, outbuf, outputs);
+  assert(inputs == outputs);
 }
   
 void remote_sleep(nb_inbuf_t& inbuf, nb_outbuf_t& outbuf, unsigned int msecs)
@@ -460,6 +483,118 @@ void test_full_thread_pool(logging_context_t const& client_context,
   }
 }
 
+void do_test_interrupted_server(logging_context_t const& client_context,
+                                logging_context_t const& server_context,
+                                std::size_t bufsize,
+                                std::size_t max_thread_pool_size,
+                                std::size_t n_clients)
+{
+  if(auto msg = client_context.message_at(loglevel_t::info))
+  {
+    *msg << __func__ << ": starting (bufsize: " << bufsize <<
+      " max_thread_pool_size: " << max_thread_pool_size <<
+      " n_clients: " << n_clients << ")";
+  }
+
+  method_map_t map;
+  map.add_method_factory("echo", default_method_factory<echo_handler_t>());
+
+  dispatcher_config_t config;
+  config.bufsize_ = bufsize;
+  config.max_thread_pool_size_ = max_thread_pool_size;
+
+  auto dispatcher = std::make_unique<dispatcher_t>(server_context, config);
+  endpoint_t server_address = dispatcher->add_listener(
+    local_interfaces(any_port).front(), map);
+
+  {
+    scoped_thread_t dispatcher_runner([dispatcher = std::move(dispatcher)]
+    {
+      scoped_thread_t interrupter([&dispatcher]
+      {
+        std::this_thread::sleep_for(milliseconds_t(1000));
+        dispatcher->stop(SIGINT);
+      });
+      dispatcher->run();
+    });
+
+    std::vector<
+      std::pair<std::unique_ptr<nb_inbuf_t>, std::unique_ptr<nb_outbuf_t>>
+    > clients;
+    while(clients.size() != n_clients)
+    {
+      clients.push_back(make_nb_tcp_buffers(
+        std::make_unique<tcp_connection_t>(server_address), bufsize, bufsize));
+    }
+
+    std::list<scoped_thread_t> client_threads;
+    for(auto& client : clients)
+    {
+      client_threads.emplace_back([&]
+      {
+        try
+        {
+          for(;;)
+          {
+            echo_some_strings(*client.first, *client.second);
+          }
+        }
+        catch(std::exception const& ex)
+        {
+          if(auto msg = client_context.message_at(loglevel_t::info))
+          {
+            *msg << __func__ << ": caught expected exception: " << ex.what();
+          }
+        }
+      });
+    }
+  }
+  
+  if(auto msg = client_context.message_at(loglevel_t::info))
+  {
+    *msg << __func__ << ": done";
+  }
+}
+
+void test_interrupted_server(logging_context_t const& client_context,
+                             logging_context_t const& server_context,
+                             std::size_t bufsize)
+{
+  if(auto msg = client_context.message_at(loglevel_t::info))
+  {
+    *msg << __func__ << ": starting (bufsize: " << bufsize << ")";
+  }
+
+  do_test_interrupted_server(client_context, server_context, bufsize,
+    dispatcher_config_t::default_max_thread_pool_size(),
+    dispatcher_config_t::default_max_thread_pool_size());
+
+  if(auto msg = client_context.message_at(loglevel_t::info))
+  {
+    *msg << __func__ << ": done";
+  }
+}
+
+void test_overloaded_interrupted_server(
+  logging_context_t const& client_context,
+  logging_context_t const& server_context,
+  std::size_t bufsize)
+{
+  if(auto msg = client_context.message_at(loglevel_t::info))
+  {
+    *msg << __func__ << ": starting (bufsize: " << bufsize << ")";
+  }
+
+  do_test_interrupted_server(client_context, server_context, bufsize,
+    dispatcher_config_t::default_max_thread_pool_size() / 2,
+    dispatcher_config_t::default_max_thread_pool_size());
+
+  if(auto msg = client_context.message_at(loglevel_t::info))
+  {
+    *msg << __func__ << ": done";
+  }
+}
+
 void do_run_tests(logging_context_t const& client_context,
                   logging_context_t const& server_context,
                   std::size_t bufsize)
@@ -469,6 +604,8 @@ void do_run_tests(logging_context_t const& client_context,
   test_eviction(client_context, server_context, bufsize);
   test_concurrent_requests(client_context, server_context, bufsize);
   test_full_thread_pool(client_context, server_context, bufsize);
+  test_interrupted_server(client_context, server_context, bufsize);
+  test_overloaded_interrupted_server(client_context, server_context, bufsize);
 }
 
 struct options_t
