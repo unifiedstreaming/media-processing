@@ -361,13 +361,17 @@ void test_eviction(logging_context_t const& client_context,
   }
 }
 
-void test_concurrent_requests(logging_context_t const& client_context,
-                              logging_context_t const& server_context,
-                              std::size_t bufsize)
+void test_remote_sleeps(logging_context_t const& client_context,
+                        logging_context_t const& server_context,
+                        std::size_t bufsize,
+                        std::size_t max_thread_pool_size,
+                        std::size_t n_clients)
 {
   if(auto msg = client_context.message_at(loglevel_t::info))
   {
-    *msg << __func__ << ": starting (bufsize: " << bufsize << ")";
+    *msg << __func__ << ": starting (bufsize: " << bufsize <<
+      " max_thread_pool_size: " << max_thread_pool_size <<
+      " n_clients: " << n_clients << ")";
   }
 
   method_map_t map;
@@ -375,6 +379,8 @@ void test_concurrent_requests(logging_context_t const& client_context,
 
   dispatcher_config_t config;
   config.bufsize_ = bufsize;
+  config.max_thread_pool_size_ = max_thread_pool_size;
+
   dispatcher_t dispatcher(server_context, config);
   endpoint_t server_address = dispatcher.add_listener(
     local_interfaces(any_port).front(), map);
@@ -386,7 +392,7 @@ void test_concurrent_requests(logging_context_t const& client_context,
     std::vector<
       std::pair<std::unique_ptr<nb_inbuf_t>, std::unique_ptr<nb_outbuf_t>>
     > clients;
-    while(clients.size() != config.max_thread_pool_size_)
+    while(clients.size() != n_clients)
     {
       clients.push_back(make_nb_tcp_buffers(
         std::make_unique<tcp_connection_t>(server_address), bufsize, bufsize));
@@ -398,13 +404,51 @@ void test_concurrent_requests(logging_context_t const& client_context,
       client_threads.emplace_back([&]
       {
         for(int i = 0; i != 4; ++i)
-	{
+        {
           remote_sleep(*client.first, *client.second, 25);
-	}
+        }
       });
     }
   }
   
+  if(auto msg = client_context.message_at(loglevel_t::info))
+  {
+    *msg << __func__ << ": done";
+  }
+}
+
+void test_concurrent_requests(logging_context_t const& client_context,
+                              logging_context_t const& server_context,
+                              std::size_t bufsize)
+{
+  if(auto msg = client_context.message_at(loglevel_t::info))
+  {
+    *msg << __func__ << ": starting (bufsize: " << bufsize << ")";
+  }
+
+  test_remote_sleeps(client_context, server_context, bufsize,
+    dispatcher_config_t::default_max_thread_pool_size(),
+    dispatcher_config_t::default_max_thread_pool_size());
+
+  if(auto msg = client_context.message_at(loglevel_t::info))
+  {
+    *msg << __func__ << ": done";
+  }
+}
+
+void test_full_thread_pool(logging_context_t const& client_context,
+                           logging_context_t const& server_context,
+                           std::size_t bufsize)
+{
+  if(auto msg = client_context.message_at(loglevel_t::info))
+  {
+    *msg << __func__ << ": starting (bufsize: " << bufsize << ")";
+  }
+
+  test_remote_sleeps(client_context, server_context, bufsize,
+    dispatcher_config_t::default_max_thread_pool_size() / 2,
+    dispatcher_config_t::default_max_thread_pool_size());
+
   if(auto msg = client_context.message_at(loglevel_t::info))
   {
     *msg << __func__ << ": done";
@@ -419,6 +463,7 @@ void do_run_tests(logging_context_t const& client_context,
   test_slow_client(client_context, server_context, bufsize);
   test_eviction(client_context, server_context, bufsize);
   test_concurrent_requests(client_context, server_context, bufsize);
+  test_full_thread_pool(client_context, server_context, bufsize);
 }
 
 struct options_t

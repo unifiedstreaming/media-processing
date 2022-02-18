@@ -53,7 +53,7 @@ namespace // anonymous
 struct wakeup_pipe_t
 {
   wakeup_pipe_t()
-  : wakeup_cnt_(0)
+  : n_activations_(0)
   , pipe_reader_(nullptr)
   , pipe_writer_(nullptr)
   , readable_ticket_()
@@ -66,9 +66,9 @@ struct wakeup_pipe_t
   wakeup_pipe_t(wakeup_pipe_t const&) = delete;
   wakeup_pipe_t& operator=(wakeup_pipe_t const&) = delete;
   
-  void wakeup()
+  void activate()
   {
-    if(wakeup_cnt_.fetch_add(1) == 0)
+    if(n_activations_.fetch_add(1) == 0)
     {
       bool write_result = pipe_writer_->write('*');
       assert(write_result);
@@ -76,12 +76,17 @@ struct wakeup_pipe_t
     }
   }
 
-  bool woken_up()
+  bool is_active()
+  {
+    return n_activations_.load(std::memory_order_acquire) != 0;
+  }
+
+  bool deactivate()
   {
     unsigned int old_cnt = 1;
     do
     {
-      if(wakeup_cnt_.compare_exchange_weak(old_cnt, old_cnt - 1))
+      if(n_activations_.compare_exchange_weak(old_cnt, old_cnt - 1))
       {
         break;
       }
@@ -98,11 +103,11 @@ struct wakeup_pipe_t
     return old_cnt != 0;
   }
 
-  void call_when_woken_up(scheduler_t& scheduler, callback_t callback)
+  void call_when_active(scheduler_t& scheduler, callback_t callback)
   {
     assert(callback != nullptr);
 
-    this->cancel_when_woken_up();
+    this->cancel_when_active();
 
     readable_ticket_ = pipe_reader_->call_when_readable(scheduler,
       [this] { this->on_pipe_readable(); });
@@ -110,7 +115,7 @@ struct wakeup_pipe_t
     callback_ = std::move(callback);
   }
 
-  void cancel_when_woken_up()
+  void cancel_when_active()
   {
     if(!readable_ticket_.empty())
     {
@@ -125,7 +130,7 @@ struct wakeup_pipe_t
 
   ~wakeup_pipe_t()
   {
-    this->cancel_when_woken_up();
+    this->cancel_when_active();
   }
 
 private :
@@ -143,7 +148,7 @@ private :
       
 private :
   static_assert(std::atomic<unsigned int>::is_always_lock_free);
-  std::atomic<unsigned int> wakeup_cnt_;
+  std::atomic<unsigned int> n_activations_;
 
   std::unique_ptr<event_pipe_reader_t> pipe_reader_;
   std::unique_ptr<event_pipe_writer_t> pipe_writer_;
@@ -346,7 +351,7 @@ struct core_dispatcher_t
   , woken_up_(false)
   , selected_client_()
   {
-    wakeup_pipe_.call_when_woken_up(scheduler_,
+    wakeup_pipe_.call_when_active(scheduler_,
       [this] { this->on_wakeup(); });
 
     if(auto msg = context.message_at(loglevel_t::info))
@@ -355,11 +360,16 @@ struct core_dispatcher_t
     }
   }
 
-  void wakeup()
+  void activate_wakeups()
   {
-    wakeup_pipe_.wakeup();
+    wakeup_pipe_.activate();
   }
 
+  bool deactivate_wakeups()
+  {
+    return wakeup_pipe_.deactivate();
+  }
+  
   endpoint_t add_listener(endpoint_t const& endpoint, method_map_t const& map)
   {
     auto listener = listeners_.emplace(listeners_.begin(),
@@ -460,12 +470,12 @@ struct core_dispatcher_t
 private :
   void on_wakeup()
   {
-    if(wakeup_pipe_.woken_up())
+    if(wakeup_pipe_.is_active())
     {
       woken_up_ = true;
     }
 
-    wakeup_pipe_.call_when_woken_up(scheduler_,
+    wakeup_pipe_.call_when_active(scheduler_,
       [this] { this->on_wakeup(); });
   }
 
@@ -551,11 +561,16 @@ struct core_mutex_t
 
     if(locked_)
     {
-      core_.wakeup();
+      core_.activate_wakeups();
+
       do
       {
         unlocked_with_urgent_waiters_.wait(internal_lock);
       } while(locked_);
+
+      bool was_active = core_.deactivate_wakeups();
+      assert(was_active);
+      static_cast<void>(was_active);
     }
 
     --n_urgent_waiters_;
@@ -665,8 +680,8 @@ struct pooled_thread_t
   , just_joined_()
   , thread_()
   {
-    wakeup_pipe_.call_when_woken_up(scheduler_,
-      [this] { this->on_wakeup(); });
+    wakeup_pipe_.call_when_active(scheduler_,
+      [this] { this->on_wakeup_pipe(); });
     thread_.emplace(
       [this, f = std::forward<F>(f) ] { this->run(f); });
   }
@@ -700,7 +715,7 @@ struct pooled_thread_t
 
     if(!joined_)
     {
-      wakeup_pipe_.wakeup();
+      wakeup_pipe_.activate();
       do
       {
         just_joined_.wait(lock);
@@ -714,16 +729,16 @@ struct pooled_thread_t
   }
 
 private :
-  void on_wakeup()
+  void on_wakeup_pipe()
   {
-    if(wakeup_pipe_.woken_up())
+    if(wakeup_pipe_.deactivate())
     {
       interrupted_ = true;
     }
     else
     {
-      wakeup_pipe_.call_when_woken_up(scheduler_,
-        [this] { this->on_wakeup(); });
+      wakeup_pipe_.call_when_active(scheduler_,
+        [this] { this->on_wakeup_pipe(); });
     }
   }
       
@@ -920,8 +935,12 @@ struct dispatcher_t::impl_t
     }
 
     stopping_.store(true, std::memory_order_release);
-    core_.wakeup();
+    core_.activate_wakeups();
     pool.join();
+
+    bool was_active = core_.deactivate_wakeups();
+    assert(was_active);
+    static_cast<void>(was_active);
 
     assert(n_idle_threads_ == 0);
   }
