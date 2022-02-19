@@ -347,7 +347,7 @@ struct core_dispatcher_t
   , settings_(std::move(settings))
   , listeners_()
   , monitored_clients_()
-  , other_clients_()
+  , served_clients_()
   , woken_up_(false)
   , selected_client_()
   {
@@ -416,7 +416,7 @@ struct core_dispatcher_t
         *msg << "request handling on connection " << client->nb_inbuf() <<
           " interrupted";
       }
-      other_clients_.erase(client);
+      served_clients_.erase(client);
     }
     else if(int status = client->nb_inbuf().error_status())
     {
@@ -425,7 +425,7 @@ struct core_dispatcher_t
         *msg << "input error on connection " << client->nb_inbuf() <<
           ": " << system_error_string(status);
       }
-      other_clients_.erase(client);
+      served_clients_.erase(client);
     }
     else if(int status = client->nb_outbuf().error_status())
     {
@@ -434,7 +434,7 @@ struct core_dispatcher_t
         *msg << "output error on connection " << client->nb_outbuf() <<
           ": " << system_error_string(status);
       }
-      other_clients_.erase(client);
+      served_clients_.erase(client);
     }
     else
     {
@@ -453,7 +453,7 @@ struct core_dispatcher_t
       }
 
       monitored_clients_.splice(monitored_clients_.begin(),
-        other_clients_, client);
+        served_clients_, client);
       client->nb_inbuf().call_when_readable(scheduler_,
         [this, client] { this->on_client_readable(client); });
     }
@@ -484,7 +484,7 @@ private :
     std::unique_ptr<tcp_connection_t> accepted;
     if((accepted = listener->accept()) != nullptr)
     {
-      auto new_client = other_clients_.emplace(other_clients_.begin(),
+      auto new_client = served_clients_.emplace(served_clients_.begin(),
         context_, std::move(accepted),
         bufsize_, settings_, listener->method_map());
       bool interrupted = false;
@@ -509,7 +509,7 @@ private :
       }
       else
       {
-        other_clients_.splice(other_clients_.begin(),
+        served_clients_.splice(served_clients_.begin(),
           monitored_clients_, client);
         selected_client_ = client;
       }
@@ -530,8 +530,10 @@ private :
   throughput_settings_t settings_;
 
   std::list<listener_t> listeners_;
+
+  // Each client is either being monitored or being served 
   std::list<client_t> monitored_clients_;
-  std::list<client_t> other_clients_;
+  std::list<client_t> served_clients_;
   
   bool woken_up_;
   std::optional<std::list<client_t>::iterator> selected_client_;
@@ -976,7 +978,7 @@ private :
 
         if(stopping_.load(std::memory_order_acquire))
         {
-	  // Dispatcher is stopping
+          // Dispatcher is stopping
           --n_idle_threads_;
           break;
         }
