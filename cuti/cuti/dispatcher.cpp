@@ -50,10 +50,10 @@ namespace cuti
 namespace // anonymous
 {
 
-struct wakeup_pipe_t
+struct wakeup_flag_t
 {
-  wakeup_pipe_t()
-  : n_activations_(0)
+  wakeup_flag_t()
+  : counter_(0)
   , pipe_reader_(nullptr)
   , pipe_writer_(nullptr)
   , readable_ticket_()
@@ -63,12 +63,12 @@ struct wakeup_pipe_t
     std::tie(pipe_reader_, pipe_writer_) = make_event_pipe();
   }
 
-  wakeup_pipe_t(wakeup_pipe_t const&) = delete;
-  wakeup_pipe_t& operator=(wakeup_pipe_t const&) = delete;
+  wakeup_flag_t(wakeup_flag_t const&) = delete;
+  wakeup_flag_t& operator=(wakeup_flag_t const&) = delete;
   
-  void activate()
+  void raise()
   {
-    if(n_activations_.fetch_add(1) == 0)
+    if(counter_.fetch_add(1) == 0)
     {
       bool write_result = pipe_writer_->write('*');
       assert(write_result);
@@ -76,23 +76,23 @@ struct wakeup_pipe_t
     }
   }
 
-  bool is_active() const
+  bool is_up() const
   {
-    return n_activations_.load(std::memory_order_acquire) != 0;
+    return counter_.load(std::memory_order_acquire) != 0;
   }
 
-  bool deactivate()
+  bool lower()
   {
-    unsigned int old_cnt = 1;
+    unsigned int old_counter = 1;
     do
     {
-      if(n_activations_.compare_exchange_weak(old_cnt, old_cnt - 1))
+      if(counter_.compare_exchange_weak(old_counter, old_counter - 1))
       {
         break;
       }
-    } while(old_cnt != 0);
+    } while(old_counter != 0);
 
-    if(old_cnt == 1)
+    if(old_counter == 1)
     {
       std::optional<int> read_result = pipe_reader_->read();
       assert(read_result != std::nullopt);
@@ -100,14 +100,14 @@ struct wakeup_pipe_t
       static_cast<void>(read_result);
     }
 
-    return old_cnt != 0;
+    return old_counter != 0;
   }
 
-  void call_when_active(scheduler_t& scheduler, callback_t callback)
+  void call_when_up(scheduler_t& scheduler, callback_t callback)
   {
     assert(callback != nullptr);
 
-    this->cancel_when_active();
+    this->cancel_when_up();
 
     readable_ticket_ = pipe_reader_->call_when_readable(scheduler,
       [this] { this->on_pipe_readable(); });
@@ -115,7 +115,7 @@ struct wakeup_pipe_t
     callback_ = std::move(callback);
   }
 
-  void cancel_when_active()
+  void cancel_when_up()
   {
     if(!readable_ticket_.empty())
     {
@@ -128,9 +128,9 @@ struct wakeup_pipe_t
     callback_ = nullptr;
   }
 
-  ~wakeup_pipe_t()
+  ~wakeup_flag_t()
   {
-    this->cancel_when_active();
+    this->cancel_when_up();
   }
 
 private :
@@ -148,7 +148,7 @@ private :
       
 private :
   static_assert(std::atomic<unsigned int>::is_always_lock_free);
-  std::atomic<unsigned int> n_activations_;
+  std::atomic<unsigned int> counter_;
 
   std::unique_ptr<event_pipe_reader_t> pipe_reader_;
   std::unique_ptr<event_pipe_writer_t> pipe_writer_;
@@ -341,7 +341,7 @@ struct core_dispatcher_t
                     throughput_settings_t settings)
   : context_(context)
   , scheduler_(factory)
-  , wakeup_pipe_()
+  , wakeup_flag_()
   , bufsize_(client_bufsize)
   , max_connections_(max_connections)
   , settings_(std::move(settings))
@@ -351,8 +351,8 @@ struct core_dispatcher_t
   , woken_up_(false)
   , selected_client_()
   {
-    wakeup_pipe_.call_when_active(scheduler_,
-      [this] { this->on_wakeup(); });
+    wakeup_flag_.call_when_up(scheduler_,
+      [this] { this->on_wakeup_flag(); });
 
     if(auto msg = context.message_at(loglevel_t::info))
     {
@@ -360,14 +360,14 @@ struct core_dispatcher_t
     }
   }
 
-  void activate_wakeups()
+  void raise_wakeup_flag()
   {
-    wakeup_pipe_.activate();
+    wakeup_flag_.raise();
   }
 
-  bool deactivate_wakeups()
+  bool lower_wakeup_flag()
   {
-    return wakeup_pipe_.deactivate();
+    return wakeup_flag_.lower();
   }
   
   endpoint_t add_listener(endpoint_t const& endpoint, method_map_t const& map)
@@ -468,15 +468,15 @@ struct core_dispatcher_t
   }
     
 private :
-  void on_wakeup()
+  void on_wakeup_flag()
   {
-    if(wakeup_pipe_.is_active())
+    if(wakeup_flag_.is_up())
     {
       woken_up_ = true;
     }
 
-    wakeup_pipe_.call_when_active(scheduler_,
-      [this] { this->on_wakeup(); });
+    wakeup_flag_.call_when_up(scheduler_,
+      [this] { this->on_wakeup_flag(); });
   }
 
   void on_listener_ready(std::list<listener_t>::iterator listener)
@@ -524,7 +524,7 @@ private :
 private :
   logging_context_t const& context_;
   default_scheduler_t scheduler_;
-  wakeup_pipe_t wakeup_pipe_;
+  wakeup_flag_t wakeup_flag_;
   std::size_t const bufsize_;
   std::size_t const max_connections_;
   throughput_settings_t settings_;
@@ -561,16 +561,16 @@ struct core_mutex_t
 
     if(locked_)
     {
-      core_.activate_wakeups();
+      core_.raise_wakeup_flag();
 
       do
       {
         unlocked_with_urgent_waiters_.wait(internal_lock);
       } while(locked_);
 
-      bool was_active = core_.deactivate_wakeups();
-      assert(was_active);
-      static_cast<void>(was_active);
+      bool was_up = core_.lower_wakeup_flag();
+      assert(was_up);
+      static_cast<void>(was_up);
     }
 
     --n_urgent_waiters_;
@@ -674,14 +674,14 @@ struct pooled_thread_t
   , id_(id)
   , interrupted_(false)
   , scheduler_()
-  , wakeup_pipe_()
+  , wakeup_flag_()
   , mutex_()
   , joined_(false)
   , just_joined_()
   , thread_()
   {
-    wakeup_pipe_.call_when_active(scheduler_,
-      [this] { this->on_wakeup_pipe(); });
+    wakeup_flag_.call_when_up(scheduler_,
+      [this] { this->on_wakeup_flag(); });
     thread_.emplace(
       [this, f = std::forward<F>(f) ] { this->run(f); });
   }
@@ -715,7 +715,7 @@ struct pooled_thread_t
 
     if(!joined_)
     {
-      wakeup_pipe_.activate();
+      wakeup_flag_.raise();
       do
       {
         just_joined_.wait(lock);
@@ -729,16 +729,16 @@ struct pooled_thread_t
   }
 
 private :
-  void on_wakeup_pipe()
+  void on_wakeup_flag()
   {
-    if(wakeup_pipe_.deactivate())
+    if(wakeup_flag_.lower())
     {
       interrupted_ = true;
     }
     else
     {
-      wakeup_pipe_.call_when_active(scheduler_,
-        [this] { this->on_wakeup_pipe(); });
+      wakeup_flag_.call_when_up(scheduler_,
+        [this] { this->on_wakeup_flag(); });
     }
   }
       
@@ -781,7 +781,7 @@ private :
   std::size_t const id_;
   bool interrupted_;
   default_scheduler_t scheduler_;
-  wakeup_pipe_t wakeup_pipe_;
+  wakeup_flag_t wakeup_flag_;
 
   std::mutex mutex_;
   bool joined_;
@@ -935,14 +935,15 @@ struct dispatcher_t::impl_t
     }
 
     stopping_.store(true, std::memory_order_release);
-    core_.activate_wakeups();
+    core_.raise_wakeup_flag();
+
     pool.join();
-
-    bool was_active = core_.deactivate_wakeups();
-    assert(was_active);
-    static_cast<void>(was_active);
-
     assert(n_idle_threads_ == 0);
+
+    bool was_up = core_.lower_wakeup_flag();
+    assert(was_up);
+    static_cast<void>(was_up);
+
   }
   
   void stop(int sig)
@@ -968,14 +969,14 @@ private :
 
         if(client.has_value())
         {
+          // Current thread done with handling previous request
           core_.resume_monitoring(*client, thread.interrupted());
-
-          // Current thread done with handling a request
           ++n_idle_threads_;
         }
 
         if(stopping_.load(std::memory_order_acquire))
         {
+	  // Dispatcher is stopping
           --n_idle_threads_;
           break;
         }
@@ -985,7 +986,7 @@ private :
 
         if(client.has_value())
         {
-          // Current thread will handle request on selected client
+          // Current thread will handle next request from selected client
           if(--n_idle_threads_ == 0)
           {
             // Try to add another thread to wait for further requests
@@ -1002,9 +1003,9 @@ private :
       {
         if(auto msg = context_.message_at(loglevel_t::info))
         {
-          *msg << "handling request on connection " <<
+          *msg << "handling request from connection " <<
             (*client)->nb_inbuf() <<
-            " using dispatcher thread " << thread.id();
+            " on dispatcher thread " << thread.id();
         }
         handle_request(thread, **client);
       }
