@@ -95,7 +95,7 @@ struct wakeup_flag_t
     if(old_counter == 1)
     {
       std::optional<int> read_result = pipe_reader_->read();
-      assert(read_result != std::nullopt);
+      assert(read_result.has_value());
       assert(*read_result == '*');
       static_cast<void>(read_result);
     }
@@ -337,11 +337,9 @@ struct core_dispatcher_t
   core_dispatcher_t(logging_context_t const& context,
                     dispatcher_config_t const& config)
   : context_(context)
-  , scheduler_(config.selector_factory_)
+  , config_(config)
+  , scheduler_(config_.selector_factory_)
   , wakeup_flag_()
-  , bufsize_(config.bufsize_)
-  , max_connections_(config.max_connections_)
-  , settings_(config.throughput_settings_)
   , listeners_()
   , monitored_clients_()
   , served_clients_()
@@ -354,7 +352,7 @@ struct core_dispatcher_t
     if(auto msg = context.message_at(loglevel_t::info))
     {
       *msg << "dispatcher created (selector: " <<
-        config.selector_factory_ << ')';
+        config_.selector_factory_ << ')';
     }
   }
 
@@ -380,34 +378,32 @@ struct core_dispatcher_t
 
   std::optional<std::list<client_t>::iterator> select_client()
   {
-    woken_up_ = false;
-    selected_client_.reset();
+    assert(!woken_up_);
+    assert(!selected_client_.has_value());
 
-    while(!woken_up_ && selected_client_ == std::nullopt)
+    do 
     {
       auto cb = scheduler_.wait();
       assert(cb != nullptr);
       cb();
-    }
+    } while(!woken_up_ && !selected_client_.has_value());
 
-    std::optional<std::list<client_t>::iterator> result = std::nullopt;
     if(woken_up_)
     {
-      assert(selected_client_ == std::nullopt);
+      assert(!selected_client_.has_value());
       woken_up_ = false;
+      return std::nullopt;
     }
-    else
-    {
-      result = selected_client_;
-      selected_client_.reset();
-    }
+
+    auto result = selected_client_;
+    selected_client_.reset();
     return result;
   }
     
   void resume_monitoring(std::list<client_t>::iterator client,
-                         bool interrupted)
+                         bool handling_interrupted)
   {
-    if(interrupted)
+    if(handling_interrupted)
     {
       if(auto msg = context_.message_at(loglevel_t::error))
       {
@@ -436,14 +432,15 @@ struct core_dispatcher_t
     }
     else
     {
-      if(max_connections_ != 0 &&
-         monitored_clients_.size() == max_connections_)
+      if(config_.max_connections_ != 0 &&
+         monitored_clients_.size() == config_.max_connections_)
       {
         auto oldest_client = monitored_clients_.end();
         --oldest_client;
         if(auto msg = context_.message_at(loglevel_t::error))
         {
-          *msg << "maximum number of connections (" << max_connections_ <<
+          *msg << "maximum number of connections (" <<
+            config_.max_connections_ <<
             ") exceeded; evicting least recently active connection " <<
             oldest_client->nb_inbuf();
         }
@@ -488,9 +485,11 @@ private :
     {
       auto new_client = served_clients_.emplace(served_clients_.begin(),
         context_, std::move(accepted),
-        bufsize_, settings_, listener->method_map());
-      bool interrupted = false;
-      this->resume_monitoring(new_client, interrupted);
+        config_.bufsize_, config_.throughput_settings_,
+        listener->method_map());
+
+      bool handling_interrupted = false;
+      this->resume_monitoring(new_client, handling_interrupted);
     }
 
     listener->call_when_ready(scheduler_,
@@ -525,11 +524,9 @@ private :
       
 private :
   logging_context_t const& context_;
+  dispatcher_config_t const& config_;
   default_scheduler_t scheduler_;
   wakeup_flag_t wakeup_flag_;
-  std::size_t const bufsize_;
-  std::size_t const max_connections_;
-  throughput_settings_t settings_;
 
   std::list<listener_t> listeners_;
 
@@ -599,12 +596,6 @@ struct core_mutex_t
     locked_ = true;
   }
 
-  bool has_waiting_threads() const
-  {
-    std::unique_lock<std::mutex> internal_lock(internal_mutex_);
-    return n_waiters_ != 0;
-  }
-    
   void unlock()
   {
     bool has_urgent_waiters;
@@ -857,9 +848,9 @@ private :
   std::list<pooled_thread_t> threads_;
 };
 
-void handle_request(pooled_thread_t& thread, client_t& client)
+void handle_request(pooled_thread_t& current_thread, client_t& client)
 {
-  default_scheduler_t& scheduler = thread.scheduler();
+  default_scheduler_t& scheduler = current_thread.scheduler();
 
   stack_marker_t base_marker;
 
@@ -874,14 +865,14 @@ void handle_request(pooled_thread_t& thread, client_t& client)
     client.context(), bound_inbuf, bound_outbuf, client.method_map());
   request_handler.start();
 
-  while(!thread.interrupted() && !result.available())
+  while(!current_thread.interrupted() && !result.available())
   {
     auto cb = scheduler.wait();
     assert(cb != nullptr);
     cb();
   }
 
-  if(!thread.interrupted())
+  if(!current_thread.interrupted())
   {
     result.value();
   }
@@ -897,7 +888,7 @@ struct dispatcher_t::impl_t
   , core_(context_, config_)
   , n_idle_threads_(0)
   , mutex_(core_)
-  , stopping_(false)
+  , dispatcher_stopping_(false)
   , signal_reader_()
   , signal_writer_()
   {
@@ -915,7 +906,7 @@ struct dispatcher_t::impl_t
   
   void run()
   {
-    thread_pool_t pool(context_, config_.max_thread_pool_size_);
+    thread_pool_t thread_pool(context_, config_.max_thread_pool_size_);
 
     if(auto msg = context_.message_at(loglevel_t::info))
     {
@@ -925,10 +916,10 @@ struct dispatcher_t::impl_t
     assert(n_idle_threads_ == 0);
     n_idle_threads_ = 1;
 
-    bool first_added = pool.add(
+    bool thread_started = thread_pool.add(
       [this](pooled_thread_t& added) { this->serve(added); });
-    assert(first_added);
-    static_cast<void>(first_added);
+    assert(thread_started);
+    static_cast<void>(thread_started);
 
     std::optional<int> sig = signal_reader_->read();
     assert(sig.has_value());
@@ -937,17 +928,17 @@ struct dispatcher_t::impl_t
       *msg << "caught signal " << *sig << ", stopping dispatcher";
     }
 
-    stopping_.store(true);
+    dispatcher_stopping_ = true;
     core_.raise_wakeup_flag();
 
-    pool.join();
+    thread_pool.join();
     assert(n_idle_threads_ == 0);
 
-    bool was_up = core_.lower_wakeup_flag();
-    assert(was_up);
-    static_cast<void>(was_up);
+    bool flag_was_up = core_.lower_wakeup_flag();
+    assert(flag_was_up);
+    static_cast<void>(flag_was_up);
 
-    stopping_.store(false);
+    dispatcher_stopping_ = false;
 
     if(auto msg = context_.message_at(loglevel_t::info))
     {
@@ -961,45 +952,46 @@ struct dispatcher_t::impl_t
   }
   
 private :
-  void serve(pooled_thread_t& thread)
+  void serve(pooled_thread_t& current_thread)
   {
     if(auto msg = context_.message_at(loglevel_t::info))
     {
-      *msg << "dispatcher thread " << thread.id() << " started";
+      *msg << "dispatcher thread " << current_thread.id() << " started";
     }
 
-    std::optional<std::list<client_t>::iterator> client{std::nullopt};
+    std::optional<std::list<client_t>::iterator> current_client{};
 
     for(;;)
     {
       {
-        bool urgent = client.has_value();
+        bool urgent = current_client.has_value();
         core_lock_t lock(mutex_, urgent);
 
-        if(client.has_value())
+        if(current_client.has_value())
         {
-          // Current thread done with handling previous request
-          core_.resume_monitoring(*client, thread.interrupted());
+          // current thread done with handling previous request
+          core_.resume_monitoring(
+            *current_client, current_thread.interrupted());
+          current_client.reset();
           ++n_idle_threads_;
         }
 
-        if(stopping_.load(std::memory_order_acquire))
+        if(dispatcher_stopping_)
         {
-          // Dispatcher is stopping
           --n_idle_threads_;
           break;
         }
 
-        // Wait for next request or pushed aside
-        client = core_.select_client();
+        // wait for next request or pushed aside
+        current_client = core_.select_client();
 
-        if(client.has_value())
+        if(current_client.has_value())
         {
-          // Current thread will handle next request from selected client
+          // current thread will handle next request from selected client
           if(--n_idle_threads_ == 0)
           {
-            // Try to add another thread to wait for further requests
-            if(thread.pool().add(
+            // try to start another thread to wait for further requests
+            if(current_thread.pool().add(
               [this](pooled_thread_t& added) { this->serve(added); }))
             {
               ++n_idle_threads_;
@@ -1008,21 +1000,21 @@ private :
         }
       }
         
-      if(client.has_value())
+      if(current_client.has_value())
       {
         if(auto msg = context_.message_at(loglevel_t::info))
         {
           *msg << "handling request from connection " <<
-            (*client)->nb_inbuf() <<
-            " on dispatcher thread " << thread.id();
+            (*current_client)->nb_inbuf() <<
+            " on dispatcher thread " << current_thread.id();
         }
-        handle_request(thread, **client);
+        handle_request(current_thread, **current_client);
       }
     }
       
     if(auto msg = context_.message_at(loglevel_t::info))
     {
-      *msg << "dispatcher thread " << thread.id() << " stopped";
+      *msg << "dispatcher thread " << current_thread.id() << " stopped";
     }
   }
 
@@ -1034,7 +1026,7 @@ private :
   core_mutex_t mutex_;
 
   static_assert(std::atomic<bool>::is_always_lock_free);
-  std::atomic<bool> stopping_;
+  std::atomic<bool> dispatcher_stopping_;
 
   std::unique_ptr<event_pipe_reader_t> signal_reader_;
   std::unique_ptr<event_pipe_writer_t> signal_writer_;
