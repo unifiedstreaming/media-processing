@@ -856,17 +856,26 @@ void handle_request(pooled_thread_t& current_thread, client_t& client)
     client.context(), bound_inbuf, bound_outbuf, client.method_map());
   request_handler.start();
 
-  while(!current_thread.interrupted() && !result.available())
+  while(!result.available())
   {
     auto cb = scheduler.wait();
     assert(cb != nullptr);
     cb();
+
+    if(current_thread.interrupted())
+    {
+      /*
+       * Abandoning the request.  This leaves the protocol in some
+       * intermediate state, so the caller must close the connection
+       * to force a client-side error.  The current pooled thread will
+       * stay in the interrupted state and cannot be used to handle
+       * further requests.
+       */
+      return;
+    }
   }
 
-  if(!current_thread.interrupted())
-  {
-    result.value();
-  }
+  result.value();
 }
 
 } // anonymous

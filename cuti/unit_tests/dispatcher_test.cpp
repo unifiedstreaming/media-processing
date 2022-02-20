@@ -595,6 +595,52 @@ void test_overloaded_interrupted_server(
   }
 }
 
+void test_restart(logging_context_t const& client_context,
+                  logging_context_t const& server_context,
+                  std::size_t bufsize)
+{
+  method_map_t map;
+  map.add_method_factory("echo", default_method_factory<echo_handler_t>());
+
+  dispatcher_config_t config;
+  config.bufsize_ = bufsize;
+
+  if(auto msg = client_context.message_at(loglevel_t::info))
+  {
+    *msg << __func__ << ": starting (bufsize: " << bufsize << ")";
+  }
+
+  {
+    dispatcher_t dispatcher(server_context, config);
+    endpoint_t server_address = dispatcher.add_listener(
+      local_interfaces(any_port).front(), map);
+
+    std::unique_ptr<nb_inbuf_t> client_in;
+    std::unique_ptr<nb_outbuf_t> client_out;
+    std::tie(client_in, client_out) = make_nb_tcp_buffers(
+      std::make_unique<tcp_connection_t>(server_address), bufsize, bufsize);
+
+    /*
+     * In theory, restarting a stopped dispatcher should be possible.
+     * However, the connections associated with any currently running
+     * requests will be lost.  Here, we do not have such connnections.
+     */
+    for(int i = 0; i != 2; ++i)
+    {
+      scoped_thread_t runner(
+        [&dispatcher] { dispatcher.run(); });
+      auto stop_guard = make_scoped_guard(
+        [&dispatcher] { dispatcher.stop(SIGINT); });
+      echo_nothing(*client_in, *client_out);
+    }
+  }
+    
+  if(auto msg = client_context.message_at(loglevel_t::info))
+  {
+    *msg << __func__ << ": done";
+  }
+}
+
 void do_run_tests(logging_context_t const& client_context,
                   logging_context_t const& server_context,
                   std::size_t bufsize)
@@ -606,6 +652,7 @@ void do_run_tests(logging_context_t const& client_context,
   test_full_thread_pool(client_context, server_context, bufsize);
   test_interrupted_server(client_context, server_context, bufsize);
   test_overloaded_interrupted_server(client_context, server_context, bufsize);
+  test_restart(client_context, server_context, bufsize);
 }
 
 struct options_t
