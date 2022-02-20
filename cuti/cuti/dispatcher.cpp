@@ -543,7 +543,6 @@ struct core_mutex_t
   explicit core_mutex_t(core_dispatcher_t& core)
   : core_(core)
   , internal_mutex_()
-  , n_waiters_(0)
   , n_urgent_waiters_(0)
   , locked_(false)
   , unlocked_with_urgent_waiters_()
@@ -557,11 +556,9 @@ struct core_mutex_t
   {
     std::unique_lock<std::mutex> internal_lock(internal_mutex_);
 
-    ++n_waiters_;
-    ++n_urgent_waiters_;
-
     if(locked_)
     {
+      ++n_urgent_waiters_;
       core_.raise_wakeup_flag();
 
       do
@@ -572,10 +569,9 @@ struct core_mutex_t
       bool was_up = core_.lower_wakeup_flag();
       assert(was_up);
       static_cast<void>(was_up);
-    }
 
-    --n_urgent_waiters_;
-    --n_waiters_;
+      --n_urgent_waiters_;
+    }
 
     locked_ = true;
   }
@@ -584,31 +580,27 @@ struct core_mutex_t
   {
     std::unique_lock<std::mutex> internal_lock(internal_mutex_);
 
-    ++n_waiters_;
-
     while(locked_ || n_urgent_waiters_ != 0)
     {
       unlocked_without_urgent_waiters_.wait(internal_lock);
     }
-
-    --n_waiters_;
 
     locked_ = true;
   }
 
   void unlock()
   {
-    bool has_urgent_waiters;
+    bool had_urgent_waiters;
     {
       std::unique_lock<std::mutex> internal_lock(internal_mutex_);
 
-      has_urgent_waiters = n_urgent_waiters_ != 0;
+      had_urgent_waiters = n_urgent_waiters_ != 0;
 
       assert(locked_);
       locked_ = false;
     }
 
-    if(has_urgent_waiters)
+    if(had_urgent_waiters)
     {
       unlocked_with_urgent_waiters_.notify_one();
     }
@@ -621,7 +613,6 @@ struct core_mutex_t
 private :
   core_dispatcher_t& core_;
   mutable std::mutex internal_mutex_;
-  unsigned int n_waiters_;
   unsigned int n_urgent_waiters_;
   bool locked_;
   std::condition_variable unlocked_with_urgent_waiters_;
