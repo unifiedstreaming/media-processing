@@ -841,6 +841,8 @@ private :
 
 void handle_request(pooled_thread_t& current_thread, client_t& client)
 {
+  assert(!current_thread.interrupted());
+
   default_scheduler_t& scheduler = current_thread.scheduler();
 
   stack_marker_t base_marker;
