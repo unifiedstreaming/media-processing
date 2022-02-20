@@ -335,16 +335,13 @@ private :
 struct core_dispatcher_t
 {
   core_dispatcher_t(logging_context_t const& context,
-                    selector_factory_t const& factory,
-                    std::size_t client_bufsize,
-                    std::size_t max_connections,
-                    throughput_settings_t settings)
+                    dispatcher_config_t const& config)
   : context_(context)
-  , scheduler_(factory)
+  , scheduler_(config.selector_factory_)
   , wakeup_flag_()
-  , bufsize_(client_bufsize)
-  , max_connections_(max_connections)
-  , settings_(std::move(settings))
+  , bufsize_(config.bufsize_)
+  , max_connections_(config.max_connections_)
+  , settings_(config.throughput_settings_)
   , listeners_()
   , monitored_clients_()
   , served_clients_()
@@ -356,7 +353,8 @@ struct core_dispatcher_t
 
     if(auto msg = context.message_at(loglevel_t::info))
     {
-      *msg << "core dispatcher created (selector: " << factory << ')';
+      *msg << "dispatcher created (selector: " <<
+        config.selector_factory_ << ')';
     }
   }
 
@@ -461,9 +459,13 @@ struct core_dispatcher_t
 
   ~core_dispatcher_t()
   {
+    served_clients_.clear();
+    monitored_clients_.clear();
+    listeners_.clear();
+
     if(auto msg = context_.message_at(loglevel_t::info))
     {
-      *msg << "destroying core dispatcher";
+      *msg << "dispatcher destroyed";
     }
   }
     
@@ -892,8 +894,7 @@ struct dispatcher_t::impl_t
   impl_t(logging_context_t const& context, dispatcher_config_t config)
   : context_(context)
   , config_(std::move(config))
-  , core_(context_, config_.selector_factory_, config_.bufsize_,
-          config_.max_connections_, config_.throughput_settings_)
+  , core_(context_, config_)
   , n_idle_threads_(0)
   , mutex_(core_)
   , stopping_(false)
@@ -916,6 +917,11 @@ struct dispatcher_t::impl_t
   {
     thread_pool_t pool(context_, config_.max_thread_pool_size_);
 
+    if(auto msg = context_.message_at(loglevel_t::info))
+    {
+      *msg << "dispatcher running";
+    }
+
     assert(n_idle_threads_ == 0);
     n_idle_threads_ = 1;
 
@@ -924,11 +930,6 @@ struct dispatcher_t::impl_t
     assert(first_added);
     static_cast<void>(first_added);
 
-    if(auto msg = context_.message_at(loglevel_t::info))
-    {
-      *msg << "dispatcher running";
-    }
-
     std::optional<int> sig = signal_reader_->read();
     assert(sig.has_value());
     if(auto msg = context_.message_at(loglevel_t::info))
@@ -936,7 +937,7 @@ struct dispatcher_t::impl_t
       *msg << "caught signal " << *sig << ", stopping dispatcher";
     }
 
-    stopping_.store(true, std::memory_order_release);
+    stopping_.store(true);
     core_.raise_wakeup_flag();
 
     pool.join();
@@ -946,6 +947,12 @@ struct dispatcher_t::impl_t
     assert(was_up);
     static_cast<void>(was_up);
 
+    stopping_.store(false);
+
+    if(auto msg = context_.message_at(loglevel_t::info))
+    {
+      *msg << "dispatcher stopped";
+    }
   }
   
   void stop(int sig)
@@ -958,7 +965,7 @@ private :
   {
     if(auto msg = context_.message_at(loglevel_t::info))
     {
-      *msg << "started dispatcher thread " << thread.id();
+      *msg << "dispatcher thread " << thread.id() << " started";
     }
 
     std::optional<std::list<client_t>::iterator> client{std::nullopt};
