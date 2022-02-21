@@ -401,9 +401,9 @@ struct core_dispatcher_t
   }
     
   void resume_monitoring(std::list<client_t>::iterator client,
-                         bool handling_interrupted)
+                         bool handler_completed)
   {
-    if(handling_interrupted)
+    if(!handler_completed)
     {
       if(auto msg = context_.message_at(loglevel_t::error))
       {
@@ -488,8 +488,8 @@ private :
         config_.bufsize_, config_.throughput_settings_,
         listener->method_map());
 
-      bool handling_interrupted = false;
-      this->resume_monitoring(new_client, handling_interrupted);
+      bool handler_completed = true;
+      this->resume_monitoring(new_client, handler_completed);
     }
 
     listener->call_when_ready(scheduler_,
@@ -839,10 +839,15 @@ private :
   std::list<pooled_thread_t> threads_;
 };
 
-void handle_request(pooled_thread_t& current_thread, client_t& client)
+/*
+ * Handle a request using current_thread's scheduler.  Returns true if
+ * the request handler completed, and false if the handler was
+ * interrupted.  An interrupted request leaves the client in some
+ * unspecified intermediate state; it is then up to the caller to
+ * force a remote protocol error by destroying the client.
+ */
+bool handle_request(pooled_thread_t& current_thread, client_t& client)
 {
-  assert(!current_thread.interrupted());
-
   default_scheduler_t& scheduler = current_thread.scheduler();
 
   stack_marker_t base_marker;
@@ -860,24 +865,18 @@ void handle_request(pooled_thread_t& current_thread, client_t& client)
 
   while(!result.available())
   {
+    if(current_thread.interrupted())
+    {
+      return false;
+    }
+
     auto cb = scheduler.wait();
     assert(cb != nullptr);
     cb();
-
-    if(current_thread.interrupted())
-    {
-      /*
-       * Abandoning the request.  This leaves the protocol in some
-       * intermediate state, so the caller must close the connection
-       * to force a client-side error.  The current pooled thread will
-       * stay in the interrupted state and cannot be used to handle
-       * further requests.
-       */
-      return;
-    }
   }
 
   result.value();
+  return true;
 }
 
 } // anonymous
@@ -962,6 +961,7 @@ private :
     }
 
     std::optional<std::list<client_t>::iterator> current_client{};
+    bool handler_completed = true;
 
     for(;;)
     {
@@ -972,8 +972,7 @@ private :
         if(current_client.has_value())
         {
           // current thread done with handling previous request
-          core_.resume_monitoring(
-            *current_client, current_thread.interrupted());
+          core_.resume_monitoring(*current_client, handler_completed);
           current_client.reset();
           ++n_idle_threads_;
         }
@@ -1010,7 +1009,7 @@ private :
             (*current_client)->nb_inbuf() <<
             " on dispatcher thread " << current_thread.id();
         }
-        handle_request(current_thread, **current_client);
+        handler_completed = handle_request(current_thread, **current_client);
       }
     }
       
