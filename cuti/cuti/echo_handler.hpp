@@ -62,7 +62,6 @@ private :
 
 private :
   result_t<void>& result_;
-  logging_context_t const& context_;
   std::optional<std::string> censored_;
 
   subroutine_t<echo_handler_t, begin_sequence_reader_t> begin_reader_;
