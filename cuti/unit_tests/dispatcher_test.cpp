@@ -503,51 +503,51 @@ void do_test_interrupted_server(logging_context_t const& client_context,
   config.bufsize_ = bufsize;
   config.max_thread_pool_size_ = max_thread_pool_size;
 
-  auto dispatcher = std::make_unique<dispatcher_t>(server_context, config);
-  endpoint_t server_address = dispatcher->add_listener(
-    local_interfaces(any_port).front(), map);
-
   {
-    scoped_thread_t dispatcher_runner([dispatcher = std::move(dispatcher)]
-    {
-      scoped_thread_t interrupter([&dispatcher]
-      {
-        std::this_thread::sleep_for(milliseconds_t(1000));
-        dispatcher->stop(SIGINT);
-      });
-      dispatcher->run();
-    });
+    std::optional<dispatcher_t> dispatcher;
+    dispatcher.emplace(server_context, config);
 
-    std::vector<
-      std::pair<std::unique_ptr<nb_inbuf_t>, std::unique_ptr<nb_outbuf_t>>
-    > clients;
-    while(clients.size() != n_clients)
-    {
-      clients.push_back(make_nb_tcp_buffers(
-        std::make_unique<tcp_connection_t>(server_address), bufsize, bufsize));
-    }
+    endpoint_t server_address = dispatcher->add_listener(
+      local_interfaces(any_port).front(), map);
 
-    std::list<scoped_thread_t> client_threads;
-    for(auto& client : clients)
+    std::list<scoped_thread_t> clients;
+    for(std::size_t i = 0; i != n_clients; ++i)
     {
-      client_threads.emplace_back([&]
+      clients.emplace_back([&]
       {
+        unsigned int n_calls = 0;
         try
         {
+          std::unique_ptr<nb_inbuf_t> inbuf;
+          std::unique_ptr<nb_outbuf_t> outbuf;
+          std::tie(inbuf, outbuf) = make_nb_tcp_buffers(
+            std::make_unique<tcp_connection_t>(server_address),
+            bufsize, bufsize);
+
           for(;;)
           {
-            echo_some_strings(*client.first, *client.second);
+            echo_some_strings(*inbuf, *outbuf);
+            ++n_calls;
           }
         }
         catch(std::exception const& ex)
         {
           if(auto msg = client_context.message_at(loglevel_t::info))
           {
-            *msg << __func__ << ": caught expected exception: " << ex.what();
+            *msg << __func__ << ": caught expected exception after " <<
+              n_calls << " calls: " << ex.what();
           }
         }
       });
-    }
+    }  
+
+    scoped_thread_t stopper([&dispatcher]
+    {
+      std::this_thread::sleep_for(milliseconds_t(1000));
+      dispatcher->stop(SIGINT);
+    });
+    dispatcher->run();
+    dispatcher.reset();
   }
   
   if(auto msg = client_context.message_at(loglevel_t::info))
