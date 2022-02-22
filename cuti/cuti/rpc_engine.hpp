@@ -54,10 +54,15 @@ struct rpc_engine_t<type_list_t<InputArgs...>,
                bound_inbuf_t& inbuf,
                bound_outbuf_t& outbuf)
   : result_(result)
-  , reply_reader_(*this, &rpc_engine_t::on_child_failure, inbuf)
-  , request_writer_(*this, &rpc_engine_t::on_child_failure, outbuf)
-  , pending_children_()
-  , ex_()
+  , inbuf_(inbuf)
+  , outbuf_(outbuf)
+  , reply_reader_(*this, &rpc_engine_t::on_reply_error, inbuf)
+  , message_drainer_(*this, result_, inbuf)
+  , input_state_(input_not_started)
+  , request_writer_(*this, &rpc_engine_t::on_request_error, outbuf)
+  , eom_writer_(*this, result_, outbuf)
+  , output_state_(output_not_started)
+  , ex_(nullptr)
   { }
 
   rpc_engine_t(rpc_engine_t const&) = delete;
@@ -67,54 +72,141 @@ struct rpc_engine_t<type_list_t<InputArgs...>,
              input_list_t<InputArgs...>& reply_args,
              output_list_t<OutputArgs...>& request_args)
   {
-    pending_children_ = 2;
+    input_state_ = input_not_started;
+    output_state_ = output_not_started;
     ex_ = nullptr;
 
-    reply_reader_.start(
-      &rpc_engine_t::on_child_done, reply_args);
-    request_writer_.start(
-      &rpc_engine_t::on_child_done, std::move(method), request_args);
+    // This is obviously true...
+    if(input_state_ == input_not_started)
+    {
+      input_state_ = reading_reply;
+      reply_reader_.start(
+        &rpc_engine_t::on_reply_read, reply_args);
+    }
+
+    // ...but be careful here: input engine may have changed output state
+    if(output_state_ == output_not_started)
+    {
+      output_state_ = writing_request;
+      request_writer_.start(
+        &rpc_engine_t::on_request_written, std::move(method), request_args);
+    }
   }
 
 private :
-  void on_child_failure(std::exception_ptr ex)
+  void on_reply_read()
+  {
+    assert(input_state_ == reading_reply);
+    input_state_ = draining_message;
+    message_drainer_.start(&rpc_engine_t::on_message_drained);
+  }
+
+  void on_reply_error(std::exception_ptr ex)
   {
     assert(ex != nullptr);
+    assert(input_state_ == reading_reply);
 
     if(ex_ == nullptr)
     {
       ex_ = std::move(ex);
     }
 
-    this->on_child_done();
+    if(output_state_ == output_not_started || output_state_ == writing_request)
+    {
+      // Skip or cancel request writing
+      outbuf_.cancel_when_writable();
+      output_state_ = writing_eom;
+      eom_writer_.start(&rpc_engine_t::on_eom_written);
+    }
+
+    assert(input_state_ == reading_reply);
+    input_state_ = draining_message;
+    message_drainer_.start(&rpc_engine_t::on_message_drained);
   }
-  
-  void on_child_done()
+
+  void on_message_drained()
   {
-    assert(pending_children_ != 0);
+    assert(input_state_ == draining_message);
+    input_state_ = input_done;
 
-    if(--pending_children_ != 0)
+    if(output_state_ == output_done)
     {
-      return;
+      if(ex_ != nullptr)
+      {
+        result_.fail(std::move(ex_));
+      }
+      else
+      {
+        result_.submit();
+      }
+    }
+  }
+
+  void on_request_written()
+  {
+    assert(output_state_ == writing_request);
+    output_state_ = writing_eom;
+    eom_writer_.start(&rpc_engine_t::on_eom_written);
+  }
+
+  void on_request_error(std::exception_ptr ex)
+  {
+    assert(ex != nullptr);
+    assert(output_state_ == writing_request);
+
+    if(ex_ == nullptr)
+    {
+      ex_ = std::move(ex);
     }
 
-    if(ex_ != nullptr)
+    if(input_state_ == input_not_started || input_state_ == reading_reply)
     {
-      result_.fail(std::move(ex_));
-      return;
+      // Skip or cancel reply reading
+      inbuf_.cancel_when_readable();
+      input_state_ = draining_message;
+      message_drainer_.start(&rpc_engine_t::on_message_drained);
     }
 
-    result_.submit();
+    assert(output_state_ == writing_request);
+    output_state_ = writing_eom;
+    eom_writer_.start(&rpc_engine_t::on_eom_written);
+  }
+
+  void on_eom_written()
+  {
+    assert(output_state_ == writing_eom);
+    output_state_ = output_done;
+
+    if(input_state_ == input_done)
+    {
+      if(ex_ != nullptr)
+      {
+        result_.fail(std::move(ex_));
+      }
+      else
+      {
+        result_.submit();
+      }
+    }
   }
 
 private :
   result_t<void>& result_;
+  bound_inbuf_t& inbuf_;
+  bound_outbuf_t& outbuf_;
+
   subroutine_t<rpc_engine_t, reply_reader_t<InputArgs...>,
     failure_mode_t::handle_in_parent> reply_reader_;
+  subroutine_t<rpc_engine_t, message_drainer_t> message_drainer_;
+  enum { input_not_started, reading_reply, draining_message, input_done }
+    input_state_;
+  
   subroutine_t<rpc_engine_t, request_writer_t<OutputArgs...>,
     failure_mode_t::handle_in_parent> request_writer_;
+  subroutine_t<rpc_engine_t, eom_writer_t> eom_writer_;
+  enum { output_not_started, writing_request, writing_eom, output_done }
+    output_state_;
 
-  unsigned int pending_children_;
   std::exception_ptr ex_;
 };
 

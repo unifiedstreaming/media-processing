@@ -41,10 +41,8 @@ struct reply_reader_t
 
   reply_reader_t(result_t<void>& result, bound_inbuf_t& buf)
   : result_(result)
-  , args_reader_(*this, &reply_reader_t::on_child_failure, buf)
-  , eom_checker_(*this, &reply_reader_t::on_child_failure, buf)
-  , message_drainer_(*this, result_, buf)
-  , ex_()
+  , args_reader_(*this, result_, buf)
+  , eom_checker_(*this, result_, buf)
   { }
 
   reply_reader_t(reply_reader_t const&) = delete;
@@ -52,8 +50,6 @@ struct reply_reader_t
 
   void start(input_list_t<Args...>& args)
   {
-    ex_ = nullptr;
-  
     args_reader_.start(&reply_reader_t::on_args_read, args);
   }
 
@@ -65,38 +61,13 @@ private :
 
   void on_eom_checked()
   {
-    message_drainer_.start(&reply_reader_t::on_message_drained);
-  }
-
-  void on_child_failure(std::exception_ptr ex)
-  {
-    assert(ex != nullptr);
-    assert(ex_ == nullptr);
-    ex_ = std::move(ex);
-
-    message_drainer_.start(&reply_reader_t::on_message_drained);
-  }
-
-  void on_message_drained()
-  {
-    if(ex_ != nullptr)
-    {
-      result_.fail(std::move(ex_));
-      return;
-    }
-
     result_.submit();
   }
 
 private :
   result_t<void>& result_;
-  subroutine_t<reply_reader_t, input_list_reader_t<Args...>,
-    failure_mode_t::handle_in_parent> args_reader_;
-  subroutine_t<reply_reader_t, eom_checker_t,
-    failure_mode_t::handle_in_parent> eom_checker_;
-  subroutine_t<reply_reader_t, message_drainer_t> message_drainer_;
-  
-  std::exception_ptr ex_;
+  subroutine_t<reply_reader_t, input_list_reader_t<Args...>> args_reader_;
+  subroutine_t<reply_reader_t, eom_checker_t> eom_checker_;
 };
 
 } // cuti
