@@ -515,14 +515,17 @@ auto censored_echo_method_factory(std::string censored)
     
 void run_logic_tests(logging_context_t const& client_context,
                      logging_context_t const& server_context,
+                     selector_factory_t factory,
                      std::size_t bufsize)
 {
   if(auto msg = client_context.message_at(loglevel_t::info))
   {
-    *msg << __func__ << ": starting; bufsize: " << bufsize;
+    *msg << __func__ << ": starting; selector: " << factory <<
+      " bufsize: " << bufsize;
   }
 
   dispatcher_config_t dispatcher_config;
+  dispatcher_config.selector_factory_ = std::move(factory);
   dispatcher_config.bufsize_ = bufsize;
 
   method_map_t map;
@@ -623,18 +626,21 @@ void test_throughput(logging_context_t const& client_context,
                      throughput_settings_t const& client_settings,
                      logging_context_t const& server_context,
                      throughput_settings_t const& server_settings,
+                     selector_factory_t factory,
                      std::size_t bufsize,
                      bool must_fail)
 {
   if(auto msg = client_context.message_at(loglevel_t::info))
   {
     *msg << __func__ << ": starting;" <<
+      " selector: " << factory <<
       " client low ticks limit: " << client_settings.low_ticks_limit_ <<
       " server low ticks limit: " << server_settings.low_ticks_limit_ <<
       " bufsize: " << bufsize;
   }
 
   dispatcher_config_t dispatcher_config;
+  dispatcher_config.selector_factory_ = std::move(factory);
   dispatcher_config.bufsize_ = bufsize;
   dispatcher_config.throughput_settings_ = server_settings;
   
@@ -662,11 +668,13 @@ void test_throughput(logging_context_t const& client_context,
   
 void test_impatient_client(logging_context_t const& client_context,
                            logging_context_t const& server_context,
+                           selector_factory_t factory,
                            std::size_t bufsize)
 {
   if(auto msg = client_context.message_at(loglevel_t::info))
   {
-    *msg << __func__ << ": starting; bufsize: " << bufsize;
+    *msg << __func__ << ": starting; selector: " << factory <<
+     " bufsize: " << bufsize;
   }
 
   throughput_settings_t client_settings;
@@ -678,7 +686,7 @@ void test_impatient_client(logging_context_t const& client_context,
   bool const must_fail = true;
   test_throughput(client_context, client_settings,
                   server_context, server_settings,
-                  bufsize, must_fail);
+                  std::move(factory), bufsize, must_fail);
 
   if(auto msg = client_context.message_at(loglevel_t::info))
   {
@@ -688,11 +696,13 @@ void test_impatient_client(logging_context_t const& client_context,
   
 void test_impatient_server(logging_context_t const& client_context,
                            logging_context_t const& server_context,
+                           selector_factory_t factory,
                            std::size_t bufsize)
 {
   if(auto msg = client_context.message_at(loglevel_t::info))
   {
-    *msg << __func__ << ": starting; bufsize: " << bufsize;
+    *msg << __func__ << ": starting; selector: " << factory <<
+     " bufsize: " << bufsize;
   }
 
   throughput_settings_t client_settings;
@@ -709,7 +719,7 @@ void test_impatient_server(logging_context_t const& client_context,
   bool const must_fail = false;
   test_throughput(client_context, client_settings,
                   server_context, server_settings,
-                  bufsize, must_fail);
+                  std::move(factory), bufsize, must_fail);
 
   if(auto msg = client_context.message_at(loglevel_t::info))
   {
@@ -719,11 +729,13 @@ void test_impatient_server(logging_context_t const& client_context,
   
 void test_impatient_client_and_server(logging_context_t const& client_context,
                                       logging_context_t const& server_context,
+                                      selector_factory_t factory,
                                       std::size_t bufsize)
 {
   if(auto msg = client_context.message_at(loglevel_t::info))
   {
-    *msg << __func__ << ": starting; bufsize: " << bufsize;
+    *msg << __func__ << ": starting; selector: " << factory <<
+     " bufsize: " << bufsize;
   }
 
   throughput_settings_t client_settings;
@@ -737,7 +749,7 @@ void test_impatient_client_and_server(logging_context_t const& client_context,
   bool const must_fail = true;
   test_throughput(client_context, client_settings,
                   server_context, server_settings,
-                  bufsize, must_fail);
+                  std::move(factory), bufsize, must_fail);
 
   if(auto msg = client_context.message_at(loglevel_t::info))
   {
@@ -747,6 +759,7 @@ void test_impatient_client_and_server(logging_context_t const& client_context,
   
 void run_throughput_tests(logging_context_t const& client_context,
                           logging_context_t const& server_context,
+                          selector_factory_t const& factory,
                           std::size_t bufsize)
 {
   if(auto msg = client_context.message_at(loglevel_t::info))
@@ -754,9 +767,10 @@ void run_throughput_tests(logging_context_t const& client_context,
     *msg << __func__ << ": starting; bufsize: " << bufsize;
   }
 
-  test_impatient_client(client_context, server_context, bufsize);
-  test_impatient_server(client_context, server_context, bufsize);
-  test_impatient_client_and_server(client_context, server_context, bufsize);
+  test_impatient_client(client_context, server_context, factory, bufsize);
+  test_impatient_server(client_context, server_context, factory, bufsize);
+  test_impatient_client_and_server(client_context, server_context,
+    factory, bufsize);
 
   if(auto msg = client_context.message_at(loglevel_t::info))
   {
@@ -821,17 +835,21 @@ int run_tests(int argc, char const* const* argv)
     options.enable_server_logging_ ? cerr_logger : null_logger,
     options.loglevel_);
 
-  std::size_t constexpr bufsizes[] =
-    { 1, 1024, nb_inbuf_t::default_bufsize };
+  auto factories = available_selector_factories();
+  for(auto const& factory : factories)
+  {
+    std::size_t constexpr bufsizes[] =
+      { 1, 1024, nb_inbuf_t::default_bufsize };
 
-  for(auto bufsize : bufsizes)
-  {
-    run_logic_tests(client_context, server_context, bufsize);
-  }
+    for(auto bufsize : bufsizes)
+    {
+      run_logic_tests(client_context, server_context, factory, bufsize);
+    }
   
-  for(auto bufsize : bufsizes)
-  {
-    run_throughput_tests(client_context, server_context, bufsize);
+    for(auto bufsize : bufsizes)
+    {
+      run_throughput_tests(client_context, server_context, factory, bufsize);
+    }
   }
   
   return 0;
