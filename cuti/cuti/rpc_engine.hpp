@@ -50,17 +50,19 @@ template<typename... InputArgs, typename... OutputArgs>
 struct rpc_engine_t<type_list_t<InputArgs...>,
                     type_list_t<OutputArgs...>>
 {
+  using result_value_t = void;
+
   rpc_engine_t(result_t<void>& result,
                bound_inbuf_t& inbuf,
                bound_outbuf_t& outbuf)
   : result_(result)
   , inbuf_(inbuf)
   , outbuf_(outbuf)
-  , reply_reader_(*this, &rpc_engine_t::on_reply_error, inbuf)
-  , message_drainer_(*this, result_, inbuf)
+  , reply_reader_(*this, &rpc_engine_t::on_reply_error, inbuf_)
+  , message_drainer_(*this, result_, inbuf_)
   , input_state_(input_not_started)
-  , request_writer_(*this, &rpc_engine_t::on_request_error, outbuf)
-  , eom_writer_(*this, result_, outbuf)
+  , request_writer_(*this, &rpc_engine_t::on_request_error, outbuf_)
+  , eom_writer_(*this, result_, outbuf_)
   , output_state_(output_not_started)
   , ex_(nullptr)
   { }
