@@ -163,7 +163,7 @@ std::string some_echo_request()
     request += str;
     request += "\" ";
   }
-  request += "]\n";
+  request += "] \n";
 
   return request;
 }

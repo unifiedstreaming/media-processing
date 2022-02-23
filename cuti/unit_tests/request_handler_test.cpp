@@ -181,34 +181,42 @@ void do_run_tests(logging_context_t const& client_context,
     "sub", default_method_factory<subtract_handler_t>());
 
   assert(run_int_request(client_context, server_context, bufsize, map,
-    "add 42 4711\n") == 4753);
+    "add 42 4711 \n") == 4753);
   assert(run_int_request(client_context, server_context, bufsize, map,
-    "sub 4753 42\n") == 4711);
+    "sub 4753 42 \n") == 4711);
 
   // no method
   fail_int_request(client_context, server_context, bufsize, map,
-    "42 4711\n");
+    "42 4711 \n");
+
+  // possibly truncated method
+  fail_int_request(client_context, server_context, bufsize, map,
+    "add");
+  fail_int_request(client_context, server_context, bufsize, map,
+    "add\n");
 
   // unknown method
   fail_int_request(client_context, server_context, bufsize, map,
-    "mul 42 4711\n");
+    "mul 42 4711 \n");
 
   // bad argument type
   fail_int_request(client_context, server_context, bufsize, map,
-    "add \"hello\" 4711\n");
+    "add \"hello\" 4711 \n");
 
   // missing second argument
   fail_int_request(client_context, server_context, bufsize, map,
-    "add 42\n");
+    "add 42 \n");
 
   // int overflow (method failure)
   static auto constexpr max = std::numeric_limits<int>::max(); 
   fail_int_request(client_context, server_context, bufsize, map,
-    "add 1 " + std::to_string(max) + "\n");
+    "add 1 " + std::to_string(max) + " \n");
 
-  // hangup (eof) parsing second argument
+  // possibly truncated second argument
   fail_int_request(client_context, server_context, bufsize, map,
     "add 42 4711");
+  fail_int_request(client_context, server_context, bufsize, map,
+    "add 42 4711\n");
 
   // missing end-of-message
   fail_int_request(client_context, server_context, bufsize, map,

@@ -138,11 +138,12 @@ void digits_reader_t<T>::read_digits()
     return;
   }
 
-  if(c == eof)
+  if(c == eof || c == '\n')
   {
-    // avoid submitting a half-baked value on remote hangup
+    // avoid submitting a half-baked value
     exception_builder_t<parse_error_t> builder;
-    builder << buf_ << ": unexpected eof in integral value";
+    builder << buf_ << ": unexpected " << quoted_char(c) <<
+      " in integral value; message truncated?";
     result_.fail(builder.exception_object());
     return;
   }
@@ -541,11 +542,12 @@ void identifier_reader_t::read_followers()
     return;
   }
 
-  if(c == eof)
+  if(c == eof || c == '\n')
   {
-    // avoid submitting a half-baked value on remote hangup
+    // avoid submitting a half-baked value
     exception_builder_t<parse_error_t> builder;
-    builder << buf_ << ": unexpected eof in identifier value";
+    builder << buf_ << ": unexpected " << quoted_char(c) <<
+      " in identifier value; message truncated?";
     result_.fail(builder.exception_object());
     return;
   }

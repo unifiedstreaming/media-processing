@@ -162,23 +162,25 @@ void test_overflow(logging_context_t const& context, std::size_t bufsize)
 }
 
 template<typename T>
-std::vector<std::string> unexpected_eof_inputs()
+std::vector<std::string> truncated_inputs()
 {
   std::vector<std::string> result;
 
   auto values = testing_values<T>();
   for(auto value : values)
   {
-    result.push_back(std::to_string(value));
+    std::string s = std::to_string(value);
+    result.push_back(s);
+    result.push_back(s + '\n');
   }
 
   return result;
 }  
 
 template<typename T>
-void test_unexpected_eof(logging_context_t const& context, std::size_t bufsize)
+void test_truncated(logging_context_t const& context, std::size_t bufsize)
 {
-  auto inputs = unexpected_eof_inputs<T>();
+  auto inputs = truncated_inputs<T>();
   for(auto prefix : prefixes)
   {
     for(auto const& suffix : inputs)
@@ -205,7 +207,7 @@ void run_tests_for(logging_context_t const& context, std::size_t bufsize)
 {
   test_digit_expected<T>(context, bufsize);
   test_overflow<T>(context, bufsize);
-  test_unexpected_eof<T>(context, bufsize);
+  test_truncated<T>(context, bufsize);
   test_roundtrips<T>(context, bufsize);
 }
 

@@ -49,6 +49,10 @@ void test_failing_reads(logging_context_t const& context, std::size_t bufsize)
     // unexpected eof
     test_failing_read<identifier_t>(context, bufsize,
       std::string(prefix) + "_3foo_3BAR");
+
+    // unexpected newline
+    test_failing_read<identifier_t>(context, bufsize,
+      std::string(prefix) + "_3foo_3BAR\n");
   }
 }
 
