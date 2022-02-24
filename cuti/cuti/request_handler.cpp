@@ -40,29 +40,37 @@ request_handler_t::request_handler_t(
 , exception_writer_(*this, result_, outbuf)
 , eom_writer_(*this, result_, outbuf)
 , request_drainer_(*this, result_, inbuf_)
+, method_name_()
 { }
 
 void request_handler_t::start()
 {
+  method_name_.reset();
   method_reader_.start(&request_handler_t::start_method);
 }
 
 void request_handler_t::start_method(identifier_t name)
 {
+  assert(name.is_valid());
+  method_name_.emplace(std::move(name));
+
   if(auto msg = context_.message_at(loglevel_t::info))
   {
     *msg << "request_handler " << inbuf_ << ": starting method \'" <<
-      name << "\'";
+      *method_name_ << "\'";
   }
 
-  method_runner_.start(&request_handler_t::on_method_succeeded, name);
+  method_runner_.start(&request_handler_t::on_method_succeeded, *method_name_);
 }
   
 void request_handler_t::on_method_succeeded()
 {
+  assert(method_name_.has_value());
+
   if(auto msg = context_.message_at(loglevel_t::info))
   {
-    *msg << "request_handler " << inbuf_ << ": method succeeded";
+    *msg << "request_handler " << inbuf_ << ": method " <<
+      *method_name_ << " succeeded";
   }
 
   eom_checker_.start(&request_handler_t::write_eom);
@@ -92,7 +100,12 @@ void request_handler_t::report_failure(std::string type, std::exception_ptr ex)
   }
   catch(std::exception const& stdex)
   {
-    description = stdex.what();
+    if(method_name_.has_value())
+    {
+      description += method_name_->as_string();
+      description += ": ";
+    }
+    description += stdex.what();
   }
 
   remote_error_t error(type, description);

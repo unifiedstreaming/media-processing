@@ -218,8 +218,7 @@ private :
     if(c != C)
     {
       exception_builder_t<parse_error_t> builder;
-      builder << buf_ << ": " <<
-        quoted_char(C) << " expected, but got " << quoted_char(c);
+      builder << quoted_char(C) << " expected, but got " << quoted_char(c);
       result_.fail(builder.exception_object());
       return;
     }
@@ -759,7 +758,7 @@ private :
     if(c != '\n')
     {
       exception_builder_t<parse_error_t> builder;
-      builder << buf_ << ": end of message (" << quoted_char('\n') <<
+      builder << "end of message (" << quoted_char('\n') <<
         ") expected, but got " << quoted_char(c);
       result_.fail(builder.exception_object());
       return;

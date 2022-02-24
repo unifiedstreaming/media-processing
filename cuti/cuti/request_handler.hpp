@@ -34,6 +34,7 @@
 #include "subroutine.hpp"
 
 #include <exception>
+#include <optional>
 #include <string>
 
 namespace cuti
@@ -82,6 +83,8 @@ private :
   subroutine_t<request_handler_t, exception_writer_t> exception_writer_;
   subroutine_t<request_handler_t, eom_writer_t> eom_writer_;
   subroutine_t<request_handler_t, message_drainer_t> request_drainer_;
+
+  std::optional<identifier_t> method_name_;
 };
 
 } // cuti

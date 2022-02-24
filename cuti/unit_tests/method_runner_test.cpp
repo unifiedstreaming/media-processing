@@ -27,7 +27,6 @@
 #include <cuti/nb_string_inbuf.hpp>
 #include <cuti/nb_string_outbuf.hpp>
 
-#include <algorithm>
 #include <cstring>
 #include <stdexcept>
 
@@ -133,7 +132,7 @@ auto configurable_method_factory(bool fail)
 void test_method(
   method_map_t const& method_map,
   std::string const& method_name,
-  std::string const& expected_trailer = "")
+  std::string const& expected_what = "")
 {
   /*
    * Set up required logging context, bound_inbuf, bound_outbuf (not used)
@@ -163,9 +162,7 @@ void test_method(
   runner.start(method_name);
   assert(final_result.available());
 
-  auto begin_trailer = expected_trailer.begin();
-  auto end_trailer = expected_trailer.end();
-  if(begin_trailer == end_trailer)
+  if(expected_what.empty())
   {
     final_result.value();
   }
@@ -178,11 +175,7 @@ void test_method(
     }
     catch(std::exception const& ex)
     {
-      char const* begin_what = ex.what();
-      char const* end_what = begin_what + std::strlen(begin_what);
-      assert(end_what - begin_what >= end_trailer - begin_trailer);
-      assert(std::equal(end_what - (end_trailer - begin_trailer), end_what,
-                        begin_trailer, end_trailer));
+      assert(ex.what() == expected_what);
       caught = true;
     }
     assert(caught);
@@ -204,7 +197,7 @@ void test_methods()
     configurable_method_factory(true));
     
   test_method(map, "succeed");
-  test_method(map, "unknown", "method \'unknown\' not found");
+  test_method(map, "unknown", "method not found");
   test_method(map, "fail", "method failed");
   test_method(map, "configured_to_succeed");
   test_method(map, "configured_to_fail", "configured to fail");

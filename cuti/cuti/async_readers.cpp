@@ -112,9 +112,7 @@ void digits_reader_t<T>::read_digits()
     T udval = static_cast<T>(dval);
     if(value_ > max_ / 10 || udval > max_ - 10 * value_)
     {
-      exception_builder_t<parse_error_t> builder;
-      builder << buf_ << ": integral type overflow";
-      result_.fail(builder.exception_object());
+      result_.fail(parse_error_t("integral type overflow"));
       return;
     }
 
@@ -133,7 +131,7 @@ void digits_reader_t<T>::read_digits()
   if(!digit_seen_)
   {
     exception_builder_t<parse_error_t> builder;
-    builder << buf_ << ": digit expected, but got " << quoted_char(c);
+    builder << "digit expected, but got " << quoted_char(c);
     result_.fail(builder.exception_object());
     return;
   }
@@ -142,8 +140,7 @@ void digits_reader_t<T>::read_digits()
   {
     // avoid submitting a half-baked value
     exception_builder_t<parse_error_t> builder;
-    builder << buf_ << ": unexpected " << quoted_char(c) <<
-      " in integral value; message truncated?";
+    builder << "unexpected " << quoted_char(c) << " in integral value";
     result_.fail(builder.exception_object());
     return;
   }
@@ -183,7 +180,7 @@ void hex_digits_reader_t::read_digits()
     if(dval < 0)
     {
       exception_builder_t<parse_error_t> builder;
-      builder << buf_ << ": hex digit expected, but got " << quoted_char(c);
+      builder << "hex digit expected, but got " << quoted_char(c);
       result_.fail(builder.exception_object());
       return;
     }
@@ -234,7 +231,7 @@ void boolean_reader_t<T>::on_whitespace_skipped(int c)
   default :
     {
       exception_builder_t<parse_error_t> builder;
-      builder << buf_ << ": boolean value (" << 
+      builder << "boolean value (" << 
         quoted_char('&') << " or " << quoted_char('|') <<
         ") expected, but got " << quoted_char(c);
       result_.fail(builder.exception_object());
@@ -364,7 +361,7 @@ void blob_reader_t<T>::read_leading_dq(int c)
   if(c != '\"')
   {
     exception_builder_t<parse_error_t> builder;
-    builder << buf_ << ": opening double quote (" << quoted_char('\"') <<
+    builder << "opening double quote (" << quoted_char('\"') <<
       ") expected, but got " << quoted_char(c);
     result_.fail(builder.exception_object());
     return;
@@ -384,16 +381,12 @@ void blob_reader_t<T>::read_contents()
     {
     case eof :
       {
-        exception_builder_t<parse_error_t> builder;
-        builder << buf_ << ": unexpected eof in string value";
-        result_.fail(builder.exception_object());
+        result_.fail(parse_error_t("unexpected eof in string value"));
         return;
       }
     case '\n' :
       {
-        exception_builder_t<parse_error_t> builder;
-        builder << buf_ << ": non-escaped newline in string value";
-        result_.fail(builder.exception_object());
+        result_.fail(parse_error_t("non-escaped newline in string value"));
         return;
       }
     case '\\' :
@@ -454,7 +447,7 @@ void blob_reader_t<T>::read_escaped()
   default :
     {
       exception_builder_t<parse_error_t> builder;
-      builder << buf_ << ": unknown escape sequence: " << quoted_char(c) <<
+      builder << "unknown escape sequence: " << quoted_char(c) <<
         " after backslash in string value";
       result_.fail(builder.exception_object());
       return;
@@ -516,7 +509,7 @@ void identifier_reader_t::read_leader(int c)
   if(!identifier_t::is_leader(c))
   {
     exception_builder_t<parse_error_t> builder;
-    builder << buf_ << ": identifier expected, but got " << quoted_char(c);
+    builder << "identifier expected, but got " << quoted_char(c);
     result_.fail(builder.exception_object());
     return;
   }
@@ -546,8 +539,7 @@ void identifier_reader_t::read_followers()
   {
     // avoid submitting a half-baked value
     exception_builder_t<parse_error_t> builder;
-    builder << buf_ << ": unexpected " << quoted_char(c) <<
-      " in identifier value; message truncated?";
+    builder << "unexpected " << quoted_char(c) << " in identifier value";
     result_.fail(builder.exception_object());
     return;
   }
