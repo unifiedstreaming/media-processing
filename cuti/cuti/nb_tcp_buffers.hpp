@@ -27,6 +27,7 @@
 
 #include <cstddef>
 #include <memory>
+#include <utility>
 
 namespace cuti
 {
@@ -38,8 +39,17 @@ namespace cuti
 CUTI_ABI
 std::pair<std::unique_ptr<nb_inbuf_t>, std::unique_ptr<nb_outbuf_t>>
 make_nb_tcp_buffers(std::unique_ptr<tcp_connection_t> conn,
-                    std::size_t inbufsize = nb_inbuf_t::default_bufsize,
-                    std::size_t outbufsize = nb_outbuf_t::default_bufsize);
+                    std::size_t inbufsize,
+                    std::size_t outbufsize);
+
+CUTI_ABI inline
+std::pair<std::unique_ptr<nb_inbuf_t>, std::unique_ptr<nb_outbuf_t>>
+make_nb_tcp_buffers(std::unique_ptr<tcp_connection_t> conn)
+{
+  return make_nb_tcp_buffers(std::move(conn),
+                             nb_inbuf_t::default_bufsize,
+                             nb_outbuf_t::default_bufsize);
+}
 
 } // cuti
 

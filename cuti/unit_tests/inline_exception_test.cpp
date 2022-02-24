@@ -246,12 +246,12 @@ void test_bad_method(logging_context_t const& context, std::size_t bufsize)
   std::unique_ptr<nb_inbuf_t> server_in;
   std::unique_ptr<nb_outbuf_t> server_out;
   std::tie(server_in, server_out) =
-    make_nb_tcp_buffers(std::move(server_side), bufsize);
+    make_nb_tcp_buffers(std::move(server_side), bufsize, bufsize);
 
   std::unique_ptr<nb_inbuf_t> client_in;
   std::unique_ptr<nb_outbuf_t> client_out;
   std::tie(client_in, client_out) =
-    make_nb_tcp_buffers(std::move(client_side), bufsize);
+    make_nb_tcp_buffers(std::move(client_side), bufsize, bufsize);
   
   default_scheduler_t scheduler;
   stack_marker_t stack_marker;
