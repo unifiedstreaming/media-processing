@@ -69,8 +69,8 @@ void request_handler_t::on_method_succeeded()
 
   if(auto msg = context_.message_at(loglevel_t::info))
   {
-    *msg << "request_handler " << inbuf_ << ": method " <<
-      *method_name_ << " succeeded";
+    *msg << "request_handler " << inbuf_ << ": method \'" <<
+      *method_name_ << "\' succeeded";
   }
 
   eom_checker_.start(&request_handler_t::write_eom);
