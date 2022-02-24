@@ -132,6 +132,7 @@ lib cuti
   request_writer.cpp
   resolver.cpp
   result.cpp
+  rpc_client.cpp
   rpc_engine.cpp
   scheduler.cpp
   scoped_guard.cpp

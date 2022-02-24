@@ -20,20 +20,17 @@
 #ifndef CUTI_RPC_ENGINE_HPP_
 #define CUTI_RPC_ENGINE_HPP_
 
+#include "async_readers.hpp"
+#include "async_writers.hpp"
 #include "bound_inbuf.hpp"
 #include "bound_outbuf.hpp"
-#include "default_scheduler.hpp"
-#include "final_result.hpp"
 #include "identifier.hpp"
-#include "nb_inbuf.hpp"
-#include "nb_outbuf.hpp"
+#include "input_list.hpp"
+#include "output_list.hpp"
 #include "reply_reader.hpp"
 #include "request_writer.hpp"
 #include "result.hpp"
-#include "stack_marker.hpp"
 #include "subroutine.hpp"
-#include "system_error.hpp"
-#include "throughput_checker.hpp"
 #include "type_list.hpp"
 
 #include <cassert>
@@ -74,6 +71,8 @@ struct rpc_engine_t<type_list_t<InputArgs...>,
              input_list_t<InputArgs...>& reply_args,
              output_list_t<OutputArgs...>& request_args)
   {
+    assert(method.is_valid());
+
     input_state_ = input_not_started;
     output_state_ = output_not_started;
     ex_ = nullptr;
@@ -211,69 +210,6 @@ private :
 
   std::exception_ptr ex_;
 };
-
-template<typename... InputArgs, typename... OutputArgs>
-void perform_rpc(identifier_t method,
-                 nb_inbuf_t& inbuf,
-                 input_list_t<InputArgs...>& input_args,
-                 nb_outbuf_t& outbuf,
-                 output_list_t<OutputArgs...>& output_args,
-                 throughput_settings_t settings)
-{
-  final_result_t<void> result;
-
-  default_scheduler_t scheduler;
-  stack_marker_t base_marker;
-
-  bound_inbuf_t bound_inbuf(base_marker, inbuf, scheduler);
-  bound_inbuf.enable_throughput_checking(settings);
-  
-  bound_outbuf_t bound_outbuf(base_marker, outbuf, scheduler);
-  bound_outbuf.enable_throughput_checking(settings);
-  
-  rpc_engine_t<type_list_t<InputArgs...>, type_list_t<OutputArgs...>>
-  rpc_engine(result, bound_inbuf, bound_outbuf);
-
-  rpc_engine.start(std::move(method), input_args, output_args);
-
-  while(!result.available())
-  {
-    auto callback = scheduler.wait();
-    assert(callback != nullptr);
-    callback();
-  }
-  assert(scheduler.wait() == nullptr);
-
-  if(int status = bound_outbuf.error_status())
-  {
-    // Failed to write full request
-    system_exception_builder_t builder;
-    builder << bound_outbuf << ": output error";
-    builder.explode(status);
-  }
-
-  if(int status = bound_inbuf.error_status())
-  {
-    // Failed to read full reply
-    system_exception_builder_t builder;
-    builder << bound_inbuf << ": input error";
-    builder.explode(status);
-  }
-
-  // Throws on protocol (and remotely generated) errors
-  result.value();
-}
-    
-template<typename... InputArgs, typename... OutputArgs>
-void perform_rpc(identifier_t method,
-                 nb_inbuf_t& inbuf,
-                 input_list_t<InputArgs...>& input_args,
-                 nb_outbuf_t& outbuf,
-                 output_list_t<OutputArgs...>& output_args)
-{
-  perform_rpc(std::move(method), inbuf, input_args, outbuf, output_args,
-    throughput_settings_t());
-}
 
 } // cuti
 

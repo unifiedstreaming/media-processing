@@ -25,10 +25,9 @@
 #include <cuti/echo_handler.hpp>
 #include <cuti/logging_context.hpp>
 #include <cuti/method_map.hpp>
-#include <cuti/nb_tcp_buffers.hpp>
 #include <cuti/option_walker.hpp>
 #include <cuti/resolver.hpp>
-#include <cuti/rpc_engine.hpp>
+#include <cuti/rpc_client.hpp>
 #include <cuti/scoped_guard.hpp>
 #include <cuti/scoped_thread.hpp>
 #include <cuti/streambuf_backend.hpp>
@@ -183,38 +182,37 @@ std::vector<std::string> some_strings()
   return result;
 }
 
-void echo_strings(nb_inbuf_t& inbuf,
+void echo_strings(rpc_client_t& client,
                   std::vector<std::string>& inputs,
-                  nb_outbuf_t& outbuf,
                   std::vector<std::string> const& outputs)
 {
   auto input_list = make_input_list<std::vector<std::string>>(inputs);
   auto output_list = make_output_list<std::vector<std::string>>(outputs);
 
-  perform_rpc("echo", inbuf, input_list, outbuf, output_list);
+  client("echo", input_list, output_list);
 }
 
-void echo_nothing(nb_inbuf_t& inbuf, nb_outbuf_t& outbuf)
+void echo_nothing(rpc_client_t& client)
 {
   std::vector<std::string> inputs;
-  echo_strings(inbuf, inputs, outbuf, {});
+  echo_strings(client, inputs, {});
   assert(inputs.empty());
 }
 
-void echo_some_strings(nb_inbuf_t& inbuf, nb_outbuf_t& outbuf)
+void echo_some_strings(rpc_client_t& client)
 {
   std::vector<std::string> inputs;
   std::vector<std::string> const outputs = some_strings();
-  echo_strings(inbuf, inputs, outbuf, outputs);
+  echo_strings(client, inputs, outputs);
   assert(inputs == outputs);
 }
   
-void remote_sleep(nb_inbuf_t& inbuf, nb_outbuf_t& outbuf, unsigned int msecs)
+void remote_sleep(rpc_client_t& client, unsigned int msecs)
 {
   auto input_args = make_input_list<>();
   auto output_args = make_output_list<unsigned int>(msecs);
 
-  perform_rpc("sleep", inbuf, input_args, outbuf, output_args);
+  client("sleep", input_args, output_args);
 }
 
 void test_deaf_client(logging_context_t const& client_context,
@@ -341,36 +339,28 @@ void test_eviction(logging_context_t const& client_context,
         "): trying two clients (bufsize: " << bufsize << ")...";
     }
 
-    std::unique_ptr<nb_inbuf_t> inbuf1;
-    std::unique_ptr<nb_outbuf_t> outbuf1;
-    std::tie(inbuf1, outbuf1) = make_nb_tcp_buffers(
-      std::make_unique<tcp_connection_t>(server_address), bufsize, bufsize);
-
+    rpc_client_t client1(server_address, bufsize, bufsize);
     if(auto msg = client_context.message_at(loglevel_t::info))
     {
-      *msg << __func__ << ": using connection " << *inbuf1;
+      *msg << __func__ << ": using connection " << client1;
     }
-    echo_nothing(*inbuf1, *outbuf1);
+    echo_nothing(client1);
 
-    std::unique_ptr<nb_inbuf_t> inbuf2;
-    std::unique_ptr<nb_outbuf_t> outbuf2;
-    std::tie(inbuf2, outbuf2) = make_nb_tcp_buffers(
-      std::make_unique<tcp_connection_t>(server_address), bufsize, bufsize);
-
+    rpc_client_t client2(server_address, bufsize, bufsize);
     if(auto msg = client_context.message_at(loglevel_t::info))
     {
-      *msg << __func__ << ": using connection " << *inbuf2;
+      *msg << __func__ << ": using connection " << client2;
     }
-    echo_nothing(*inbuf2, *outbuf2);
+    echo_nothing(client2);
 
     bool caught = false;
     try
     {
       if(auto msg = client_context.message_at(loglevel_t::info))
       {
-        *msg << __func__ << ": re-using connection " << *inbuf1;
+        *msg << __func__ << ": re-using connection " << client1;
       }
-      echo_nothing(*inbuf1, *outbuf1);
+      echo_nothing(client1);
     }
     catch(const std::exception& ex)
     {
@@ -417,13 +407,10 @@ void test_remote_sleeps(logging_context_t const& client_context,
     scoped_thread_t server_thread([&] { dispatcher.run(); });
     auto stop_guard = make_scoped_guard([&] { dispatcher.stop(SIGINT); });
 
-    std::vector<
-      std::pair<std::unique_ptr<nb_inbuf_t>, std::unique_ptr<nb_outbuf_t>>
-    > clients;
+    std::list<rpc_client_t> clients;
     while(clients.size() != n_clients)
     {
-      clients.push_back(make_nb_tcp_buffers(
-        std::make_unique<tcp_connection_t>(server_address), bufsize, bufsize));
+      clients.emplace_back(server_address, bufsize, bufsize);
     }
 
     std::list<scoped_thread_t> client_threads;
@@ -433,7 +420,7 @@ void test_remote_sleeps(logging_context_t const& client_context,
       {
         for(int i = 0; i != 4; ++i)
         {
-          remote_sleep(*client.first, *client.second, 25);
+          remote_sleep(client, 25);
         }
       });
     }
@@ -510,23 +497,18 @@ void do_test_interrupted_server(logging_context_t const& client_context,
     endpoint_t server_address = dispatcher->add_listener(
       local_interfaces(any_port).front(), map);
 
-    std::list<scoped_thread_t> clients;
+    std::list<scoped_thread_t> client_threads;
     for(std::size_t i = 0; i != n_clients; ++i)
     {
-      clients.emplace_back([&]
+      client_threads.emplace_back([&]
       {
         unsigned int n_calls = 0;
         try
         {
-          std::unique_ptr<nb_inbuf_t> inbuf;
-          std::unique_ptr<nb_outbuf_t> outbuf;
-          std::tie(inbuf, outbuf) = make_nb_tcp_buffers(
-            std::make_unique<tcp_connection_t>(server_address),
-            bufsize, bufsize);
-
+          rpc_client_t client(server_address, bufsize, bufsize);
           for(;;)
           {
-            echo_some_strings(*inbuf, *outbuf);
+            echo_some_strings(client);
             ++n_calls;
           }
         }
@@ -614,11 +596,7 @@ void test_restart(logging_context_t const& client_context,
     dispatcher_t dispatcher(server_context, config);
     endpoint_t server_address = dispatcher.add_listener(
       local_interfaces(any_port).front(), map);
-
-    std::unique_ptr<nb_inbuf_t> client_in;
-    std::unique_ptr<nb_outbuf_t> client_out;
-    std::tie(client_in, client_out) = make_nb_tcp_buffers(
-      std::make_unique<tcp_connection_t>(server_address), bufsize, bufsize);
+    rpc_client_t client(server_address, bufsize, bufsize);
 
     /*
      * In theory, restarting a stopped dispatcher should be possible.
@@ -631,7 +609,7 @@ void test_restart(logging_context_t const& client_context,
         [&dispatcher] { dispatcher.run(); });
       auto stop_guard = make_scoped_guard(
         [&dispatcher] { dispatcher.stop(SIGINT); });
-      echo_nothing(*client_in, *client_out);
+      echo_nothing(client);
     }
   }
     
