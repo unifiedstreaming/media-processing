@@ -219,6 +219,11 @@ void test_deaf_client(logging_context_t const& client_context,
                       logging_context_t const& server_context,
                       std::size_t bufsize)
 {
+  if(auto msg = client_context.message_at(loglevel_t::info))
+  {
+    *msg << __func__ << ": starting (bufsize: " << bufsize << ")";
+  }
+
   method_map_t map;
   map.add_method_factory("echo", default_method_factory<echo_handler_t>());
 
@@ -228,39 +233,42 @@ void test_deaf_client(logging_context_t const& client_context,
   config.throughput_settings_.low_ticks_limit_ = 10;
   config.throughput_settings_.tick_length_ = milliseconds_t(100);
 
-  dispatcher_t dispatcher(server_context, config);
-
-  endpoint_t server_address = dispatcher.add_listener(
-    local_interfaces(any_port).front(), map);
-
-  tcp_connection_t client_side(server_address);
-  client_side.set_blocking();
-  
-  std::string const request = some_echo_request();
-
-  if(auto msg = client_context.message_at(loglevel_t::info))
   {
-    *msg << __func__ << '(' << client_side <<
-      "): flooding server (bufsize: " << bufsize << ")...";
-  }
+    dispatcher_t dispatcher(server_context, config);
+    endpoint_t server_address = dispatcher.add_listener(
+      local_interfaces(any_port).front(), map);
 
-  unsigned int n_requests = 0;
-  int error = 0;
-  {
     scoped_thread_t server_thread([&] { dispatcher.run(); });
     auto stop_guard = make_scoped_guard([&] { dispatcher.stop(SIGINT); });
   
+    tcp_connection_t client_side(server_address);
+    client_side.set_blocking();
+  
+    std::string const request = some_echo_request();
+
+    if(auto msg = client_context.message_at(loglevel_t::info))
+    {
+      *msg << __func__ << '(' << client_side << "): flooding server...";
+    }
+
+    unsigned int n_requests = 0;
+    int error = 0;
     while((error = send_request(client_side, request)) == 0)
     {
       ++n_requests;
+    }
+
+    if(auto msg = client_context.message_at(loglevel_t::info))
+    {
+      *msg << __func__ << '(' << client_side <<
+        "): got expected error after sending " << n_requests <<
+        " requests: " << system_error_string(error);
     }
   }
 
   if(auto msg = client_context.message_at(loglevel_t::info))
   {
-    *msg << __func__ << '(' << client_side <<
-      "): got expected error after sending " << n_requests <<
-      " requests: " << system_error_string(error);
+    *msg << __func__ << ": done";
   }
 }
 
@@ -268,6 +276,11 @@ void test_slow_client(logging_context_t const& client_context,
                       logging_context_t const& server_context,
                       std::size_t bufsize)
 {
+  if(auto msg = client_context.message_at(loglevel_t::info))
+  {
+    *msg << __func__ << ": starting (bufsize: " << bufsize << ")";
+  }
+
   method_map_t map;
   map.add_method_factory("echo", default_method_factory<echo_handler_t>());
 
@@ -277,38 +290,39 @@ void test_slow_client(logging_context_t const& client_context,
   config.throughput_settings_.low_ticks_limit_ = 10;
   config.throughput_settings_.tick_length_ = milliseconds_t(10);
 
-  dispatcher_t dispatcher(server_context, config);
-
-  endpoint_t server_address = dispatcher.add_listener(
-    local_interfaces(any_port).front(), map);
-
-  tcp_connection_t client_side(server_address);
-  client_side.set_blocking();
-  
-  std::string const incomplete_request = "echo [ \"hello";
-
-  if(auto msg = client_context.message_at(loglevel_t::info))
   {
-    *msg << __func__ << '(' << client_side <<
-      "): testing incomplete request (bufsize: " << bufsize << ")...";
-  }
+    dispatcher_t dispatcher(server_context, config);
+    endpoint_t server_address = dispatcher.add_listener(
+      local_interfaces(any_port).front(), map);
 
-  std::size_t bytes_received = 0;
-  {
     scoped_thread_t server_thread([&] { dispatcher.run(); });
     auto stop_guard = make_scoped_guard([&] { dispatcher.stop(SIGINT); });
   
+    tcp_connection_t client_side(server_address);
+    client_side.set_blocking();
+  
+    std::string const incomplete_request = "echo [ \"hello";
+
+    if(auto msg = client_context.message_at(loglevel_t::info))
+    {
+      *msg << __func__ << '(' << client_side <<
+        "): sending incomplete request...";
+    }
     assert(send_request(client_side, incomplete_request) == 0);
 
     // wait for eof caused by server-side request reading timeout
-    bytes_received = drain_connection(client_side);
+    auto bytes_received = drain_connection(client_side);
+    if(auto msg = client_context.message_at(loglevel_t::info))
+    {
+      *msg << __func__ << '(' << client_side <<
+      "): got expected eof after receiving " << bytes_received <<
+      " bytes";
+    }
   }
 
   if(auto msg = client_context.message_at(loglevel_t::info))
   {
-    *msg << __func__ << '(' << client_side <<
-      "): got expected eof after receiving " << bytes_received <<
-      " bytes";
+    *msg << __func__ << ": done";
   }
 }
 
@@ -316,6 +330,11 @@ void test_eviction(logging_context_t const& client_context,
                    logging_context_t const& server_context,
                    std::size_t bufsize)
 {
+  if(auto msg = client_context.message_at(loglevel_t::info))
+  {
+    *msg << __func__ << ": starting (bufsize: " << bufsize << ")";
+  }
+
   method_map_t map;
   map.add_method_factory("echo", default_method_factory<echo_handler_t>());
 
@@ -324,20 +343,13 @@ void test_eviction(logging_context_t const& client_context,
   config.max_thread_pool_size_ = 1;
   config.max_connections_ = 1;
 
-  dispatcher_t dispatcher(server_context, config);
-
-  endpoint_t server_address = dispatcher.add_listener(
-    local_interfaces(any_port).front(), map);
-
   {
+    dispatcher_t dispatcher(server_context, config);
+    endpoint_t server_address = dispatcher.add_listener(
+      local_interfaces(any_port).front(), map);
+
     scoped_thread_t server_thread([&] { dispatcher.run(); });
     auto stop_guard = make_scoped_guard([&] { dispatcher.stop(SIGINT); });
-
-    if(auto msg = client_context.message_at(loglevel_t::info))
-    {
-      *msg << __func__ << '(' << server_address <<
-        "): trying two clients (bufsize: " << bufsize << ")...";
-    }
 
     rpc_client_t client1(server_address, bufsize, bufsize);
     if(auto msg = client_context.message_at(loglevel_t::info))
@@ -399,11 +411,11 @@ void test_remote_sleeps(logging_context_t const& client_context,
   config.bufsize_ = bufsize;
   config.max_thread_pool_size_ = max_thread_pool_size;
 
-  dispatcher_t dispatcher(server_context, config);
-  endpoint_t server_address = dispatcher.add_listener(
-    local_interfaces(any_port).front(), map);
-
   {
+    dispatcher_t dispatcher(server_context, config);
+    endpoint_t server_address = dispatcher.add_listener(
+      local_interfaces(any_port).front(), map);
+
     scoped_thread_t server_thread([&] { dispatcher.run(); });
     auto stop_guard = make_scoped_guard([&] { dispatcher.stop(SIGINT); });
 
@@ -493,7 +505,6 @@ void do_test_interrupted_server(logging_context_t const& client_context,
   {
     std::optional<dispatcher_t> dispatcher;
     dispatcher.emplace(server_context, config);
-
     endpoint_t server_address = dispatcher->add_listener(
       local_interfaces(any_port).front(), map);
 
@@ -528,6 +539,7 @@ void do_test_interrupted_server(logging_context_t const& client_context,
       std::this_thread::sleep_for(milliseconds_t(1000));
       dispatcher->stop(SIGINT);
     });
+
     dispatcher->run();
     dispatcher.reset();
   }
