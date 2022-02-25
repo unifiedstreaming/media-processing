@@ -66,8 +66,15 @@ struct CUTI_ABI error_status_t : relational_ops_t<error_status_t>
   
   constexpr bool equal_to(error_status_t const& rhs) const
   {
-    return system_error_code_ == rhs.system_error_code_ &&
-           cuti_error_code_ == rhs.cuti_error_code_;
+    return this->system_error_code_ == rhs.system_error_code_ &&
+      this->cuti_error_code_ == rhs.cuti_error_code_;
+  }
+
+  constexpr bool less_than(error_status_t const& rhs) const
+  {
+    return this->system_error_code_ < rhs.system_error_code_ ||
+      (this->system_error_code_ == rhs.system_error_code_ &&
+       this->cuti_error_code_ < rhs.cuti_error_code_);
   }
 
 private :
