@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2021-2022 CodeShop B.V.
+ * Copyright (C) 2022 CodeShop B.V.
  *
  * This file is part of the cuti library.
  *
@@ -17,34 +17,29 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#ifndef CUTI_SYSTEM_ERROR_HPP_
-#define CUTI_SYSTEM_ERROR_HPP_
-
-#include <ostream>
-#include <stdexcept>
-#include <string>
-
 #include "error_status.hpp"
-#include "exception_builder.hpp"
-#include "linkage.h"
+#include "system_error.hpp"
 
 namespace cuti
 {
 
-CUTI_ABI int last_system_error();
-CUTI_ABI int timeout_system_error();
-CUTI_ABI std::string system_error_string(int error);
-
-struct CUTI_ABI system_exception_t : std::runtime_error
+std::string error_status_t::to_string() const
 {
-  explicit system_exception_t(std::string complaint);
-  system_exception_t(std::string complaint, error_status_t cause);
+  if(system_error_code_ != 0)
+  {
+    return system_error_string(system_error_code_);
+  }
 
-  ~system_exception_t() override;
-};
+  switch(cuti_error_code_)
+  {
+  case error_code_t::no_error :
+    return "no error";
+  case error_code_t::insufficient_throughput :
+    return "insufficent throughput";
+  default :
+    return "unknown cuti error code " +
+      std::to_string(static_cast<int>(cuti_error_code_));
+  }
+}
 
-using system_exception_builder_t = exception_builder_t<system_exception_t>;
-
-} // namespace cuti
-
-#endif
+} // cuti

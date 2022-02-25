@@ -126,8 +126,9 @@ system_exception_t::system_exception_t(std::string complaint)
 : std::runtime_error(std::move(complaint))
 { }
 
-system_exception_t::system_exception_t(std::string complaint, int cause)
-: std::runtime_error(std::move(complaint) + ": " + system_error_string(cause))
+system_exception_t::system_exception_t(std::string complaint,
+                                       error_status_t cause)
+: std::runtime_error(std::move(complaint) + ": " + cause.to_string())
 { }
 
 system_exception_t::~system_exception_t()
