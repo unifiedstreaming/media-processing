@@ -35,7 +35,7 @@ std::string error_status_t::to_string() const
   case error_code_t::no_error :
     return "no error";
   case error_code_t::insufficient_throughput :
-    return "insufficent throughput";
+    return "insufficient throughput";
   default :
     return "unknown cuti error code " +
       std::to_string(static_cast<int>(cuti_error_code_));
