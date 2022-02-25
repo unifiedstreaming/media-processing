@@ -42,7 +42,7 @@ nb_outbuf_t::nb_outbuf_t(std::unique_ptr<nb_sink_t> sink,
 , wp_(buf_)
 , limit_(buf_ + bufsize)
 , ebuf_(buf_ + bufsize)
-, error_status_(0)
+, error_status_()
 { }
 
 char const* nb_outbuf_t::write(char const* first, char const* last)
@@ -50,7 +50,7 @@ char const* nb_outbuf_t::write(char const* first, char const* last)
   assert(this->writable());
 
   std::size_t count = last - first;
-  if(error_status_ == 0)
+  if(error_status_.ok())
   {
     std::size_t available = limit_ - wp_;
     if(count > available)
@@ -173,13 +173,13 @@ void nb_outbuf_t::on_sink_writable()
   assert(!writable_ticket_.empty());
   assert(scheduler_ != nullptr);
   assert(callback_ != nullptr);
-  assert(error_status_ == 0);
+  assert(error_status_.ok());
 
   writable_ticket_.clear();
 
   char const* next;
   error_status_ = sink_->write(rp_, wp_, next);
-  if(error_status_ == 0 && checker_ != std::nullopt)
+  if(error_status_.ok() && checker_ != std::nullopt)
   {
     if(next != nullptr)
     {
@@ -191,7 +191,7 @@ void nb_outbuf_t::on_sink_writable()
     }
   }
 
-  if(error_status_ != 0)
+  if(!error_status_.ok())
   {
     rp_ = wp_;
   }
@@ -238,12 +238,12 @@ void nb_outbuf_t::on_next_tick()
   assert(!alarm_ticket_.empty());
   assert(scheduler_ != nullptr);
   assert(callback_ != nullptr);
-  assert(error_status_ == 0);
+  assert(error_status_.ok());
 
   alarm_ticket_.clear();
 
   error_status_ = checker_->record_transfer(0);
-  if(error_status_ == 0)
+  if(error_status_.ok())
   {
     // schedule next tick
     auto guard = make_scoped_guard(

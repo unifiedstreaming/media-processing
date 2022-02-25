@@ -412,21 +412,21 @@ struct core_dispatcher_t
       }
       served_clients_.erase(client);
     }
-    else if(int status = client->nb_inbuf().error_status())
+    else if(auto status = client->nb_inbuf().error_status())
     {
       if(auto msg = context_.message_at(loglevel_t::error))
       {
         *msg << "input error on connection " << client->nb_inbuf() <<
-          ": " << system_error_string(status);
+          ": " << status.to_string();
       }
       served_clients_.erase(client);
     }
-    else if(int status = client->nb_outbuf().error_status())
+    else if(auto status = client->nb_outbuf().error_status())
     {
       if(auto msg = context_.message_at(loglevel_t::error))
       {
         *msg << "output error on connection " << client->nb_outbuf() <<
-          ": " << system_error_string(status);
+          ": " << status.to_string();
       }
       served_clients_.erase(client);
     }

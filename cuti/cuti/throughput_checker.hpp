@@ -22,6 +22,7 @@
 
 #include "chrono_types.hpp"
 #include "clock_object.hpp"
+#include "error_status.hpp"
 #include "linkage.h"
 #include "system_error.hpp"
 
@@ -78,14 +79,14 @@ struct throughput_checker_t
   }
 
   /*
-   * Records a data transfer, returning 0 on success, or a system
-   * error code if the throughput is determined to be too low.
+   * Records a data transfer, returning a non-ok error status
+   * if the throughput is determined to be too low.
    * To check for low throughput without recording any data transfer,
    * specify n_bytes as 0.
    * If the next tick is less than or equal to the clock's current
    * time, it is advanced to somewhere in the future.
    */
-  int record_transfer(std::size_t n_bytes)
+  error_status_t record_transfer(std::size_t n_bytes)
   {
     time_point_t now = clock_.now();
     while(next_tick_ <= now)
@@ -116,7 +117,8 @@ struct throughput_checker_t
     }
 
     return n_low_ticks_ < settings_.low_ticks_limit_ ?
-      0 : timeout_system_error();
+      error_status_t() :
+      error_status_t(error_code_t::insufficient_throughput);
   }
 
 private :

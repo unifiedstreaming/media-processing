@@ -55,7 +55,7 @@ struct CUTI_ABI bound_outbuf_t
     return base_marker_;
   }
   
-  int error_status() const noexcept
+  error_status_t error_status() const noexcept
   {
     return outbuf_.error_status();
   }

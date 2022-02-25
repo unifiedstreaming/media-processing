@@ -423,7 +423,7 @@ void drain_n(scheduler_t& scheduler, nb_inbuf_t& inbuf, std::size_t n)
 
 void flood(scheduler_t& scheduler, nb_outbuf_t& outbuf)
 {
-  while(outbuf.writable() && outbuf.error_status() == 0) 
+  while(outbuf.writable() && outbuf.error_status().ok()) 
   {
     outbuf.put('*');
   }
@@ -436,7 +436,7 @@ void flood(scheduler_t& scheduler, nb_outbuf_t& outbuf)
 
 void flood_n(scheduler_t& scheduler, nb_outbuf_t& outbuf, std::size_t n)
 {
-  while(n != 0 && outbuf.writable() && outbuf.error_status() == 0) 
+  while(n != 0 && outbuf.writable() && outbuf.error_status().ok()) 
   {
     outbuf.put('*');
     if(--n == 0)
@@ -505,7 +505,7 @@ void test_inbuf_throughput_checking(logging_context_t const& context,
       [&] { drain(scheduler, *server_in); });
   }
 
-  while(server_in->error_status() == 0)
+  while(server_in->error_status().ok())
   {
     auto cb = scheduler.wait();
     assert(cb != nullptr);
@@ -514,12 +514,12 @@ void test_inbuf_throughput_checking(logging_context_t const& context,
 
   assert(server_in->readable());
   assert(server_in->peek() == eof);
-  assert(server_in->error_status() == timeout_system_error());
+  assert(server_in->error_status() == error_code_t::insufficient_throughput);
 
   if(auto msg = context.message_at(loglevel_t::info))
   {
     *msg << __func__ << ": got expected server error: " <<
-      system_error_string(server_in->error_status());
+      server_in->error_status().to_string();
   }
 }
 
@@ -584,12 +584,12 @@ void test_outbuf_throughput_checking(logging_context_t const& context,
   }
 
   assert(client_out->writable());
-  assert(client_out->error_status() == timeout_system_error());
+  assert(client_out->error_status() == error_code_t::insufficient_throughput);
 
   if(auto msg = context.message_at(loglevel_t::info))
   {
     *msg << __func__ << ": got expected client error: " <<
-      system_error_string(client_out->error_status());
+      client_out->error_status().to_string();
   }
 }
 

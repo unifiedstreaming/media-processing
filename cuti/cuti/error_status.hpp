@@ -21,6 +21,7 @@
 #define CUTI_ERROR_STATUS_HPP_
 
 #include "linkage.h"
+#include "relational_ops.hpp"
 
 #include <string>
 
@@ -33,36 +34,42 @@ enum class error_code_t
   insufficient_throughput
 };
 
-struct CUTI_ABI error_status_t
+struct CUTI_ABI error_status_t : relational_ops_t<error_status_t>
 {
-  constexpr error_status_t()
+  constexpr error_status_t() noexcept
   : system_error_code_(0)
   , cuti_error_code_(error_code_t::no_error)
   { }
 
-  constexpr error_status_t(int system_error_code)
+  constexpr error_status_t(int system_error_code) noexcept
   : system_error_code_(system_error_code)
   , cuti_error_code_(error_code_t::no_error)
   { }
 
-  constexpr error_status_t(error_code_t cuti_error_code)
+  constexpr error_status_t(error_code_t cuti_error_code) noexcept
   : system_error_code_(0)
   , cuti_error_code_(cuti_error_code)
   { }
 
-  constexpr bool ok() const
+  constexpr bool ok() const noexcept
   {
-    return system_error_code_ != 0 ||
-           cuti_error_code_ != error_code_t::no_error;
+    return system_error_code_ == 0 &&
+           cuti_error_code_ == error_code_t::no_error;
   }
 
-  constexpr explicit operator bool() const
+  constexpr explicit operator bool() const noexcept
   {
     return !this->ok();
   }
 
   std::string to_string() const;
   
+  constexpr bool equal_to(error_status_t const& rhs) const
+  {
+    return system_error_code_ == rhs.system_error_code_ &&
+           cuti_error_code_ == rhs.cuti_error_code_;
+  }
+
 private :
   int system_error_code_;
   error_code_t cuti_error_code_;

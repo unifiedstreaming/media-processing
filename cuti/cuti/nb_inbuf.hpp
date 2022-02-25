@@ -23,6 +23,7 @@
 #include "callback.hpp"
 #include "cancellation_ticket.hpp"
 #include "charclass.hpp"
+#include "error_status.hpp"
 #include "linkage.h"
 #include "nb_source.hpp"
 #include "throughput_checker.hpp"
@@ -61,11 +62,10 @@ struct CUTI_ABI nb_inbuf_t
   void disable_throughput_checking() noexcept;
 
   /*
-   * Returns the buffer's error status, which is either 0 for no error
-   * or a system error code.  The buffer's error status is sticky;
-   * once in error, the buffer will consistently report EOF.
+   * Returns the buffer's error status.  The buffer's error status is
+   * sticky; once in error, the buffer will consistently report EOF.
    */
-  int error_status() const noexcept
+  error_status_t error_status() const noexcept
   {
     return error_status_;
   }
@@ -152,7 +152,7 @@ private :
   char const* const ebuf_;
 
   bool at_eof_;
-  int error_status_;
+  error_status_t error_status_;
 };
 
 } // cuti

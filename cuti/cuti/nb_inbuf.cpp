@@ -42,7 +42,7 @@ nb_inbuf_t::nb_inbuf_t(std::unique_ptr<nb_source_t> source,
 , ep_(buf_)
 , ebuf_(buf_ + bufsize)
 , at_eof_(false)
-, error_status_(0)
+, error_status_()
 { }
 
 void nb_inbuf_t::enable_throughput_checking(throughput_settings_t settings)
@@ -167,13 +167,13 @@ void nb_inbuf_t::on_source_readable()
   assert(!readable_ticket_.empty());
   assert(scheduler_ != nullptr);
   assert(callback_ != nullptr);
-  assert(error_status_ == 0);
+  assert(error_status_.ok());
 
   readable_ticket_.clear();
 
   char* next;
   error_status_ = source_->read(buf_, ebuf_, next);
-  if(error_status_ == 0 && checker_ != std::nullopt)
+  if(error_status_.ok() && checker_ != std::nullopt)
   {
     if(next != nullptr)
     {
@@ -185,7 +185,7 @@ void nb_inbuf_t::on_source_readable()
     }
   }
 
-  if(error_status_ != 0)
+  if(!error_status_.ok())
   {
     next = buf_;
   }
@@ -227,12 +227,12 @@ void nb_inbuf_t::on_next_tick()
   assert(!alarm_ticket_.empty());
   assert(scheduler_ != nullptr);
   assert(callback_ != nullptr);
-  assert(error_status_ == 0);
+  assert(error_status_.ok());
 
   alarm_ticket_.clear();
 
   error_status_ = checker_->record_transfer(0);
-  if(error_status_ == 0)
+  if(error_status_.ok())
   {
     // schedule next tick
     auto guard = make_scoped_guard(

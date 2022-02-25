@@ -119,7 +119,7 @@ struct CUTI_ABI rpc_client_t
     }
     assert(scheduler_.wait() == nullptr);
 
-    if(int status = bound_outbuf.error_status())
+    if(auto status = bound_outbuf.error_status())
     {
       // Failed to write full request
       system_exception_builder_t builder;
@@ -127,7 +127,7 @@ struct CUTI_ABI rpc_client_t
       builder.explode(status);
     }
 
-    if(int status = bound_inbuf.error_status())
+    if(auto status = bound_inbuf.error_status())
     {
       // Failed to read full reply
       system_exception_builder_t builder;
