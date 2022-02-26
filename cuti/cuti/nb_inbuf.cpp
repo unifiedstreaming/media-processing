@@ -167,13 +167,13 @@ void nb_inbuf_t::on_source_readable()
   assert(!readable_ticket_.empty());
   assert(scheduler_ != nullptr);
   assert(callback_ != nullptr);
-  assert(error_status_.ok());
+  assert(error_status_ == 0);
 
   readable_ticket_.clear();
 
   char* next;
   error_status_ = source_->read(buf_, ebuf_, next);
-  if(error_status_.ok() && checker_ != std::nullopt)
+  if(error_status_ == 0 && checker_ != std::nullopt)
   {
     if(next != nullptr)
     {
@@ -185,7 +185,7 @@ void nb_inbuf_t::on_source_readable()
     }
   }
 
-  if(!error_status_.ok())
+  if(error_status_ != 0)
   {
     next = buf_;
   }
@@ -227,12 +227,12 @@ void nb_inbuf_t::on_next_tick()
   assert(!alarm_ticket_.empty());
   assert(scheduler_ != nullptr);
   assert(callback_ != nullptr);
-  assert(error_status_.ok());
+  assert(error_status_ == 0);
 
   alarm_ticket_.clear();
 
   error_status_ = checker_->record_transfer(0);
-  if(error_status_.ok())
+  if(error_status_ == 0)
   {
     // schedule next tick
     auto guard = make_scoped_guard(

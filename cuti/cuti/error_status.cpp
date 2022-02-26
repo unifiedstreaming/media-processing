@@ -20,25 +20,24 @@
 #include "error_status.hpp"
 #include "system_error.hpp"
 
+#include <ostream>
+
 namespace cuti
 {
 
-std::string error_status_t::to_string() const
+void error_status_t::print(std::ostream& os) const
 {
-  if(system_error_code_ != 0)
-  {
-    return system_error_string(system_error_code_);
-  }
-
   switch(cuti_error_code_)
   {
   case error_code_t::no_error :
-    return "no error";
+    os << system_error_string(system_error_code_);
+    break;
   case error_code_t::insufficient_throughput :
-    return "insufficient throughput";
+    os << "insufficient throughput";
+    break;
   default :
-    return "unknown cuti error code " +
-      std::to_string(static_cast<int>(cuti_error_code_));
+    os << "unknown cuti error code " << static_cast<int>(cuti_error_code_);
+    break;
   }
 }
 

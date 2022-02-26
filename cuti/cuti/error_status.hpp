@@ -23,6 +23,7 @@
 #include "linkage.h"
 #include "relational_ops.hpp"
 
+#include <iosfwd>
 #include <string>
 
 namespace cuti
@@ -37,49 +38,60 @@ enum class error_code_t
 struct CUTI_ABI error_status_t : relational_ops_t<error_status_t>
 {
   constexpr error_status_t() noexcept
-  : system_error_code_(0)
-  , cuti_error_code_(error_code_t::no_error)
+  : cuti_error_code_(error_code_t::no_error)
+  , system_error_code_(0)
   { }
 
   constexpr error_status_t(int system_error_code) noexcept
-  : system_error_code_(system_error_code)
-  , cuti_error_code_(error_code_t::no_error)
+  : cuti_error_code_(error_code_t::no_error)
+  , system_error_code_(system_error_code)
   { }
 
   constexpr error_status_t(error_code_t cuti_error_code) noexcept
-  : system_error_code_(0)
-  , cuti_error_code_(cuti_error_code)
+  : cuti_error_code_(cuti_error_code)
+  , system_error_code_(0)
   { }
-
-  constexpr bool ok() const noexcept
-  {
-    return system_error_code_ == 0 &&
-           cuti_error_code_ == error_code_t::no_error;
-  }
 
   constexpr explicit operator bool() const noexcept
   {
-    return !this->ok();
+    return cuti_error_code_ != error_code_t::no_error ||
+      system_error_code_ != 0;
   }
 
-  std::string to_string() const;
-  
-  constexpr bool equal_to(error_status_t const& rhs) const noexcept
+  constexpr bool equal_to(error_status_t const& other) const noexcept
   {
-    return this->system_error_code_ == rhs.system_error_code_ &&
-      this->cuti_error_code_ == rhs.cuti_error_code_;
+    return this->cuti_error_code_ == other.cuti_error_code_ &&
+      this->system_error_code_ == other.system_error_code_;
   }
 
-  constexpr bool less_than(error_status_t const& rhs) const noexcept
+  constexpr bool less_than(error_status_t const& other) const noexcept
   {
-    return this->system_error_code_ < rhs.system_error_code_ ||
-      (this->system_error_code_ == rhs.system_error_code_ &&
-       this->cuti_error_code_ < rhs.cuti_error_code_);
+    if(this->cuti_error_code_ < other.cuti_error_code_)
+    {
+      return true;
+    }
+    else if(other.cuti_error_code_ < this->cuti_error_code_)
+    {
+      return false;
+    }
+    else
+    {
+      return this->system_error_code_ < other.system_error_code_;
+    }
+  }
+
+  void print(std::ostream& os) const;
+
+  friend std::ostream& operator<<(
+    std::ostream& os, error_status_t const& status)
+  {
+    status.print(os);
+    return os;
   }
 
 private :
-  int system_error_code_;
   error_code_t cuti_error_code_;
+  int system_error_code_;
 };
 
 } // cuti

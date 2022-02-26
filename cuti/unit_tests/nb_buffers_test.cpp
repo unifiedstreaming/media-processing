@@ -423,7 +423,7 @@ void drain_n(scheduler_t& scheduler, nb_inbuf_t& inbuf, std::size_t n)
 
 void flood(scheduler_t& scheduler, nb_outbuf_t& outbuf)
 {
-  while(outbuf.writable() && outbuf.error_status().ok()) 
+  while(outbuf.writable() && outbuf.error_status() == 0) 
   {
     outbuf.put('*');
   }
@@ -436,7 +436,7 @@ void flood(scheduler_t& scheduler, nb_outbuf_t& outbuf)
 
 void flood_n(scheduler_t& scheduler, nb_outbuf_t& outbuf, std::size_t n)
 {
-  while(n != 0 && outbuf.writable() && outbuf.error_status().ok()) 
+  while(n != 0 && outbuf.writable() && outbuf.error_status() == 0) 
   {
     outbuf.put('*');
     if(--n == 0)
@@ -505,7 +505,7 @@ void test_inbuf_throughput_checking(logging_context_t const& context,
       [&] { drain(scheduler, *server_in); });
   }
 
-  while(server_in->error_status().ok())
+  while(server_in->error_status() == 0)
   {
     auto cb = scheduler.wait();
     assert(cb != nullptr);
@@ -519,7 +519,7 @@ void test_inbuf_throughput_checking(logging_context_t const& context,
   if(auto msg = context.message_at(loglevel_t::info))
   {
     *msg << __func__ << ": got expected server error: " <<
-      server_in->error_status().to_string();
+      server_in->error_status();
   }
 }
 
@@ -589,7 +589,7 @@ void test_outbuf_throughput_checking(logging_context_t const& context,
   if(auto msg = context.message_at(loglevel_t::info))
   {
     *msg << __func__ << ": got expected client error: " <<
-      client_out->error_status().to_string();
+      client_out->error_status();
   }
 }
 

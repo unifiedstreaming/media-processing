@@ -37,7 +37,9 @@ CUTI_ABI std::string system_error_string(int error);
 struct CUTI_ABI system_exception_t : std::runtime_error
 {
   explicit system_exception_t(std::string complaint);
-  system_exception_t(std::string complaint, error_status_t cause);
+
+  system_exception_t(std::string const& complaint,
+                     error_status_t const& cause);
 
   ~system_exception_t() override;
 };

@@ -417,7 +417,7 @@ struct core_dispatcher_t
       if(auto msg = context_.message_at(loglevel_t::error))
       {
         *msg << "input error on connection " << client->nb_inbuf() <<
-          ": " << status.to_string();
+          ": " << status;
       }
       served_clients_.erase(client);
     }
@@ -426,7 +426,7 @@ struct core_dispatcher_t
       if(auto msg = context_.message_at(loglevel_t::error))
       {
         *msg << "output error on connection " << client->nb_outbuf() <<
-          ": " << status.to_string();
+          ": " << status;
       }
       served_clients_.erase(client);
     }

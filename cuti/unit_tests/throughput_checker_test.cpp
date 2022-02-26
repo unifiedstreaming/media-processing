@@ -69,10 +69,10 @@ void test_speed()
     time_point_t clock = cuti_clock_t::now();
     throughput_checker_t<user_clock_object_t> checker(
       settings, user_clock_object_t(clock));
-    assert(!checker.record_transfer(1024).ok());
+    assert(checker.record_transfer(1024) != 0);
 
     clock += seconds_t(1);
-    assert(!checker.record_transfer(1024).ok());
+    assert(checker.record_transfer(1024) != 0);
   }
 
   {
@@ -84,10 +84,10 @@ void test_speed()
     time_point_t clock = cuti_clock_t::now();
     throughput_checker_t<user_clock_object_t> checker(
       settings, user_clock_object_t(clock));
-    assert(checker.record_transfer(0).ok());
+    assert(checker.record_transfer(0) == 0);
 
     clock += seconds_t(1);
-    assert(!checker.record_transfer(0).ok());
+    assert(checker.record_transfer(0) != 0);
   }
 
   {
@@ -99,13 +99,13 @@ void test_speed()
     time_point_t clock = cuti_clock_t::now();
     throughput_checker_t<user_clock_object_t> checker(
       settings, user_clock_object_t(clock));
-    assert(checker.record_transfer(0).ok());
+    assert(checker.record_transfer(0) == 0);
 
     clock += seconds_t(1);
-    assert(checker.record_transfer(0).ok());
+    assert(checker.record_transfer(0) == 0);
 
     clock += seconds_t(1);
-    assert(!checker.record_transfer(0).ok());
+    assert(checker.record_transfer(0) != 0);
   }
 
   {
@@ -117,10 +117,10 @@ void test_speed()
     time_point_t clock = cuti_clock_t::now();
     throughput_checker_t<user_clock_object_t> checker(
       settings, user_clock_object_t(clock));
-    assert(checker.record_transfer(0).ok());
+    assert(checker.record_transfer(0) == 0);
 
     clock += seconds_t(1);
-    assert(!checker.record_transfer(0).ok());
+    assert(checker.record_transfer(0) != 0);
   }
 
   {
@@ -132,13 +132,13 @@ void test_speed()
     time_point_t clock = cuti_clock_t::now();
     throughput_checker_t<user_clock_object_t> checker(
       settings, user_clock_object_t(clock));
-    assert(checker.record_transfer(0).ok());
+    assert(checker.record_transfer(0) == 0);
 
     clock += seconds_t(1);
-    assert(checker.record_transfer(0).ok());
+    assert(checker.record_transfer(0) == 0);
 
     clock += seconds_t(1);
-    assert(!checker.record_transfer(0).ok());
+    assert(checker.record_transfer(0) != 0);
   }
 
   {
@@ -150,10 +150,10 @@ void test_speed()
     time_point_t clock = cuti_clock_t::now();
     throughput_checker_t<user_clock_object_t> checker(
       settings, user_clock_object_t(clock));
-    assert(checker.record_transfer(511).ok());
+    assert(checker.record_transfer(511) == 0);
 
     clock += seconds_t(1);
-    assert(!checker.record_transfer(0).ok());
+    assert(checker.record_transfer(0) != 0);
   }
 
   {
@@ -165,13 +165,13 @@ void test_speed()
     time_point_t clock = cuti_clock_t::now();
     throughput_checker_t<user_clock_object_t> checker(
       settings, user_clock_object_t(clock));
-    assert(checker.record_transfer(511).ok());
+    assert(checker.record_transfer(511) == 0);
 
     clock += seconds_t(1);
-    assert(checker.record_transfer(511).ok());
+    assert(checker.record_transfer(511) == 0);
 
     clock += seconds_t(1);
-    assert(!checker.record_transfer(0).ok());
+    assert(checker.record_transfer(0) != 0);
   }
 
   {
@@ -183,13 +183,13 @@ void test_speed()
     time_point_t clock = cuti_clock_t::now();
     throughput_checker_t<user_clock_object_t> checker(
       settings, user_clock_object_t(clock));
-    assert(checker.record_transfer(512).ok());
+    assert(checker.record_transfer(512) == 0);
 
     clock += seconds_t(1);
-    assert(checker.record_transfer(511).ok());
+    assert(checker.record_transfer(511) == 0);
 
     clock += seconds_t(1);
-    assert(!checker.record_transfer(0).ok());
+    assert(checker.record_transfer(0) != 0);
   }
 
   {
@@ -201,17 +201,17 @@ void test_speed()
     time_point_t clock = cuti_clock_t::now();
     throughput_checker_t<user_clock_object_t> checker(
       settings, user_clock_object_t(clock));
-    assert(checker.record_transfer(512).ok());
+    assert(checker.record_transfer(512) == 0);
 
     for(unsigned int i = 0; i != 120; ++i)
     {
-      assert(checker.record_transfer(511 - i).ok());
+      assert(checker.record_transfer(511 - i) == 0);
       clock += seconds_t(1);
-      assert(checker.record_transfer(0).ok());
+      assert(checker.record_transfer(0) == 0);
     }
 
     clock += seconds_t(1);
-    assert(!checker.record_transfer(0).ok());
+    assert(checker.record_transfer(0) != 0);
   }
 }
 

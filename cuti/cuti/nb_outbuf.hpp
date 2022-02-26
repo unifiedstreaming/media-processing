@@ -84,7 +84,7 @@ struct CUTI_ABI nb_outbuf_t
   {
     assert(this->writable());
 
-    if(error_status_.ok())
+    if(error_status_ == 0)
     {
       *wp_ = c;
       ++wp_;

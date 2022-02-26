@@ -19,6 +19,9 @@
 
 #include "system_error.hpp"
 
+#include "membuf.hpp"
+
+#include <ostream>
 #include <utility>
 
 #ifdef _WIN32
@@ -112,13 +115,28 @@ std::string system_error_string(int error)
 namespace cuti
 {
 
+namespace // anonymous
+{
+
+std::string complaint_with_cause(std::string const& complaint,
+                                 error_status_t const& cause)
+{
+  membuf_t buf;
+  std::ostream stream(&buf);
+
+  stream << complaint << ": " << cause;
+  return std::string(buf.begin(), buf.end());
+}
+
+} // anonymous
+  
 system_exception_t::system_exception_t(std::string complaint)
 : std::runtime_error(std::move(complaint))
 { }
 
-system_exception_t::system_exception_t(std::string complaint,
-                                       error_status_t cause)
-: std::runtime_error(std::move(complaint) + ": " + cause.to_string())
+system_exception_t::system_exception_t(std::string const& complaint,
+                                       error_status_t const& cause)
+: std::runtime_error(complaint_with_cause(complaint, cause))
 { }
 
 system_exception_t::~system_exception_t()
