@@ -118,8 +118,8 @@ namespace cuti
 namespace // anonymous
 {
 
-std::string complaint_with_cause(std::string const& complaint,
-                                 error_status_t const& cause)
+std::string complaint_with_cause(std::string_view complaint,
+                                 error_status_t cause)
 {
   membuf_t buf;
   std::ostream stream(&buf);
@@ -134,8 +134,8 @@ system_exception_t::system_exception_t(std::string complaint)
 : std::runtime_error(std::move(complaint))
 { }
 
-system_exception_t::system_exception_t(std::string const& complaint,
-                                       error_status_t const& cause)
+system_exception_t::system_exception_t(std::string_view complaint,
+                                       error_status_t cause)
 : std::runtime_error(complaint_with_cause(complaint, cause))
 { }
 

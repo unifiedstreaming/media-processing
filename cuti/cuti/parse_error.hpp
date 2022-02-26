@@ -23,18 +23,15 @@
 #include "linkage.h"
 
 #include <stdexcept>
+#include <utility>
 
 namespace cuti
 {
 
 struct CUTI_ABI parse_error_t : std::runtime_error
 {
-  explicit parse_error_t(std::string const& message)
-  : std::runtime_error(message)
-  { }
-
-  explicit parse_error_t(char const* message)
-  : std::runtime_error(message)
+  explicit parse_error_t(std::string message)
+  : std::runtime_error(std::move(message))
   { }
 };
 

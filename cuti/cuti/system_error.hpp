@@ -23,6 +23,7 @@
 #include <ostream>
 #include <stdexcept>
 #include <string>
+#include <string_view>
 
 #include "error_status.hpp"
 #include "exception_builder.hpp"
@@ -38,8 +39,7 @@ struct CUTI_ABI system_exception_t : std::runtime_error
 {
   explicit system_exception_t(std::string complaint);
 
-  system_exception_t(std::string const& complaint,
-                     error_status_t const& cause);
+  system_exception_t(std::string_view complaint, error_status_t cause);
 
   ~system_exception_t() override;
 };

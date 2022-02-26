@@ -22,6 +22,7 @@
 
 #include <ostream>
 #include <string>
+#include <string_view>
 #include <utility>
 
 #include "membuf.hpp"
@@ -40,10 +41,15 @@ struct exception_builder_t : std::ostream
   exception_builder_t(exception_builder_t const&) = delete;
   exception_builder_t& operator=(exception_builder_t const&) = delete;
 
+  T exception_object() const
+  {
+    return T(std::string(buf_.begin(), buf_.end()));
+  }
+
   template<typename... Args>
   T exception_object(Args&&... args) const
   {
-    return T(std::string(buf_.begin(), buf_.end()),
+    return T(std::string_view(buf_.begin(), buf_.end() - buf_.begin()),
              std::forward<Args>(args)...);
   }
 
