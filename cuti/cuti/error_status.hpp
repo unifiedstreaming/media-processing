@@ -23,7 +23,7 @@
 #include "linkage.h"
 #include "relational_ops.hpp"
 
-#include <iosfwd>
+#include <ostream>
 #include <string>
 
 namespace cuti
@@ -80,13 +80,12 @@ struct CUTI_ABI error_status_t : relational_ops_t<error_status_t>
     }
   }
 
-  void print(std::ostream& os) const;
+  std::string to_string() const;
 
   friend std::ostream& operator<<(
     std::ostream& os, error_status_t const& status)
   {
-    status.print(os);
-    return os;
+    return os << status.to_string();
   }
 
 private :
