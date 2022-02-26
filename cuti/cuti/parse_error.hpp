@@ -23,6 +23,7 @@
 #include "linkage.h"
 
 #include <stdexcept>
+#include <string>
 #include <utility>
 
 namespace cuti
