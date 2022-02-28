@@ -182,13 +182,13 @@ std::string endpoint_t::ip_address() const
     int cause = last_system_error();
 #endif
     system_exception_builder_t builder;
-    builder << "Can't determine IP address";
+    builder << "Can't determine IP address: ";
 #ifdef _WIN32
-    builder.explode(cause);
+    builder << error_status_t(cause);
 #else
-    builder << ": " << gai_strerror(r);
-    builder.explode();
+    builder << gai_strerror(r);
 #endif
+    builder.explode();
   }
 
   char* end = std::find(buf, buf + sizeof buf, '\0');

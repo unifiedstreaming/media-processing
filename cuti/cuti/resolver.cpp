@@ -74,13 +74,13 @@ make_addrinfo(int flags, char const* host, unsigned int port)
     {
       builder << " host " << host;
     }
-    builder << " port " << port;
+    builder << " port " << port << ": ";
 #ifdef _WIN32
-    builder.explode(cause);
+    builder << error_status_t(cause);
 #else
-    builder << ": " << gai_strerror(r);
-    builder.explode();
+    builder << gai_strerror(r);
 #endif
+    builder.explode();
   }
 
   return std::shared_ptr<addrinfo const>(head, freeaddrinfo);

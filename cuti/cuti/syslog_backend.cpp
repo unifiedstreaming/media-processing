@@ -38,7 +38,9 @@ struct syslog_backend_t::impl_t
     if(handle_ == nullptr)
     {
       auto cause = last_system_error();
-      throw system_exception_t("Can't create system logger", cause);
+      system_exception_builder_t builder;
+      builder << "Can't create system logger: " << error_status_t(cause);
+      builder.explode();
     }
   }
 
@@ -55,7 +57,9 @@ struct syslog_backend_t::impl_t
     if(!result)
     {
       int cause = last_system_error();
-      throw system_exception_t("ReportEvent() failure", cause);
+      system_exception_builder_t builder;
+      builder << "ReportEvent() failure: " << error_status_t(cause);
+      builder.explode();
     }
   }
 
