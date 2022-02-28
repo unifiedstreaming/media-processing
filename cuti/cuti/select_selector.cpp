@@ -318,15 +318,15 @@ struct select_selector_t : selector_t
       if(count < 0)
       {
         int cause = last_system_error();
-#ifdef _WIN32
-        throw system_exception_t("select() failure", cause);
-#else
+#ifndef _WIN32
         if(cause != EINTR)
+#endif
         {
-          throw system_exception_t("select() failure", cause);
+          system_exception_builder_t builder;
+          builder << "select() failure: " << error_status_t(cause);
+          builder.explode();
         }
         count = 0;
-#endif
       }
 
       int ticket = registrations_.first(watched_list_);

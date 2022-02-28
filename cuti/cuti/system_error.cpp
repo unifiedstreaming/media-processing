@@ -115,24 +115,8 @@ std::string system_error_string(int error)
 namespace cuti
 {
 
-namespace // anonymous
-{
-
-std::string complaint_with_cause(std::string const& complaint,
-                                 error_status_t cause)
-{
-  return complaint + ": " + cause.to_string();
-}
-
-} // anonymous
-  
 system_exception_t::system_exception_t(std::string complaint)
 : std::runtime_error(std::move(complaint))
-{ }
-
-system_exception_t::system_exception_t(std::string const& complaint,
-                                       error_status_t cause)
-: std::runtime_error(complaint_with_cause(complaint, cause))
 { }
 
 system_exception_t::~system_exception_t()

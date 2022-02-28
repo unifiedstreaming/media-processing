@@ -53,7 +53,9 @@ std::size_t max_pollfds_size()
   if(r == -1)
   {
     int cause = last_system_error();
-    throw system_exception_t("getrlimit(RLIMIT_NOFILE) failure", cause);
+    system_exception_builder_t builder;
+    builder << "getrlimit(RLIMIT_NOFILE) failure: " << error_status_t(cause);
+    builder.explode();
   }
 
   auto result = std::numeric_limits<std::size_t>::max();
@@ -115,7 +117,9 @@ struct poll_selector_t : selector_t
         int cause = last_system_error();
         if(cause != EINTR)
         {
-          throw system_exception_t("poll() failure", cause);
+          system_exception_builder_t builder;
+          builder << "poll() failure: " << error_status_t(cause);
+          builder.explode();
         }
         count = 0;
       }

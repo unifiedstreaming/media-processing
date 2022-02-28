@@ -123,16 +123,16 @@ struct CUTI_ABI rpc_client_t
     {
       // Failed to write full request
       system_exception_builder_t builder;
-      builder << bound_outbuf << ": output error";
-      builder.explode(status);
+      builder << bound_outbuf << ": output error: " << error_status_t(status);
+      builder.explode();
     }
 
     if(auto status = bound_inbuf.error_status())
     {
       // Failed to read full reply
       system_exception_builder_t builder;
-      builder << bound_inbuf << ": input error";
-      builder.explode(status);
+      builder << bound_inbuf << ": input error: " << error_status_t(status);
+      builder.explode();
     }
 
     // Throws on protocol (and remotely generated) errors

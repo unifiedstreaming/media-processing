@@ -74,7 +74,9 @@ struct event_pipe_reader_impl_t : event_pipe_reader_t
     int r = conn_->read(buf, buf + 1, next);
     if(r != 0)
     {
-      throw system_exception_t("event pipe read error", r);
+      system_exception_builder_t builder;
+      builder << "event pipe read error: " << error_status_t(r);
+      builder.explode();
     }
 
     std::optional<int> result = std::nullopt;
@@ -130,7 +132,9 @@ struct event_pipe_writer_impl_t : event_pipe_writer_t
     int r = conn_->write(buf, buf + 1, next);
     if(r != 0)
     {
-      throw system_exception_t("event pipe write error", r);
+      system_exception_builder_t builder;
+      builder << "event pipe write error: " << error_status_t(r);
+      builder.explode();
     }
 
     if(next == nullptr)
@@ -206,7 +210,9 @@ struct event_pipe_reader_impl_t : event_pipe_reader_t
         int cause = last_system_error();
         if(!is_wouldblock(cause))
         {
-          throw system_exception_t("event pipe read error", cause);
+          system_exception_builder_t builder;
+          builder << "event pipe read error: " << error_status_t(cause);
+          builder.explode();
         }
       }
       break;
@@ -264,7 +270,9 @@ struct event_pipe_writer_impl_t : event_pipe_writer_t
       int cause = last_system_error();
       if(!is_wouldblock(cause))
       {
-        throw system_exception_t("event pipe write error", cause);
+        system_exception_builder_t builder;
+        builder << "event pipe write error: " << error_status_t(cause);
+        builder.explode();
       }
       return false;
     }
@@ -305,7 +313,9 @@ make_event_pipe()
   if(r == -1)
   {
     int cause = last_system_error();
-    throw system_exception_t("can\'t create event pipe", cause);
+    system_exception_builder_t builder;
+    builder << "can\'t create event pipe: " << error_status_t(cause);
+    builder.explode();
   }
 
   auto fds0_guard = make_scoped_guard([&] { ::close(fds[0]); });

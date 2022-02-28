@@ -67,7 +67,9 @@ void set_nonblocking(int fd, bool enable)
   if(r == SOCKET_ERROR)
   {
     int cause = last_system_error();
-    throw system_exception_t("Error setting FIONBIO", cause);
+    system_exception_builder_t builder;
+    builder << "Error setting FIONBIO: " << error_status_t(cause);
+    builder.explode();
   }
 }
 
@@ -116,7 +118,9 @@ void set_nonblocking(int fd, bool enable)
   if(r == -1)
   {
     int cause = last_system_error();
-    throw system_exception_t("Error setting O_NONBLOCK", cause);
+    system_exception_builder_t builder;
+    builder << "Error setting O_NONBLOCK: " << error_status_t(cause);
+    builder.explode();
   }
 }
 
@@ -138,7 +142,9 @@ void set_cloexec(int fd, bool enable)
   if(r == -1)
   {
     int cause = last_system_error();
-    throw system_exception_t("Error setting FD_CLOEXEC", cause);
+    system_exception_builder_t builder;
+    builder << "Error setting FD_CLOEXEC: " << error_status_t(cause);
+    builder.explode();
   }
 }
 

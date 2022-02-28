@@ -49,7 +49,9 @@ struct kqueue_t
     if(fd_ == -1)
     {
       int cause = last_system_error();
-      throw system_exception_t("kqueue() failure", cause);
+      system_exception_builder_t builder;
+      builder << "kqueue() failure: " << error_status_t(cause);
+      builder.explode();
     }
   }
 
@@ -148,7 +150,10 @@ struct kqueue_selector_t : selector_t
         int cause = last_system_error();
         if(cause != EINTR)
         {
-          throw system_exception_t("kevent() failed to retrieve events", cause);
+          system_exception_builder_t builder;
+          builder << "kevent() failed to retrieve events: " <<
+            error_status_t(cause);
+          builder.explode();
         }
         count = 0;
       }
@@ -204,7 +209,9 @@ private :
     if(count == -1)
     {
       int cause = last_system_error();
-      throw system_exception_t("kevent() failed to add event", cause);
+      system_exception_builder_t builder;
+      builder << "kevent() failed to add event: " << error_status_t(cause);
+      builder.explode();
     }
 
     ticket_guard.dismiss();

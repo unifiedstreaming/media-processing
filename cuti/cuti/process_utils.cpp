@@ -68,8 +68,9 @@ void user_id_t::apply() const
   {
     int cause = last_system_error();
     system_exception_builder_t builder;
-    builder << "can't set user id to " << this->value();
-    builder.explode(cause);
+    builder << "can\'t set user id to " << this->value() << ": " <<
+      error_status_t(cause);
+    builder.explode();
   }
 }
 
@@ -94,7 +95,9 @@ user_id_t user_id_t::resolve(char const* name)
 
   if(r != 0)
   {
-    throw system_exception_t("getpwnam_r() failure", r);
+    system_exception_builder_t builder;
+    builder << "getpwnam_r() failure: " << error_status_t(r);
+    builder.explode();
   }
 
   if(pwd_ptr == nullptr)
@@ -116,8 +119,9 @@ void group_id_t::apply() const
   {
     int cause = last_system_error();
     system_exception_builder_t builder;
-    builder << "can't set group id to " << this->value();
-    builder.explode(cause);
+    builder << "can\'t set group id to " << this->value() << ": " <<
+      error_status_t(cause);
+    builder.explode();
   }
 }
 
@@ -142,7 +146,9 @@ group_id_t group_id_t::resolve(char const* name)
 
   if(r != 0)
   {
-    throw system_exception_t("getgrnam_r() failure", r);
+    system_exception_builder_t builder;
+    builder << "getgrnam_r() failure: " << error_status_t(r);
+    builder.explode();
   }
 
   if(grp_ptr == nullptr)

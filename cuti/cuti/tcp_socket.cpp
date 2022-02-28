@@ -61,7 +61,9 @@ void set_v6only(int fd, bool enable)
   if(r == -1)
   {
     int cause = last_system_error();
-    throw system_exception_t("Error setting IPV6_V6ONLY", cause);
+    system_exception_builder_t builder;
+    builder << "Error setting IPV6_V6ONLY: " << error_status_t(cause);
+    builder.explode();
   }
 }
 
@@ -73,7 +75,9 @@ void set_nodelay(int fd, bool enable)
   if(r == -1)
   {
     int cause = last_system_error();
-    throw system_exception_t("Error setting TCP_NODELAY", cause);
+    system_exception_builder_t builder;
+    builder << "Error setting TCP_NODELAY: " << error_status_t(cause);
+    builder.explode();
   }
 }
 
@@ -85,7 +89,9 @@ void set_keepalive(int fd, bool enable)
   if(r == -1)
   {
     int cause = last_system_error();
-    throw system_exception_t("Error setting SO_KEEPALIVE", cause);
+    system_exception_builder_t builder;
+    builder << "Error setting SO_KEEPALVE: " << error_status_t(cause);
+    builder.explode();
   }
 }
 
@@ -118,7 +124,9 @@ void set_reuseaddr(int fd, bool enable)
   if(r == -1)
   {
     int cause = last_system_error();
-    throw system_exception_t("Error setting SO_REUSEADDR", cause);
+    system_exception_builder_t builder;
+    builder << "Error setting SO_REUSEADDR: " << error_status_t(cause);
+    builder.explode();
   }
 }
 
@@ -134,7 +142,9 @@ void set_nosigpipe(int fd, bool enable)
   if(r == -1)
   {
     int cause = last_system_error();
-    throw system_exception_t("Error setting SO_NOSIGPIPE", cause);
+    system_exception_builder_t builder;
+    builder << "Error setting SO_NOSIGPIPE: " << error_status_t(cause);
+    builder.explode();
   }
 }
 
@@ -165,7 +175,9 @@ tcp_socket_t::tcp_socket_t(int family)
   if(fd_ == -1)
   {
     int cause = last_system_error();
-    throw system_exception_t("Can't create socket", cause);
+    system_exception_builder_t builder;
+    builder << "Can'\t create socket: " << error_status_t(cause);
+    builder.explode();
   }
 
 #if !defined(_WIN32) && !defined(SOCK_CLOEXEC)
@@ -193,8 +205,9 @@ void tcp_socket_t::bind(endpoint_t const& endpoint)
   {
     int cause = last_system_error();
     system_exception_builder_t builder;
-    builder << "Can't bind to endpoint " << endpoint;
-    builder.explode(cause);
+    builder << "Can\'t bind to endpoint " << endpoint << ": " <<
+      error_status_t(cause);
+    builder.explode();
   }
 }
 
@@ -206,7 +219,9 @@ void tcp_socket_t::listen()
   if(r == -1)
   {
     int cause = last_system_error();
-    throw system_exception_t("Can't listen", cause);
+    system_exception_builder_t builder;
+    builder << "Can\'t listen: " << error_status_t(cause);
+    builder.explode();
   }
 }
 
@@ -219,8 +234,9 @@ void tcp_socket_t::connect(endpoint_t const& peer)
   {
     int cause = last_system_error();
     system_exception_builder_t builder;
-    builder << "Can't connect to endpoint " << peer;
-    builder.explode(cause);
+    builder << "Can\'t connect to endpoint " << peer << ": " <<
+      error_status_t(cause);
+    builder.explode();
   }
 
   set_initial_connection_flags(fd_);
@@ -237,7 +253,9 @@ endpoint_t tcp_socket_t::local_endpoint() const
   if(r == -1)
   {
     int cause = last_system_error();
-    throw system_exception_t("getsockname() failure", cause);
+    system_exception_builder_t builder;
+    builder << "getsockname() failure: " << error_status_t(cause);
+    builder.explode();
   }
 
   std::shared_ptr<sockaddr const> addr(std::move(storage), &storage->addr_);
@@ -255,7 +273,9 @@ endpoint_t tcp_socket_t::remote_endpoint() const
   if(r == -1)
   {
     int cause = last_system_error();
-    throw system_exception_t("getpeername() failure", cause);
+    system_exception_builder_t builder;
+    builder << "getpeername() failure: " << error_status_t(cause);
+    builder.explode();
   }
 
   std::shared_ptr<sockaddr const> addr(std::move(storage), &storage->addr_);
@@ -296,7 +316,9 @@ int tcp_socket_t::accept(tcp_socket_t& accepted)
     {
       if(is_fatal_io_error(cause))
       {
-        throw system_exception_t("accept() failure", cause);
+        system_exception_builder_t builder;
+        builder << "accept() failure: " << error_status_t(cause);
+        builder.explode();
       }
       result = cause;
     }
@@ -341,7 +363,9 @@ int tcp_socket_t::write(char const* first, char const* last, char const*& next)
     }
     else if(is_fatal_io_error(cause))
     {
-      throw system_exception_t("send() failure", cause);
+      system_exception_builder_t builder;
+      builder << "send() failure: " << error_status_t(cause);
+      builder.explode();
     }
     else
     {
@@ -371,7 +395,9 @@ int tcp_socket_t::close_write_end()
     int cause = last_system_error();
     if(is_fatal_io_error(cause))
     {
-      throw system_exception_t("shutdown() failure", cause);
+      system_exception_builder_t builder;
+      builder << "shutdown() failure: " << error_status_t(cause);
+      builder.explode();
     }
     result = cause;
   }
@@ -402,7 +428,9 @@ int tcp_socket_t::read(char* first, char const* last, char*& next)
     }
     else if(is_fatal_io_error(cause))
     {
-      throw system_exception_t("recv() failure()", cause);
+      system_exception_builder_t builder;
+      builder << "recv() failure: " << error_status_t(cause);
+      builder.explode();
     }
     else
     {

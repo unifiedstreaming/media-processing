@@ -130,7 +130,10 @@ struct status_reporter_t
     if(handle_ == 0)
     {
       int cause = last_system_error();
-      throw system_exception_t("RegisterServiceCtrlHandler() failure", cause);
+      system_exception_builder_t builder;
+      builder << "RegisterServiceCtrlHandler() failure: " <<
+        error_status_t(cause);
+      builder.explode();
     }
 
     SERVICE_STATUS status;
@@ -142,7 +145,9 @@ struct status_reporter_t
     if(!SetServiceStatus(handle_, &status))
     {
       int cause = last_system_error();
-      throw system_exception_t("SetServiceStatus() failure", cause);
+      system_exception_builder_t builder;
+      builder << "SetServiceStatus() failure: " << error_status_t(cause);
+      builder.explode();
     }
   }
 
@@ -165,7 +170,9 @@ struct status_reporter_t
     {
       int cause = last_system_error();
       current_service_ = nullptr;
-      throw system_exception_t("SetServiceStatus() failure", cause);
+      system_exception_builder_t builder;
+      builder << "SetServiceStatus() failure: " << error_status_t(cause);
+      builder.explode();
     }
   }
 
@@ -349,7 +356,10 @@ void run_service(service_config_reader_t const& config_reader,
     int cause = last_system_error();
     if(cause != ERROR_FAILED_SERVICE_CONTROLLER_CONNECT)
     {
-      throw system_exception_t("StartServiceCtrlDispatcher() failure", cause);
+      system_exception_builder_t builder;
+      builder << "StartServiceCtrlDispatcher() failure: " <<
+        error_status_t(cause);
+      builder.explode();
     }
 
     auto config = config_reader.read_config(argc, argv);
@@ -413,7 +423,9 @@ void redirect_standard_fds()
   if(dev_null == -1)
   {
     int cause = last_system_error();
-    throw system_exception_t("can't open /dev/null", cause);
+    system_exception_builder_t builder;
+    builder << "can\'t open /dev/null: " << error_status_t(cause);
+    builder.explode();
   }
   assert(dev_null > 2);
   auto dev_null_guard = make_scoped_guard([&] { ::close(dev_null); });
@@ -424,7 +436,9 @@ void redirect_standard_fds()
     if(r == -1)
     {
       int cause = last_system_error();
-      throw system_exception_t("dup2() failure", cause);
+      system_exception_builder_t builder;
+      builder << "dup2() failure: " << error_status_t(cause);
+      builder.explode();
     }
   }
 }
@@ -440,7 +454,9 @@ void await_child(pid_t pid)
       int cause = last_system_error();
       if(cause != EINTR)
       {
-        throw system_exception_t("waitpid() failure", cause);
+        system_exception_builder_t builder;
+        builder << "waitpid() failure: " << error_status_t(cause);
+        builder.explode();
       }
     }
     wait_r = ::waitpid(pid, &status, 0);
@@ -472,7 +488,9 @@ void run_as_daemon(service_config_t const& config, char const* argv0)
   if(child == -1)
   {
     int cause = last_system_error();
-    throw system_exception_t("fork() failure", cause);
+    system_exception_builder_t builder;
+    builder << "fork() failure: " << error_status_t(cause);
+    builder.explode();
   }
 
   if(child == 0)
@@ -481,14 +499,18 @@ void run_as_daemon(service_config_t const& config, char const* argv0)
     if(::setsid() == -1)
     {
       int cause = last_system_error();
-      throw system_exception_t("setsid() failure", cause);
+      system_exception_builder_t builder;
+      builder << "setsid() failure: " << error_status_t(cause);
+      builder.explode();
     }
 
     auto grandchild = ::fork();
     if(grandchild == -1)
     {
       int cause = last_system_error();
-      throw system_exception_t("fork() failure", cause);
+      system_exception_builder_t builder;
+      builder << "fork() failure: " << error_status_t(cause);
+      builder.explode();
     }
 
     if(grandchild == 0)

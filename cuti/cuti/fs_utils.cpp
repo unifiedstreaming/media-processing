@@ -66,8 +66,9 @@ struct text_output_file_impl_t : text_output_file_t
     {
       int cause = last_system_error();
       system_exception_builder_t builder;
-      builder <<  "Failed to open file " << path_;
-      builder.explode(cause);
+      builder <<  "Failed to open file " << path_ << ": " <<
+        error_status_t(cause);
+      builder.explode();
     }
   }
 
@@ -134,8 +135,9 @@ private :
       {
         int cause = last_system_error();
         system_exception_builder_t builder;
-        builder <<  "Error writing to file " << path_;
-        builder.explode(cause);
+        builder <<  "Error writing to file " << path_ << ": " <<
+          error_status_t(cause);
+        builder.explode();
       }
 
       first += written;
@@ -173,7 +175,7 @@ std::string absolute_path(char const* path)
 {
   if(*path == '\0')
   {
-    throw system_exception_t("Can't convert empty path to absolute path");
+    throw system_exception_t("Can\'t convert empty path to absolute path");
   }
 
   std::vector<char> buffer(256);
@@ -191,8 +193,9 @@ std::string absolute_path(char const* path)
   {
     int cause = last_system_error();
     system_exception_builder_t builder;
-    builder << "Can't determine absolute path for file '" << path << "'";
-    builder.explode(cause);
+    builder << "Can\'t determine absolute path for file " << path << ": " <<
+      error_status_t(cause);
+    builder.explode();
   }
 
   assert(length < buffer.size());
@@ -215,8 +218,9 @@ void rename_if_exists(char const* old_name, char const* new_name)
     if(cause != ERROR_FILE_NOT_FOUND)
     {
       system_exception_builder_t builder;
-      builder << "Can't rename file " << old_name << " to " << new_name;
-      builder.explode(cause);
+      builder << "Can\'t rename file " << old_name << " to " << new_name <<
+        ": " << error_status_t(cause);
+      builder.explode();
     }
   }
 }
@@ -227,8 +231,8 @@ void delete_if_exists(char const* name)
   if(error != 0 && error != ERROR_FILE_NOT_FOUND)
   {
     system_exception_builder_t builder;
-    builder << "Can't delete file " << name;
-    builder.explode(error);
+    builder << "Can\'t delete file " << name << ": " << error_status_t(error);
+    builder.explode();
   }
 }
 
@@ -248,7 +252,9 @@ std::string current_directory()
   if(length == 0)
   {
     int cause = last_system_error();
-    throw system_exception_t("Can't determine current directory", cause);
+    system_exception_builder_t builder;
+    builder << "Can\'t determine current directory: " << error_status_t(cause);
+    builder.explode();
   }
 
   assert(length < buffer.size());
@@ -262,8 +268,9 @@ void change_directory(char const* path)
   {
     int cause = last_system_error();
     system_exception_builder_t builder;
-    builder << "Can't change directory to '" << path << "'";
-    builder.explode(cause);
+    builder << "Can\'t change directory to " << path << ": " <<
+      error_status_t(cause);
+    builder.explode();
   }
 }
   
@@ -283,8 +290,9 @@ struct text_output_file_impl_t : text_output_file_t
     {
       int cause = last_system_error();
       system_exception_builder_t builder;
-      builder << "Failed to open file " << path_;
-      builder.explode(cause);
+      builder << "Failed to open file " << path_ << ": " <<
+        error_status_t(cause);
+      builder.explode();
     }
   }
 
@@ -307,8 +315,9 @@ struct text_output_file_impl_t : text_output_file_t
       {
         int cause = last_system_error();
         system_exception_builder_t builder;
-        builder <<  "Error writing to file " << path_;
-        builder.explode(cause);
+        builder <<  "Error writing to file " << path_ << ": " <<
+          error_status_t(cause);
+        builder.explode();
       }
       first += result;
     }
@@ -341,7 +350,7 @@ std::string absolute_path(char const* path)
   switch(*path)
   {
   case '\0' :
-    throw system_exception_t("Can't convert empty path to absolute path");
+    throw system_exception_t("Can\'t convert empty path to absolute path");
     break;
   case '/' :
     result = "/";
@@ -420,8 +429,9 @@ void rename_if_exists(char const* old_name, char const* new_name)
     if(cause != ENOENT)
     {
       system_exception_builder_t builder;
-      builder << "Can't rename file " << old_name << " to " << new_name;
-      builder.explode(cause);
+      builder << "Can\'t rename file " << old_name << " to " << new_name <<
+        ": " << error_status_t(cause);
+      builder.explode();
     }
   }
 }
@@ -432,8 +442,8 @@ void delete_if_exists(char const* name)
   if(error != 0 && error != ENOENT)
   {
     system_exception_builder_t builder;
-    builder << "Can't delete file " << name;
-    builder.explode(error);
+    builder << "Can\'t delete file " << name << ": " << error_status_t(error);
+    builder.explode();
   }
 }
 
@@ -447,7 +457,10 @@ std::string current_directory()
     int cause = last_system_error();
     if(cause != ERANGE)
     {
-      throw system_exception_t("Can't determine current directory", cause);
+      system_exception_builder_t builder;
+      builder << "Can\'t determine current directory: " <<
+        error_status_t(cause);
+      builder.explode();
     }
     buffer.resize(buffer.size() * 2);
   }
@@ -462,8 +475,9 @@ void change_directory(char const* path)
   {
     int cause = last_system_error();
     system_exception_builder_t builder;
-    builder << "Can't change directory to '" << path << "'";
-    builder.explode(cause);
+    builder << "Can\'t change directory to " << path << ": " <<
+      error_status_t(cause);
+    builder.explode();
   }
 }
   

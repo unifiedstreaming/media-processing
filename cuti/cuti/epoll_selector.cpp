@@ -98,7 +98,10 @@ struct epoll_selector_t : selector_t
         int cause = last_system_error();
         if(cause != EINTR)
         {
-          throw system_exception_t("epoll_selector: poll() failure", cause);
+          system_exception_builder_t builder;
+          builder << "epoll_selector: poll() failure: " <<
+            error_status_t(cause);
+          builder.explode();
         }
         count = 0;
       }
@@ -144,7 +147,9 @@ private :
       if(fd_ == -1)
       {
         int cause = last_system_error();
-        throw system_exception_t("error creating epoll instance", cause);
+        system_exception_builder_t builder;
+        builder << "error creating epoll instance: " << error_status_t(cause);
+        builder.explode();
       }
     }
 
@@ -190,7 +195,9 @@ private :
     if(::epoll_ctl(epoll_fd, EPOLL_CTL_ADD, fd, &epoll_event) == -1)
     {
       int cause = last_system_error();
-      throw system_exception_t("error adding epoll event", cause);
+      system_exception_builder_t builder;
+      builder << "error adding epoll event: " << error_status_t(cause);
+      builder.explode();
     }
 
     ticket_guard.dismiss();
@@ -206,7 +213,9 @@ private :
       int cause = last_system_error();
       if(cause != EINTR)
       {
-        throw system_exception_t("epoll_wait() failure", cause);
+        system_exception_builder_t builder;
+        builder << "epoll_wait() failure: " << error_status_t(cause);
+        builder.explode();
       }
       count = 0;
     }
