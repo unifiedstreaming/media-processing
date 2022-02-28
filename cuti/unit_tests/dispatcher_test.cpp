@@ -23,6 +23,7 @@
 #include <cuti/chrono_types.hpp>
 #include <cuti/cmdline_reader.hpp>
 #include <cuti/echo_handler.hpp>
+#include <cuti/error_status.hpp>
 #include <cuti/logging_context.hpp>
 #include <cuti/method_map.hpp>
 #include <cuti/option_walker.hpp>
@@ -31,7 +32,6 @@
 #include <cuti/scoped_guard.hpp>
 #include <cuti/scoped_thread.hpp>
 #include <cuti/streambuf_backend.hpp>
-#include <cuti/system_error.hpp>
 #include <cuti/tcp_connection.hpp>
 
 #include <csignal>
@@ -262,7 +262,7 @@ void test_deaf_client(logging_context_t const& client_context,
     {
       *msg << __func__ << '(' << client_side <<
         "): got expected error after sending " << n_requests <<
-        " requests: " << system_error_string(error);
+        " requests: " << error_status_t(error);
     }
   }
 

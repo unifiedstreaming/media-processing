@@ -21,6 +21,7 @@
 #include <cuti/cmdline_reader.hpp>
 #include <cuti/default_scheduler.hpp>
 #include <cuti/endpoint.hpp>
+#include <cuti/error_status.hpp>
 #include <cuti/file_backend.hpp>
 #include <cuti/logger.hpp>
 #include <cuti/logging_context.hpp>
@@ -31,7 +32,6 @@
 #include <cuti/selector_factory.hpp>
 #include <cuti/streambuf_backend.hpp>
 #include <cuti/tcp_connection.hpp>
-#include <cuti/system_error.hpp>
 
 #include <algorithm>
 #include <cstring>
@@ -354,7 +354,7 @@ struct logged_tcp_connection_t
       if(auto msg = context_.message_at(loglevel_))
       {
         *msg << prefix_ << '[' << conn_ << "]: reported system error: " <<
-          system_error_string(result);
+          error_status_t(result);
       }
     }
 
@@ -387,7 +387,7 @@ struct logged_tcp_connection_t
       if(auto msg = context_.message_at(loglevel_))
       {
         *msg << prefix_ << '[' << conn_ << "]: reported system error: " <<
-          system_error_string(result);
+          error_status_t(result);
       }
     }
 
@@ -408,7 +408,7 @@ struct logged_tcp_connection_t
       if(auto msg = context_.message_at(loglevel_))
       {
         *msg << prefix_ << '[' << conn_ << "]: reported system error: " <<
-          system_error_string(result);
+          error_status_t(result);
       }
     }
 

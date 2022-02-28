@@ -19,101 +19,30 @@
 
 #include "system_error.hpp"
 
-#include "membuf.hpp"
-
-#include <ostream>
-#include <utility>
-
 #ifdef _WIN32
-
 #include <windows.h>
-#include <winsock2.h>
-#include <ws2tcpip.h>
+#else
+#include <errno.h>
+#endif
 
 namespace cuti
 {
+
+#ifdef _WIN32
 
 int last_system_error()
 {
   return GetLastError();
 }
 
-std::string system_error_string(int error)
-{
-  static int constexpr bufsize = 256;
-  char buf[bufsize];
-  buf[bufsize - 1] = '\0';
-
-  DWORD result = FormatMessage(
-    FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS |
-      FORMAT_MESSAGE_MAX_WIDTH_MASK,
-    nullptr, error, 0,
-    buf, bufsize - 1, nullptr
-  );
-
-  if(result == 0)
-  {
-    return "System error number# " + std::to_string(error);
-  }
-
-  return std::string(buf);
-}
-
-} // namespace cuti
-
-#else // POSIX
-
-#include <errno.h>
-#include <stdio.h>
-#include <string.h>
-
-namespace cuti
-{
+#else
 
 int last_system_error()
 {
   return errno;
 }
 
-#if !__GLIBC__ || \
-  ((_POSIX_C_SOURCE >= 200112L || _XOPEN_SOURCE >= 600) && !_GNU_SOURCE)
-
-std::string system_error_string(int error)
-{
-  // Generic POSIX
-  static int constexpr bufsize = 256;
-  char buf[bufsize];
-  buf[bufsize - 1] = '\0';
-
-  int r = strerror_r(error, buf, bufsize - 1);
-  if(r == 0)
-  {
-    return buf;
-  }
-
-  return "System error number #" + std::to_string(error);
-}
-
-#else
-
-std::string system_error_string(int error)
-{
-  // GNU-specific version
-  static int constexpr bufsize = 256;
-  char buf[bufsize];
-  buf[bufsize - 1] = '\0';
-
-  return strerror_r(error, buf, bufsize - 1);
-}
-
 #endif
-
-} // namespace cuti
-
-#endif // POSIX
-
-namespace cuti
-{
 
 system_exception_t::system_exception_t(std::string complaint)
 : std::runtime_error(std::move(complaint))

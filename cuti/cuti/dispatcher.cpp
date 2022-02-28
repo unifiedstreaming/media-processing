@@ -23,6 +23,7 @@
 #include "bound_inbuf.hpp"
 #include "bound_outbuf.hpp"
 #include "default_scheduler.hpp"
+#include "error_status.hpp"
 #include "event_pipe.hpp"
 #include "final_result.hpp"
 #include "logging_context.hpp"
@@ -30,7 +31,6 @@
 #include "nb_tcp_buffers.hpp"
 #include "request_handler.hpp"
 #include "scoped_thread.hpp"
-#include "system_error.hpp"
 #include "tcp_acceptor.hpp"
 #include "tcp_connection.hpp"
 
@@ -200,7 +200,7 @@ struct listener_t
       if(auto msg = context_.message_at(loglevel_t::warning))
       {
         *msg << "failure to accept on endpoint " <<
-          acceptor_.local_endpoint() << ": " << system_error_string(status);
+          acceptor_.local_endpoint() << ": " << error_status_t(status);
       }
     }
       
