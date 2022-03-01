@@ -100,7 +100,14 @@ void error_status_t::print(std::ostream& os) const
   switch(cuti_error_code_)
   {
   case error_code_t::no_error :
-    print_system_error(os, system_error_code_);
+    if(system_error_code_ == 0)
+    {
+      os << "no error";
+    }
+    else
+    {
+      print_system_error(os, system_error_code_);
+    }
     break;
   case error_code_t::insufficient_throughput :
     os << "insufficient throughput";
