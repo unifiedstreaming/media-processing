@@ -66,6 +66,9 @@ struct wakeup_flag_t
   wakeup_flag_t(wakeup_flag_t const&) = delete;
   wakeup_flag_t& operator=(wakeup_flag_t const&) = delete;
   
+  /*
+   * This function is signal- and thread-safe.
+   */
   void raise()
   {
     if(counter_.fetch_add(1) == 0)
@@ -76,11 +79,17 @@ struct wakeup_flag_t
     }
   }
 
+  /*
+   * This function is signal- and thread-safe.
+   */
   bool is_up() const
   {
     return counter_.load(std::memory_order_acquire) != 0;
   }
 
+  /*
+   * This function is signal- and thread-safe.
+   */
   bool lower()
   {
     unsigned int old_counter = 1;
@@ -356,11 +365,17 @@ struct core_dispatcher_t
     }
   }
 
+  /*
+   * This function is signal- and thread-safe.
+   */
   void raise_wakeup_flag()
   {
     wakeup_flag_.raise();
   }
 
+  /*
+   * This function is signal- and thread-safe.
+   */
   bool lower_wakeup_flag()
   {
     return wakeup_flag_.lower();
@@ -552,6 +567,9 @@ struct core_mutex_t
   core_mutex_t(core_mutex_t const&) = delete;
   core_mutex_t& operator=(core_mutex_t const&) = delete;
 
+  /*
+   * This function is thread-safe.
+   */
   void urgent_lock()
   {
     std::unique_lock<std::mutex> internal_lock(internal_mutex_);
@@ -576,6 +594,9 @@ struct core_mutex_t
     locked_ = true;
   }
 
+  /*
+   * This function is thread-safe.
+   */
   void normal_lock()
   {
     std::unique_lock<std::mutex> internal_lock(internal_mutex_);
@@ -588,6 +609,9 @@ struct core_mutex_t
     locked_ = true;
   }
 
+  /*
+   * This function is thread-safe.
+   */
   void unlock()
   {
     bool had_urgent_waiters;
@@ -695,6 +719,9 @@ struct pooled_thread_t
     return scheduler_;
   }
 
+  /*
+   * This function is thread-safe.
+   */
   void join()
   {
     std::unique_lock lock(mutex_);
@@ -813,6 +840,9 @@ struct thread_pool_t
     return true;
   }
 
+  /*
+   * This function is thread-safe.
+   */
   void join()
   {
     {
@@ -947,6 +977,9 @@ struct dispatcher_t::impl_t
     }
   }
   
+  /*
+   * This function is signal- and thread-safe.
+   */
   void stop(int sig)
   {
     signal_writer_->write(static_cast<unsigned char>(sig));

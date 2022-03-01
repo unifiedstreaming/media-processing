@@ -83,7 +83,8 @@ struct CUTI_ABI dispatcher_t
 
   /*
    * Causes the current or next call to run() to return as soon as
-   * possible.  This function is signal- and thread-safe.
+   * possible.  This is the only function in this class that is
+   * signal- and thread-safe.
    */
   void stop(int sig);
 
