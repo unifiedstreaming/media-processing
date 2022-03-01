@@ -744,7 +744,8 @@ struct pooled_thread_t
 private :
   void on_wakeup_flag()
   {
-    if(wakeup_flag_.lower())
+    bool was_up = wakeup_flag_.lower();
+    if(was_up)
     {
       interrupted_ = true;
     }
