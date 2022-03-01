@@ -25,6 +25,8 @@
 #include <exception>
 #include <iostream>
 #include <limits>
+#include <string>
+#include <type_traits>
 
 // enable assert()
 #undef NDEBUG
@@ -34,6 +36,30 @@ namespace // anonymous
 {
 
 using namespace cuti;
+
+template<typename T>
+std::string plus_one(T value)
+{
+  auto result = std::to_string(value);
+
+  auto rit = result.rbegin();
+  while(rit != result.rend() && *rit == '9')
+  {
+    *rit = '0';
+    --rit;
+  }
+
+  if(rit != result.rend() && *rit >= '0' && *rit < '9')
+  {
+    ++(*rit);
+  }
+  else
+  {
+    result.insert(rit.base(), '1');
+  }
+    
+  return result;
+}
 
 void no_options_no_args()
 {
@@ -510,14 +536,18 @@ void missing_short_value()
   assert(caught);
 }
 
-void int_option()
+template<typename T>
+void signed_option()
 {
+  static_assert(std::is_signed_v<T>);
+  static_assert(std::is_integral_v<T>);
+  
   char const* argv[] = { "command", "--number", "42" };
   int argc = sizeof argv / sizeof argv[0];
   cmdline_reader_t reader(argc, argv);
   option_walker_t walker(reader);
 
-  int number = 0;
+  T number = 0;
 
   while(!walker.done())
   {
@@ -532,14 +562,18 @@ void int_option()
   assert(reader.at_end());
 }
 
-void negative_int_option()
+template<typename T>
+void negative_signed_option()
 {
+  static_assert(std::is_signed_v<T>);
+  static_assert(std::is_integral_v<T>);
+  
   char const* argv[] = { "command", "--number", "-42" };
   int argc = sizeof argv / sizeof argv[0];
   cmdline_reader_t reader(argc, argv);
   option_walker_t walker(reader);
 
-  int number = 0;
+  T number = 0;
 
   while(!walker.done())
   {
@@ -554,10 +588,14 @@ void negative_int_option()
   assert(reader.at_end());
 }
 
-void int_option_overflow()
+template<typename T>
+void signed_option_overflow()
 {
-  unsigned int limit = std::numeric_limits<int>::max();
-  std::string too_much = std::to_string(limit + 1);
+  static_assert(std::is_signed_v<T>);
+  static_assert(std::is_integral_v<T>);
+  
+  T limit = std::numeric_limits<T>::max();
+  std::string too_much = plus_one(limit);
 
   char const* argv[] = { "command", "--number", too_much.c_str() };
   int argc = sizeof argv / sizeof argv[0];
@@ -567,7 +605,7 @@ void int_option_overflow()
   bool caught = false;
   try
   {
-    int number = 0;
+    T number = 0;
     walker.match("--number", number);
   }
   catch(std::exception const& /* ex */)
@@ -578,10 +616,14 @@ void int_option_overflow()
   assert(caught);
 }
 
-void int_option_underflow()
+template<typename T>
+void signed_option_underflow()
 {
-  unsigned int limit = std::numeric_limits<int>::max();
-  std::string too_little = "-" + std::to_string(limit + 2);
+  static_assert(std::is_signed_v<T>);
+  static_assert(std::is_integral_v<T>);
+  
+  T limit = std::numeric_limits<T>::min();
+  std::string too_little = plus_one(limit);
 
   char const* argv[] = { "command", "--number", too_little.c_str() };
   int argc = sizeof argv / sizeof argv[0];
@@ -591,7 +633,7 @@ void int_option_underflow()
   bool caught = false;
   try
   {
-    int number = 0;
+    T number = 0;
     walker.match("--number", number);
   }
   catch(std::exception const& /* ex */)
@@ -602,9 +644,12 @@ void int_option_underflow()
   assert(caught);
 }
 
-void unsigned_int_option()
+template<typename T>
+void unsigned_option()
 {
-  unsigned int value = std::numeric_limits<unsigned int>::max();
+  static_assert(std::is_unsigned_v<T>);
+
+  T value = std::numeric_limits<T>::max();
   std::string value_string = std::to_string(value);
 
   char const* argv[] = { "command", "--number", value_string.c_str() };
@@ -612,7 +657,7 @@ void unsigned_int_option()
   cmdline_reader_t reader(argc, argv);
   option_walker_t walker(reader);
 
-  unsigned int number = 0;
+  T number = 0;
 
   while(!walker.done())
   {
@@ -625,6 +670,33 @@ void unsigned_int_option()
   assert(walker.done());
   assert(number == value);
   assert(reader.at_end());
+}
+
+template<typename T>
+void unsigned_option_overflow()
+{
+  static_assert(std::is_unsigned_v<T>);
+
+  T limit = std::numeric_limits<T>::max();
+  std::string too_much = plus_one(limit);
+
+  char const* argv[] = { "command", "--number", too_much.c_str() };
+  int argc = sizeof argv / sizeof argv[0];
+  cmdline_reader_t reader(argc, argv);
+  option_walker_t walker(reader);
+
+  bool caught = false;
+  try
+  {
+    T number = 0;
+    walker.match("--number", number);
+  }
+  catch(std::exception const& /* ex */)
+  {
+    // std::cout << ex.what() << std::endl;
+    caught = true;
+  }
+  assert(caught);
 }
 
 void additional_type()
@@ -774,11 +846,35 @@ void run_tests(int, char const* const*)
   short_value_assign();
   missing_short_value();
 
-  int_option();
-  negative_int_option();
-  int_option_overflow();
-  int_option_underflow();
-  unsigned_int_option();
+  signed_option<short>();
+  signed_option<int>();
+  signed_option<long>();
+  signed_option<long long>();
+  
+  negative_signed_option<short>();
+  negative_signed_option<int>();
+  negative_signed_option<long>();
+  negative_signed_option<long long>();
+
+  signed_option_overflow<short>();
+  signed_option_overflow<int>();
+  signed_option_overflow<long>();
+  signed_option_overflow<long long>();
+
+  signed_option_underflow<short>();
+  signed_option_underflow<int>();
+  signed_option_underflow<long>();
+  signed_option_underflow<long long>();
+
+  unsigned_option<unsigned short>();
+  unsigned_option<unsigned int>();
+  unsigned_option<unsigned long>();
+  unsigned_option<unsigned long long>();
+
+  unsigned_option_overflow<unsigned short>();
+  unsigned_option_overflow<unsigned int>();
+  unsigned_option_overflow<unsigned long>();
+  unsigned_option_overflow<unsigned long long>();
 
   additional_type();
   bad_value_for_additional_type();
