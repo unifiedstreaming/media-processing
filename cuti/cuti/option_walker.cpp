@@ -24,6 +24,7 @@
 #include <cassert>
 #include <limits>
 #include <stdexcept>
+#include <type_traits>
 
 namespace cuti
 {
@@ -72,10 +73,13 @@ char const* match_prefix(char const* arg, char const* prefix)
   return arg;
 }
 
-unsigned int parse_unsigned(char const* name, args_reader_t const& reader,
-                            char const* value, unsigned int max)
+template<typename T>
+T parse_unsigned(char const* name, args_reader_t const& reader,
+                 char const* value, T max)
 {
-  unsigned int result = 0;
+  static_assert(std::is_unsigned_v<T>);
+
+  T result = 0;
 
   do
   {
@@ -87,7 +91,7 @@ unsigned int parse_unsigned(char const* name, args_reader_t const& reader,
       builder.explode();
     }
 
-    unsigned int digit = *value - '0';
+    T digit = *value - '0';
     if(result > max / 10 || digit > max - 10 * result)
     {
       system_exception_builder_t builder;
@@ -105,36 +109,100 @@ unsigned int parse_unsigned(char const* name, args_reader_t const& reader,
   return result;
 }
 
-} // anonymous
-
-void parse_optval(char const* name, args_reader_t const& reader,
-                  char const* in, int& out)
+template<typename T>
+void parse_signed_optval(char const* name, args_reader_t const& reader,
+                         char const* in, T& out)
 {
-  static unsigned int const max = std::numeric_limits<int>::max();
+  static_assert(std::is_integral_v<T>);
+  static_assert(std::is_signed_v<T>);
+  using UT = std::make_unsigned_t<T>;
+
+  static UT constexpr max = std::numeric_limits<T>::max();
 
   if(*in == '-')
   {
-    unsigned int unsigned_value =
-      parse_unsigned(name, reader, in + 1, max + 1);
-    --unsigned_value;
+    UT unsigned_value =
+      parse_unsigned<UT>(name, reader, in + 1, max + 1);
+    T signed_value;
 
-    int signed_value = unsigned_value;
-    signed_value = -signed_value;
-    --signed_value;
+    if(unsigned_value != 0)
+    {
+      --unsigned_value;
+      signed_value = unsigned_value;
+      signed_value = -signed_value;
+      --signed_value;
+    }
+    else
+    {
+      signed_value = unsigned_value;
+    }
 
     out = signed_value;
   }
   else
   {
-    out = parse_unsigned(name, reader, in, max);
+    out = parse_unsigned<UT>(name, reader, in, max);
   }
+}  
+  
+template<typename T>
+void parse_unsigned_optval(char const* name, args_reader_t const& reader,
+                           char const* in, T& out)
+{
+  static_assert(std::is_unsigned_v<T>);
+
+  static T constexpr max = std::numeric_limits<T>::max();
+  out = parse_unsigned<T>(name, reader, in, max);
+}
+
+} // anonymous
+
+void parse_optval(char const* name, args_reader_t const& reader,
+                  char const* in, short& out)
+{
+  parse_signed_optval(name, reader, in, out);
+}
+
+void parse_optval(char const* name, args_reader_t const& reader,
+                  char const* in, unsigned short& out)
+{
+  parse_unsigned_optval(name, reader, in, out);
+}
+
+void parse_optval(char const* name, args_reader_t const& reader,
+                  char const* in, int& out)
+{
+  parse_signed_optval(name, reader, in, out);
 }
 
 void parse_optval(char const* name, args_reader_t const& reader,
                   char const* in, unsigned int& out)
 {
-  static unsigned int const max = std::numeric_limits<unsigned int>::max();
-  out = parse_unsigned(name, reader, in, max);
+  parse_unsigned_optval(name, reader, in, out);
+}
+
+void parse_optval(char const* name, args_reader_t const& reader,
+                  char const* in, long& out)
+{
+  parse_signed_optval(name, reader, in, out);
+}
+
+void parse_optval(char const* name, args_reader_t const& reader,
+                  char const* in, unsigned long& out)
+{
+  parse_unsigned_optval(name, reader, in, out);
+}
+
+void parse_optval(char const* name, args_reader_t const& reader,
+                  char const* in, long long& out)
+{
+  parse_signed_optval(name, reader, in, out);
+}
+
+void parse_optval(char const* name, args_reader_t const& reader,
+                  char const* in, unsigned long long& out)
+{
+  parse_unsigned_optval(name, reader, in, out);
 }
 
 void parse_optval(char const*, args_reader_t const&,

@@ -241,9 +241,14 @@ void x264_config_t::read_options(cuti::args_reader_t& reader,
       !walker.match("--group", group_) &&
 #endif
       !walker.match("--loglevel", loglevel_) &&
+      !walker.match("--max-connections",
+        dispatcher_config_.max_connections_) &&
+      !walker.match("--max-threads",
+        dispatcher_config_.max_thread_pool_size_) &&
       !walker.match("--pidfile", pidfile_) &&
       !walker.match("--rotation-depth", rotation_depth_) &&
-      !walker.match("--selector", dispatcher_config_.selector_factory_) &&
+      !walker.match("--selector",
+        dispatcher_config_.selector_factory_) &&
       !walker.match("--size-limit", size_limit_) &&
 #ifndef _WIN32
       !walker.match("--umask", umask_) &&
@@ -306,6 +311,14 @@ void x264_config_t::print_usage(std::ostream& os)
   os << "  --loglevel <level>       " <<
     "sets loglevel (default: " << 
     cuti::loglevel_string(default_loglevel) << ')' << std::endl;
+  os << "  --max-connections <n>    " <<
+    "sets max #connections (default: " <<
+    cuti::dispatcher_config_t::default_max_connections() <<
+    "; 0=unlimited) " << std::endl;
+  os << "  --max-threads <n>        " <<
+    "sets max #threads (default: " <<
+    cuti::dispatcher_config_t::default_max_thread_pool_size() <<
+    "; 0=unlimited) " << std::endl;
   os << "  --pidfile <path>         " <<
     "create PID file <path> (default: none)" << std::endl;
   os << "  --rotation-depth <depth> " << 

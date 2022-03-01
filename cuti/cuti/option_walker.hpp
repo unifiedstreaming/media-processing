@@ -46,9 +46,22 @@ namespace cuti
  * error.
  */
 CUTI_ABI void parse_optval(char const* name, args_reader_t const& reader,
+                           char const* in, short& out);
+CUTI_ABI void parse_optval(char const* name, args_reader_t const& reader,
+                           char const* in, unsigned short& out);
+CUTI_ABI void parse_optval(char const* name, args_reader_t const& reader,
                            char const* in, int& out);
 CUTI_ABI void parse_optval(char const* name, args_reader_t const& reader,
                            char const* in, unsigned int& out);
+CUTI_ABI void parse_optval(char const* name, args_reader_t const& reader,
+                           char const* in, long& out);
+CUTI_ABI void parse_optval(char const* name, args_reader_t const& reader,
+                           char const* in, unsigned long& out);
+CUTI_ABI void parse_optval(char const* name, args_reader_t const& reader,
+                           char const* in, long long& out);
+CUTI_ABI void parse_optval(char const* name, args_reader_t const& reader,
+                           char const* in, unsigned long long& out);
+
 CUTI_ABI void parse_optval(char const* name, args_reader_t const& reader,
                            char const* in, std::string& out);
 
