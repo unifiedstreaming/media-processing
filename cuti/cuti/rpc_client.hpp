@@ -123,7 +123,7 @@ struct CUTI_ABI rpc_client_t
     {
       // Failed to write full request
       system_exception_builder_t builder;
-      builder << bound_outbuf << ": output error: " << error_status_t(status);
+      builder << "output error: " << error_status_t(status);
       builder.explode();
     }
 
@@ -131,7 +131,7 @@ struct CUTI_ABI rpc_client_t
     {
       // Failed to read full reply
       system_exception_builder_t builder;
-      builder << bound_inbuf << ": input error: " << error_status_t(status);
+      builder << "input error: " << error_status_t(status);
       builder.explode();
     }
 
