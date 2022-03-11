@@ -379,6 +379,59 @@ private :
 };
 
 template<typename T>
+struct optional_producer_t : producer_t<T>
+{
+  explicit optional_producer_t(std::optional<T> value)
+  : value_(std::move(value))
+  { }
+
+  std::optional<T> get() override
+  {
+    auto result = std::move(value_);
+    value_.reset();
+    return result;
+  }
+
+private :
+  std::optional<T> value_;
+};
+    
+template<typename T>
+struct optional_writer_t
+{
+  using result_value_t = void;
+
+  optional_writer_t(result_t<void>& result, bound_outbuf_t& buf)
+  : result_(result)
+  , sequence_writer_(*this, result_, buf)
+  , producer_(std::nullopt)
+  { }
+
+  optional_writer_t(optional_writer_t const&) = delete;
+  optional_writer_t& operator=(optional_writer_t const&) = delete;
+  
+  void start(std::optional<T> value)
+  {
+    producer_.emplace(std::move(value));
+    sequence_writer_.start(
+      &optional_writer_t::on_sequence_written, *producer_);
+  }
+
+private :
+  void on_sequence_written()
+  {
+    producer_.reset();
+    result_.submit();
+  }
+
+private :
+  result_t<void>& result_;
+  subroutine_t<optional_writer_t, sequence_writer_t<T>> sequence_writer_;
+
+  std::optional<optional_producer_t<T>> producer_;
+};
+
+template<typename T>
 struct vector_producer_t : producer_t<T>
 {
   explicit vector_producer_t(std::vector<T> value)
@@ -709,6 +762,12 @@ template<>
 struct writer_traits_t<identifier_t>
 {
   using type = detail::identifier_writer_t;
+};
+
+template<typename T>
+struct writer_traits_t<std::optional<T>>
+{
+  using type = detail::optional_writer_t<T>;
 };
 
 template<typename T>

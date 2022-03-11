@@ -518,6 +518,70 @@ private :
 };
 
 template<typename T>
+struct optional_consumer_t : consumer_t<T>
+{
+  optional_consumer_t()
+  : value_(std::nullopt)
+  { }
+
+  void put(std::optional<T> element) override
+  {
+    if(element.has_value())
+    {
+      if(value_.has_value())
+      {
+        throw parse_error_t("duplicate optional value");
+      }
+      value_ = std::move(element);
+    }
+  }
+
+  std::optional<T>& value()
+  {
+    return value_;
+  }
+
+private :
+  std::optional<T> value_;
+};
+    
+template<typename T>
+struct optional_reader_t
+{
+  using result_value_t = std::optional<T>;
+
+  optional_reader_t(result_t<std::optional<T>>& result, bound_inbuf_t& buf)
+  : result_(result)
+  , sequence_reader_(*this, result_, buf)
+  , consumer_(std::nullopt)
+  { }
+
+  optional_reader_t(optional_reader_t const&) = delete;
+  optional_reader_t& operator=(optional_reader_t const&) = delete;
+  
+  void start()
+  {
+    consumer_.emplace();
+    sequence_reader_.start(&optional_reader_t::on_sequence_read, *consumer_);
+  }
+
+private :
+  void on_sequence_read()
+  {
+    assert(consumer_ != std::nullopt);
+    auto value = std::move(consumer_->value());
+    consumer_.reset();
+    result_.submit(std::move(value));
+  }
+
+private :
+  result_t<std::optional<T>>& result_;
+  subroutine_t<optional_reader_t, sequence_reader_t<T>> sequence_reader_;
+
+  std::optional<optional_consumer_t<T>> consumer_;
+};
+
+template<typename T>
 struct vector_consumer_t : consumer_t<T>
 {
   vector_consumer_t()
@@ -894,6 +958,12 @@ template<>
 struct reader_traits_t<identifier_t>
 {
   using type = detail::identifier_reader_t;
+};
+
+template<typename T>
+struct reader_traits_t<std::optional<T>>
+{
+  using type = detail::optional_reader_t<T>;
 };
 
 template<typename T>
