@@ -30,7 +30,7 @@ exe x264_encoding_service
   <target-os>linux:<linkflags>-Wl,-rpath,\\$ORIGIN/../lib
 ;
 
-package.install install xes
+package.install install
 : # properties
 : # binaries
   x264_encoding_service
