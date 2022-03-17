@@ -17,7 +17,7 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#include "x264_service.hpp"
+#include "service.hpp"
 
 #include <cuti/dispatcher.hpp>
 #include <cuti/add_handler.hpp>
@@ -25,7 +25,10 @@
 #include <cuti/method_map.hpp>
 #include <cuti/subtract_handler.hpp>
 
-x264_service_t::x264_service_t(
+namespace xes_utils
+{
+
+service_t::service_t(
   cuti::logging_context_t const& context,
   cuti::dispatcher_config_t const& dispatcher_config,
   std::vector<cuti::endpoint_t> const& endpoints)
@@ -47,16 +50,18 @@ x264_service_t::x264_service_t(
   }
 }
 
-void x264_service_t::run()
+void service_t::run()
 {
   dispatcher_->run();
 }
       
-void x264_service_t::stop(int sig)
+void service_t::stop(int sig)
 {
   dispatcher_->stop(sig);
 }
       
-x264_service_t::~x264_service_t()
+service_t::~service_t()
 {
 }
+
+} // xes_utils

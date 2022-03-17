@@ -17,8 +17,8 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#ifndef X264_SERVICE_HPP_
-#define X264_SERVICE_HPP_
+#ifndef XES_UTILS_SERVICE_HPP_
+#define XES_UTILS_SERVICE_HPP_
 
 #include <cuti/dispatcher.hpp>
 #include <cuti/endpoint.hpp>
@@ -36,20 +36,25 @@ struct tcp_connection_t;
 
 } // cuti
 
-struct x264_service_t : cuti::service_t
+namespace xes_utils
 {
-  x264_service_t(cuti::logging_context_t const& context,
-                 cuti::dispatcher_config_t const& dispatcher_config,
-                 std::vector<cuti::endpoint_t> const& endpoints);
+
+struct service_t : cuti::service_t
+{
+  service_t(cuti::logging_context_t const& context,
+            cuti::dispatcher_config_t const& dispatcher_config,
+            std::vector<cuti::endpoint_t> const& endpoints);
 
   void run() override;
   void stop(int sig) override;
 
-  ~x264_service_t() override;
+  ~service_t() override;
       
 private :
   std::unique_ptr<cuti::method_map_t> map_;
   std::unique_ptr<cuti::dispatcher_t> dispatcher_;
 };
+
+} // xes_utils
 
 #endif

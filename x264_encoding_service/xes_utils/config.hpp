@@ -17,8 +17,8 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#ifndef X264_CONFIG_HPP_
-#define X264_CONFIG_HPP_
+#ifndef XES_UTILS_CONFIG_HPP_
+#define XES_UTILS_CONFIG_HPP_
 
 #include <cuti/dispatcher.hpp>
 #include <cuti/endpoint.hpp>
@@ -40,9 +40,12 @@ struct args_reader_t;
 
 } // cuti
 
-struct x264_config_t : cuti::service_config_t
+namespace xes_utils
 {
-  x264_config_t(int argc, char const* const argv[]);
+
+struct config_t : cuti::service_config_t
+{
+  config_t(int argc, char const* const argv[]);
 
 #ifndef _WIN32
   bool run_as_daemon() const override;
@@ -62,7 +65,7 @@ struct x264_config_t : cuti::service_config_t
   std::unique_ptr<cuti::service_t>
   create_service(cuti::logging_context_t& context) const override;
 
-  ~x264_config_t() override;
+  ~config_t() override;
 
 private :
   void read_options(cuti::args_reader_t& reader);
@@ -97,5 +100,7 @@ private :
   std::optional<cuti::user_id_t> user_;
 #endif
 };
+
+} // xes_utils
 
 #endif

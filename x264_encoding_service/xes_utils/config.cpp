@@ -17,9 +17,9 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#include "x264_config.hpp"
+#include "config.hpp"
 
-#include "x264_service.hpp"
+#include "service.hpp"
 
 #include <cuti/args_reader.hpp>
 #include <cuti/cmdline_reader.hpp>
@@ -56,7 +56,10 @@ see <http://www.gnu.org/licenses/> for details.)";
 
 } // anonymous
 
-x264_config_t::x264_config_t(int argc, char const* const argv[])
+namespace xes_utils
+{
+
+config_t::config_t(int argc, char const* const argv[])
 : argv0_((assert(argc > 0), argv[0]))
 #ifndef _WIN32
 , daemon_(false)
@@ -86,35 +89,35 @@ x264_config_t::x264_config_t(int argc, char const* const argv[])
 
 #ifndef _WIN32
 
-bool x264_config_t::run_as_daemon() const
+bool config_t::run_as_daemon() const
 {
   return bool(daemon_);
 }
 
-cuti::group_id_t const* x264_config_t::group_id() const
+cuti::group_id_t const* config_t::group_id() const
 {
   return group_ ? &(*group_) : nullptr;
 }
 
-cuti::user_id_t const* x264_config_t::user_id() const
+cuti::user_id_t const* config_t::user_id() const
 {
   return user_ ? &(*user_) : nullptr;
 }
 
-cuti::umask_t const* x264_config_t::umask() const
+cuti::umask_t const* config_t::umask() const
 {
   return umask_ ? &(*umask_) : nullptr;
 }
 
 #endif
 
-char const* x264_config_t::directory() const
+char const* config_t::directory() const
 {
   return directory_.empty() ? nullptr : directory_.c_str();
 }
 
 std::unique_ptr<cuti::logging_backend_t>
-x264_config_t::create_logging_backend() const
+config_t::create_logging_backend() const
 {
   std::unique_ptr<cuti::logging_backend_t> result = nullptr;
 
@@ -136,7 +139,7 @@ x264_config_t::create_logging_backend() const
   return result;
 }
 
-std::unique_ptr<cuti::pidfile_t> x264_config_t::create_pidfile() const
+std::unique_ptr<cuti::pidfile_t> config_t::create_pidfile() const
 {
   std::unique_ptr<cuti::pidfile_t> result = nullptr;
 
@@ -149,7 +152,7 @@ std::unique_ptr<cuti::pidfile_t> x264_config_t::create_pidfile() const
 }
 
 std::unique_ptr<cuti::service_t>
-x264_config_t::create_service(cuti::logging_context_t& context) const
+config_t::create_service(cuti::logging_context_t& context) const
 {
   context.level(loglevel_);
 
@@ -159,7 +162,7 @@ x264_config_t::create_service(cuti::logging_context_t& context) const
     endpoints = default_endpoints();
   }
 
-  auto result = std::make_unique<x264_service_t>(
+  auto result = std::make_unique<service_t>(
     context, dispatcher_config_, endpoints);
   if(dry_run_)
   {
@@ -168,16 +171,16 @@ x264_config_t::create_service(cuti::logging_context_t& context) const
   return result;
 }
 
-x264_config_t::~x264_config_t()
+config_t::~config_t()
 {
 }
 
-void x264_config_t::read_options(cuti::args_reader_t& reader)
+void config_t::read_options(cuti::args_reader_t& reader)
 {
   read_options(reader, 0);
 }
 
-void x264_config_t::read_options(cuti::args_reader_t& reader,
+void config_t::read_options(cuti::args_reader_t& reader,
                                  int config_file_depth)
 {
   static auto constexpr max_config_file_depth = 20;
@@ -276,7 +279,7 @@ void x264_config_t::read_options(cuti::args_reader_t& reader,
   }
 }
 
-void x264_config_t::print_usage(std::ostream& os)
+void config_t::print_usage(std::ostream& os)
 {
   os << std::endl;
   os << "usage: " << argv0_ << " [<option> ...]" << std::endl;
@@ -343,3 +346,5 @@ void x264_config_t::print_usage(std::ostream& os)
   os << std::endl;
   os << copyright_notice() << std::endl;
 }
+
+} // xes_utils

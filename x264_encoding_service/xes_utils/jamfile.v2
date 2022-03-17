@@ -1,5 +1,5 @@
 #
-# Copyright (C) 2021-2022 CodeShop B.V.
+# Copyright (C) 2022 CodeShop B.V.
 #
 # This file is part of the x264_encoding_service.
 #
@@ -17,21 +17,16 @@
 # <http://www.gnu.org/licenses/>.
 #
 
-import package ;
-
-exe x264_encoding_service
-: main.cpp
-  xes_utils//xes_utils
+lib xes_utils
+:
+  config.cpp
+  config_reader.cpp
+  service.cpp
   /cuti//cuti
-: <threading>multi
-  <target-os>linux:<linkflags>-Wl,--enable-new-dtags
-  <target-os>linux:<linkflags>-Wl,-rpath,\\$ORIGIN/../lib
-;
-
-package.install install
-: # properties
-: # binaries
-  x264_encoding_service
-: # libraries
-: # headers
-;
+:
+  <link>static
+  <threading>multi
+:
+:
+  <include>..
+; 
