@@ -27,7 +27,7 @@
 
 #include <utility>
 
-namespace xes_utils
+namespace x264es_utils
 {
 
 service_t::service_t(
@@ -68,4 +68,4 @@ service_t::~service_t()
 {
 }
 
-} // xes_utils
+} // x264es_utils

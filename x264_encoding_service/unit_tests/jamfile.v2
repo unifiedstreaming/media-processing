@@ -22,7 +22,7 @@ import testing ;
 project
 : requirements
   <threading>multi
-  <library>../xes_utils//xes_utils
+  <library>../x264es_utils//x264es_utils
   <library>/cuti//cuti
 ;
 

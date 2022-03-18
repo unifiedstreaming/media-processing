@@ -30,7 +30,7 @@
 #include <cuti/scoped_thread.hpp>
 #include <cuti/streambuf_backend.hpp>
 
-#include <xes_utils/service.hpp>
+#include <x264es_utils/service.hpp>
 
 #include <csignal>
 #include <exception>
@@ -90,7 +90,7 @@ void test_service(cuti::logging_context_t const& client_context,
   auto interfaces = cuti::local_interfaces(cuti::any_port);
 
   {
-    xes_utils::service_t service(server_context, dispatcher_config,
+    x264es_utils::service_t service(server_context, dispatcher_config,
       interfaces);
 
     cuti::scoped_thread_t server_thread([&] { service.run(); });

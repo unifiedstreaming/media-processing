@@ -56,7 +56,7 @@ see <http://www.gnu.org/licenses/> for details.)";
 
 } // anonymous
 
-namespace xes_utils
+namespace x264es_utils
 {
 
 config_t::config_t(int argc, char const* const argv[])
@@ -347,4 +347,4 @@ void config_t::print_usage(std::ostream& os)
   os << copyright_notice() << std::endl;
 }
 
-} // xes_utils
+} // x264es_utils

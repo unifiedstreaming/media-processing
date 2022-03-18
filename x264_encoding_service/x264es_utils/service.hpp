@@ -17,8 +17,8 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#ifndef XES_UTILS_SERVICE_HPP_
-#define XES_UTILS_SERVICE_HPP_
+#ifndef X264ES_UTILS_SERVICE_HPP_
+#define X264ES_UTILS_SERVICE_HPP_
 
 #include <cuti/dispatcher.hpp>
 #include <cuti/endpoint.hpp>
@@ -36,7 +36,7 @@ struct tcp_connection_t;
 
 } // cuti
 
-namespace xes_utils
+namespace x264es_utils
 {
 
 struct service_t : cuti::service_t
@@ -61,6 +61,6 @@ private :
   std::vector<cuti::endpoint_t> endpoints_;
 };
 
-} // xes_utils
+} // x264es_utils
 
 #endif

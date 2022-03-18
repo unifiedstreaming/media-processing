@@ -21,7 +21,7 @@ import package ;
 
 exe x264_encoding_service
 : main.cpp
-  xes_utils//xes_utils
+  x264es_utils//x264es_utils
   /cuti//cuti
 : <threading>multi
   <target-os>linux:<linkflags>-Wl,--enable-new-dtags

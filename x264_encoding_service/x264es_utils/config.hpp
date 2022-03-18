@@ -17,8 +17,8 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#ifndef XES_UTILS_CONFIG_HPP_
-#define XES_UTILS_CONFIG_HPP_
+#ifndef X264ES_UTILS_CONFIG_HPP_
+#define X264ES_UTILS_CONFIG_HPP_
 
 #include <cuti/dispatcher.hpp>
 #include <cuti/endpoint.hpp>
@@ -40,7 +40,7 @@ struct args_reader_t;
 
 } // cuti
 
-namespace xes_utils
+namespace x264es_utils
 {
 
 struct config_t : cuti::service_config_t
@@ -101,6 +101,6 @@ private :
 #endif
 };
 
-} // xes_utils
+} // x264es_utils
 
 #endif

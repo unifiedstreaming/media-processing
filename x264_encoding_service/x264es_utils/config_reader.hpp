@@ -17,17 +17,20 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#include "config_reader.hpp"
+#ifndef X264ES_UTILS_CONFIG_READER_HPP_
+#define X264ES_UTILS_CONFIG_READER_HPP_
 
-#include "config.hpp"
+#include <cuti/service.hpp>
 
-namespace xes_utils
+namespace x264es_utils
 {
 
-std::unique_ptr<cuti::service_config_t>
-config_reader_t::read_config(int argc, char const* const argv[]) const
+struct config_reader_t : cuti::service_config_reader_t
 {
-  return std::make_unique<config_t>(argc, argv);
-}
+  std::unique_ptr<cuti::service_config_t>
+  read_config(int argc, char const* const argv[]) const override;
+};
 
-} // xes_utils
+} // x264es_utils
+    
+#endif
