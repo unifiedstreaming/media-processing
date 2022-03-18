@@ -25,6 +25,8 @@
 #include <cuti/method_map.hpp>
 #include <cuti/subtract_handler.hpp>
 
+#include <utility>
+
 namespace xes_utils
 {
 
@@ -35,6 +37,7 @@ service_t::service_t(
 : map_(std::make_unique<cuti::method_map_t>())
 , dispatcher_(std::make_unique<cuti::dispatcher_t>(
                 context, dispatcher_config))
+, endpoints_()
 {
   // add sample methods (for manual testing)
   map_->add_method_factory(
@@ -46,7 +49,8 @@ service_t::service_t(
 
   for(auto const& endpoint : endpoints)
   {
-    dispatcher_->add_listener(endpoint, *map_);
+    auto bound_endpoint = dispatcher_->add_listener(endpoint, *map_);
+    endpoints_.push_back(std::move(bound_endpoint));
   }
 }
 
@@ -54,12 +58,12 @@ void service_t::run()
 {
   dispatcher_->run();
 }
-      
+
 void service_t::stop(int sig)
 {
   dispatcher_->stop(sig);
 }
-      
+
 service_t::~service_t()
 {
 }

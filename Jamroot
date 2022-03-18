@@ -24,7 +24,7 @@ build-project cuti/cuti ;
 build-project x264_encoding_service ;
 
 explicit unit_tests ;
-alias unit_tests : cuti/unit_tests ;
+alias unit_tests : cuti/unit_tests x264_encoding_service/unit_tests ;
 
 # To get executable-relative RUNPATHs, use (bash)
 # b2 hardcode-dll-paths=true dll-path="'\$ORIGIN/../lib'" --prefix=<prefix> install

@@ -45,6 +45,11 @@ struct service_t : cuti::service_t
             cuti::dispatcher_config_t const& dispatcher_config,
             std::vector<cuti::endpoint_t> const& endpoints);
 
+  std::vector<cuti::endpoint_t> const& endpoints() const
+  {
+    return endpoints_;
+  }
+
   void run() override;
   void stop(int sig) override;
 
@@ -53,6 +58,7 @@ struct service_t : cuti::service_t
 private :
   std::unique_ptr<cuti::method_map_t> map_;
   std::unique_ptr<cuti::dispatcher_t> dispatcher_;
+  std::vector<cuti::endpoint_t> endpoints_;
 };
 
 } // xes_utils
