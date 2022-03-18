@@ -23,6 +23,7 @@ lib x264es_utils
   config_reader.cpp
   service.cpp
   /cuti//cuti
+  /x264_proto//x264_proto
 :
   <link>static
 :

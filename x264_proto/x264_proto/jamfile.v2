@@ -1,0 +1,68 @@
+#
+# Copyright (C) 2022 CodeShop B.V.
+#
+# This file is part of the x264 service protocol library.
+#
+# The x264 service protocol library is free software: you can
+# redistribute it and/or modify it under the terms of version 2.1 of
+# the GNU Lesser General Public License as published by the Free
+# Software Foundation.
+#
+# The x264 service protocol library is distributed in the hope that
+# it will be useful, but WITHOUT ANY WARRANTY; without even the
+# implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
+# PURPOSE.  See version 2.1 of the GNU Lesser General Public License
+# for more details.
+# 
+# You should have received a copy of version 2.1 of the GNU Lesser
+# General Public License along with the x264 service protocol
+# library.  If not, see <http://www.gnu.org/licenses/>.
+#
+
+import os ;
+
+constant X264_PROTO_VERSION_SUFFIX : _0_0_0 ;
+
+rule x264_proto-dll-name ( name : type ? : properties * )
+{
+  if $(type) != SHARED_LIB
+  {
+    return "" ;
+  }
+
+  local prefix ;
+  local extension ;
+  if [ os.name ] = NT
+  {
+    prefix = "" ;
+    extension = ".dll" ;
+  }
+  else if [ os.name ] = MACOSX
+  {
+    prefix = "" ;
+    extension = ".dylib" ;
+  }
+  else
+  {
+    prefix = "lib" ;
+    extension = ".so" ;
+  }
+
+  local result = "$(prefix)$(name)$(X264_PROTO_VERSION_SUFFIX)$(extension)" ;
+# echo "x264_proto-dll-name: mapped $(name) to $(result)" ;
+  return $(result) ;
+}
+
+lib x264_proto
+:
+  client.cpp
+  /cuti//cuti
+:
+  <define>BUILDING_X264_PROTO
+  <link>shared
+  <tag>@x264_proto-dll-name
+  <visibility>hidden
+:
+:
+  <include>..
+; 

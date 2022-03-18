@@ -29,6 +29,7 @@
 #include <cuti/scoped_guard.hpp>
 #include <cuti/scoped_thread.hpp>
 #include <cuti/streambuf_backend.hpp>
+#include <x264_proto/client.hpp>
 
 #include <x264es_utils/service.hpp>
 
@@ -41,42 +42,6 @@
 
 namespace // anonymous
 {
-
-struct x264_client_t
-{
-  explicit x264_client_t(cuti::endpoint_t const& server_address)
-  : rpc_client_(server_address)
-  { }
-
-  x264_client_t(x264_client_t const&) = delete;
-  x264_client_t& operator=(x264_client_t const&) = delete;
-
-  int add(int arg1, int arg2)
-  {
-    int result;
-
-    auto inputs = cuti::make_input_list<int>(result);
-    auto outputs = cuti::make_output_list<int, int>(arg1, arg2);
-    rpc_client_("add", inputs, outputs);
-
-    return result;
-  }
-  
-  int subtract(int arg1, int arg2)
-  {
-    int result;
-
-    auto inputs = cuti::make_input_list<int>(result);
-    auto outputs = cuti::make_output_list<int, int>(arg1, arg2);
-    rpc_client_("subtract", inputs, outputs);
-
-    return result;
-  }
-  
-private :
-  cuti::rpc_client_t rpc_client_;
-};
- 
 
 void test_service(cuti::logging_context_t const& client_context,
                   cuti::logging_context_t const& server_context)
@@ -98,7 +63,7 @@ void test_service(cuti::logging_context_t const& client_context,
 
     auto const& endpoints = service.endpoints();
     assert(!endpoints.empty());
-    x264_client_t client(endpoints.front());
+    x264_proto::client_t client(endpoints.front());
 
     int result = client.add(42, 4711);
     assert(result == 4753);

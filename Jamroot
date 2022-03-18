@@ -27,8 +27,10 @@ project
 ;
 
 use-project /cuti : cuti/cuti ;
+use-project /x264_proto : x264_proto/x264_proto ;
 
 build-project cuti/cuti ;
+build-project x264_proto/x264_proto ;
 build-project x264_encoding_service ;
 
 explicit unit_tests ;

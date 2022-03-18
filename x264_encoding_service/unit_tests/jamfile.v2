@@ -22,6 +22,7 @@ import testing ;
 project
 : requirements
   <library>../x264es_utils//x264es_utils
+  <library>/x264_proto//x264_proto
   <library>/cuti//cuti
 ;
 
