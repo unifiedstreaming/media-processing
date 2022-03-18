@@ -21,7 +21,6 @@ import testing ;
 
 project
 : requirements
-  <threading>multi
   <library>../x264es_utils//x264es_utils
   <library>/cuti//cuti
 ;

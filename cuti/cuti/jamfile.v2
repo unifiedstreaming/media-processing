@@ -162,21 +162,11 @@ lib cuti
   advapi32
   ws2_32
 :
-  <toolset>msvc:<cxxflags>/wd4251 # class needs to have dll-interface 
-  <toolset>msvc:<cxxflags>/wd4275 # non dll-interface class used as base
-  <toolset>msvc:<cxxflags>/wd4910 # dllexport on extern template
   <define>BUILDING_CUTI
   <link>shared
   <tag>@cuti-dll-name
-  <target-os>windows:<define>NOMINMAX
-  <target-os>windows:<define>WIN32_LEAN_AND_MEAN
-  <threading>multi
   <visibility>hidden
-  <target-os>linux:<linkflags>-Wl,--enable-new-dtags
-  <target-os>linux:<linkflags>-Wl,-rpath,\\$ORIGIN/../lib
 :
 :
-  <toolset>msvc:<cxxflags>/wd4251 # class needs to have dll-interface 
-  <toolset>msvc:<cxxflags>/wd4275 # non dll-interface class used as base
   <include>..
 ; 

@@ -9,9 +9,17 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 #
 
-project cs_oss
+project
 : requirements
   <cxxstd>17
+  <toolset>msvc:<cxxflags>/wd4251 # class needs to have dll-interface 
+  <toolset>msvc:<cxxflags>/wd4275 # non dll-interface class used as base
+  <toolset>msvc:<cxxflags>/wd4910 # dllexport on extern template
+  <target-os>windows:<define>NOMINMAX
+  <target-os>windows:<define>WIN32_LEAN_AND_MEAN
+  <threading>multi
+  <target-os>linux:<linkflags>-Wl,--enable-new-dtags
+  <target-os>linux:<linkflags>-Wl,-rpath,\\$ORIGIN/../lib
 : default-build
 # <variant>release
   <address-model>64
@@ -26,7 +34,5 @@ build-project x264_encoding_service ;
 explicit unit_tests ;
 alias unit_tests : cuti/unit_tests x264_encoding_service/unit_tests ;
 
-# To get executable-relative RUNPATHs, use (bash)
-# b2 hardcode-dll-paths=true dll-path="'\$ORIGIN/../lib'" --prefix=<prefix> install
 explicit install ;
 alias install : x264_encoding_service//install ;

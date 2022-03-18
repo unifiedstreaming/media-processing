@@ -21,7 +21,6 @@ import testing ;
 
 project
 : requirements
-  <threading>multi
   <library>../cuti//cuti
 ;
 
