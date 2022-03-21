@@ -30,39 +30,11 @@ else
   alias ws2_32 : ;
 }
 
-constant CUTI_VERSION_SUFFIX : _0_0_0 ;
+constant CUTI_VERSION : 0_0_0 ;
 
-rule cuti-dll-name ( name : type ? : properties * )
-{
-  if $(type) != SHARED_LIB
-  {
-    return "" ;
-  }
+alias cuti : cuti_$(CUTI_VERSION) ;
 
-  local prefix ;
-  local extension ;
-  if [ os.name ] = NT
-  {
-    prefix = "" ;
-    extension = ".dll" ;
-  }
-  else if [ os.name ] = MACOSX
-  {
-    prefix = "" ;
-    extension = ".dylib" ;
-  }
-  else
-  {
-    prefix = "lib" ;
-    extension = ".so" ;
-  }
-
-  local result = "$(prefix)$(name)$(CUTI_VERSION_SUFFIX)$(extension)" ;
-# echo "cuti-dll-name: mapped $(name) to $(result)" ;
-  return $(result) ;
-}
-
-lib cuti
+lib cuti_$(CUTI_VERSION)
 :
   add_handler.cpp
   args_reader.cpp
@@ -164,7 +136,6 @@ lib cuti
 :
   <define>BUILDING_CUTI
   <link>shared
-  <tag>@cuti-dll-name
   <visibility>hidden
 :
 :
