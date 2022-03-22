@@ -17,19 +17,6 @@
 # <http://www.gnu.org/licenses/>.
 #
 
-import os ;
-
-if [ os.name ] = NT
-{
-  lib advapi32 ;
-  lib ws2_32 ;
-}
-else
-{
-  alias advapi32 : ;
-  alias ws2_32 : ;
-}
-
 constant CUTI_VERSION : 0_0_0 ;
 
 alias cuti : cuti_$(CUTI_VERSION) ;
@@ -131,12 +118,12 @@ lib cuti_$(CUTI_VERSION)
   tuple_mapping.cpp
   type_list.cpp
   viewbuf.cpp
-  advapi32
-  ws2_32
 :
   <define>BUILDING_CUTI
   <link>shared
   <visibility>hidden
+  <target-os>windows:<find-shared-library>advapi32
+  <target-os>windows:<find-shared-library>ws2_32
 :
 :
   <include>..
