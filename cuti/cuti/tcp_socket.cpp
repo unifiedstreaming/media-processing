@@ -104,8 +104,9 @@ int to_fd(SOCKET sock)
     return -1;
   }
 
+  static SOCKET constexpr max = std::numeric_limits<int>::max();
   assert(sock >= 0);
-  assert(sock <= std::numeric_limits<int>::max());
+  assert(sock <= max);
   return static_cast<int>(sock);
 }
 

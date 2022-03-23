@@ -202,7 +202,7 @@ struct status_reporter_t
   }
 
 private :
-  static void control_handler(DWORD control)
+  static void WINAPI control_handler(DWORD control)
   {
     switch(control)
     {
@@ -255,7 +255,7 @@ private :
   status_reporter_t& reporter_;
 };
 
-void service_main(DWORD dwNumServiceArgs, LPSTR* lpServiceArgVectors)
+void WINAPI service_main(DWORD dwNumServiceArgs, LPSTR* lpServiceArgVectors)
 {
   std::vector<char const*> args;
 
