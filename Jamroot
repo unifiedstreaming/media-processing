@@ -9,7 +9,7 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 #
 
-project
+project oss
 : requirements
   <cxxstd>17
   <toolset>msvc:<cxxflags>/wd4251 # class needs to have dll-interface 
