@@ -49,16 +49,16 @@ else ifneq ($(filter sh bash dash,$(basename $(notdir $(wildcard $(SHELL))))),)
     # Assume single filesystem view
     to_native = $(subst /,\,$1)
   endif
-    
+
 else
-  
+
   # Windows fallback when $(SHELL) file not found or unfamiliar shell name
   WINDOWS := yes
   UNIX_LIKE :=
   DEV_NULL := NUL
   to_shell = $(subst /,\,$1)
   to_native = $(subst /,\,$1)
-  
+
 endif
 
 #
