@@ -10,9 +10,17 @@
 #
 
 #
-# Set some GNU make options
+# Set GNU make options
 #
 .DELETE_ON_ERROR:
+
+#
+# Define utilities
+#
+override EMPTY :=
+override SPACE := $(EMPTY) $(EMPTY)
+override escape = $(subst $(SPACE),\$(SPACE),$1)
+override unescape = $(subst \$(SPACE),$(SPACE),$1)
 
 #
 # Determine this file's directory
@@ -93,11 +101,9 @@ BUILD_SETTINGS := $(strip \
 )
 
 #
-# Determine the objects directory
+# Determine the build directory (spaces escaped)
 #
-ifndef build-dir
-  build-dir := obj
-endif
+BUILD_DIR_ESC := $(call escape,$(if $(build-dir),$(build-dir),obj))
 
 #
 # Determine the directory to install to
@@ -107,16 +113,17 @@ ifneq ($(filter install,$(MAKECMDGOALS)),)
     $(error target 'install' requires 'prefix=<somehere>')
   endif
 endif
+PREFIX_ESC := $(call escape,$(prefix))
 
 #
 # Determine bjam args; we assume bjam is a native executable
 #
-BJAM_OPTIONS := --build-dir="$(call to_native,$(build-dir)/bjam)"
-ifneq ($(prefix),)
-  BJAM_OPTIONS += --prefix="$(call to_native,$(prefix))"
+BJAM_OPTIONS := --build-dir="$(call to_native,$(call unescape,$(BUILD_DIR_ESC))/bjam)"
+ifneq ($(PREFIX_ESC),)
+  BJAM_OPTIONS += --prefix="$(call to_native,$(call unescape,$(PREFIX_ESC)))"
   ifneq ($(WINDOWS),)
     # Ensure dlls are placed in the directory for executables
-    BJAM_OPTIONS += --libdir="$(call to_native,$(prefix)/bin)"
+    BJAM_OPTIONS += --libdir="$(call to_native,$(call unescape,$(PREFIX_ESC))/bin)"
   endif
 endif
 
@@ -138,16 +145,16 @@ all : x264_encoding_service/.bjam
 # (Pattern) rules for calling bjam
 #
 .PHONY : .bjam
-.bjam: | $(build-dir)
+.bjam: | $(BUILD_DIR_ESC)
 	$(BJAM) $(call bjam_args,$@)
 
 .PHONY : %.bjam
-%.bjam: | $(build-dir)
+%.bjam: | $(BUILD_DIR_ESC)
 	$(BJAM) $(call bjam_args,$@)
 
 .PHONY : clean
 clean :
-	$(RMDIR) "$(call to_shell,$(build-dir))"
+	$(RMDIR) "$(call to_shell,$(call unescape,$(BUILD_DIR_ESC)))"
 
 .PHONY : install
 install : install.bjam
@@ -155,5 +162,5 @@ install : install.bjam
 .PHONY : unit_tests
 unit_tests : unit_tests.bjam
 
-$(build-dir) :
-	$(MKDIR) "$(call to_shell,$(build-dir))"
+$(BUILD_DIR_ESC) :
+	$(MKDIR) "$(call to_shell,$(call unescape,$@))"
