@@ -42,7 +42,7 @@ else ifneq ($(filter sh bash dash,$(basename $(notdir $(wildcard $(SHELL))))),)
   DEV_NULL := $(if $(wildcard /dev/null),/dev/null,NUL)
   to_shell = $1
 
-  ifneq ($(filter /bin/ /usr/bin/,$(dir $(shell which cygpath))),)
+  ifneq ($(filter /bin/ /usr/bin/,$(dir $(shell which cygpath 2>$(DEV_NULL)))),)
     # Using a cygwinesque shell; path mapping required
     to_native = $(shell cygpath --windows $1)
   else
@@ -107,7 +107,7 @@ ifneq ($(filter install,$(MAKECMDGOALS)),)
     $(error target 'install' requires 'prefix=<somehere>')
   endif
 endif
-  
+
 #
 # Determine bjam args; we assume bjam is a native executable
 #
