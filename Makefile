@@ -149,28 +149,25 @@ BJAM := $(if $(shell b2 --version 2>$(DEV_NULL)),b2,bjam)
 #
 # Supported user targets
 # 
-.PHONY: all
-all : x264_encoding_service/.bjam
+all : .phony x264_encoding_service/.bjam
 
-.PHONY : install
-install : install.bjam
+install : .phony install.bjam
 
-.PHONY : unit_tests
-unit_tests : unit_tests.bjam
+unit_tests : .phony unit_tests.bjam
 
-.PHONY : clean
-clean :
+clean : .phony
 	$(RMDIR) "$(call to_shell,$(BUILD_DIR))"
+
+.PHONY : .phony
+.phony : 
 
 #
 # Rules for calling bjam
 #
-.PHONY : .bjam
-.bjam: | $(BUILD_DIR)
+.bjam: .phony | $(BUILD_DIR)
 	$(BJAM) $(call bjam_args,$@)
 
-.PHONY : %.bjam
-%.bjam: | $(BUILD_DIR)
+%.bjam: .phony | $(BUILD_DIR)
 	$(BJAM) $(call bjam_args,$@)
 
 install.bjam : | $(PREFIX)
