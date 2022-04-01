@@ -169,17 +169,11 @@ clean :
 .bjam: | $(BUILD_DIR)
 	$(BJAM) $(call bjam_args,$@)
 
-.PHONY: install.bjam
-install.bjam : | $(BUILD_DIR) $(PREFIX)
-	$(BJAM) $(call bjam_args,$@)
-
-.PHONY: unit_tests.bjam
-unit_tests.bjam : | $(BUILD_DIR)
-	$(BJAM) $(call bjam_args,$@)
-
 .PHONY : %.bjam
 %.bjam: | $(BUILD_DIR)
 	$(BJAM) $(call bjam_args,$@)
+
+install.bjam : | $(PREFIX)
 
 #
 # Directory creators
