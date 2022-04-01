@@ -146,32 +146,44 @@ bjam_args = $(BJAM_OPTIONS) $(BUILD_SETTINGS) $(patsubst %/,%,$(dir $1))$(addpre
 #
 BJAM := $(if $(shell b2 --version 2>$(DEV_NULL)),b2,bjam)
 
+#
+# Supported user targets
+# 
 .PHONY: all
 all : x264_encoding_service/.bjam
 
+.PHONY : install
+install : install.bjam
+
+.PHONY : unit_tests
+unit_tests : unit_tests.bjam
+
+.PHONY : clean
+clean :
+	$(RMDIR) "$(call to_shell,$(BUILD_DIR))"
+
 #
-# (Pattern) rules for calling bjam
+# Rules for calling bjam
 #
 .PHONY : .bjam
 .bjam: | $(BUILD_DIR)
+	$(BJAM) $(call bjam_args,$@)
+
+.PHONY: install.bjam
+install.bjam : | $(BUILD_DIR) $(PREFIX)
+	$(BJAM) $(call bjam_args,$@)
+
+.PHONY: unit_tests.bjam
+unit_tests.bjam : | $(BUILD_DIR)
 	$(BJAM) $(call bjam_args,$@)
 
 .PHONY : %.bjam
 %.bjam: | $(BUILD_DIR)
 	$(BJAM) $(call bjam_args,$@)
 
-.PHONY : clean
-clean :
-	$(RMDIR) "$(call to_shell,$(BUILD_DIR))"
-
-.PHONY : install
-install : install.bjam
-
-install.bjam : | $(PREFIX)
-
-.PHONY : unit_tests
-unit_tests : unit_tests.bjam
-
+#
+# Directory creators
+#
 $(BUILD_DIR) :
 	$(MKDIR) "$(call to_shell,$@)"
 
