@@ -28,10 +28,18 @@ override unescape = $(subst \$(SPACE),$(SPACE),$1)
 TOP := $(patsubst %/,%,$(dir $(abspath $(lastword $(MAKEFILE_LIST)))))
 
 #
+# to_make converts a path passed to make's command line to a path
+# understood by make (forward slashes as directory separators,
+# spaces escaped with backslashes)
+#
+to_make = $(call escape,$(subst \,/,$1))
+
+#
 # Determine if we're on a windows system, the unix-likeness of that
 # system, the name of the null device, how to obtain a path to use on
 # the shell command line, and how to obtain a path passed to native
 # executables.
+#
 
 ifeq ($(findstring Windows,$(OS)),)
 
@@ -39,8 +47,8 @@ ifeq ($(findstring Windows,$(OS)),)
   WINDOWS :=
   UNIX_LIKE := yes
   DEV_NULL := /dev/null
-  to_shell = $1
-  to_native = $1
+  to_shell = $(call unescape,$1)
+  to_native = $(call unescape,$1)
 
 else ifneq ($(filter sh bash dash,$(basename $(notdir $(wildcard $(SHELL))))),)
 
@@ -48,14 +56,14 @@ else ifneq ($(filter sh bash dash,$(basename $(notdir $(wildcard $(SHELL))))),)
   WINDOWS := yes
   UNIX_LIKE := yes
   DEV_NULL := $(if $(wildcard /dev/null),/dev/null,NUL)
-  to_shell = $1
+  to_shell = $(call unescape,$1)
 
   ifneq ($(filter /bin/ /usr/bin/,$(dir $(shell which cygpath 2>$(DEV_NULL)))),)
     # Using a cygwinesque shell; path mapping required
-    to_native = $(shell cygpath --windows $1)
+    to_native = $(shell cygpath --windows $(call unescape,$1))
   else
     # Assume single filesystem view
-    to_native = $(subst /,\,$1)
+    to_native = $(subst /,\,$(call unescape,$1))
   endif
 
 else
@@ -64,8 +72,8 @@ else
   WINDOWS := yes
   UNIX_LIKE :=
   DEV_NULL := NUL
-  to_shell = $(subst /,\,$1)
-  to_native = $(subst /,\,$1)
+  to_shell = $(subst /,\,$(call unescape,$1))
+  to_native = $(subst /,\,$(call unescape,$1))
 
 endif
 
@@ -101,9 +109,9 @@ BUILD_SETTINGS := $(strip \
 )
 
 #
-# Determine the build directory (spaces escaped)
+# Determine the build directory
 #
-BUILD_DIR_ESC := $(call escape,$(if $(build-dir),$(build-dir),obj))
+BUILD_DIR := $(call to_make,$(if $(build-dir),$(build-dir),obj))
 
 #
 # Determine the directory to install to
@@ -113,17 +121,17 @@ ifneq ($(filter install,$(MAKECMDGOALS)),)
     $(error target 'install' requires 'prefix=<somehere>')
   endif
 endif
-PREFIX_ESC := $(call escape,$(prefix))
+PREFIX := $(call to_make,$(prefix))
 
 #
 # Determine bjam args; we assume bjam is a native executable
 #
-BJAM_OPTIONS := --build-dir="$(call to_native,$(call unescape,$(BUILD_DIR_ESC))/bjam)"
-ifneq ($(PREFIX_ESC),)
-  BJAM_OPTIONS += --prefix="$(call to_native,$(call unescape,$(PREFIX_ESC)))"
+BJAM_OPTIONS := --build-dir="$(call to_native,$(BUILD_DIR)/bjam)"
+ifneq ($(PREFIX),)
+  BJAM_OPTIONS += --prefix="$(call to_native,$(PREFIX))"
   ifneq ($(WINDOWS),)
     # Ensure dlls are placed in the directory for executables
-    BJAM_OPTIONS += --libdir="$(call to_native,$(call unescape,$(PREFIX_ESC))/bin)"
+    BJAM_OPTIONS += --libdir="$(call to_native,$(PREFIX)/bin)"
   endif
 endif
 
@@ -145,22 +153,27 @@ all : x264_encoding_service/.bjam
 # (Pattern) rules for calling bjam
 #
 .PHONY : .bjam
-.bjam: | $(BUILD_DIR_ESC)
+.bjam: | $(BUILD_DIR)
 	$(BJAM) $(call bjam_args,$@)
 
 .PHONY : %.bjam
-%.bjam: | $(BUILD_DIR_ESC)
+%.bjam: | $(BUILD_DIR)
 	$(BJAM) $(call bjam_args,$@)
 
 .PHONY : clean
 clean :
-	$(RMDIR) "$(call to_shell,$(call unescape,$(BUILD_DIR_ESC)))"
+	$(RMDIR) "$(call to_shell,$(BUILD_DIR))"
 
 .PHONY : install
 install : install.bjam
 
+install.bjam : | $(PREFIX)
+
 .PHONY : unit_tests
 unit_tests : unit_tests.bjam
 
-$(BUILD_DIR_ESC) :
-	$(MKDIR) "$(call to_shell,$(call unescape,$@))"
+$(BUILD_DIR) :
+	$(MKDIR) "$(call to_shell,$@)"
+
+$(PREFIX) :
+	$(MKDIR) "$(call to_shell,$@)"
