@@ -1,0 +1,69 @@
+#
+# "THE BEER-WARE LICENSE" (Revision CS-42):
+#
+# This file was written by the CodeShop developers.  As long as you
+# retain this notice you can do whatever you want with it.
+# If we meet some day, and you think this file is worth it, you can
+# buy us a beer in return.  Even if you do that, this file still
+# comes WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+#
+
+this-dir := $(patsubst %/,%,$(dir $(lastword $(MAKEFILE_LIST)))) 
+
+include USPCommon.mki
+
+ifeq ($(build-dir),)
+  build-dir := default-build-dir
+endif
+
+ifeq ($(prefix),)
+  prefix := default-prefix
+endif
+
+configure-options := \
+  --prefix=$(abspath $(prefix)) \
+  --disable-cli \
+  --enable-static \
+  --enable-pic \
+  --disable-opencl \
+  --disable-avs \
+  --disable-swscale \
+  --disable-lavf \
+  --disable-ffms \
+  --disable-gpac \
+  --disable-lsmash \
+  $(if $(debug),--enable-debug)
+  
+sources := $(filter-out $(build-dir)/% $(prefix)/%,$(call find-files,%,.))
+
+.PHONY: all
+all: $(build-dir)/build-stamp
+
+.PHONY: install
+install: $(build-dir)/install-stamp
+
+.PHONY: clean
+clean :
+	rm -rf $(build-dir)
+
+$(build-dir)/build-stamp: $(build-dir)/config.mak $(sources)
+	$(file >$@.dep,$(call dependency-listing,$@,$(sources)))
+	$(MAKE) -C $(build-dir)
+	echo timestamp >$@
+
+$(build-dir)/install-stamp: $(build-dir)/build-stamp
+	$(MAKE) -C $(build-dir) install
+	echo timestamp >$@
+
+#
+# libx264's configure script generates a symlink for the Makefile;
+# the actual configuration is recorded in config.mak.
+#
+$(build-dir)/config.mak: configure config.guess config.sub | $(build-dir)
+	cd $(build-dir) && $(abspath $(this-dir))/configure $(configure-options)
+
+$(build-dir):
+	mkdir -p $@
+  
+-include $(build-dir)/build-stamp.dep
