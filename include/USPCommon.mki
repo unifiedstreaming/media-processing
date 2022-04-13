@@ -1,0 +1,62 @@
+#
+# "THE BEER-WARE LICENSE" (Revision CS-42):
+#
+# This file was written by the CodeShop developers.  As long as you
+# retain this notice you can do whatever you want with it.
+# If we meet some day, and you think this file is worth it, you can
+# buy us a beer in return.  Even if you do that, this file still
+# comes WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+#
+
+#
+# Some common settings and utilities
+#
+
+DEFAULT_GOAL := all
+
+.DELETE_ON_ERROR:
+
+#
+# Use $(space) for embedding a space in a list of (space-separated) tokens
+#
+empty :=
+space := $(empty) $(empty)
+
+#
+# Use $(newline) for embedding a newline in text
+#
+define newline :=
+
+
+endef
+
+#
+# $(call find-files, <pattern> ..., <root> ...)
+#
+# Recursively lists all non-directories matching any <pattern>,
+# starting from the <root> names.  Spaces in directory or file names
+# mess things up.
+#
+find-files = $(strip \
+  $(foreach name,$(wildcard $2), \
+    $(if $(wildcard $(name)/.), \
+      $(call find-files,$1,$(patsubst %/,%,$(name))/*), \
+      $(filter $1,$(patsubst ./%,%,$(name))) \
+    ) \
+  ) \
+)
+
+#
+# $(call dependency-listing, <target> ..., <prerequisite file> ...)
+#
+# Returns the text for a dependency makefile, where each <target>
+# depends on each <prerequisite file>.  A missing prerequisite file
+# (without a recipe) causes make to think each <target> is out of
+# date.
+#
+define dependency-listing =
+$1: $2
+
+$(subst $(space),,$(addsuffix :$(newline),$2))
+endef
