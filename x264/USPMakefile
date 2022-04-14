@@ -13,24 +13,23 @@ src-dir := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))
 
 include USPCommon.mki
 
-ifeq ($(build-dir),)
-  $(error build-dir must be set)
-endif
+$(if $(unix-like),,$(error unix-like build environment required))
+
+$(if $(build-dir),,$(error build-dir must be set))
 $(call check-out-of-tree,$(build-dir),$(src-dir))
 override build-dir := $(abspath $(build-dir))
 
-ifeq ($(install-dir),)
-  $(error install-dir must be set)
-endif
+$(if $(install-dir),,$(error install-dir must be set))
 $(call check-out-of-tree,$(install-dir),$(src-dir))
 override install-dir := $(abspath $(install-dir))
 
-configure-env := $(if $(windows),CC=cl.exe)
+using-cl := $(if $(windows),CC=cl.exe)
+extra-cflags := $(if $(using-cl),$(if $(debug-build),-MDd,-MD -Z7),$(if $(debug-build),,-g))
 
 configure-options := \
   --prefix=$(install-dir) \
-  $(if $(debug),--enable-debug) \
-  $(if $(windows),--extra-cflags=$(if $(debug),"-MDd","-MD -Z7")) \
+  $(if $(debug-build),--enable-debug) \
+  $(if $(extra-cflags),--extra-cflags="$(extra-cflags)") \
   --disable-cli \
   --enable-static \
   --enable-pic \
@@ -71,7 +70,7 @@ $(build-dir)/install-stamp: $(build-dir)/build-stamp
 $(build-dir)/config.mak: \
   $(addprefix $(src-dir)/,configure config.guess config.sub) \
   | $(build-dir)
-	cd $(build-dir) && $(configure-env) $(src-dir)/configure $(configure-options)
+	cd $(build-dir) && $(using-cl) $(src-dir)/configure $(configure-options)
 
 $(build-dir):
 	mkdir -p $@

@@ -37,6 +37,23 @@ endef
 windows := $(if $(findstring Windows,$(OS)),yes,)
 
 #
+# $(cygwin) is non-empty when under Cygwin
+#
+cygwin := $(if $(windows),$(if $(findstring CYGWIN,$(shell uname)),yes))
+
+#
+# $(unix-like) is non-empty under vanilla Unix or Cygwin
+#
+unix-like := $(if $(windows),$(cygwin),yes)
+
+#
+# $(release-build) and $(debug-build) test the value of $(variant);
+# only one of these is true. We default to a debug build.
+#
+release-build := $(if $(filter release,$(variant)),yes)
+debug-build := $(if $(release-build),,yes)
+
+#
 # $(call find-files,<pattern> ...,<root> ...)
 #
 # Recursively lists all non-directories matching any <pattern>,
