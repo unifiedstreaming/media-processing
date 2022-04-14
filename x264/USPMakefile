@@ -9,20 +9,28 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 #
 
-this-dir := $(patsubst %/,%,$(dir $(lastword $(MAKEFILE_LIST)))) 
+src-dir := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))
 
 include USPCommon.mki
 
 ifeq ($(build-dir),)
-  build-dir := default-build-dir
+  $(error build-dir must be set)
 endif
+$(call check-out-of-tree,$(build-dir),$(src-dir))
+override build-dir := $(abspath $(build-dir))
 
-ifeq ($(prefix),)
-  prefix := default-prefix
+ifeq ($(install-dir),)
+  $(error install-dir must be set)
 endif
+$(call check-out-of-tree,$(install-dir),$(src-dir))
+override install-dir := $(abspath $(install-dir))
+
+configure-env := $(if $(windows),CC=cl.exe)
 
 configure-options := \
-  --prefix=$(abspath $(prefix)) \
+  --prefix=$(install-dir) \
+  $(if $(debug),--enable-debug) \
+  $(if $(windows),--extra-cflags=$(if $(debug),"-MDd","-MD -Z7")) \
   --disable-cli \
   --enable-static \
   --enable-pic \
@@ -32,10 +40,9 @@ configure-options := \
   --disable-lavf \
   --disable-ffms \
   --disable-gpac \
-  --disable-lsmash \
-  $(if $(debug),--enable-debug)
+  --disable-lsmash
   
-sources := $(filter-out $(build-dir)/% $(prefix)/%,$(call find-files,%,.))
+sources := $(call find-files,%,$(src-dir))
 
 .PHONY: all
 all: $(build-dir)/build-stamp
@@ -57,11 +64,14 @@ $(build-dir)/install-stamp: $(build-dir)/build-stamp
 	echo timestamp >$@
 
 #
-# libx264's configure script generates a symlink for the Makefile;
-# the actual configuration is recorded in config.mak.
+# libx264's configure script generates a symlink for the Makefile in
+# the build directory; the actual configuration is recorded in
+# config.mak.
 #
-$(build-dir)/config.mak: configure config.guess config.sub | $(build-dir)
-	cd $(build-dir) && $(abspath $(this-dir))/configure $(configure-options)
+$(build-dir)/config.mak: \
+  $(addprefix $(src-dir)/,configure config.guess config.sub) \
+  | $(build-dir)
+	cd $(build-dir) && $(configure-env) $(src-dir)/configure $(configure-options)
 
 $(build-dir):
 	mkdir -p $@

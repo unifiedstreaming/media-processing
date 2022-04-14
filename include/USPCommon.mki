@@ -32,7 +32,12 @@ define newline :=
 endef
 
 #
-# $(call find-files, <pattern> ..., <root> ...)
+# $(windows) is non-empty when on Windows
+#
+windows := $(if $(findstring Windows,$(OS)),yes,)
+
+#
+# $(call find-files,<pattern> ...,<root> ...)
 #
 # Recursively lists all non-directories matching any <pattern>,
 # starting from the <root> names.  Spaces in directory or file names
@@ -48,7 +53,7 @@ find-files = $(strip \
 )
 
 #
-# $(call dependency-listing, <target> ..., <prerequisite file> ...)
+# $(call dependency-listing,<target> ...,<prerequisite file> ...)
 #
 # Returns the text for a dependency makefile, where each <target>
 # depends on each <prerequisite file>.  A missing prerequisite file
@@ -60,3 +65,15 @@ $1: $2
 
 $(subst $(space),,$(addsuffix :$(newline),$2))
 endef
+
+#
+# $(call is-in-tree,<path>,<root>)
+#
+# Returns non-empty if <path> is in the tree starting at <root>
+#
+is-in-tree = $(if $(filter $(patsubst %/,%,$(abspath $2))/%,$(patsubst %/,%,$(abspath $1))/),yes)
+
+#
+# $(call check-out-of-tree,<path>,<root>)
+#
+check-out-of-tree = $(if $(call is-in-tree,$1,$2),$(error '$1' is in tree '$2'))
