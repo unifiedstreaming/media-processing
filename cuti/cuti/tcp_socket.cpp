@@ -90,7 +90,7 @@ void set_keepalive(int fd, bool enable)
   {
     int cause = last_system_error();
     system_exception_builder_t builder;
-    builder << "Error setting SO_KEEPALVE: " << error_status_t(cause);
+    builder << "Error setting SO_KEEPALIVE: " << error_status_t(cause);
     builder.explode();
   }
 }
