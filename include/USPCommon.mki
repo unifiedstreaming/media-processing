@@ -37,9 +37,10 @@ endef
 windows := $(if $(findstring Windows,$(OS)),yes,)
 
 #
-# $(cygwin) is non-empty when under Cygwin
+# $(cygwin) is non-empty when under Cygwin.  We assume this is true
+# when running cygwin make.
 #
-cygwin := $(if $(windows),$(if $(findstring CYGWIN,$(shell uname)),yes))
+cygwin := $(if $(windows),$(if $(findstring cygwin,$(shell $(MAKE) --version)),yes))
 
 #
 # $(unix-like) is non-empty under vanilla Unix or Cygwin
@@ -48,7 +49,7 @@ unix-like := $(if $(windows),$(cygwin),yes)
 
 #
 # $(release-build) and $(debug-build) test the value of $(variant);
-# only one of these is true. We default to a debug build.
+# only one of these is true.  We default to a debug build.
 #
 release-build := $(if $(filter release,$(variant)),yes)
 debug-build := $(if $(release-build),,yes)
