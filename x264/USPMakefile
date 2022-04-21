@@ -13,66 +13,103 @@ src-dir := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))
 
 include USPCommon.mki
 
-$(if $(unix-like),,$(error unix-like build environment required))
-
-$(if $(build-dir),,$(error build-dir must be set))
-$(call check-out-of-tree,$(build-dir),$(src-dir))
-override build-dir := $(abspath $(build-dir))
-
 $(if $(install-dir),,$(error install-dir must be set))
 $(call check-out-of-tree,$(install-dir),$(src-dir))
 override install-dir := $(abspath $(install-dir))
 
-using-cl := $(if $(windows),CC=cl.exe)
-extra-cflags := $(if $(using-cl),$(if $(debug-build),-MDd,-MD -Z7),$(if $(debug-build),,-g))
+#
+# Windows: specify build=yes for building under cygwin using msvc and nasm
+#
+override build := $(if $(windows),$(build),yes)
 
-configure-options := \
-  --prefix=$(install-dir) \
-  $(if $(debug-build),--enable-debug) \
-  $(if $(extra-cflags),--extra-cflags="$(extra-cflags)") \
-  --disable-cli \
-  --enable-static \
-  --enable-pic \
-  --disable-opencl \
-  --disable-avs \
-  --disable-swscale \
-  --disable-lavf \
-  --disable-ffms \
-  --disable-gpac \
-  --disable-lsmash
+ifneq ($(build),)
+
+  #
+  # Full build & install
+  #
+  $(if $(unix-like),,$(error unix-like build environment required))
+
+  $(if $(build-dir),,$(error build-dir must be set))
+  $(call check-out-of-tree,$(build-dir),$(src-dir))
+  override build-dir := $(abspath $(build-dir))
+
+  using-cl := $(if $(windows),CC=cl.exe)
+  extra-cflags := $(if $(using-cl),$(if $(debug-build),-MDd,-MD -Z7),$(if $(debug-build),,-g))
+
+  configure-options := \
+    --prefix=$(install-dir) \
+    $(if $(debug-build),--enable-debug) \
+    $(if $(extra-cflags),--extra-cflags="$(extra-cflags)") \
+    --disable-cli \
+    --enable-static \
+    --enable-pic \
+    --disable-opencl \
+    --disable-avs \
+    --disable-swscale \
+    --disable-lavf \
+    --disable-ffms \
+    --disable-gpac \
+    --disable-lsmash
   
-sources := $(call find-files,%,$(src-dir))
+  sources := $(call find-files,%,$(src-dir))
 
-.PHONY: all
-all: $(build-dir)/build-stamp
+  .PHONY: all
+  all: $(build-dir)/build-stamp
 
-.PHONY: install
-install: $(build-dir)/install-stamp
+  .PHONY: install
+  install: $(build-dir)/install-stamp
 
-.PHONY: clean
-clean :
-	rm -rf $(build-dir)
+  .PHONY: clean
+  clean :
+	$(rmdir) $(call to-shell,$(build-dir))
 
-$(build-dir)/build-stamp: $(build-dir)/config.mak $(sources)
+  $(build-dir)/build-stamp: $(build-dir)/config.mak $(sources)
 	$(file >$@.dep,$(call dependency-listing,$@,$(sources)))
 	$(MAKE) -C $(build-dir)
-	echo timestamp >$@
+	echo timestamp >$(call to-shell,$@)
 
-$(build-dir)/install-stamp: $(build-dir)/build-stamp
+  $(build-dir)/install-stamp: $(build-dir)/build-stamp
 	$(MAKE) -C $(build-dir) install
-	echo timestamp >$@
+	echo timestamp >$(call to-shell,$@)
 
-#
-# libx264's configure script generates a symlink for the Makefile in
-# the build directory; the actual configuration is recorded in
-# config.mak.
-#
-$(build-dir)/config.mak: \
-  $(addprefix $(src-dir)/,configure config.guess config.sub) \
-  | $(build-dir)
+  #
+  # libx264's configure script generates a symlink for the Makefile in
+  # the build directory; the actual configuration is recorded in
+  # config.mak.
+  #
+  $(build-dir)/config.mak: \
+    $(addprefix $(src-dir)/,configure config.guess config.sub) \
+    | $(build-dir)
 	cd $(build-dir) && $(using-cl) $(src-dir)/configure $(configure-options)
 
-$(build-dir):
-	mkdir -p $@
+  $(build-dir):
+	$(mkdir) $@
   
--include $(build-dir)/build-stamp.dep
+  -include $(build-dir)/build-stamp.dep
+
+else
+
+  #
+  # Install pre-built binaries
+  #
+  prebuilt-dir := $(src-dir)/prebuilt/msvc-14.2/$(if $(debug-build),debug,release)/address-model-64
+  filenames := $(patsubst $(prebuilt-dir)/%,%,$(call find-files,%,$(prebuilt-dir)))
+  installed-files := $(addprefix $(install-dir)/,$(filenames))
+  installed-subdirs := $(sort $(abspath $(dir $(installed-files))))
+
+  .PHONY: all
+  all:
+	$(error building not enabled)
+
+  .PHONY: install
+  install: $(installed-files)
+
+  $(installed-files): | $(installed-subdirs)
+
+  $(installed-files): $(install-dir)/%: $(prebuilt-dir)/%
+	$(copy) $(call to-shell,$<) $(call to-shell,$@)
+
+  $(installed-subdirs):
+	$(mkdir) $(call to-shell,$@)
+
+endif
