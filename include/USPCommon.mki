@@ -48,6 +48,27 @@ cygwin := $(if $(windows),$(if $(findstring cygwin,$(shell $(MAKE) --version)),y
 unix-like := $(if $(windows),$(cygwin),yes)
 
 #
+# shell filesystem commands
+#
+copy := $(if $(unix-like),cp,copy /Y)
+mkdir := $(if $(unix-like),mkdir -p,mkdir)
+rmdir := $(if $(unix-like),rm -rf,-rmdir /S /Q)
+
+#
+# $(call to-native, <path>)
+#
+# Converts a make-style path to a path for a native executable.
+#
+to-native = $(if $(windows),$(if $(cygwin),$(shell cygpath $1),$(subst /,\,$1)),$1)
+
+#
+# $(call to-shell, <path>)
+#
+# Converts a make-style <path> to a path for the shell.
+#
+to-shell = $(if $(unix-like),$1,$(call to-native,$1))
+
+#
 # $(release-build) and $(debug-build) test the value of $(variant);
 # only one of these is true.  We default to a debug build.
 #
