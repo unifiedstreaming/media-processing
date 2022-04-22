@@ -55,18 +55,40 @@ mkdir := $(if $(unix-like),mkdir -p,mkdir)
 rmdir := $(if $(unix-like),rm -rf,-rmdir /S /Q)
 
 #
-# $(call to-native, <path>)
+# $(call escape,<path>)
 #
-# Converts a make-style path to a path for a native executable.
+# Converts each <space> in path to <backslash><space>
 #
-to-native = $(if $(windows),$(if $(cygwin),$(shell cygpath $1),$(subst /,\,$1)),$1)
+escape = $(subst $(space),\$(space),$1)
 
 #
-# $(call to-shell, <path>)
+# $(call unescape,<path>)
+#
+# Converts each <backslash><space> in path to <space>
+#
+unescape = $(subst \$(space),$(space),$1)
+
+#
+# $(call to-make,<path>)
+#
+# Converts a path passed on the command line to one understood by make
+# (backslashes mapped to slashes, spaces escaped by backslashes)
+#
+to-make = $(call escape,$(subst \,/,$1))
+
+#
+# $(call to-shell,<path>)
 #
 # Converts a make-style <path> to a path for the shell.
 #
-to-shell = $(if $(unix-like),$1,$(call to-native,$1))
+to-shell = $(if $(unix-like),$(call unescape,$1),$(subst /,\,$(call unescape,$1)))
+
+#
+# $(call to-native,<path>)
+#
+# Converts a make-style path to a path for a native executable.
+#
+to-native = $(if $(cygwin),$(shell cygpath --windows "$(call to-shell,$1)"),$(call to-shell,$1))
 
 #
 # $(release-build) and $(debug-build) test the value of $(variant);
