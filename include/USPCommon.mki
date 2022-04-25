@@ -48,6 +48,11 @@ cygwin := $(if $(windows),$(if $(findstring cygwin,$(shell $(MAKE) --version)),y
 unix-like := $(if $(windows),$(cygwin),yes)
 
 #
+# $(dev-null) is the name of the system bitbucket
+#
+dev-null := $(if $(unix-like),/dev/null,NUL)
+
+#
 # shell filesystem commands
 #
 copy := $(if $(unix-like),cp,copy /Y)
