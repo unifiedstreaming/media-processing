@@ -40,6 +40,13 @@ build-settings := $(strip \
 build-dir := $(call to-make,$(if $(build-dir),$(build-dir),obj))
 
 #
+# Determine the prerequistes directory bjam targets can refer to
+#
+prereqs-dir := $(abspath $(build-dir)/prereqs/$(subst $(space),/,$(subst =,-,$(build-settings))))
+prereqs-install-dir := $(prereqs-dir)/install
+prereqs-build-dir := $(prereqs-dir)/build
+
+#
 # Determine the directory to install to
 #
 ifneq ($(filter install,$(MAKECMDGOALS)),)
@@ -100,6 +107,12 @@ clean : .phony
 	$(bjam) $(call bjam_args,$@)
 
 install.bjam : | $(install-dir)
+
+#
+# Prequisite libraries
+#
+libx264 : .phony
+	$(MAKE) -C x264 -f USPMakefile $(build-settings) build-dir=$(prereqs-build-dir)/x264 install-dir=$(prereqs-install-dir) install
 
 #
 # Directory creators
