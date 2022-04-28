@@ -17,15 +17,45 @@
 # <http://www.gnu.org/licenses/>.
 #
 
+import os ;
+import errors ;
+
+if [ os.environ prereqs-install-dir ] = ""
+{
+  errors.error "prereqs-install-dir must be set" ;
+}
+path-constant prereqs-install-dir : [ os.environ prereqs-install-dir ] ;
+
+if [ os.name ] = NT
+{
+  constant x264-name : libx264 ;
+}
+else
+{
+  constant x264-name : x264 ;
+}
+
+lib x264
+:
+:
+  <search>$(prereqs-install-dir)/lib
+  <link>static
+  <name>$(x264-name)
+:
+:
+;
+
 lib x264es_utils
 :
   config.cpp
   config_reader.cpp
   service.cpp
+  x264
   /cuti//cuti
   /x264_proto//x264_proto
 :
   <link>static
+  <include>$(prereqs-install-dir)/include
 :
 :
   <include>..

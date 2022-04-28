@@ -59,7 +59,8 @@ install-dir := $(call to-make,$(install-dir))
 #
 # Determine bjam args; we assume bjam is a native executable
 #
-bjam-options := --build-dir="$(call to-native,$(build-dir)/bjam)"
+bjam-options := -sprereqs-install-dir="$(call to-native,$(prereqs-install-dir))"
+bjam-options += --build-dir="$(call to-native,$(build-dir)/bjam)"
 ifneq ($(install-dir),)
   bjam-options += --prefix="$(call to-native,$(install-dir))"
   ifneq ($(windows),)
@@ -100,10 +101,10 @@ clean : .phony
 #
 # Rules for calling bjam
 #
-.bjam: .phony | $(build-dir)
+.bjam: .phony libx264 | $(build-dir)
 	$(bjam) $(call bjam_args,$@)
 
-%.bjam: .phony | $(build-dir)
+%.bjam: .phony libx264 | $(build-dir)
 	$(bjam) $(call bjam_args,$@)
 
 install.bjam : | $(install-dir)
