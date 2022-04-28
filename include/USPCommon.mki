@@ -48,6 +48,12 @@ cygwin := $(if $(windows),$(if $(findstring cygwin,$(shell $(MAKE) --version)),y
 unix-like := $(if $(windows),$(cygwin),yes)
 
 #
+# $(c-compiler) is non-empty when we want to override the C compiler
+# for configuration scripts.
+#
+c-compiler := $(if $(windows),cl.exe,$(if $(filter darwin% Darwin% freeBSD% FreeBSD%,$(shell uname -s)),clang))
+
+#
 # $(dev-null) is the name of the system bitbucket
 #
 dev-null := $(if $(unix-like),/dev/null,NUL)

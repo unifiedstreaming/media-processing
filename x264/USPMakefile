@@ -18,11 +18,12 @@ $(call check-out-of-tree,$(install-dir),$(src-dir))
 override install-dir := $(abspath $(install-dir))
 
 #
-# Windows: specify build=yes for building under cygwin using msvc and nasm
+# Windows: specify build-x264=yes for a full build under cygwin using
+# msvc and nasm (by default, we use precompiled binaries)
 #
-override build := $(if $(windows),$(build),yes)
+override build-x264 := $(if $(windows),$(build-x264),yes)
 
-ifneq ($(build),)
+ifneq ($(build-x264),)
 
   #
   # Full build & install
@@ -33,8 +34,7 @@ ifneq ($(build),)
   $(call check-out-of-tree,$(build-dir),$(src-dir))
   override build-dir := $(abspath $(build-dir))
 
-  using-cl := $(if $(windows),CC=cl.exe)
-  extra-cflags := $(if $(using-cl),$(if $(debug-build),-MDd,-MD -Z7),$(if $(debug-build),,-g))
+  extra-cflags := $(if $(filter cl cl.exe,$(c-compiler)),$(if $(debug-build),-MDd,-MD -Z7),$(if $(debug-build),,-g))
 
   configure-options := \
     --prefix=$(install-dir) \
@@ -80,7 +80,7 @@ ifneq ($(build),)
   $(build-dir)/config.mak: \
     $(addprefix $(src-dir)/,configure config.guess config.sub) \
     | $(build-dir)
-	cd $(build-dir) && $(using-cl) $(src-dir)/configure $(configure-options)
+	cd $(build-dir) && $(addprefix CC=,$(c-compiler)) $(src-dir)/configure $(configure-options)
 
   $(build-dir):
 	$(mkdir) $@
