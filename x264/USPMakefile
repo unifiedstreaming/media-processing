@@ -34,7 +34,7 @@ ifneq ($(build-x264),)
   $(call check-out-of-tree,$(build-dir),$(src-dir))
   override build-dir := $(abspath $(build-dir))
 
-  extra-cflags := $(if $(filter cl cl.exe,$(c-compiler)),$(if $(debug-build),-MDd,-MD -Z7),$(if $(debug-build),,-g))
+  extra-cflags := $(strip $(if $(filter cl cl.exe,$(c-compiler)),$(if $(debug-build),-MDd,-MD -Z7),$(if $(debug-build),,-g)) $(sanitizer-flags))
 
   configure-options := \
     --prefix=$(install-dir) \

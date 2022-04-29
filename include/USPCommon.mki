@@ -32,6 +32,11 @@ define newline :=
 endef
 
 #
+# Use $(comma) to denote a literal comma in function arguments
+#
+comma := ,
+
+#
 # $(windows) is non-empty when on Windows
 #
 windows := $(if $(findstring Windows,$(OS)),yes,)
@@ -149,3 +154,26 @@ is-in-tree = $(if $(filter $(patsubst %/,%,$(abspath $2))/%,$(patsubst %/,%,$(ab
 # $(call check-out-of-tree,<path>,<root>)
 #
 check-out-of-tree = $(if $(call is-in-tree,$1,$2),$(error '$1' is in tree '$2'))
+
+#
+# sanitizer flags for compiler command lines
+#
+sanitizer-keys := address thread undefined
+sanitizer-values := on norecover
+sanitizer-flags := $(strip \
+  $(foreach key,$(sanitizer-keys), \
+    $(if $($(key)-sanitizer), \
+      $(if $(filter $(sanitizer-values),$($(key)-sanitizer)), \
+        -fsanitize=$(key), \
+        $(error bad value '$($(key)-sanitizer)' for $(key)-sanitizer) \
+      ) \
+    ) \
+  ) \
+  $(addprefix -fno-sanitize-recover=, \
+    $(subst $(space),$(comma),$(strip \
+      $(foreach key,$(sanitizer-keys), \
+        $(if $(filter norecover,$($(key)-sanitizer)),$(key)) \
+      ) \
+    )) \
+  ) \
+)
