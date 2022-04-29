@@ -53,10 +53,11 @@ cygwin := $(if $(windows),$(if $(findstring cygwin,$(shell $(MAKE) --version)),y
 unix-like := $(if $(windows),$(cygwin),yes)
 
 #
-# $(c-compiler) is non-empty when we want to override the C compiler
-# for configuration scripts.
+# $(darwin) and $(freebsd) are non-empty when detected
 #
-c-compiler := $(if $(windows),cl.exe,$(if $(filter darwin% Darwin% freeBSD% FreeBSD%,$(shell uname -s)),clang))
+uname-s := $(if $(unix-like),$(shell uname -s))
+darwin := $(if $(filter darwin% Darwin%,$(uname-s)),yes)
+freebsd := $(if $(filter freeBSD% FreeBSD%,$(uname-s)),yes)
 
 #
 # $(dev-null) is the name of the system bitbucket
@@ -107,13 +108,6 @@ to-shell = $(if $(unix-like),$(call unescape,$1),$(subst /,\,$(call unescape,$1)
 to-native = $(if $(cygwin),$(shell cygpath --windows "$(call to-shell,$1)"),$(call to-shell,$1))
 
 #
-# $(release-build) and $(debug-build) test the value of $(variant);
-# only one of these is true.  We default to a debug build.
-#
-release-build := $(if $(filter release,$(variant)),yes)
-debug-build := $(if $(release-build),,yes)
-
-#
 # $(call find-files,<pattern> ...,<root> ...)
 #
 # Recursively lists all non-directories matching any <pattern>,
@@ -156,18 +150,51 @@ is-in-tree = $(if $(filter $(patsubst %/,%,$(abspath $2))/%,$(patsubst %/,%,$(ab
 check-out-of-tree = $(if $(call is-in-tree,$1,$2),$(error '$1' is in tree '$2'))
 
 #
-# sanitizer flags for compiler command lines
+# $(call validate-build-setting,<name>,<allowed value>...,<default>)
+# Returns a validated build settting
+#
+validate-build-setting = $(strip \
+  $(if $($1), \
+    $(if $(or $(word 2,$($1)),$(filter-out $2,$($1))), \
+      $(error bad value '$($1)' for $1), \
+      $($1) \
+    ), \
+    $3 \
+  ) \
+)
+    
+#
+# Determine bjam-like build settings
+#
+override address-model :=\
+  $(call validate-build-setting,address-model,32 64,64)
+override address-sanitizer :=\
+  $(call validate-build-setting,address-sanitizer,on norecover,)
+override thread-sanitizer :=\
+  $(call validate-build-setting,thread-sanitizer,on norecover,)
+override toolset :=\
+  $(call validate-build-setting,toolset,%,$(if $(windows),msvc,$(if $(or $(darwin),$(freebsd)),clang,gcc)))
+override undefined-sanitizer :=\
+  $(call validate-build-setting,undefined-sanitizer,on norecover,)
+override variant :=\
+  $(call validate-build-setting,variant,debug release,debug)
+
+override build-settings := $(strip \
+  address-model=$(address-model) \
+  $(addprefix address-sanitizer=,$(address-sanitizer)) \
+  $(addprefix thread-sanitizer=,$(thread-sanitizer)) \
+  toolset=$(toolset) \
+  $(addprefix undefined-sanitizer=,$(undefined-sanitizer)) \
+  variant=$(variant) \
+)
+
+#
+# Determine sanitizer flags for compiler command lines
 #
 sanitizer-keys := address thread undefined
-sanitizer-values := on norecover
 sanitizer-flags := $(strip \
   $(foreach key,$(sanitizer-keys), \
-    $(if $($(key)-sanitizer), \
-      $(if $(filter $(sanitizer-values),$($(key)-sanitizer)), \
-        -fsanitize=$(key), \
-        $(error bad value '$($(key)-sanitizer)' for $(key)-sanitizer) \
-      ) \
-    ) \
+    $(if $(filter on norecover,$($(key)-sanitizer)),-fsanitize=$(key)) \
   ) \
   $(addprefix -fno-sanitize-recover=, \
     $(subst $(space),$(comma),$(strip \
@@ -177,3 +204,4 @@ sanitizer-flags := $(strip \
     )) \
   ) \
 )
+

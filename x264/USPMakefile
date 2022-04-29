@@ -34,11 +34,19 @@ ifneq ($(build-x264),)
   $(call check-out-of-tree,$(build-dir),$(src-dir))
   override build-dir := $(abspath $(build-dir))
 
-  extra-cflags := $(strip $(if $(filter cl cl.exe,$(c-compiler)),$(if $(debug-build),-MDd,-MD -Z7),$(if $(debug-build),,-g)) $(sanitizer-flags))
+  compiler := $(if $(filter msvc%,$(toolset)),cl.exe,$(if $(filter clang%,$(toolset)),clang,gcc))
+
+  extra-cflags := $(strip \
+    $(if $(filter msvc%,$(toolset)), \
+      $(if $(filter debug,$(variant)),-MDd,-MD -Z7), \
+      $(if $(filter debug,$(variant)),,-g) \
+    ) \
+    $(sanitizer-flags) \
+  )
 
   configure-options := \
     --prefix=$(install-dir) \
-    $(if $(debug-build),--enable-debug) \
+    $(if $(filter debug,$(variant)),--enable-debug) \
     $(if $(extra-cflags),--extra-cflags="$(extra-cflags)") \
     --disable-cli \
     --enable-static \
@@ -80,7 +88,7 @@ ifneq ($(build-x264),)
   $(build-dir)/config.mak: \
     $(addprefix $(src-dir)/,configure config.guess config.sub) \
     | $(build-dir)
-	cd $(build-dir) && $(addprefix CC=,$(c-compiler)) $(src-dir)/configure $(configure-options)
+	cd $(build-dir) && CC=$(compiler) $(src-dir)/configure $(configure-options)
 
   $(build-dir):
 	$(mkdir) $@
@@ -92,7 +100,7 @@ else
   #
   # Install pre-built binaries
   #
-  prebuilt-dir := $(src-dir)/prebuilt/msvc-14.2/$(if $(debug-build),debug,release)/address-model-64
+  prebuilt-dir := $(src-dir)/prebuilt/msvc-14.2/$(variant)/address-model-$(address-model)
   filenames := $(patsubst $(prebuilt-dir)/%,%,$(call find-files,%,$(prebuilt-dir)))
   installed-files := $(addprefix $(install-dir)/,$(filenames))
   installed-subdirs := $(sort $(abspath $(dir $(installed-files))))

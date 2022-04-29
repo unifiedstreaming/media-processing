@@ -17,24 +17,6 @@ top := $(patsubst %/,%,$(dir $(abspath $(lastword $(MAKEFILE_LIST)))))
 include include/USPCommon.mki
 
 #
-# Determine bjam-like build settings
-#
-define build-setting-names :=
-  address-model
-  address-sanitizer
-  thread-sanitizer
-  toolset
-  undefined-sanitizer
-  variant
-endef
-
-build-settings := $(strip \
-  $(foreach name,$(build-setting-names), \
-    $(if $($(name)),$(name)=$($(name))) \
-  ) \
-)
-
-#
 # Determine the build directory
 #
 build-dir := $(call to-make,$(if $(build-dir),$(build-dir),obj))
