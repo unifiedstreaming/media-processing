@@ -83,17 +83,19 @@ clean : .phony
 #
 # Rules for calling bjam
 #
-.bjam: .phony libx264 | $(build-dir)
+.bjam: .phony prereqs | $(build-dir)
 	$(bjam) $(call bjam_args,$@)
 
-%.bjam: .phony libx264 | $(build-dir)
+%.bjam: .phony prereqs | $(build-dir)
 	$(bjam) $(call bjam_args,$@)
 
 install.bjam : | $(install-dir)
 
 #
-# Prerequisite libraries
+# Prerequisite libraries built before invoking any bjam target
 #
+prereqs : .phony libx264
+
 libx264 : .phony
 	$(MAKE) -C x264 -f USPMakefile $(build-settings) build-dir=$(prereqs-build-dir)/x264 install-dir=$(prereqs-install-dir) install
 
