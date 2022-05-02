@@ -19,6 +19,8 @@
 
 #include "service.hpp"
 
+#include <x264.h>
+
 #include <cuti/dispatcher.hpp>
 #include <cuti/add_handler.hpp>
 #include <cuti/echo_handler.hpp>

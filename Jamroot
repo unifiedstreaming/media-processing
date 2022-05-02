@@ -27,6 +27,7 @@ project oss
 ;
 
 use-project /cuti : cuti/cuti ;
+use-project /x264 : x264 ;
 use-project /x264_proto : x264_proto/x264_proto ;
 
 build-project cuti/cuti ;
