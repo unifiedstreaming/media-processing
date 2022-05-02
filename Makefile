@@ -92,7 +92,7 @@ clean : .phony
 install.bjam : | $(install-dir)
 
 #
-# Prequisite libraries
+# Prerequisite libraries
 #
 libx264 : .phony
 	$(MAKE) -C x264 -f USPMakefile $(build-settings) build-dir=$(prereqs-build-dir)/x264 install-dir=$(prereqs-install-dir) install
