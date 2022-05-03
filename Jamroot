@@ -9,6 +9,15 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 #
 
+import os ;
+import errors ;
+
+if [ os.environ prereqs-install-dir ] = ""
+{
+  errors.error "prereqs-install-dir must be set" ;
+}
+path-constant prereqs-install-dir : [ os.environ prereqs-install-dir ] ;
+
 project oss
 : requirements
   <cxxstd>17
@@ -27,7 +36,7 @@ project oss
 ;
 
 use-project /cuti : cuti/cuti ;
-use-project /x264 : x264 ;
+use-project /x264 : $(prereqs-install-dir)/lib/jamfiles/x264 ;
 use-project /x264_proto : x264_proto/x264_proto ;
 
 build-project cuti/cuti ;

@@ -23,6 +23,22 @@ override install-dir := $(abspath $(install-dir))
 #
 override build-x264 := $(if $(windows),$(build-x264),yes)
 
+#
+# $(call consumer-jamfile,<library name>,<library file>,<include directory>)
+# Generates the content of a jamfile for consuming a library.
+#
+define consumer-jamfile =
+lib $1
+:
+:
+<file>"$(subst \,/,$(call to-native,$2))"
+:
+:
+<include>"$(subst \,/,$(call to-native,$3))"
+;
+
+endef
+
 ifneq ($(build-x264),)
 
   #
@@ -65,7 +81,7 @@ ifneq ($(build-x264),)
   all: $(build-dir)/build-stamp
 
   .PHONY: install
-  install: $(build-dir)/install-stamp
+  install: $(install-dir)/lib/jamfiles/x264/jamfile
 
   .PHONY: clean
   clean :
@@ -74,10 +90,6 @@ ifneq ($(build-x264),)
   $(build-dir)/build-stamp: $(build-dir)/config.mak $(sources)
 	$(file >$@.dep,$(call dependency-listing,$@,$(sources)))
 	$(MAKE) -C $(build-dir)
-	echo timestamp >$(call to-shell,$@)
-
-  $(build-dir)/install-stamp: $(build-dir)/build-stamp
-	$(MAKE) -C $(build-dir) install
 	echo timestamp >$(call to-shell,$@)
 
   #
@@ -91,8 +103,14 @@ ifneq ($(build-x264),)
 	cd $(build-dir) && CC=$(compiler) $(src-dir)/configure $(configure-options)
 
   $(build-dir):
-	$(mkdir) $@
+	$(mkdir) $(call to-shell,$@)
   
+  $(install-dir)/lib/jamfiles/x264/jamfile: $(build-dir)/install-stamp
+
+  $(build-dir)/install-stamp: $(build-dir)/build-stamp
+	$(MAKE) -C $(build-dir) install
+	echo timestamp >$(call to-shell,$@)
+  	
   -include $(build-dir)/build-stamp.dep
 
 else
@@ -110,7 +128,9 @@ else
 	$(error building not enabled)
 
   .PHONY: install
-  install: $(installed-files)
+  install: $(install-dir)/lib/jamfiles/x264/jamfile
+
+  $(install-dir)/lib/jamfiles/x264/jamfile: $(installed-files)
 
   $(installed-files): | $(installed-subdirs)
 
@@ -121,3 +141,10 @@ else
 	$(mkdir) $(call to-shell,$@)
 
 endif
+
+$(install-dir)/lib/jamfiles/x264/jamfile: | $(install-dir)/lib/jamfiles/x264
+	$(info generating $@)
+	$(file >$@,$(call consumer-jamfile,x264,$(install-dir)/lib/$(if $(filter msvc%,$(toolset)),libx264.lib,libx264.a),$(install-dir)/include))
+
+$(install-dir)/lib/jamfiles/x264:
+	$(mkdir) $(call to-shell,$@)
