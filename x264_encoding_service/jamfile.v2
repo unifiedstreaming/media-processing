@@ -21,7 +21,7 @@ import package ;
 
 exe x264_encoding_service
 : main.cpp
-  x264es_utils//x264es_utils
+  /x264_es_utils//x264_es_utils
   /cuti//cuti
 ;
 

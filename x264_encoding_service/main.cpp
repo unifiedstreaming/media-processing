@@ -18,7 +18,7 @@
  */
 
 #include <cuti/service.hpp>
-#include <x264es_utils/config_reader.hpp>
+#include <x264_es_utils/config_reader.hpp>
 
 #include <iostream>
 #include <stdexcept>
@@ -28,7 +28,7 @@ namespace // anonymous
 
 void throwing_main(int argc, char const* const argv[])
 {
-  x264es_utils::config_reader_t config_reader;
+  x264_es_utils::config_reader_t config_reader;
   cuti::run_service(config_reader, argc, argv);
 }
 

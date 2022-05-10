@@ -1,19 +1,19 @@
 /*
  * Copyright (C) 2022 CodeShop B.V.
  *
- * This file is part of the x264_encoding_service.
+ * This file is part of the x264_es_utils library.
  *
- * The x264_encoding_service is free software: you can redistribute it
+ * The x264_es_utils library is free software: you can redistribute it
  * and/or modify it under the terms of version 2 of the GNU General
  * Public License as published by the Free Software Foundation.
  *
- * The x264_encoding_service is distributed in the hope that it will
+ * The x264_es_utils library is distributed in the hope that it will
  * be useful, but WITHOUT ANY WARRANTY; without even the implied
  * warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  * See version 2 of the GNU General Public License for more details.
  *
  * You should have received a copy of version 2 of the GNU General
- * Public License along with the x264_encoding_service.  If not, see
+ * Public License along with the x264_es_utils library.  If not, see
  * <http://www.gnu.org/licenses/>.
  */
 
@@ -31,7 +31,7 @@
 #include <cuti/streambuf_backend.hpp>
 #include <x264_proto/client.hpp>
 
-#include <x264es_utils/service.hpp>
+#include <x264_es_utils/service.hpp>
 
 #include <csignal>
 #include <exception>
@@ -55,7 +55,7 @@ void test_service(cuti::logging_context_t const& client_context,
   auto interfaces = cuti::local_interfaces(cuti::any_port);
 
   {
-    x264es_utils::service_t service(server_context, dispatcher_config,
+    x264_es_utils::service_t service(server_context, dispatcher_config,
       interfaces);
 
     cuti::scoped_thread_t server_thread([&] { service.run(); });
