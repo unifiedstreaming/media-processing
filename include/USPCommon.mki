@@ -10,6 +10,12 @@
 #
 
 #
+# Determine the name of this directory
+#
+this-dir := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))
+top-dir := $(abspath $(this-dir)/..)
+
+#
 # Some common settings and utilities
 #
 
@@ -204,4 +210,48 @@ sanitizer-flags := $(strip \
     )) \
   ) \
 )
+
+#
+# Determine the name of the bjam executable, preferring 'b2' over 'bjam'
+#
+bjam := $(if $(shell b2 --version 2>$(dev-null)),b2,bjam)
+
+#
+# Determine the build directory
+#
+override build-dir := $(if $(build-dir),$(abspath $(call to-make,$(build-dir))),$(top-dir)/obj)
+
+#
+# Determine the prerequistes directory bjam targets can refer to
+#
+prereqs-dir := $(abspath $(build-dir)/prereqs/$(subst $(space),/,$(subst =,-,$(build-settings))))
+prereqs-install-dir := $(prereqs-dir)/install
+prereqs-build-dir := $(prereqs-dir)/build
+
+#
+# Determine the directory to install to
+#
+ifneq ($(filter install,$(MAKECMDGOALS)),)
+  ifeq ($(install-dir),)
+    $(error target 'install' requires 'install-dir=<somehere>')
+  endif
+endif
+install-dir := $(abspath $(call to-make,$(install-dir)))
+
+#
+# Determine bjam args; we assume bjam is a native executable
+#
+bjam-options := -sprereqs-install-dir="$(call to-native,$(prereqs-install-dir))"
+bjam-options += --build-dir="$(call to-native,$(build-dir)/bjam)"
+ifneq ($(install-dir),)
+  bjam-options += --prefix="$(call to-native,$(install-dir))"
+  ifneq ($(windows),)
+    # Ensure dlls are placed in the directory for executables
+    bjam-options += --libdir="$(call to-native,$(install-dir)/bin)"
+  endif
+endif
+
+ifneq ($(verbose),)
+  bjam-options += -d+2
+endif
 

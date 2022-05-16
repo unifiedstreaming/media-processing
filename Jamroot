@@ -35,18 +35,3 @@ project oss
   <debug-symbols>on
 ;
 
-use-project /cuti : cuti/cuti ;
-use-project /x264 : $(prereqs-install-dir)/lib/jamfiles/x264 ;
-use-project /x264_proto : x264_proto/x264_proto ;
-use-project /x264_es_utils : x264_es_utils/x264_es_utils ;
-
-build-project cuti/cuti ;
-build-project x264_proto/x264_proto ;
-build-project x264_es_utils/x264_es_utils ;
-build-project x264_encoding_service ;
-
-explicit unit_tests ;
-alias unit_tests : cuti/unit_tests x264_es_utils/unit_tests ;
-
-explicit install ;
-alias install : x264_encoding_service//install ;

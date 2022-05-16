@@ -26,7 +26,7 @@ alias x264_proto : x264_proto_$(X264_PROTO_VERSION) ;
 lib x264_proto_$(X264_PROTO_VERSION)
 :
   client.cpp
-  /cuti//cuti
+  ../../cuti/cuti//cuti
 :
   <define>BUILDING_X264_PROTO
   <link>shared

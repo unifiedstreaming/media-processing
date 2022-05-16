@@ -9,17 +9,7 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 #
 
-#
-# Determine this file's directory
-#
-top := $(patsubst %/,%,$(dir $(abspath $(lastword $(MAKEFILE_LIST)))))
-
 include include/USPCommon.mki
-
-#
-# Determine the build directory
-#
-build-dir := $(call to-make,$(if $(build-dir),$(build-dir),obj))
 
 #
 # Determine the prerequistes directory bjam targets can refer to
@@ -61,18 +51,13 @@ endif
 bjam_args = $(bjam-options) $(build-settings) $(patsubst %/,%,$(dir $1))$(addprefix //,$(basename $(notdir $1)))
 
 #
-# Determine the name of the bjam executable, preferring 'b2' over 'bjam'
-#
-bjam := $(if $(shell b2 --version 2>$(dev-null)),b2,bjam)
-
-#
 # Supported user targets
 # 
 all : .phony x264_encoding_service/.bjam
 
-install : .phony install.bjam
+install : .phony x264_encoding_service/install.bjam
 
-unit_tests : .phony unit_tests.bjam
+unit_tests : .phony cuti/unit_tests/.bjam x264_es_utils/unit_tests/.bjam
 
 clean : .phony
 	$(rmdir) "$(call to-shell,$(build-dir))"
@@ -89,8 +74,6 @@ clean : .phony
 %.bjam: .phony prereqs | $(build-dir)
 	$(bjam) $(call bjam_args,$@)
 
-install.bjam : | $(install-dir)
-
 #
 # Prerequisite libraries built before invoking any bjam target
 #
@@ -103,7 +86,4 @@ libx264 : .phony
 # Directory creators
 #
 $(build-dir) :
-	$(mkdir) "$(call to-shell,$@)"
-
-$(install-dir) :
 	$(mkdir) "$(call to-shell,$@)"

@@ -22,8 +22,8 @@ import testing ;
 project
 : requirements
   <library>../x264_es_utils//x264_es_utils
-  <library>/x264_proto//x264_proto
-  <library>/cuti//cuti
+  <library>../../x264_proto/x264_proto//x264_proto
+  <library>../../cuti/cuti//cuti
 ;
 
 unit-test service_test
