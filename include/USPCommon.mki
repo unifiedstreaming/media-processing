@@ -255,3 +255,21 @@ ifneq ($(verbose),)
   bjam-options += -d+2
 endif
 
+#
+# $(call bjam_args, <bjam target>)
+#
+bjam_args = $(bjam-options) $(build-settings) $(patsubst %/,%,$(dir $1))$(addprefix //,$(basename $(notdir $1)))
+
+#
+# Rules for calling bjam
+#
+
+.PHONY: .phony
+.phony: 
+
+.bjam: .phony
+	$(bjam) $(call bjam_args,$@)
+
+%.bjam: .phony
+	$(bjam) $(call bjam_args,$@)
+

@@ -12,78 +12,52 @@
 include include/USPCommon.mki
 
 #
-# Determine the prerequistes directory bjam targets can refer to
-#
-prereqs-dir := $(abspath $(build-dir)/prereqs/$(subst $(space),/,$(subst =,-,$(build-settings))))
-prereqs-install-dir := $(prereqs-dir)/install
-prereqs-build-dir := $(prereqs-dir)/build
-
-#
-# Determine the directory to install to
-#
-ifneq ($(filter install,$(MAKECMDGOALS)),)
-  ifeq ($(install-dir),)
-    $(error target 'install' requires 'install-dir=<somehere>')
-  endif
-endif
-install-dir := $(call to-make,$(install-dir))
-
-#
-# Determine bjam args; we assume bjam is a native executable
-#
-bjam-options := -sprereqs-install-dir="$(call to-native,$(prereqs-install-dir))"
-bjam-options += --build-dir="$(call to-native,$(build-dir)/bjam)"
-ifneq ($(install-dir),)
-  bjam-options += --prefix="$(call to-native,$(install-dir))"
-  ifneq ($(windows),)
-    # Ensure dlls are placed in the directory for executables
-    bjam-options += --libdir="$(call to-native,$(install-dir)/bin)"
-  endif
-endif
-
-ifneq ($(verbose),)
-  bjam-options += -d+2
-endif
-
-#
-# $(call bjam_args, <bjam target>)
-#
-bjam_args = $(bjam-options) $(build-settings) $(patsubst %/,%,$(dir $1))$(addprefix //,$(basename $(notdir $1)))
-
-#
 # Supported user targets
 # 
-all : .phony x264_encoding_service/.bjam
+.PHONY: all
+all: x264_encoding_service
 
-install : .phony x264_encoding_service/install.bjam
+.PHONY: install
+install: install_x264_encoding_service
 
-unit_tests : .phony cuti/unit_tests/.bjam x264_es_utils/unit_tests/.bjam
+.PHONY: unit_tests
+unit_tests: cuti_unit_tests x264_es_utils_unit_tests
 
-clean : .phony
+.PHONY: clean
+clean:
 	$(rmdir) "$(call to-shell,$(build-dir))"
 
-.PHONY : .phony
-.phony : 
-
 #
-# Rules for calling bjam
+# Dependencies
 #
-.bjam: .phony prereqs | $(build-dir)
-	$(bjam) $(call bjam_args,$@)
+.PHONY: x264_encoding_service
+x264_encoding_service: x264_es_utils cuti
+	$(bjam) $(call bjam_args,x264_encoding_service/.bjam)
 
-%.bjam: .phony prereqs | $(build-dir)
-	$(bjam) $(call bjam_args,$@)
+.PHONY: install_x264_encoding_service
+install_x264_encoding_service: x264_encoding_service
+	$(bjam) $(call bjam_args,x264_encoding_service/install.bjam)	
 
-#
-# Prerequisite libraries built before invoking any bjam target
-#
-prereqs : .phony libx264
+.PHONY: x264_es_utils
+x264_es_utils: cuti x264_proto x264
+	$(bjam) $(call bjam_args,x264_es_utils/x264_es_utils/.bjam)
 
-libx264 : .phony
+.PHONY: x264_es_utils_unit_tests
+x264_es_utils_unit_tests: x264_es_utils
+	$(bjam) $(call bjam_args,x264_es_utils/unit_tests/.bjam)
+
+.PHONY: x264_proto
+x264_proto: cuti
+	$(bjam) $(call bjam_args,x264_proto/x264_proto/.bjam)
+	
+.PHONY: cuti
+cuti:
+	$(bjam) $(call bjam_args,cuti/cuti/.bjam)
+
+.PHONY: cuti_unit_tests
+cuti_unit_tests: cuti
+	$(bjam) $(call bjam_args,cuti/unit_tests/.bjam)
+
+.PHONY: x264
+x264:
 	$(MAKE) -C x264 -f USPMakefile $(build-settings) build-dir=$(prereqs-build-dir)/x264 install-dir=$(prereqs-install-dir) install
-
-#
-# Directory creators
-#
-$(build-dir) :
-	$(mkdir) "$(call to-shell,$@)"
