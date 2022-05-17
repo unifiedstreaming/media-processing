@@ -240,9 +240,9 @@ project-work-dir = $(mode-dir)/work/$1
 #
 # Determine the directory to install to
 #
-ifneq ($(filter install install-devel,$(MAKECMDGOALS)),)
+ifneq ($(filter install,$(MAKECMDGOALS)),)
   ifeq ($(install-dir),)
-    $(error targets 'install' and 'install-devel' require 'install-dir=<somehere>')
+    $(error targets 'install' requires 'install-dir=<somehere>')
   endif
 endif
 install-dir := $(abspath $(call to-make,$(install-dir)))

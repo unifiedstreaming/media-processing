@@ -13,9 +13,7 @@ src-dir := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))
 
 include $(src-dir)/../include/USPCommon.mki
 
-$(if $(install-dir),,$(error install-dir must be set))
-$(call check-out-of-tree,$(install-dir),$(src-dir))
-override install-dir := $(abspath $(install-dir))
+$(call check-out-of-tree,$(stage-dir),$(src-dir))
 
 #
 # Windows: specify build-x264=yes for a full build under cygwin using
@@ -46,9 +44,8 @@ ifneq ($(build-x264),)
   #
   $(if $(unix-like),,$(error unix-like build environment required))
 
-  $(if $(work-dir),,$(error work-dir must be set))
+  work-dir := $(call project-work-dir,x264)
   $(call check-out-of-tree,$(work-dir),$(src-dir))
-  override work-dir := $(abspath $(work-dir))
 
   compiler := $(if $(filter msvc%,$(toolset)),cl.exe,$(if $(filter clang%,$(toolset)),clang,gcc))
 
@@ -61,7 +58,7 @@ ifneq ($(build-x264),)
   )
 
   configure-options := \
-    --prefix=$(install-dir) \
+    --prefix=$(stage-dir) \
     $(if $(filter debug,$(variant)),--enable-debug) \
     $(if $(extra-cflags),--extra-cflags="$(extra-cflags)") \
     --disable-cli \
@@ -80,8 +77,8 @@ ifneq ($(build-x264),)
   .PHONY: all
   all: $(work-dir)/build-stamp
 
-  .PHONY: install-devel
-  install-devel: $(install-dir)/lib/jamfiles/x264/jamfile
+  .PHONY: stage
+  stage: $(stage-dir)/lib/jamfiles/x264/jamfile
 
   .PHONY: clean
   clean:
@@ -105,7 +102,7 @@ ifneq ($(build-x264),)
   $(work-dir):
 	$(mkdir) $(call to-shell,$@)
   
-  $(install-dir)/lib/jamfiles/x264/jamfile: $(work-dir)/install-stamp
+  $(stage-dir)/lib/jamfiles/x264/jamfile: $(work-dir)/install-stamp
 
   $(work-dir)/install-stamp: $(work-dir)/build-stamp
 	$(MAKE) -C $(work-dir) install
@@ -120,21 +117,21 @@ else
   #
   prebuilt-dir := $(src-dir)/prebuilt/msvc-14.2/$(variant)/address-model-$(address-model)
   filenames := $(patsubst $(prebuilt-dir)/%,%,$(call find-files,%,$(prebuilt-dir)))
-  installed-files := $(addprefix $(install-dir)/,$(filenames))
+  installed-files := $(addprefix $(stage-dir)/,$(filenames))
   installed-subdirs := $(sort $(abspath $(dir $(installed-files))))
 
   .PHONY: all
   all:
 	$(error building not enabled)
 
-  .PHONY: install-devel
-  install-devel: $(install-dir)/lib/jamfiles/x264/jamfile
+  .PHONY: stage
+  stage: $(stage-dir)/lib/jamfiles/x264/jamfile
 
-  $(install-dir)/lib/jamfiles/x264/jamfile: $(installed-files)
+  $(stage-dir)/lib/jamfiles/x264/jamfile: $(installed-files)
 
   $(installed-files): | $(installed-subdirs)
 
-  $(installed-files): $(install-dir)/%: $(prebuilt-dir)/%
+  $(installed-files): $(stage-dir)/%: $(prebuilt-dir)/%
 	$(copy) $(call to-shell,$<) $(call to-shell,$@)
 
   $(installed-subdirs):
@@ -142,9 +139,9 @@ else
 
 endif
 
-$(install-dir)/lib/jamfiles/x264/jamfile: | $(install-dir)/lib/jamfiles/x264
+$(stage-dir)/lib/jamfiles/x264/jamfile: | $(stage-dir)/lib/jamfiles/x264
 	$(info generating $@)
-	$(file >$@,$(call consumer-jamfile,x264,$(install-dir)/lib/$(if $(filter msvc%,$(toolset)),libx264.lib,libx264.a),$(install-dir)/include))
+	$(file >$@,$(call consumer-jamfile,x264,$(stage-dir)/lib/$(if $(filter msvc%,$(toolset)),libx264.lib,libx264.a),$(stage-dir)/include))
 
-$(install-dir)/lib/jamfiles/x264:
+$(stage-dir)/lib/jamfiles/x264:
 	$(mkdir) $(call to-shell,$@)
