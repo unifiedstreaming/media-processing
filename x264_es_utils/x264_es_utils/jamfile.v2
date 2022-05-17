@@ -17,7 +17,7 @@
 # <http://www.gnu.org/licenses/>.
 #
 
-use-project /x264 : $(prereqs-install-dir)/lib/jamfiles/x264 ;
+use-project /x264 : $(stage-dir)/lib/jamfiles/x264 ;
 
 lib x264_es_utils
 :

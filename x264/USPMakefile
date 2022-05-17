@@ -46,9 +46,9 @@ ifneq ($(build-x264),)
   #
   $(if $(unix-like),,$(error unix-like build environment required))
 
-  $(if $(build-dir),,$(error build-dir must be set))
-  $(call check-out-of-tree,$(build-dir),$(src-dir))
-  override build-dir := $(abspath $(build-dir))
+  $(if $(work-dir),,$(error work-dir must be set))
+  $(call check-out-of-tree,$(work-dir),$(src-dir))
+  override work-dir := $(abspath $(work-dir))
 
   compiler := $(if $(filter msvc%,$(toolset)),cl.exe,$(if $(filter clang%,$(toolset)),clang,gcc))
 
@@ -78,18 +78,18 @@ ifneq ($(build-x264),)
   sources := $(call find-files,%,$(src-dir))
 
   .PHONY: all
-  all: $(build-dir)/build-stamp
+  all: $(work-dir)/build-stamp
 
-  .PHONY: install
-  install: $(install-dir)/lib/jamfiles/x264/jamfile
+  .PHONY: install-devel
+  install-devel: $(install-dir)/lib/jamfiles/x264/jamfile
 
   .PHONY: clean
-  clean :
-	$(rmdir) $(call to-shell,$(build-dir))
+  clean:
+	$(rmdir) $(call to-shell,$(work-dir))
 
-  $(build-dir)/build-stamp: $(build-dir)/config.mak $(sources)
+  $(work-dir)/build-stamp: $(work-dir)/config.mak $(sources)
 	$(file >$@.dep,$(call dependency-listing,$@,$(sources)))
-	$(MAKE) -C $(build-dir)
+	$(MAKE) -C $(work-dir)
 	echo timestamp >$(call to-shell,$@)
 
   #
@@ -97,21 +97,21 @@ ifneq ($(build-x264),)
   # the build directory; the actual configuration is recorded in
   # config.mak.
   #
-  $(build-dir)/config.mak: \
+  $(work-dir)/config.mak: \
     $(addprefix $(src-dir)/,configure config.guess config.sub) \
-    | $(build-dir)
-	cd $(build-dir) && CC=$(compiler) $(src-dir)/configure $(configure-options)
+    | $(work-dir)
+	cd $(work-dir) && CC=$(compiler) $(src-dir)/configure $(configure-options)
 
-  $(build-dir):
+  $(work-dir):
 	$(mkdir) $(call to-shell,$@)
   
-  $(install-dir)/lib/jamfiles/x264/jamfile: $(build-dir)/install-stamp
+  $(install-dir)/lib/jamfiles/x264/jamfile: $(work-dir)/install-stamp
 
-  $(build-dir)/install-stamp: $(build-dir)/build-stamp
-	$(MAKE) -C $(build-dir) install
+  $(work-dir)/install-stamp: $(work-dir)/build-stamp
+	$(MAKE) -C $(work-dir) install
 	echo timestamp >$(call to-shell,$@)
   	
-  -include $(build-dir)/build-stamp.dep
+  -include $(work-dir)/build-stamp.dep
 
 else
 
@@ -127,8 +127,8 @@ else
   all:
 	$(error building not enabled)
 
-  .PHONY: install
-  install: $(install-dir)/lib/jamfiles/x264/jamfile
+  .PHONY: install-devel
+  install-devel: $(install-dir)/lib/jamfiles/x264/jamfile
 
   $(install-dir)/lib/jamfiles/x264/jamfile: $(installed-files)
 

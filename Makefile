@@ -60,4 +60,4 @@ cuti_unit_tests: cuti
 
 .PHONY: x264
 x264:
-	$(MAKE) -C x264 -f USPMakefile $(build-settings) build-dir=$(prereqs-build-dir)/x264 install-dir=$(prereqs-install-dir) install
+	$(MAKE) -C x264 -f USPMakefile $(build-settings) work-dir=$(call project-work-dir,x264) install-dir=$(stage-dir) install-devel

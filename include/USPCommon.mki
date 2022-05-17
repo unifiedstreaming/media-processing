@@ -222,18 +222,27 @@ bjam := $(if $(shell b2 --version 2>$(dev-null)),b2,bjam)
 override build-dir := $(if $(build-dir),$(abspath $(call to-make,$(build-dir))),$(top-dir)/obj)
 
 #
-# Determine the prerequistes directory bjam targets can refer to
+# Determine the (build setting-specific) directory for generated artifacts 
 #
-prereqs-dir := $(abspath $(build-dir)/prereqs/$(subst $(space),/,$(subst =,-,$(build-settings))))
-prereqs-install-dir := $(prereqs-dir)/install
-prereqs-build-dir := $(prereqs-dir)/build
+mode-dir := $(build-dir)/other/$(subst $(space),/,$(subst =,-,$(build-settings)))
+
+#
+# Determine the (build setting-specific) staging directory
+#
+stage-dir := $(mode-dir)/stage
+
+#
+# $(call project-work-dir,<project>)
+# Returns the (build setting-specific) working directory for <project>
+#
+project-work-dir = $(mode-dir)/work/$1
 
 #
 # Determine the directory to install to
 #
-ifneq ($(filter install,$(MAKECMDGOALS)),)
+ifneq ($(filter install install-devel,$(MAKECMDGOALS)),)
   ifeq ($(install-dir),)
-    $(error target 'install' requires 'install-dir=<somehere>')
+    $(error targets 'install' and 'install-devel' require 'install-dir=<somehere>')
   endif
 endif
 install-dir := $(abspath $(call to-make,$(install-dir)))
@@ -241,7 +250,7 @@ install-dir := $(abspath $(call to-make,$(install-dir)))
 #
 # Determine bjam args; we assume bjam is a native executable
 #
-bjam-options := -sprereqs-install-dir="$(call to-native,$(prereqs-install-dir))"
+bjam-options := -sstage-dir="$(call to-native,$(stage-dir))"
 bjam-options += --build-dir="$(call to-native,$(build-dir)/bjam)"
 ifneq ($(install-dir),)
   bjam-options += --prefix="$(call to-native,$(install-dir))"

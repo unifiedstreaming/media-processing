@@ -12,11 +12,11 @@
 import os ;
 import errors ;
 
-if [ os.environ prereqs-install-dir ] = ""
+if [ os.environ stage-dir ] = ""
 {
-  errors.error "prereqs-install-dir must be set" ;
+  errors.error "stage-dir must be set" ;
 }
-path-constant prereqs-install-dir : [ os.environ prereqs-install-dir ] ;
+path-constant stage-dir : [ os.environ stage-dir ] ;
 
 project oss
 : requirements
