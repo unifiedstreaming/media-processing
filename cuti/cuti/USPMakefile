@@ -21,6 +21,38 @@ src-dir := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))
 
 include $(src-dir)/../../include/USPCommon.mki
 
-all :
+sources := $(call find-files,%,$(src-dir))
+work-dir := $(call project-work-dir,cuti)
+
+.PHONY: all
+all: $(work-dir)/build-stamp
+
+$(work-dir)/build-stamp: $(sources) | $(work-dir)
+	$(info generating $@.dep)
+	$(file >$@.dep,$(call dependency-listing,$@,$(sources)))
 	$(bjam) $(bjam-options) $(build-settings) "$(call to-native,$(src-dir))"
+	echo timestamp >"$(call to-shell,$@)"
+
+$(work-dir):
+	$(mkdir) "$(call to-shell,$@)"
+
+-include $(work-dir)/build-stamp.dep
+
+.PHONY: stage
+stage: $(stage-dir)/lib/jamfiles/cuti/jamfile
+
+$(stage-dir)/lib/jamfiles/cuti/jamfile: $(work-dir)/bjam-stage-stamp $(stage-dir)/lib/jamfiles/Jamroot | $(stage-dir)/lib/jamfiles/cuti
+	$(info generating $@)
+	$(file >$@,$(call staged-jamfile-content,cuti,$(stage-dir)/lib/$(if $(windows),,lib)cuti_0_0_0$(if $(windows),.lib,.so),$(abspath $(src-dir)/..)))
+
+$(work-dir)/bjam-stage-stamp: $(work-dir)/build-stamp
+	$(bjam) $(bjam-options) $(build-settings) "$(call to-native,$(src-dir))//stage"
+	echo timestamp >"$(call to-shell,$@)"
 	
+$(stage-dir)/lib/jamfiles/cuti:
+	$(mkdir) "$(call to-shell,$@)"
+	
+.PHONY: clean
+clean:
+	$(rmdir) "$(call to-shell,$(work-dir))"
+	$(bjam) --clean $(bjam-options) $(build-settings) "$(call to-native,$(src-dir))"

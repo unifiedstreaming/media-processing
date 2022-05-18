@@ -21,27 +21,6 @@ $(call check-out-of-tree,$(stage-dir),$(src-dir))
 #
 override build-x264 := $(if $(windows),$(build-x264),yes)
 
-#
-# $(call staged-jamfile-content,<library name>,<library file>,<include directory>)
-# Generates the content of a jamfile for consuming a library.
-#
-define staged-jamfile-content =
-lib $1
-:
-:
-<file>"$(subst \,/,$(call to-native,$2))"
-:
-:
-<include>"$(subst \,/,$(call to-native,$3))"
-;
-
-endef
-
-define staged-jamroot-content :=
-project staged-jamfiles ;
-
-endef
-
 ifneq ($(build-x264),)
 
   #
@@ -149,11 +128,4 @@ $(stage-dir)/lib/jamfiles/x264/jamfile: | $(stage-dir)/lib/jamfiles/x264
 	$(file >$@,$(call staged-jamfile-content,x264,$(stage-dir)/lib/$(if $(filter msvc%,$(toolset)),libx264.lib,libx264.a),$(stage-dir)/include))
 
 $(stage-dir)/lib/jamfiles/x264: $(stage-dir)/lib/jamfiles/Jamroot
-	$(mkdir) "$(call to-shell,$@)"
-
-$(stage-dir)/lib/jamfiles/Jamroot: | $(stage-dir)/lib/jamfiles
-	$(info generating $@)
-	$(file >$@,$(staged-jamroot-content))
-	
-$(stage-dir)/lib/jamfiles:
 	$(mkdir) "$(call to-shell,$@)"

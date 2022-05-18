@@ -128,3 +128,6 @@ lib cuti_$(CUTI_VERSION)
 :
   <include>..
 ; 
+
+explicit stage ;
+install stage : cuti : <location>$(stage-dir)/lib ;
