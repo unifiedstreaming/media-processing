@@ -17,8 +17,6 @@
 # <http://www.gnu.org/licenses/>.
 #
 
-use-project /x264 : $(stage-dir)/lib/jamfiles/x264 ;
-
 lib x264_es_utils
 :
   config.cpp
@@ -26,7 +24,7 @@ lib x264_es_utils
   service.cpp
   ../../cuti/cuti//cuti
   ../../x264_proto//x264_proto//x264_proto
-  /x264//x264
+  $(stage-dir)/lib/jamfiles/x264
 :
   <link>static
   <visibility>hidden
