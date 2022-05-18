@@ -22,10 +22,10 @@ $(call check-out-of-tree,$(stage-dir),$(src-dir))
 override build-x264 := $(if $(windows),$(build-x264),yes)
 
 #
-# $(call consumer-jamfile,<library name>,<library file>,<include directory>)
+# $(call staged-jamfile-content,<library name>,<library file>,<include directory>)
 # Generates the content of a jamfile for consuming a library.
 #
-define consumer-jamfile =
+define staged-jamfile-content =
 lib $1
 :
 :
@@ -34,6 +34,11 @@ lib $1
 :
 <include>"$(subst \,/,$(call to-native,$3))"
 ;
+
+endef
+
+define staged-jamroot-content :=
+project staged-jamfiles ;
 
 endef
 
@@ -82,12 +87,12 @@ ifneq ($(build-x264),)
 
   .PHONY: clean
   clean:
-	$(rmdir) $(call to-shell,$(work-dir))
+	$(rmdir) "$(call to-shell,$(work-dir))"
 
   $(work-dir)/build-stamp: $(work-dir)/config.mak $(sources)
 	$(file >$@.dep,$(call dependency-listing,$@,$(sources)))
 	$(MAKE) -C $(work-dir)
-	echo timestamp >$(call to-shell,$@)
+	echo timestamp >"$(call to-shell,$@)"
 
   #
   # libx264's configure script generates a symlink for the Makefile in
@@ -100,13 +105,13 @@ ifneq ($(build-x264),)
 	cd $(work-dir) && CC=$(compiler) $(src-dir)/configure $(configure-options)
 
   $(work-dir):
-	$(mkdir) $(call to-shell,$@)
+	$(mkdir) "$(call to-shell,$@)"
   
   $(stage-dir)/lib/jamfiles/x264/jamfile: $(work-dir)/install-stamp
 
   $(work-dir)/install-stamp: $(work-dir)/build-stamp
 	$(MAKE) -C $(work-dir) install
-	echo timestamp >$(call to-shell,$@)
+	echo timestamp >"$(call to-shell,$@)"
   	
   -include $(work-dir)/build-stamp.dep
 
@@ -132,16 +137,23 @@ else
   $(installed-files): | $(installed-subdirs)
 
   $(installed-files): $(stage-dir)/%: $(prebuilt-dir)/%
-	$(copy) $(call to-shell,$<) $(call to-shell,$@)
+	$(copy) "$(call to-shell,$<)" "$(call to-shell,$@)"
 
   $(installed-subdirs):
-	$(mkdir) $(call to-shell,$@)
+	$(mkdir) "$(call to-shell,$@)"
 
 endif
 
 $(stage-dir)/lib/jamfiles/x264/jamfile: | $(stage-dir)/lib/jamfiles/x264
 	$(info generating $@)
-	$(file >$@,$(call consumer-jamfile,x264,$(stage-dir)/lib/$(if $(filter msvc%,$(toolset)),libx264.lib,libx264.a),$(stage-dir)/include))
+	$(file >$@,$(call staged-jamfile-content,x264,$(stage-dir)/lib/$(if $(filter msvc%,$(toolset)),libx264.lib,libx264.a),$(stage-dir)/include))
 
-$(stage-dir)/lib/jamfiles/x264:
-	$(mkdir) $(call to-shell,$@)
+$(stage-dir)/lib/jamfiles/x264: $(stage-dir)/lib/jamfiles/Jamroot
+	$(mkdir) "$(call to-shell,$@)"
+
+$(stage-dir)/lib/jamfiles/Jamroot: | $(stage-dir)/lib/jamfiles
+	$(info generating $@)
+	$(file >$@,$(staged-jamroot-content))
+	
+$(stage-dir)/lib/jamfiles:
+	$(mkdir) "$(call to-shell,$@)"
