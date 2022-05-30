@@ -65,6 +65,10 @@ define gmake-target-definition =
 $1: $(stage-dir)/lib/jamfiles/Jamroot $3
 	$(MAKE) -C $(dir $2) -f $(notdir $2) -I "$(abspath include)" $(build-settings) work-dir="$(call gmake-work-dir,$1)" stage-dir="$(stage-dir)" stage
 
+.PHONY: clean-$1
+clean-$1:
+	$(rmdir) "$(call to-shell,$(call gmake-work-dir,$1))"
+
 endef
 
 define-gmake-target = $(call expand,$(call gmake-target-definition,$1,$2,$3))
@@ -87,6 +91,10 @@ define bjam-target-definition =
 .PHONY: $1
 $1: $(stage-dir)/lib/jamfiles/Jamroot $3
 	$(bjam) $(bjam-options) $(build-settings) $2
+
+.PHONY: clean-$1
+clean-$1:
+	$(bjam) --clean $(bjam-options) $(build-settings) $2
 
 endef
 
