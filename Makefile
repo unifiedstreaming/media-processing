@@ -12,52 +12,110 @@
 include include/USPCommon.mki
 
 #
-# Supported user targets
-# 
+# Determine the build directory
+#
+override build-dir := $(abspath $(if $(build-dir),$(call to-make,$(build-dir)),build))
+
+#
+# Determine the (build setting-specific) directory for generated artifacts 
+#
+build-mode-dir := $(build-dir)/other/$(subst $(space),/,$(subst =,-,$(build-settings)))
+
+#
+# Determine the (build setting-specific) staging directory
+#
+stage-dir := $(build-mode-dir)/stage
+
+#
+# Determine the bjam-specific build directory
+#
+bjam-build-dir := $(build-dir)/bjam
+
+#
+# $(call gmake-work-dir,<name>)
+# Returns the (build setting-specific) working directory for <name>
+#
+gmake-work-dir = $(build-mode-dir)/work/$1
+
+#
+# Generating $(stage-dir)/lib/jamfiles/Jamroot
+#
+define staged-jamroot-content :=
+project staged-jamfiles ;
+
+endef
+
+$(stage-dir)/lib/jamfiles/Jamroot: | $(stage-dir)/lib/jamfiles
+	$(info generating $@)
+	$(file >$@,$(staged-jamroot-content))
+
+$(stage-dir)/lib/jamfiles:
+	$(mkdir) "$(call to-shell,$@)"
+
+#
+# $(call expand,<text>)
+#
+expand = $(if $(expand-info),$(info $1))$(eval $1)
+
+#
+# $(call define-gmake-target,<name>,<makefile>,<prereq target name>*)
+#
+define gmake-target-definition =
+.PHONY: $1
+$1: $(stage-dir)/lib/jamfiles/Jamroot $3
+	$(MAKE) -C $(dir $2) -f $(notdir $2) -I "$(abspath include)" $(build-settings) work-dir="$(call gmake-work-dir,$1)" stage-dir="$(stage-dir)" stage
+
+endef
+
+define-gmake-target = $(call expand,$(call gmake-target-definition,$1,$2,$3))
+
+#
+# Determine bjam options & args
+#
+bjam-options := $(strip \
+ $(if $(verbose),-d+2) \
+ --build-dir="$(call to-native,$(bjam-build-dir))" \
+ -sstage-dir="$(call to-native,$(stage-dir))" \
+)
+
+bjam-args := $(bjam-options) $(build-settings)
+
+#
+# $(call define-bjam-target,<name>,<target-descriptor>,<prereq target name>*)
+#
+define bjam-target-definition =
+.PHONY: $1
+$1: $(stage-dir)/lib/jamfiles/Jamroot $3
+	$(bjam) $(bjam-options) $(build-settings) $2
+
+endef
+
+define-bjam-target = $(call expand,$(call bjam-target-definition,$1,$2,$3))
+
+#
+# Generated phony targets
+#
+$(call define-bjam-target,cuti,cuti/cuti)
+$(call define-bjam-target,cuti_unit_tests,cuti/unit_tests,cuti)
+
+$(call define-bjam-target,x264_proto,x264_proto/x264_proto,cuti)
+
+$(call define-gmake-target,x264,x264/USPMakefile)
+
+$(call define-bjam-target,x264_es_utils,x264_es_utils/x264_es_utils,x264_proto cuti x264)
+$(call define-bjam-target,x264_es_utils_unit_tests,x264_es_utils/unit_tests,x264_es_utils)
+
+$(call define-bjam-target,x264_encoding_service,x264_encoding_service,x264_es_utils cuti)
+
+#
+# User-level targets
+#
 .PHONY: all
 all: x264_encoding_service
-
-.PHONY: install
-install: install_x264_encoding_service
 
 .PHONY: unit_tests
 unit_tests: cuti_unit_tests x264_es_utils_unit_tests
 
-.PHONY: clean
+PHONY: clean
 clean:
 	$(rmdir) "$(call to-shell,$(build-dir))"
-
-#
-# Dependencies
-#
-.PHONY: x264_encoding_service
-x264_encoding_service: x264_es_utils cuti
-	$(bjam) $(call bjam_args,x264_encoding_service/.bjam)
-
-.PHONY: install_x264_encoding_service
-install_x264_encoding_service: x264_encoding_service
-	$(bjam) $(call bjam_args,x264_encoding_service/install.bjam)	
-
-.PHONY: x264_es_utils
-x264_es_utils: cuti x264_proto x264
-	$(bjam) $(call bjam_args,x264_es_utils/x264_es_utils/.bjam)
-
-.PHONY: x264_es_utils_unit_tests
-x264_es_utils_unit_tests: x264_es_utils
-	$(bjam) $(call bjam_args,x264_es_utils/unit_tests/.bjam)
-
-.PHONY: x264_proto
-x264_proto: cuti
-	$(bjam) $(call bjam_args,x264_proto/x264_proto/.bjam)
-	
-.PHONY: cuti
-cuti:
-	$(bjam) $(call bjam_args,cuti/cuti/.bjam)
-
-.PHONY: cuti_unit_tests
-cuti_unit_tests: cuti
-	$(bjam) $(call bjam_args,cuti/unit_tests/.bjam)
-
-.PHONY: x264
-x264:
-	$(MAKE) -C x264 -f USPMakefile $(build-settings) stage

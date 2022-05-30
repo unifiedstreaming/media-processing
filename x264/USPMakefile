@@ -9,11 +9,15 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 #
 
-src-dir := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))
+x264-src-dir := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))
 
-include $(src-dir)/../include/USPCommon.mki
+include USPCommon.mki
 
-$(call check-out-of-tree,$(stage-dir),$(src-dir))
+$(if $(work-dir),,$(error work-dir must be set))
+$(call check-out-of-tree,$(work-dir),$(x264-src-dir))
+
+$(if $(stage-dir),,$(error stage-dir must be set))
+$(call check-out-of-tree,$(stage-dir),$(x264-src-dir))
 
 #
 # Windows: specify build-x264=yes for a full build under cygwin using
@@ -27,9 +31,6 @@ ifneq ($(build-x264),)
   # Full build & install
   #
   $(if $(unix-like),,$(error unix-like build environment required))
-
-  work-dir := $(call project-work-dir,x264)
-  $(call check-out-of-tree,$(work-dir),$(src-dir))
 
   compiler := $(if $(filter msvc%,$(toolset)),cl.exe,$(if $(filter clang%,$(toolset)),clang,gcc))
 
@@ -56,10 +57,10 @@ ifneq ($(build-x264),)
     --disable-gpac \
     --disable-lsmash
   
-  sources := $(call find-files,%,$(src-dir))
+  sources := $(call find-files,%,$(x264-src-dir))
 
   .PHONY: all
-  all: $(work-dir)/build-stamp
+  all: $(work-dir)/usp-build-stamp
 
   .PHONY: stage
   stage: $(stage-dir)/lib/jamfiles/x264/jamfile
@@ -68,10 +69,12 @@ ifneq ($(build-x264),)
   clean:
 	$(rmdir) "$(call to-shell,$(work-dir))"
 
-  $(work-dir)/build-stamp: $(work-dir)/config.mak $(sources)
-	$(file >$@.dep,$(call dependency-listing,$@,$(sources)))
+  $(work-dir)/usp-build-stamp: $(work-dir)/config.mak $(sources)
+	$(info generating $@.dep.next)
+	$(file >$@.dep.next,$(call dependency-listing,$@,$(sources)))
 	$(MAKE) -C $(work-dir)
 	echo timestamp >"$(call to-shell,$@)"
+	$(move) "$(call to-shell,$@.dep.next)" "$(call to-shell,$@.dep)" 
 
   #
   # libx264's configure script generates a symlink for the Makefile in
@@ -79,30 +82,25 @@ ifneq ($(build-x264),)
   # config.mak.
   #
   $(work-dir)/config.mak: \
-    $(addprefix $(src-dir)/,configure config.guess config.sub) \
+    $(addprefix $(x264-src-dir)/,configure config.guess config.sub) \
     | $(work-dir)
-	cd $(work-dir) && CC=$(compiler) $(src-dir)/configure $(configure-options)
+	cd $(work-dir) && CC=$(compiler) $(x264-src-dir)/configure $(configure-options)
 
-  $(work-dir):
-	$(mkdir) "$(call to-shell,$@)"
-  
-  $(stage-dir)/lib/jamfiles/x264/jamfile: $(work-dir)/install-stamp
-
-  $(work-dir)/install-stamp: $(work-dir)/build-stamp
+  $(work-dir)/usp-stage-stamp: $(work-dir)/usp-build-stamp | $(work-dir)
 	$(MAKE) -C $(work-dir) install
 	echo timestamp >"$(call to-shell,$@)"
   	
-  -include $(work-dir)/build-stamp.dep
+  -include $(work-dir)/usp-build-stamp.dep
 
 else
 
   #
   # Install pre-built binaries
   #
-  prebuilt-dir := $(src-dir)/prebuilt/msvc-14.2/$(variant)/address-model-$(address-model)
+  prebuilt-dir := $(x264-src-dir)/prebuilt/msvc-14.2/$(variant)/address-model-$(address-model)
   filenames := $(patsubst $(prebuilt-dir)/%,%,$(call find-files,%,$(prebuilt-dir)))
-  installed-files := $(addprefix $(stage-dir)/,$(filenames))
-  installed-subdirs := $(sort $(abspath $(dir $(installed-files))))
+  staged-files := $(addprefix $(stage-dir)/,$(filenames))
+  staged-subdirs := $(sort $(abspath $(dir $(staged-files))))
 
   .PHONY: all
   all:
@@ -111,21 +109,26 @@ else
   .PHONY: stage
   stage: $(stage-dir)/lib/jamfiles/x264/jamfile
 
-  $(stage-dir)/lib/jamfiles/x264/jamfile: $(installed-files)
+  $(work-dir)/usp-stage-stamp: $(staged-files) | $(work-dir)
+	echo timestamp >"$(call to-shell,$@)"
+  	
+  $(staged-files): | $(staged-subdirs)
 
-  $(installed-files): | $(installed-subdirs)
-
-  $(installed-files): $(stage-dir)/%: $(prebuilt-dir)/%
+  $(staged-files): $(stage-dir)/%: $(prebuilt-dir)/%
 	$(copy) "$(call to-shell,$<)" "$(call to-shell,$@)"
 
-  $(installed-subdirs):
+  $(staged-subdirs):
 	$(mkdir) "$(call to-shell,$@)"
 
 endif
 
-$(stage-dir)/lib/jamfiles/x264/jamfile: | $(stage-dir)/lib/jamfiles/x264
+$(stage-dir)/lib/jamfiles/x264/jamfile: \
+  $(work-dir)/usp-stage-stamp | $(stage-dir)/lib/jamfiles/x264
 	$(info generating $@)
 	$(file >$@,$(call staged-jamfile-content,x264,$(stage-dir)/lib/$(if $(filter msvc%,$(toolset)),libx264.lib,libx264.a),$(stage-dir)/include))
 
-$(stage-dir)/lib/jamfiles/x264: $(stage-dir)/lib/jamfiles/Jamroot
+$(work-dir):
+	$(mkdir) "$(call to-shell,$@)"
+  
+$(stage-dir)/lib/jamfiles/x264:
 	$(mkdir) "$(call to-shell,$@)"

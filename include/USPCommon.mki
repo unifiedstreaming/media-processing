@@ -10,18 +10,13 @@
 #
 
 #
-# Determine the name of this directory
-#
-this-dir := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))
-top-dir := $(abspath $(this-dir)/..)
-
-#
 # Some common settings and utilities
 #
 
 .DEFAULT_GOAL := all
 
 .DELETE_ON_ERROR:
+.SECONDARY:
 
 #
 # Use $(space) for embedding a space in a list of (space-separated) tokens
@@ -76,6 +71,7 @@ dev-null := $(if $(unix-like),/dev/null,NUL)
 copy := $(if $(unix-like),cp,copy /Y)
 mkdir := $(if $(unix-like),mkdir -p,mkdir)
 rmdir := $(if $(unix-like),rm -rf,-rmdir /S /Q)
+move := $(if $(unix-like),mv -f,move)
 
 #
 # $(call escape,<path>)
@@ -114,7 +110,7 @@ to-shell = $(if $(unix-like),$(call unescape,$1),$(subst /,\,$(call unescape,$1)
 to-native = $(if $(cygwin),$(shell cygpath --windows "$(call to-shell,$1)"),$(call to-shell,$1))
 
 #
-# $(call find-files,<pattern> ...,<root> ...)
+# $(call find-files,<pattern>*,<root>*)
 #
 # Recursively lists all non-directories matching any <pattern>,
 # starting from the <root> names.  Spaces in directory or file names
@@ -217,54 +213,6 @@ sanitizer-flags := $(strip \
 bjam := $(if $(shell b2 --version 2>$(dev-null)),b2,bjam)
 
 #
-# Determine the build directory
-#
-override build-dir := $(if $(build-dir),$(abspath $(call to-make,$(build-dir))),$(top-dir)/obj)
-
-#
-# Determine the (build setting-specific) directory for generated artifacts 
-#
-mode-dir := $(build-dir)/other/$(subst $(space),/,$(subst =,-,$(build-settings)))
-
-#
-# Determine the (build setting-specific) staging directory
-#
-stage-dir := $(mode-dir)/stage
-
-#
-# $(call project-work-dir,<project>)
-# Returns the (build setting-specific) working directory for <project>
-#
-project-work-dir = $(mode-dir)/work/$1
-
-#
-# Determine the directory to install to
-#
-ifneq ($(filter install,$(MAKECMDGOALS)),)
-  ifeq ($(install-dir),)
-    $(error targets 'install' requires 'install-dir=<somehere>')
-  endif
-endif
-install-dir := $(abspath $(call to-make,$(install-dir)))
-
-#
-# Determine bjam args; we assume bjam is a native executable
-#
-bjam-options := -sstage-dir="$(call to-native,$(stage-dir))"
-bjam-options += --build-dir="$(call to-native,$(build-dir)/bjam)"
-ifneq ($(install-dir),)
-  bjam-options += --prefix="$(call to-native,$(install-dir))"
-  ifneq ($(windows),)
-    # Ensure dlls are placed in the directory for executables
-    bjam-options += --libdir="$(call to-native,$(install-dir)/bin)"
-  endif
-endif
-
-ifneq ($(verbose),)
-  bjam-options += -d+2
-endif
-
-#
 # $(call staged-jamfile-content,<library name>,<library file>,<include directory>)
 # Generates the content of a jamfile for consuming a library.
 #
@@ -279,37 +227,3 @@ lib $1
 ;
 
 endef
-
-#
-# Generating $(stage-dir)/lib/jamfiles/Jamroot
-#
-define staged-jamroot-content :=
-project staged-jamfiles ;
-
-endef
-
-$(stage-dir)/lib/jamfiles/Jamroot: | $(stage-dir)/lib/jamfiles
-	$(info generating $@)
-	$(file >$@,$(staged-jamroot-content))
-	
-$(stage-dir)/lib/jamfiles:
-	$(mkdir) "$(call to-shell,$@)"
-
-#
-# $(call bjam_args, <bjam target>)
-#
-bjam_args = $(bjam-options) $(build-settings) $(patsubst %/,%,$(dir $1))$(addprefix //,$(basename $(notdir $1)))
-
-#
-# Rules for calling bjam
-#
-
-.PHONY: .phony
-.phony: 
-
-.bjam: .phony
-	$(bjam) $(call bjam_args,$@)
-
-%.bjam: .phony
-	$(bjam) $(call bjam_args,$@)
-
