@@ -16,7 +16,7 @@
 .DEFAULT_GOAL := all
 
 .DELETE_ON_ERROR:
-.SECONDARY:
+.SECONDEXPANSION:
 
 #
 # Use $(space) for embedding a space in a list of (space-separated) tokens

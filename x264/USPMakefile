@@ -70,8 +70,8 @@ ifneq ($(build-x264),)
 	$(rmdir) "$(call to-shell,$(work-dir))"
 
   $(work-dir)/usp-build-stamp: $(work-dir)/config.mak $(sources)
-	$(info generating $@.dep.next)
 	$(file >$@.dep.next,$(call dependency-listing,$@,$(sources)))
+	@echo generated $@.dep.next
 	$(MAKE) -C $(work-dir)
 	echo timestamp >"$(call to-shell,$@)"
 	$(move) "$(call to-shell,$@.dep.next)" "$(call to-shell,$@.dep)" 
@@ -124,8 +124,8 @@ endif
 
 $(stage-dir)/lib/jamfiles/x264/jamfile: \
   $(work-dir)/usp-stage-stamp | $(stage-dir)/lib/jamfiles/x264
-	$(info generating $@)
 	$(file >$@,$(call staged-jamfile-content,x264,$(stage-dir)/lib/$(if $(filter msvc%,$(toolset)),libx264.lib,libx264.a),$(stage-dir)/include))
+	@echo generated $@
 
 $(work-dir):
 	$(mkdir) "$(call to-shell,$@)"

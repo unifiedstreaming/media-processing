@@ -46,8 +46,8 @@ project staged-jamfiles ;
 endef
 
 $(stage-dir)/lib/jamfiles/Jamroot: | $(stage-dir)/lib/jamfiles
-	$(info generating $@)
 	$(file >$@,$(staged-jamroot-content))
+	@echo generated $@
 
 $(stage-dir)/lib/jamfiles:
 	$(mkdir) "$(call to-shell,$@)"
