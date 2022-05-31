@@ -32,8 +32,8 @@ stage-dir := $(build-mode-dir)/stage
 bjam-build-dir := $(build-dir)/bjam
 
 #
-# $(call gmake-work-dir,<name>)
-# Returns the (build setting-specific) working directory for <name>
+# $(call gmake-work-dir,<project>)
+# Returns the (build setting-specific) working directory for <project>
 #
 gmake-work-dir = $(build-mode-dir)/work/$1
 
@@ -58,9 +58,9 @@ $(stage-dir)/lib/jamfiles:
 expand = $(if $(expand-info),$(info $1))$(eval $1)
 
 #
-# $(call define-gmake-target,<name>,<makefile>,<prereq target name>*)
+# $(call define-gmake-project,<name>,<makefile>,<prereq project name>*)
 #
-define gmake-target-definition =
+define gmake-project-definition =
 .PHONY: $1
 $1: $(stage-dir)/lib/jamfiles/Jamroot $3
 	$(MAKE) -C $(dir $2) -f $(notdir $2) -I "$(abspath include)" $(build-settings) work-dir="$(call gmake-work-dir,$1)" stage-dir="$(stage-dir)" stage
@@ -71,7 +71,7 @@ clean-$1:
 
 endef
 
-define-gmake-target = $(call expand,$(call gmake-target-definition,$1,$2,$3))
+define-gmake-project = $(call expand,$(call gmake-project-definition,$1,$2,$3))
 
 #
 # Determine bjam options & args
@@ -85,11 +85,11 @@ bjam-options := $(strip \
 bjam-args := $(bjam-options) $(build-settings)
 
 #
-# $(call define-bjam-target,<name>,<target-descriptor>,<prereq target name>*)
+# $(call define-bjam-project,<name>,<source dir>,<prereq project name>*)
 #
-define bjam-target-definition =
+define bjam-project-definition =
 .PHONY: $1
-$1: $(stage-dir)/lib/jamfiles/Jamroot $3
+$1: $3
 	$(bjam) $(bjam-options) $(build-settings) $2
 
 .PHONY: clean-$1
@@ -98,22 +98,22 @@ clean-$1:
 
 endef
 
-define-bjam-target = $(call expand,$(call bjam-target-definition,$1,$2,$3))
+define-bjam-project = $(call expand,$(call bjam-project-definition,$1,$2,$3))
 
 #
-# Generated phony targets
+# Generated project targets
 #
-$(call define-bjam-target,cuti,cuti/cuti)
-$(call define-bjam-target,cuti_unit_tests,cuti/unit_tests,cuti)
+$(call define-bjam-project,cuti,cuti/cuti)
+$(call define-bjam-project,cuti_unit_tests,cuti/unit_tests,cuti)
 
-$(call define-bjam-target,x264_proto,x264_proto/x264_proto,cuti)
+$(call define-bjam-project,x264_proto,x264_proto/x264_proto,cuti)
 
-$(call define-gmake-target,x264,x264/USPMakefile)
+$(call define-gmake-project,x264,x264/USPMakefile)
 
-$(call define-bjam-target,x264_es_utils,x264_es_utils/x264_es_utils,x264_proto cuti x264)
-$(call define-bjam-target,x264_es_utils_unit_tests,x264_es_utils/unit_tests,x264_es_utils)
+$(call define-bjam-project,x264_es_utils,x264_es_utils/x264_es_utils,x264_proto cuti x264)
+$(call define-bjam-project,x264_es_utils_unit_tests,x264_es_utils/unit_tests,x264_es_utils)
 
-$(call define-bjam-target,x264_encoding_service,x264_encoding_service,x264_es_utils cuti)
+$(call define-bjam-project,x264_encoding_service,x264_encoding_service,x264_es_utils cuti)
 
 #
 # User-level targets
