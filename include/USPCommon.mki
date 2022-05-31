@@ -227,3 +227,27 @@ lib $1
 ;
 
 endef
+
+#
+# $(call is-absolute,<path>)
+#
+is-absolute = $(strip \
+  $(if $(firstword $1), \
+    $(if $(filter $(abspath $(firstword $1)),$(firstword $1)),yes) \
+  ) \
+)
+
+#
+# $(call check-absolute,<path>)
+#
+check-absolute = $(if $(call is-absolute,$1),$1,$(error '$1' is not an absolute path))
+
+#
+# establish dest-dir
+#
+override dest-dir := $(if $(dest-dir),$(call to-make,$(call check-absolute,$(subst \,/,$(dest-dir)))))
+
+#
+# $(call required-dest-dir,<target>)
+#
+required-dest-dir = $(if $(dest-dir),$(dest-dir),$(error '$1' requires dest-dir to be set))

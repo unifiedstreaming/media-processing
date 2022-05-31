@@ -82,7 +82,18 @@ bjam-options := $(strip \
  -sstage-dir="$(call to-native,$(stage-dir))" \
 )
 
-bjam-args := $(bjam-options) $(build-settings)
+#
+# $(call bjam-install-options,<target>)
+#
+# called indirectly from some build recipes, so the requirements
+# on $(dest-dir) only kick in when that build recipe is run
+#
+bjam-install-options = $(strip \
+  --prefix="$(call to-native,$(call required-dest-dir,$1))" \
+  $(if $(windows), \
+    --libdir="$(call to-native,$(call required-dest-dir,$1)/bin)" \
+  ) \
+)
 
 #
 # $(call define-bjam-project,<name>,<source dir>,<prereq project name>*)
@@ -92,6 +103,10 @@ define bjam-project-definition =
 $1: $3
 	$(bjam) $(bjam-options) $(build-settings) $2
 
+.PHONY: install-$1
+install-$1: $3
+	$(bjam) $$(call bjam-install-options,$$@) $(bjam-options) $(build-settings) $2//install
+	
 .PHONY: clean-$1
 clean-$1:
 	$(bjam) --clean $(bjam-options) $(build-settings) $2
@@ -123,6 +138,9 @@ all: x264_encoding_service
 
 .PHONY: unit_tests
 unit_tests: cuti_unit_tests x264_es_utils_unit_tests
+
+.PHONY: install
+install: install-x264_encoding_service
 
 PHONY: clean
 clean:
