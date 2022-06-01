@@ -27,19 +27,18 @@ build-mode-dir := $(build-dir)/other/$(subst $(space),/,$(subst =,-,$(build-sett
 stage-dir := $(build-mode-dir)/stage
 
 #
-# Determine the bjam-specific build directory
+# Generating a skeleton stage directory
 #
-bjam-build-dir := $(build-dir)/bjam
 
-#
-# $(call gmake-work-dir,<project>)
-# Returns the (build setting-specific) working directory for <project>
-#
-gmake-work-dir = $(build-mode-dir)/work/$1
+stage-subdirs := bin include lib lib/jamfiles
+all-stage-dirs := $(stage-dir) $(addprefix $(stage-dir)/,$(stage-subdirs))
 
-#
-# Generating $(stage-dir)/lib/jamfiles/Jamroot
-#
+.PHONY: skeleton-stage-dir
+skeleton-stage-dir: $(stage-dir)/lib/jamfiles/Jamroot | $(all-stage-dirs)
+
+$(all-stage-dirs):
+	$(mkdir) "$(call to-shell,$@)"
+
 define staged-jamroot-content :=
 project staged-jamfiles ;
 
@@ -49,8 +48,16 @@ $(stage-dir)/lib/jamfiles/Jamroot: | $(stage-dir)/lib/jamfiles
 	$(file >$@,$(staged-jamroot-content))
 	@echo generated $@
 
-$(stage-dir)/lib/jamfiles:
-	$(mkdir) "$(call to-shell,$@)"
+#
+# Determine the bjam-specific build directory
+#
+bjam-build-dir := $(build-dir)/bjam
+
+#
+# $(call project-work-dir,<project>)
+# Returns the (build setting-specific) working directory for <project>
+#
+project-work-dir = $(build-mode-dir)/work/$1
 
 #
 # $(call expand,<text>)
@@ -61,13 +68,13 @@ expand = $(if $(expand-info),$(info $1))$(eval $1)
 # $(call define-gmake-project,<name>,<makefile>,<prereq project name>*)
 #
 define gmake-project-definition =
-.PHONY: $1
+.PHONY: skeleton-stage-dir $1
 $1: $(stage-dir)/lib/jamfiles/Jamroot $3
-	$(MAKE) -C $(dir $2) -f $(notdir $2) -I "$(abspath include)" $(build-settings) work-dir="$(call gmake-work-dir,$1)" stage-dir="$(stage-dir)" stage
+	$(MAKE) -C $(dir $2) -f $(notdir $2) -I "$(abspath include)" $(build-settings) work-dir="$(call project-work-dir,$1)" stage-dir="$(stage-dir)" stage
 
 .PHONY: $1.clean
 $1.clean:
-	$(rmdir) "$(call to-shell,$(call gmake-work-dir,$1))"
+	$(rmdir) "$(call to-shell,$(call project-work-dir,$1))"
 
 endef
 
@@ -100,11 +107,11 @@ bjam-dist-options = $(strip \
 #
 define bjam-project-definition =
 .PHONY: $1
-$1: $3
+$1: skeleton-stage-dir $3
 	$(bjam) $(bjam-options) $(build-settings) $2
 
 .PHONY: $1.dist
-$1.dist: $3
+$1.dist: skeleton-stage-dir $3
 	$(bjam) $$(bjam-dist-options) $(bjam-options) $(build-settings) $2//dist
 	
 .PHONY: $1.clean
