@@ -248,6 +248,6 @@ check-absolute = $(if $(call is-absolute,$1),$1,$(error '$1' is not an absolute 
 override dest-dir := $(if $(dest-dir),$(call to-make,$(call check-absolute,$(subst \,/,$(dest-dir)))))
 
 #
-# $(call required-dest-dir,<target>)
+# $(call required-value,<name>)
 #
-required-dest-dir = $(if $(dest-dir),$(dest-dir),$(error '$1' requires dest-dir to be set))
+required-value = $(if $($1),$($1),$(error '$1' must be be set))

@@ -83,15 +83,15 @@ bjam-options := $(strip \
 )
 
 #
-# $(call bjam-dist-options,<target>)
+# Determine bjam dist options
 #
-# called indirectly from some build recipes, so the requirements
+# Lazily evaluated from some build recipes, so the requirements
 # on $(dest-dir) only kick in when that build recipe is run
 #
 bjam-dist-options = $(strip \
-  --prefix="$(call to-native,$(call required-dest-dir,$1))" \
+  --prefix="$(call to-native,$(call required-value,dest-dir))" \
   $(if $(windows), \
-    --libdir="$(call to-native,$(call required-dest-dir,$1)/bin)" \
+    --libdir="$(call to-native,$(call required-value,dest-dir)/bin)" \
   ) \
 )
 
@@ -105,7 +105,7 @@ $1: $3
 
 .PHONY: dist-$1
 dist-$1: $3
-	$(bjam) $$(call bjam-dist-options,$$@) $(bjam-options) $(build-settings) $2//dist
+	$(bjam) $$(bjam-dist-options) $(bjam-options) $(build-settings) $2//dist
 	
 .PHONY: clean-$1
 clean-$1:
