@@ -25,7 +25,7 @@ exe x264_encoding_service
   ../cuti/cuti//cuti
 ;
 
-package.install install
+package.install dist
 : # properties
 : # binaries
   x264_encoding_service
