@@ -65,8 +65,8 @@ define gmake-project-definition =
 $1: $(stage-dir)/lib/jamfiles/Jamroot $3
 	$(MAKE) -C $(dir $2) -f $(notdir $2) -I "$(abspath include)" $(build-settings) work-dir="$(call gmake-work-dir,$1)" stage-dir="$(stage-dir)" stage
 
-.PHONY: clean-$1
-clean-$1:
+.PHONY: $1.clean
+$1.clean:
 	$(rmdir) "$(call to-shell,$(call gmake-work-dir,$1))"
 
 endef
@@ -74,7 +74,7 @@ endef
 define-gmake-project = $(call expand,$(call gmake-project-definition,$1,$2,$3))
 
 #
-# Determine bjam options & args
+# Determine bjam options
 #
 bjam-options := $(strip \
  $(if $(verbose),-d+2) \
@@ -83,7 +83,7 @@ bjam-options := $(strip \
 )
 
 #
-# Determine bjam dist options
+# Determine additional bjam options for .dist targets
 #
 # Lazily evaluated from some build recipes, so the requirements
 # on $(dest-dir) only kick in when that build recipe is run
@@ -103,12 +103,12 @@ define bjam-project-definition =
 $1: $3
 	$(bjam) $(bjam-options) $(build-settings) $2
 
-.PHONY: dist-$1
-dist-$1: $3
+.PHONY: $1.dist
+$1.dist: $3
 	$(bjam) $$(bjam-dist-options) $(bjam-options) $(build-settings) $2//dist
 	
-.PHONY: clean-$1
-clean-$1:
+.PHONY: $1.clean
+$1.clean:
 	$(bjam) --clean $(bjam-options) $(build-settings) $2
 
 endef
@@ -140,7 +140,7 @@ all: x264_encoding_service
 unit_tests: cuti_unit_tests x264_es_utils_unit_tests
 
 .PHONY: dist
-dist: dist-x264_encoding_service
+dist: x264_encoding_service.dist
 
 PHONY: clean
 clean:
