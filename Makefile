@@ -68,8 +68,8 @@ expand = $(if $(expand-info),$(info $1))$(eval $1)
 # $(call define-gmake-project,<name>,<makefile>,<prereq project name>*)
 #
 define gmake-project-definition =
-.PHONY: skeleton-stage-dir $1
-$1: $(stage-dir)/lib/jamfiles/Jamroot $3
+.PHONY: $1
+$1: skeleton-stage-dir $3
 	$(MAKE) -C $(dir $2) -f $(notdir $2) -I "$(abspath include)" $(build-settings) work-dir="$(call project-work-dir,$1)" stage-dir="$(stage-dir)" stage
 
 .PHONY: $1.clean
