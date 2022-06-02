@@ -65,16 +65,25 @@ project-work-dir = $(build-mode-dir)/work/$1
 expand = $(if $(expand-info),$(info $1))$(eval $1)
 
 #
-# $(call define-gmake-project,<name>,<makefile>,<prereq project name>*)
+# $(call define-gmake-project,<name> <version>?,<makefile>,<prereq name>*)
 #
 define gmake-project-definition =
+#
+# $1
+#
+$1.version := $2
+
 .PHONY: $1
-$1: $(addsuffix .stage,$3)
-	$(MAKE) -C $(dir $2) -f $(notdir $2) -I "$(abspath include)" $(build-settings) work-dir="$(call project-work-dir,$1)" stage-dir="$(stage-dir)"
+$1: $(addsuffix .stage,$4)
+	$(MAKE) -C $(dir $3) -f $(notdir $3) -I "$(abspath include)" $(build-settings) work-dir="$(call project-work-dir,$1)" stage-dir="$(stage-dir)"
 
 .PHONY: $1.stage
-$1.stage: skeleton-stage-dir $(addsuffix .stage,$3)
-	$(MAKE) -C $(dir $2) -f $(notdir $2) -I "$(abspath include)" $(build-settings) work-dir="$(call project-work-dir,$1)" stage-dir="$(stage-dir)" stage
+$1.stage: skeleton-stage-dir $(addsuffix .stage,$4)
+	$(MAKE) -C $(dir $3) -f $(notdir $3) -I "$(abspath include)" $(build-settings) work-dir="$(call project-work-dir,$1)" stage-dir="$(stage-dir)" stage
+
+.PHONY: $1.dist
+$1.dist: $(addsuffix .stage,$4)
+	$(MAKE) -C $(dir $3) -f $(notdir $3) -I "$(abspath include)" $(build-settings) work-dir="$(call project-work-dir,$1)" stage-dir="$(stage-dir)" dist
 
 .PHONY: $1.clean
 $1.clean:
@@ -82,7 +91,7 @@ $1.clean:
 
 endef
 
-define-gmake-project = $(call expand,$(call gmake-project-definition,$1,$2,$3))
+define-gmake-project = $(call expand,$(call gmake-project-definition,$(word 1,$1),$(word 2,$1),$2,$3))
 
 #
 # Determine bjam options
@@ -107,36 +116,41 @@ bjam-dist-options = $(strip \
 )
 
 #
-# $(call define-bjam-project,<name>,<source dir>,<prereq project name>*)
+# $(call define-bjam-project,<name> <version>?,<source dir>,<prereq name>*)
 #
 define bjam-project-definition =
+#
+# $1
+#
+$1.version := $2
+
 .PHONY: $1
-$1: $(addsuffix .stage,$3)
-	$(bjam) $(bjam-options) $(build-settings) $2
+$1: $(addsuffix .stage,$4)
+	$(bjam) $(bjam-options) $(build-settings) $3
 
 # Legacy bjam project: no staging; consumers refer to source dir
 .PHONY: $1.stage
 $1.stage: $1
 
 .PHONY: $1.dist
-$1.dist: $3
-	$(bjam) $$(bjam-dist-options) $(bjam-options) $(build-settings) $2//dist
+$1.dist: $(addsuffix .stage,$4)
+	$(bjam) $$(bjam-dist-options) $(bjam-options) $(build-settings) $3//dist
 	
 .PHONY: $1.clean
 $1.clean:
-	$(bjam) --clean $(bjam-options) $(build-settings) $2
+	$(bjam) --clean $(bjam-options) $(build-settings) $3
 
 endef
 
-define-bjam-project = $(call expand,$(call bjam-project-definition,$1,$2,$3))
+define-bjam-project = $(call expand,$(call bjam-project-definition,$(word 1,$1),$(word 2,$1),$2,$3))
 
 #
 # Generated project targets
 #
-$(call define-bjam-project,cuti,cuti/cuti)
+$(call define-bjam-project,cuti 0_0_0,cuti/cuti)
 $(call define-bjam-project,cuti_unit_tests,cuti/unit_tests,cuti)
 
-$(call define-bjam-project,x264_proto,x264_proto/x264_proto,cuti)
+$(call define-bjam-project,x264_proto 0_0_0,x264_proto/x264_proto,cuti)
 
 $(call define-gmake-project,x264,x264/USPMakefile)
 

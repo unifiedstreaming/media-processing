@@ -251,3 +251,17 @@ override dest-dir := $(if $(dest-dir),$(call to-make,$(call check-absolute,$(sub
 # $(call required-value,<name>)
 #
 required-value = $(if $($1),$($1),$(error '$1' must be be set))
+
+#
+# $(call keep-last-instance,<word>*)
+#
+keep-last-instance-impl = $(if $(firstword $1), \
+  $(if $(filter $(firstword $1),$(wordlist 2,$(words $1),$1)), \
+    , \
+    $(firstword $1) \
+  ) \
+  $(call keep-last-instance-impl,$(wordlist 2,$(words $1),$1)) \
+)
+
+keep-last-instance = $(strip $(call keep-last-instance-impl,$1))
+
