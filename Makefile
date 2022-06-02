@@ -69,7 +69,11 @@ expand = $(if $(expand-info),$(info $1))$(eval $1)
 #
 define gmake-project-definition =
 .PHONY: $1
-$1: skeleton-stage-dir $3
+$1: $(addsuffix .stage,$3)
+	$(MAKE) -C $(dir $2) -f $(notdir $2) -I "$(abspath include)" $(build-settings) work-dir="$(call project-work-dir,$1)" stage-dir="$(stage-dir)"
+
+.PHONY: $1.stage
+$1.stage: skeleton-stage-dir $(addsuffix .stage,$3)
 	$(MAKE) -C $(dir $2) -f $(notdir $2) -I "$(abspath include)" $(build-settings) work-dir="$(call project-work-dir,$1)" stage-dir="$(stage-dir)" stage
 
 .PHONY: $1.clean
@@ -107,11 +111,15 @@ bjam-dist-options = $(strip \
 #
 define bjam-project-definition =
 .PHONY: $1
-$1: skeleton-stage-dir $3
+$1: $(addsuffix .stage,$3)
 	$(bjam) $(bjam-options) $(build-settings) $2
 
+# Legacy bjam project: no staging; consumers refer to source dir
+.PHONY: $1.stage
+$1.stage: $1
+
 .PHONY: $1.dist
-$1.dist: skeleton-stage-dir $3
+$1.dist: $3
 	$(bjam) $$(bjam-dist-options) $(bjam-options) $(build-settings) $2//dist
 	
 .PHONY: $1.clean
