@@ -17,7 +17,14 @@
 # <http://www.gnu.org/licenses/>.
 #
 
-constant CUTI_VERSION : 0_0_0 ;
+import os ;
+import errors ;
+
+if [ os.environ cuti.version ] = ""
+{
+  errors.error cuti.version must be set ;
+}
+constant CUTI_VERSION : [ os.environ cuti.version ] ;
 
 alias cuti : cuti_$(CUTI_VERSION) ;
 

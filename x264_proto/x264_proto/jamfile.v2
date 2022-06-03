@@ -19,7 +19,14 @@
 # library.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-constant X264_PROTO_VERSION : 0_0_0 ;
+import os ;
+import errors ;
+
+if [ os.environ x264_proto.version ] = ""
+{
+  errors.error x264_proto.version must be set ;
+}
+constant X264_PROTO_VERSION : [ os.environ x264_proto.version ] ;
 
 alias x264_proto : x264_proto_$(X264_PROTO_VERSION) ;
 

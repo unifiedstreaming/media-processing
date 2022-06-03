@@ -60,30 +60,68 @@ bjam-build-dir := $(build-dir)/bjam
 project-work-dir = $(build-mode-dir)/work/$1
 
 #
+# $(call recursive-prereqs,<project name>)
+#
+recursive-prereqs-impl = $(foreach prereq,$($1.prereqs), \
+  $(prereq) $(call recursive-prereqs-impl,$(prereq)) \
+)
+recursive-prereqs = $(call keep-last-instance,$(call recursive-prereqs-impl,$1))
+
+#
+# $(call required-versions,<project name>)
+#
+required-versions = $(strip \
+  $(foreach proj,$1 $(call recursive-prereqs,$1), \
+    $(if $($(proj).version),$(proj).version=$($(proj).version)) \
+  ) \
+)
+
+#
 # $(call expand,<text>)
 #
 expand = $(if $(expand-info),$(info $1))$(eval $1)
 
 #
-# $(call define-gmake-project,<name> <version>?,<makefile>,<prereq name>*)
+# $(call gmake-options,<project name>)
 #
-define gmake-project-definition =
+gmake-options = $(strip \
+  -I "$(abspath include)" \
+  work-dir="$(call project-work-dir,$1)" \
+  stage-dir="$(stage-dir)" \
+  $(call required-versions,$1) \
+)
+  
+#
+# Determine additional gmake options for .dist targets
+#
+# Lazily evaluated from some build recipes, so the requirements
+# on $(dest-dir) only kick in when that build recipe is run
+#
+gmake-dist-options = $(strip \
+  dest-dir="$(call required-value,dest-dir)" \
+)
+
+#
+# $(call gmake-project-impl,<name>,<version>?,<makefile>,<prereq name>*)
+#
+define gmake-project-impl =
 #
 # $1
 #
 $1.version := $2
+$1.prereqs := $4
 
 .PHONY: $1
 $1: $(addsuffix .stage,$4)
-	$(MAKE) -C $(dir $3) -f $(notdir $3) -I "$(abspath include)" $(build-settings) work-dir="$(call project-work-dir,$1)" stage-dir="$(stage-dir)"
+	$(MAKE) -C $(dir $3) -f $(notdir $3) $$(call gmake-options,$1) $(build-settings)
 
 .PHONY: $1.stage
 $1.stage: skeleton-stage-dir $(addsuffix .stage,$4)
-	$(MAKE) -C $(dir $3) -f $(notdir $3) -I "$(abspath include)" $(build-settings) work-dir="$(call project-work-dir,$1)" stage-dir="$(stage-dir)" stage
+	$(MAKE) -C $(dir $3) -f $(notdir $3) $$(call gmake-options,$1) $(build-settings) stage
 
 .PHONY: $1.dist
 $1.dist: $(addsuffix .stage,$4)
-	$(MAKE) -C $(dir $3) -f $(notdir $3) -I "$(abspath include)" $(build-settings) work-dir="$(call project-work-dir,$1)" stage-dir="$(stage-dir)" dist
+	$(MAKE) -C $(dir $3) -f $(notdir $3) $$(call gmake-options,$1) $$(gmake-dist-options) $(build-settings) dist
 
 .PHONY: $1.clean
 $1.clean:
@@ -91,15 +129,19 @@ $1.clean:
 
 endef
 
-define-gmake-project = $(call expand,$(call gmake-project-definition,$(word 1,$1),$(word 2,$1),$2,$3))
+#
+# $(call gmake-project,<name> <version>?,<makefile>,<prereq name>*)
+#
+gmake-project = $(call expand,$(call gmake-project-impl,$(word 1,$1),$(word 2,$1),$2,$3))
 
 #
-# Determine bjam options
+# $(call bjam-options,<project name>)
 #
-bjam-options := $(strip \
+bjam-options = $(strip \
  $(if $(verbose),-d+2) \
  --build-dir="$(call to-native,$(bjam-build-dir))" \
  -sstage-dir="$(call to-native,$(stage-dir))" \
+ $(addprefix -s,$(call required-versions,$1)) \
 )
 
 #
@@ -116,17 +158,18 @@ bjam-dist-options = $(strip \
 )
 
 #
-# $(call define-bjam-project,<name> <version>?,<source dir>,<prereq name>*)
+# $(call bjam-project-impl,<name>,<version>?,<source dir>,<prereq name>*)
 #
-define bjam-project-definition =
+define bjam-project-impl =
 #
 # $1
 #
 $1.version := $2
+$1.prereqs := $4
 
 .PHONY: $1
 $1: $(addsuffix .stage,$4)
-	$(bjam) $(bjam-options) $(build-settings) $3
+	$(bjam) $$(call bjam-options,$1) $(build-settings) $3
 
 # Legacy bjam project: no staging; consumers refer to source dir
 .PHONY: $1.stage
@@ -134,30 +177,33 @@ $1.stage: $1
 
 .PHONY: $1.dist
 $1.dist: $(addsuffix .stage,$4)
-	$(bjam) $$(bjam-dist-options) $(bjam-options) $(build-settings) $3//dist
+	$(bjam) $$(bjam-dist-options) $$(call bjam-options,$1) $(build-settings) $3//dist
 	
 .PHONY: $1.clean
 $1.clean:
-	$(bjam) --clean $(bjam-options) $(build-settings) $3
+	$(bjam) --clean $$(call bjam-options,$1) $(build-settings) $3
 
 endef
 
-define-bjam-project = $(call expand,$(call bjam-project-definition,$(word 1,$1),$(word 2,$1),$2,$3))
+#
+# $(call bjam-project,<name> <version>?,<source dir>,<prereq name>*)
+#
+bjam-project = $(call expand,$(call bjam-project-impl,$(word 1,$1),$(word 2,$1),$2,$3))
 
 #
 # Generated project targets
 #
-$(call define-bjam-project,cuti 0_0_0,cuti/cuti)
-$(call define-bjam-project,cuti_unit_tests,cuti/unit_tests,cuti)
+$(call bjam-project,x264_encoding_service,x264_encoding_service,x264_es_utils cuti)
 
-$(call define-bjam-project,x264_proto 0_0_0,x264_proto/x264_proto,cuti)
+$(call bjam-project,x264_es_utils,x264_es_utils/x264_es_utils,x264_proto cuti x264)
+$(call bjam-project,x264_es_utils_unit_tests,x264_es_utils/unit_tests,x264_es_utils)
 
-$(call define-gmake-project,x264,x264/USPMakefile)
+$(call bjam-project,x264_proto 0_0_0,x264_proto/x264_proto,cuti)
 
-$(call define-bjam-project,x264_es_utils,x264_es_utils/x264_es_utils,x264_proto cuti x264)
-$(call define-bjam-project,x264_es_utils_unit_tests,x264_es_utils/unit_tests,x264_es_utils)
+$(call bjam-project,cuti 0_0_0,cuti/cuti)
+$(call bjam-project,cuti_unit_tests,cuti/unit_tests,cuti)
 
-$(call define-bjam-project,x264_encoding_service,x264_encoding_service,x264_es_utils cuti)
+$(call gmake-project,x264,x264/USPMakefile)
 
 #
 # User-level targets
