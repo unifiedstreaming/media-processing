@@ -83,6 +83,7 @@ expand = $(if $(expand-info),$(info $1))$(eval $1)
 
 #
 # $(call gmake-options,<project name>)
+# (to be evaluated very lazily, as part of a recipe)
 #
 gmake-options = $(strip \
   -I "$(abspath include)" \
@@ -92,12 +93,11 @@ gmake-options = $(strip \
 )
   
 #
-# Determine additional gmake options for .dist targets
-#
-# Lazily evaluated from some build recipes, so the requirements
-# on $(dest-dir) only kick in when that build recipe is run
+# $(call gmake-dist-options,<project name>)
+# (to be evaluated very lazily, as part of a recipe)
 #
 gmake-dist-options = $(strip \
+  $(call gmake-options,$1) \
   dest-dir="$(call required-value,dest-dir)" \
 )
 
@@ -121,7 +121,7 @@ $1.stage: skeleton-stage-dir $(addsuffix .stage,$4)
 
 .PHONY: $1.dist
 $1.dist: $(addsuffix .stage,$4)
-	$(MAKE) -C $(dir $3) -f $(notdir $3) $$(call gmake-options,$1) $$(gmake-dist-options) $(build-settings) dist
+	$(MAKE) -C $(dir $3) -f $(notdir $3) $$(call gmake-dist-options,$1) $(build-settings) dist
 
 .PHONY: $1.clean
 $1.clean:
@@ -136,6 +136,7 @@ gmake-project = $(call expand,$(call gmake-project-impl,$(word 1,$1),$(word 2,$1
 
 #
 # $(call bjam-options,<project name>)
+# (to be evaluated very lazily, as part of a recipe)
 #
 bjam-options = $(strip \
  $(if $(verbose),-d+2) \
@@ -145,16 +146,15 @@ bjam-options = $(strip \
 )
 
 #
-# Determine additional bjam options for .dist targets
-#
-# Lazily evaluated from some build recipes, so the requirements
-# on $(dest-dir) only kick in when that build recipe is run
+# $(call bjam-dist-options,<project name>)
+# (to be evaluated very lazily, as part of a recipe)
 #
 bjam-dist-options = $(strip \
   --prefix="$(call to-native,$(call required-value,dest-dir))" \
   $(if $(windows), \
     --libdir="$(call to-native,$(call required-value,dest-dir)/bin)" \
   ) \
+  $(call bjam-options,$1) \
 )
 
 #
@@ -177,7 +177,7 @@ $1.stage: $1
 
 .PHONY: $1.dist
 $1.dist: $(addsuffix .stage,$4)
-	$(bjam) $$(bjam-dist-options) $$(call bjam-options,$1) $(build-settings) $3//dist
+	$(bjam) $$(call bjam-dist-options,$1) $(build-settings) $3//dist
 	
 .PHONY: $1.clean
 $1.clean:

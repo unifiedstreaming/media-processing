@@ -43,7 +43,7 @@ ifneq ($(build-x264),)
   )
 
   configure-options := \
-    --prefix=$(stage-dir) \
+    --prefix="$(call to-shell,$(stage-dir))" \
     $(if $(filter debug,$(variant)),--enable-debug) \
     $(if $(extra-cflags),--extra-cflags="$(extra-cflags)") \
     --disable-cli \
@@ -102,9 +102,9 @@ else
   staged-files := $(addprefix $(stage-dir)/,$(filenames))
   staged-subdirs := $(sort $(abspath $(dir $(staged-files))))
 
+  # Pre-built library: no building
   .PHONY: all
   all:
-	$(error building not enabled)
 
   .PHONY: stage
   stage: $(stage-dir)/lib/jamfiles/x264/jamfile
@@ -121,6 +121,10 @@ else
 	$(mkdir) "$(call to-shell,$@)"
 
 endif
+
+# Static library; no disting
+.PHONY: dist
+dist:
 
 $(stage-dir)/lib/jamfiles/x264/jamfile: \
   $(work-dir)/usp-stage-stamp | $(stage-dir)/lib/jamfiles/x264
