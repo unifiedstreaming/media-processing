@@ -12,6 +12,18 @@
 include include/USPCommon.mki
 
 #
+# Prevent multiple instances of bjam (and/or GNU make, for that
+# matter) to be racing against each other; the order in which bjam
+# implicitly creates directories is beyond our control, and we've seen
+# directory creation race errors on Windows.
+#
+# Please note that sub-makes will still run parallel jobs if -j<X> is
+# passed to this Makefile, and that bjam defaults to some level of
+# parallel builds by default.
+#
+.NOTPARALLEL:
+
+#
 # Determine the build directory
 #
 override build-dir := $(abspath $(if $(build-dir),$(call to-make,$(build-dir)),build))
