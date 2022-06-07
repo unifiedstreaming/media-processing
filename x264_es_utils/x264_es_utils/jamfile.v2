@@ -31,4 +31,7 @@ lib x264_es_utils
 :
 :
   <include>..
-; 
+;
+
+explicit dist ;
+alias dist : ;

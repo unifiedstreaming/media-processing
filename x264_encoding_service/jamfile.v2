@@ -17,18 +17,20 @@
 # <http://www.gnu.org/licenses/>.
 #
 
-import package ;
-
 exe x264_encoding_service
 : main.cpp
   ../x264_es_utils/x264_es_utils//x264_es_utils
   ../cuti/cuti//cuti
 ;
 
-package.install dist
-: # properties
-: # binaries
+explicit dist ;
+
+install dist
+:
   x264_encoding_service
-: # libraries
-: # headers
+:
+  <install-dependencies>off
+  <install-type>EXE
+  <conditional>@dist-exe-location
 ;
+

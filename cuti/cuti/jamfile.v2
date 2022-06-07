@@ -136,5 +136,13 @@ lib cuti_$(CUTI_VERSION)
   <include>..
 ; 
 
-explicit stage ;
-install stage : cuti : <location>$(stage-dir)/lib ;
+explicit dist ;
+install dist
+:
+  cuti
+:
+  <install-dependencies>off
+  <install-type>SHARED_LIB
+  <conditional>@dist-dll-location
+;
+

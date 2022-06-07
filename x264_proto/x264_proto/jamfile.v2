@@ -42,3 +42,14 @@ lib x264_proto_$(X264_PROTO_VERSION)
 :
   <include>..
 ; 
+
+explicit dist ;
+install dist
+:
+  x264_proto
+:
+  <install-dependencies>off
+  <install-type>SHARED_LIB
+  <conditional>@dist-dll-location
+;
+

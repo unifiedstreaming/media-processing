@@ -27,16 +27,29 @@ build-mode-dir := $(build-dir)/other/$(subst $(space),/,$(subst =,-,$(build-sett
 stage-dir := $(build-mode-dir)/stage
 
 #
-# Generating a skeleton stage directory
+# Generating a skeleton build directory
 #
 
-stage-subdirs := bin include lib lib/jamfiles
-all-stage-dirs := $(stage-dir) $(addprefix $(stage-dir)/,$(stage-subdirs))
+skeleton-build-dirs := \
+  $(build-dir) \
+  $(bjam-build-dir) \
+  $(stage-dir) \
+  $(stage-dir)/bin \
+  $(stage-dir)/include \
+  $(stage-dir)/lib \
+  $(stage-dir)/lib/jamfiles
+  
+.PHONY: build-dir-skeleton
+build-dir-skeleton: $(stage-dir)/lib/jamfiles/Jamroot | $(skeleton-build-dirs)
 
-.PHONY: skeleton-stage-dir
-skeleton-stage-dir: $(stage-dir)/lib/jamfiles/Jamroot | $(all-stage-dirs)
+$(bjam-build-dir): | $(build-dir)
+$(stage-dir): | $(build-dir)
+$(stage-dir)/bin: | $(stage-dir)
+$(stage-dir)/include: | $(stage-dir)
+$(stage-dir)/lib: | $(stage-dir)
+$(stage-dir)/lib/jamfiles: | $(stage-dir)/lib
 
-$(all-stage-dirs):
+$(skeleton-build-dirs):
 	$(mkdir) "$(call to-shell,$@)"
 
 define staged-jamroot-content :=
@@ -98,7 +111,7 @@ gmake-options = $(strip \
 #
 gmake-dist-options = $(strip \
   $(call gmake-options,$1) \
-  dest-dir="$(call required-value,dest-dir)" \
+  dest-dir="$(call to-shell,$(call required-value,dest-dir))" \
 )
 
 #
@@ -112,16 +125,16 @@ $1.version := $2
 $1.prereqs := $4
 
 .PHONY: $1
-$1: $(addsuffix .stage,$4)
-	$(MAKE) -C $(dir $3) -f $(notdir $3) $$(call gmake-options,$1) $(build-settings)
+$1: build-dir-skeleton $(addsuffix .stage,$4)
+	$$(MAKE) -C $(dir $3) -f $(notdir $3) $$(call gmake-options,$1) $(build-settings)
 
 .PHONY: $1.stage
-$1.stage: skeleton-stage-dir $(addsuffix .stage,$4)
-	$(MAKE) -C $(dir $3) -f $(notdir $3) $$(call gmake-options,$1) $(build-settings) stage
+$1.stage: $1 $(addsuffix .stage,$4)
+	$$(MAKE) -C $(dir $3) -f $(notdir $3) $$(call gmake-options,$1) $(build-settings) stage
 
 .PHONY: $1.dist
-$1.dist: $(addsuffix .stage,$4)
-	$(MAKE) -C $(dir $3) -f $(notdir $3) $$(call gmake-dist-options,$1) $(build-settings) dist
+$1.dist: $1.stage $(addsuffix .dist,$4)
+	$$(MAKE) -C $(dir $3) -f $(notdir $3) $$(call gmake-dist-options,$1) $(build-settings) dist
 
 .PHONY: $1.clean
 $1.clean:
@@ -150,11 +163,8 @@ bjam-options = $(strip \
 # (to be evaluated very lazily, as part of a recipe)
 #
 bjam-dist-options = $(strip \
-  --prefix="$(call to-native,$(call required-value,dest-dir))" \
-  $(if $(windows), \
-    --libdir="$(call to-native,$(call required-value,dest-dir)/bin)" \
-  ) \
   $(call bjam-options,$1) \
+  -sdest-dir="$(call to-native,$(call required-value,dest-dir))" \
 )
 
 #
@@ -168,7 +178,7 @@ $1.version := $2
 $1.prereqs := $4
 
 .PHONY: $1
-$1: $(addsuffix .stage,$4)
+$1: build-dir-skeleton $(addsuffix .stage,$4)
 	$(bjam) $$(call bjam-options,$1) $(build-settings) $3
 
 # Legacy bjam project: no staging; consumers refer to source dir
@@ -176,7 +186,7 @@ $1: $(addsuffix .stage,$4)
 $1.stage: $1
 
 .PHONY: $1.dist
-$1.dist: $(addsuffix .stage,$4)
+$1.dist: $1 $(addsuffix .dist,$4)
 	$(bjam) $$(call bjam-dist-options,$1) $(build-settings) $3//dist
 	
 .PHONY: $1.clean

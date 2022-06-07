@@ -35,3 +35,34 @@ project oss
   <debug-symbols>on
 ;
 
+rule dist-dll-location ( properties * )
+{
+  local result ;
+
+  local dest-dir = [ os.environ dest-dir ] ;
+  if $(dest-dir) != ""
+  {
+    local dll-subdir = lib ;
+    if [ os.name ] = NT
+    {
+      dll-subdir = bin ;
+    }
+
+    result = <location>$(dest-dir)/$(dll-subdir) ;
+  }
+
+  return $(result) ;
+}
+
+rule dist-exe-location ( properties * )
+{
+  local result ;
+
+  local dest-dir = [ os.environ dest-dir ] ;
+  if $(dest-dir) != ""
+  {
+    result = <location>$(dest-dir)/bin ;
+  }
+
+  return $(result) ;
+}
