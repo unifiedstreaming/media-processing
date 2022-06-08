@@ -12,10 +12,11 @@
 include include/USPCommon.mki
 
 #
-# Prevent multiple instances of bjam (and/or GNU make, for that
-# matter) to be racing against each other; the order in which bjam
-# implicitly creates directories is beyond our control, and we've seen
-# directory creation race errors on Windows.
+# Recursive Make Considered Harmful: prevent concurrent captains on
+# the ship (bjam and/or GNUmake) each assuming they're the only
+# process generating build artifacts in (potentially) shared locations
+# such as the bjam build directory (over which we have no control),
+# the staging directory or make dist's $(dest-dir).
 #
 # Please note that sub-makes will still run parallel jobs if -j<X> is
 # passed to this Makefile, and that bjam defaults to some level of
@@ -27,6 +28,11 @@ include include/USPCommon.mki
 # Determine the build directory
 #
 override build-dir := $(abspath $(if $(build-dir),$(call to-make,$(build-dir)),build))
+
+#
+# Determine the bjam-specific build directory
+#
+bjam-build-dir := $(build-dir)/bjam
 
 #
 # Determine the (build setting-specific) directory for generated artifacts 
@@ -45,8 +51,8 @@ stage-dir := $(build-mode-dir)/stage
 skeleton-build-dirs := \
   $(build-dir) \
   $(bjam-build-dir) \
+  $(build-mode-dir) \
   $(stage-dir) \
-  $(stage-dir)/bin \
   $(stage-dir)/include \
   $(stage-dir)/lib \
   $(stage-dir)/lib/jamfiles
@@ -55,8 +61,8 @@ skeleton-build-dirs := \
 build-dir-skeleton: $(stage-dir)/lib/jamfiles/Jamroot | $(skeleton-build-dirs)
 
 $(bjam-build-dir): | $(build-dir)
-$(stage-dir): | $(build-dir)
-$(stage-dir)/bin: | $(stage-dir)
+$(build-mode-dir): | $(build-dir)
+$(stage-dir): | $(build-mode-dir)
 $(stage-dir)/include: | $(stage-dir)
 $(stage-dir)/lib: | $(stage-dir)
 $(stage-dir)/lib/jamfiles: | $(stage-dir)/lib
@@ -72,11 +78,6 @@ endef
 $(stage-dir)/lib/jamfiles/Jamroot: | $(stage-dir)/lib/jamfiles
 	$(file >$@,$(staged-jamroot-content))
 	@echo generated $@
-
-#
-# Determine the bjam-specific build directory
-#
-bjam-build-dir := $(build-dir)/bjam
 
 #
 # $(call project-work-dir,<project>)
@@ -137,15 +138,18 @@ $1.version := $2
 $1.prereqs := $4
 
 .PHONY: $1
-$1: build-dir-skeleton $(addsuffix .stage,$4)
-	$$(MAKE) -C $(dir $3) -f $(notdir $3) $$(call gmake-options,$1) $(build-settings)
+$1: $1.all
+
+.PHONY: $1.all
+$1.all: build-dir-skeleton $(addsuffix .stage,$4)
+	$$(MAKE) -C $(dir $3) -f $(notdir $3) $$(call gmake-options,$1) $(build-settings) all
 
 .PHONY: $1.stage
-$1.stage: $1 $(addsuffix .stage,$4)
+$1.stage: $1.all
 	$$(MAKE) -C $(dir $3) -f $(notdir $3) $$(call gmake-options,$1) $(build-settings) stage
 
 .PHONY: $1.dist
-$1.dist: $1.stage $(addsuffix .dist,$4)
+$1.dist: $1.all $(addsuffix .dist,$4)
 	$$(MAKE) -C $(dir $3) -f $(notdir $3) $$(call gmake-dist-options,$1) $(build-settings) dist
 
 .PHONY: $1.clean
@@ -190,15 +194,18 @@ $1.version := $2
 $1.prereqs := $4
 
 .PHONY: $1
-$1: build-dir-skeleton $(addsuffix .stage,$4)
+$1: $1.all
+
+$1.all: build-dir-skeleton $(addsuffix .stage,$4)
 	$(bjam) $$(call bjam-options,$1) $(build-settings) $3
 
-# Legacy bjam project: no staging; consumers refer to source dir
+# Legacy bjam project: no staging; consumers can only be other
+# jamfiles referring to this project's jamfile
 .PHONY: $1.stage
-$1.stage: $1
+$1.stage: $1.all
 
 .PHONY: $1.dist
-$1.dist: $1 $(addsuffix .dist,$4)
+$1.dist: $1.all $(addsuffix .dist,$4)
 	$(bjam) $$(call bjam-dist-options,$1) $(build-settings) $3//dist
 	
 .PHONY: $1.clean
