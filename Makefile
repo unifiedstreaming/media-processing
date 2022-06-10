@@ -138,7 +138,7 @@ gmake-dist-options = $(strip \
 #
 define gmake-project-impl =
 #
-# $1
+# $1 (gmake project)
 #
 $1.version := $2
 $1.prereqs := $4
@@ -194,7 +194,7 @@ bjam-dist-options = $(strip \
 #
 define bjam-legacy-project-impl =
 #
-# $1
+# $1 (bjam legacy project)
 #
 $1.version := $2
 $1.prereqs := $4
@@ -230,7 +230,7 @@ bjam-legacy-project = $(call expand,$(call bjam-legacy-project-impl,$(word 1,$1)
 #
 define bjam-dll-project-impl =
 #
-# $1
+# $1 (bjam dll project)
 #
 $1.version := $(if $2,$2,$(error missing version for bjam-dll-project $1))
 $1.prereqs := $5
@@ -242,7 +242,7 @@ $1.all: build-dir-skeleton $(addsuffix .stage,$5)
 	$(bjam) $$(call bjam-options,$1) $(build-settings) $3
 
 # We deliberately abuse recursive make here to avoid touching the
-# jamfile in the stage dir after bjam-stage did nothing.  (The .dist
+# jamfile in the stage dir when bjam-stage did nothing.  (The .dist
 # targets depend on .stage, and .dist may be run as root).
 .PHONY: $1.stage
 $1.stage: $1.bjam-stage
@@ -275,11 +275,60 @@ endef
 bjam-dll-project = $(call expand,$(call bjam-dll-project-impl,$(word 1,$1),$(word 2,$1),$2,$3,$4))
 
 #
+# $(call bjam-statlib-project-impl,<name>,<source dir>,<header dir>,<prereq name>*)
+#
+define bjam-statlib-project-impl =
+#
+# $1 (bjam statlib project)
+#
+$1.version :=
+$1.prereqs := $4
+
+.PHONY: $1
+$1: $1.all
+
+$1.all: build-dir-skeleton $(addsuffix .stage,$4)
+	$(bjam) $$(call bjam-options,$1) $(build-settings) $2
+
+# We deliberately abuse recursive make here to avoid touching the
+# jamfile in the stage dir when bjam-stage did nothing.  (The .dist
+# targets depend on .stage, and .dist may be run as root).
+.PHONY: $1.stage
+$1.stage: $1.bjam-stage
+	$$(MAKE) build-dir=$(build-dir) $(build-settings) $(stage-dir)/lib/jamfiles/$1/jamfile
+
+# Static library: nothing to do for disting
+.PHONY: $1.dist
+$1.dist: $1.all $(addsuffix .dist,$4)
+	
+.PHONY: $1.clean
+$1.clean:
+	$(bjam) --clean $$(call bjam-options,$1) $(build-settings) $2
+
+.PHONY: $1.bjam-stage
+$1.bjam-stage: $1.all
+	$(bjam) $$(call bjam-options,$1) $(build-settings) $2//stage
+	
+$(stage-dir)/lib/jamfiles/$1/jamfile: $(stage-dir)/lib/$(call bjam-statlib-filename,$1) | $(stage-dir)/lib/jamfiles/$1
+	$$(file >$$@,$$(call staged-jamfile-content,$1,$(stage-dir)/lib/$(call bjam-statlib-filename,$1),$(abspath $3),$4))
+	@echo generated $$@
+
+$(stage-dir)/lib/jamfiles/$1:
+	$(mkdir) "$$(call to-shell,$$@)"
+	
+endef
+
+#
+# $(call bjam-statlib-project,<name>,<source dir>,<header dir>,<prereq name>*)
+#
+bjam-statlib-project = $(call expand,$(call bjam-statlib-project-impl,$1,$2,$3,$4))
+
+#
 # Generated project targets
 #
 $(call bjam-legacy-project,x264_encoding_service,x264_encoding_service,x264_es_utils cuti)
 
-$(call bjam-legacy-project,x264_es_utils,x264_es_utils/x264_es_utils,x264_proto cuti x264)
+$(call bjam-statlib-project,x264_es_utils,x264_es_utils/x264_es_utils,x264_es_utils,x264_proto cuti x264)
 $(call bjam-legacy-project,x264_es_utils_unit_tests,x264_es_utils/unit_tests,x264_es_utils)
 
 $(call bjam-dll-project,x264_proto 0_0_0,x264_proto/x264_proto,x264_proto,cuti)

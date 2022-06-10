@@ -21,7 +21,7 @@ import testing ;
 
 project
 : requirements
-  <library>../x264_es_utils//x264_es_utils
+  <library>$(stage-dir)/lib/jamfiles/x264_es_utils//x264_es_utils
   <library>$(stage-dir)/lib/jamfiles/x264_proto//x264_proto
   <library>$(stage-dir)/lib/jamfiles/cuti//cuti
 ;

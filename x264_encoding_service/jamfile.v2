@@ -19,7 +19,7 @@
 
 exe x264_encoding_service
 : main.cpp
-  ../x264_es_utils/x264_es_utils//x264_es_utils
+  $(stage-dir)/lib/jamfiles/x264_es_utils//x264_es_utils
   $(stage-dir)/lib/jamfiles/cuti//cuti
 ;
 

@@ -234,6 +234,11 @@ endef
 bjam-implib-filename = $(if $(windows),,lib)$1_$2$(if $(windows),.lib,$(if $(darwin),.dylib,.so))
 
 #
+# $(call bjam-statlib-filename,<library name>)
+#
+bjam-statlib-filename = lib$1$(if $(windows),.lib,.a)
+
+#
 # $(call is-absolute,<path>)
 #
 is-absolute = $(strip \

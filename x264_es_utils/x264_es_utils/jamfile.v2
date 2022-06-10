@@ -33,5 +33,11 @@ lib x264_es_utils
   <include>..
 ;
 
-explicit dist ;
-alias dist : ;
+explicit stage ;
+install stage
+:
+  x264_es_utils
+:
+  <install-dependencies>off
+  <location>$(stage-dir)/lib
+;
