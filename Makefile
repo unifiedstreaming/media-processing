@@ -261,7 +261,7 @@ $1.bjam-stage: $1.all
 	$(bjam) $$(call bjam-options,$1) $(build-settings) $3//stage
 	
 $(stage-dir)/lib/jamfiles/$1/jamfile: $(stage-dir)/lib/$(call bjam-implib-filename,$1,$2) | $(stage-dir)/lib/jamfiles/$1
-	$$(file >$$@,$$(call staged-jamfile-content,$1,$(stage-dir)/lib/$(call bjam-implib-filename,$1,$2),$(abspath $4)))
+	$$(file >$$@,$$(call staged-jamfile-content,$1,$(stage-dir)/lib/$(call bjam-implib-filename,$1,$2),$(abspath $4),$5))
 	@echo generated $$@
 
 $(stage-dir)/lib/jamfiles/$1:
@@ -282,7 +282,7 @@ $(call bjam-legacy-project,x264_encoding_service,x264_encoding_service,x264_es_u
 $(call bjam-legacy-project,x264_es_utils,x264_es_utils/x264_es_utils,x264_proto cuti x264)
 $(call bjam-legacy-project,x264_es_utils_unit_tests,x264_es_utils/unit_tests,x264_es_utils)
 
-$(call bjam-legacy-project,x264_proto 0_0_0,x264_proto/x264_proto,cuti)
+$(call bjam-dll-project,x264_proto 0_0_0,x264_proto/x264_proto,x264_proto,cuti)
 
 $(call bjam-dll-project,cuti 0_0_0,cuti/cuti,cuti)
 $(call bjam-legacy-project,cuti_unit_tests,cuti/unit_tests,cuti)

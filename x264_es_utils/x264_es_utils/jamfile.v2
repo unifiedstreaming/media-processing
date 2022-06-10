@@ -23,7 +23,7 @@ lib x264_es_utils
   config_reader.cpp
   service.cpp
   $(stage-dir)/lib/jamfiles/cuti//cuti
-  ../../x264_proto//x264_proto//x264_proto
+  $(stage-dir)/lib/jamfiles/x264_proto//x264_proto
   $(stage-dir)/lib/jamfiles/x264
 :
   <link>static

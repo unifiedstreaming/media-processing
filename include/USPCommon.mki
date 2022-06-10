@@ -213,17 +213,17 @@ sanitizer-flags := $(strip \
 bjam := $(if $(shell b2 --version 2>$(dev-null)),b2,bjam)
 
 #
-# $(call staged-jamfile-content,<library name>,<library file>,<include directory>)
+# $(call staged-jamfile-content,<library name>,<library file>,<include directory>,<prereq library>...)
 # Generates the content of a jamfile for consuming a library.
 #
 define staged-jamfile-content =
 lib $1
+: 
+:
+  <file>"$(subst \,/,$(call to-native,$2))"
 :
 :
-<file>"$(subst \,/,$(call to-native,$2))"
-:
-:
-<include>"$(subst \,/,$(call to-native,$3))"
+  <include>"$(subst \,/,$(call to-native,$3))"$(foreach prereq,$4,$(newline)  <library>../$(prereq)//$(prereq))
 ;
 
 endef

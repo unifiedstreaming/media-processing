@@ -41,7 +41,16 @@ lib x264_proto_$(X264_PROTO_VERSION)
 :
 :
   <include>..
-; 
+;
+
+explicit stage ;
+install stage
+:
+  x264_proto
+:
+  <install-dependencies>off
+  <location>$(stage-dir)/lib
+;
 
 explicit dist ;
 install dist
