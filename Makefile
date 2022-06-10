@@ -82,7 +82,7 @@ $(stage-dir)/lib/jamfiles/Jamroot: | $(stage-dir)/lib/jamfiles
 #
 # Windows: unit tests must find DLLs in $(stage-dir)/lib
 #
-PATH := $(if $(windows),$(stage-dir)/lib:)$(PATH))
+PATH := $(if $(windows),$(stage-dir)/lib:)$(PATH)
 export PATH
 
 #
