@@ -229,6 +229,11 @@ lib $1
 endef
 
 #
+# $(call bjam-implib-filename,<library name>,<version>)
+#
+bjam-implib-filename = $(if $(windows),,lib)$1_$2$(if $(windows),.lib,$(if $(darwin),.dylib,.so))
+
+#
 # $(call is-absolute,<path>)
 #
 is-absolute = $(strip \

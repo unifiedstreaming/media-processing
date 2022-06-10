@@ -20,7 +20,7 @@
 exe x264_encoding_service
 : main.cpp
   ../x264_es_utils/x264_es_utils//x264_es_utils
-  ../cuti/cuti//cuti
+  $(stage-dir)/lib/jamfiles/cuti//cuti
 ;
 
 explicit dist ;

@@ -23,7 +23,7 @@ project
 : requirements
   <library>../x264_es_utils//x264_es_utils
   <library>../../x264_proto/x264_proto//x264_proto
-  <library>../../cuti/cuti//cuti
+  <library>$(stage-dir)/lib/jamfiles/cuti//cuti
 ;
 
 unit-test service_test
