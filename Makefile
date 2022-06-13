@@ -324,17 +324,49 @@ endef
 bjam-statlib-project = $(call expand,$(call bjam-statlib-project-impl,$1,$2,$3,$4))
 
 #
+# $(call bjam-test-project-impl,<name>,<source dir>,<prereq name>*)
+#
+define bjam-test-project-impl =
+#
+# $1 (bjam test project)
+#
+$1.version :=
+$1.prereqs := $3
+
+.PHONY: $1
+$1: $1.all
+
+$1.all: build-dir-skeleton $(addsuffix .stage,$3)
+	$(bjam) $$(call bjam-options,$1) $(build-settings) $2
+
+.PHONY: $1.clean
+$1.clean:
+	$(bjam) --clean $$(call bjam-options,$1) $(build-settings) $2
+
+# Pattern rule for running a specific test
+.PHONY: $1.%
+$1.%: build-dir-skeleton $(addsuffix .stage,$3)
+	$(bjam) $$(call bjam-options,$1) $(build-settings) $2//$$*
+
+endef
+
+#
+# $(call bjam-test-project,<name>,<source dir>,<prereq name>*)
+#
+bjam-test-project = $(call expand,$(call bjam-test-project-impl,$1,$2,$3))
+
+#
 # Generated project targets
 #
 $(call bjam-legacy-project,x264_encoding_service,x264_encoding_service,x264_es_utils cuti)
 
 $(call bjam-statlib-project,x264_es_utils,x264_es_utils/x264_es_utils,x264_es_utils,x264_proto cuti x264)
-$(call bjam-legacy-project,x264_es_utils_unit_tests,x264_es_utils/unit_tests,x264_es_utils)
+$(call bjam-test-project,x264_es_utils_unit_tests,x264_es_utils/unit_tests,x264_es_utils)
 
 $(call bjam-dll-project,x264_proto 0_0_0,x264_proto/x264_proto,x264_proto,cuti)
 
 $(call bjam-dll-project,cuti 0_0_0,cuti/cuti,cuti)
-$(call bjam-legacy-project,cuti_unit_tests,cuti/unit_tests,cuti)
+$(call bjam-test-project,cuti_unit_tests,cuti/unit_tests,cuti)
 
 $(call gmake-project,x264,x264/USPMakefile)
 
