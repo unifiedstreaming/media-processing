@@ -248,7 +248,7 @@ $1.all: build-dir-skeleton $(addsuffix .stage,$5)
 # targets depend on .stage, and .dist may be run as root).
 .PHONY: $1.stage
 $1.stage: $1.bjam-stage
-	$$(MAKE) build-dir=$(build-dir) $(build-settings) $(stage-dir)/lib/jamfiles/$1/jamfile
+	$$(MAKE) expand-info= build-dir=$(build-dir) $(build-settings) $(stage-dir)/lib/jamfiles/$1/jamfile
 
 .PHONY: $1.dist
 $1.dist: $1.all $(addsuffix .dist,$5)
@@ -298,7 +298,7 @@ $1.all: build-dir-skeleton $(addsuffix .stage,$4)
 # targets depend on .stage, and .dist may be run as root).
 .PHONY: $1.stage
 $1.stage: $1.bjam-stage
-	$$(MAKE) build-dir=$(build-dir) $(build-settings) $(stage-dir)/lib/jamfiles/$1/jamfile
+	$$(MAKE) expand-info= build-dir=$(build-dir) $(build-settings) $(stage-dir)/lib/jamfiles/$1/jamfile
 
 # Static library: nothing to do for disting
 .PHONY: $1.dist
