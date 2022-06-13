@@ -245,7 +245,8 @@ $1.all: build-dir-skeleton $(addsuffix .stage,$5)
 
 # We deliberately abuse recursive make here to avoid touching the
 # jamfile in the stage dir when bjam-stage did nothing.  (The .dist
-# targets depend on .stage, and .dist may be run as root).
+# targets depend on the .stage targets of their prerequisites, and
+# .dist may be run as root).
 .PHONY: $1.stage
 $1.stage: $1.bjam-stage
 	$$(MAKE) expand-info= build-dir=$(build-dir) $(build-settings) $(stage-dir)/lib/jamfiles/$1/jamfile
@@ -295,7 +296,8 @@ $1.all: build-dir-skeleton $(addsuffix .stage,$4)
 
 # We deliberately abuse recursive make here to avoid touching the
 # jamfile in the stage dir when bjam-stage did nothing.  (The .dist
-# targets depend on .stage, and .dist may be run as root).
+# targets depend on the .stage targets of their prerequisites, and
+# .dist may be run as root).
 .PHONY: $1.stage
 $1.stage: $1.bjam-stage
 	$$(MAKE) expand-info= build-dir=$(build-dir) $(build-settings) $(stage-dir)/lib/jamfiles/$1/jamfile
