@@ -202,6 +202,7 @@ $1.prereqs := $4
 .PHONY: $1
 $1: $1.all
 
+.PHONY: $1.all
 $1.all: build-dir-skeleton $(addsuffix .stage,$4)
 	$(bjam) $$(call bjam-options,$1) $(build-settings) $3
 
@@ -238,6 +239,7 @@ $1.prereqs := $5
 .PHONY: $1
 $1: $1.all
 
+.PHONY: $1.all
 $1.all: build-dir-skeleton $(addsuffix .stage,$5)
 	$(bjam) $$(call bjam-options,$1) $(build-settings) $3
 
@@ -279,7 +281,7 @@ bjam-dll-project = $(call expand,$(call bjam-dll-project-impl,$(word 1,$1),$(wor
 #
 define bjam-statlib-project-impl =
 #
-# $1 (bjam statlib project)
+# $1 (bjam static library project)
 #
 $1.version :=
 $1.prereqs := $4
@@ -287,6 +289,7 @@ $1.prereqs := $4
 .PHONY: $1
 $1: $1.all
 
+.PHONY: $1.all
 $1.all: build-dir-skeleton $(addsuffix .stage,$4)
 	$(bjam) $$(call bjam-options,$1) $(build-settings) $2
 
@@ -324,6 +327,38 @@ endef
 bjam-statlib-project = $(call expand,$(call bjam-statlib-project-impl,$1,$2,$3,$4))
 
 #
+# $(call bjam-exe-project-impl,<name>,<source dir>,,<prereq name>*)
+#
+define bjam-exe-project-impl =
+#
+# $1 (bjam exe project)
+#
+$1.version := 
+$1.prereqs := $3
+
+.PHONY: $1
+$1: $1.all
+
+.PHONY: $1.all
+$1.all: build-dir-skeleton $(addsuffix .stage,$3)
+	$(bjam) $$(call bjam-options,$1) $(build-settings) $2
+
+.PHONY: $1.dist
+$1.dist: $1.all $(addsuffix .dist,$3)
+	$(bjam) $$(call bjam-dist-options,$1) $(build-settings) $2//dist
+	
+.PHONY: $1.clean
+$1.clean:
+	$(bjam) --clean $$(call bjam-options,$1) $(build-settings) $2
+	
+endef
+
+#
+# $(call bjam-exe-project,<name>,<source dir>,<prereq name>*)
+#
+bjam-exe-project = $(call expand,$(call bjam-exe-project-impl,$1,$2,$3))
+
+#
 # $(call bjam-test-project-impl,<name>,<source dir>,<prereq name>*)
 #
 define bjam-test-project-impl =
@@ -358,7 +393,7 @@ bjam-test-project = $(call expand,$(call bjam-test-project-impl,$1,$2,$3))
 #
 # Generated project targets
 #
-$(call bjam-legacy-project,x264_encoding_service,x264_encoding_service,x264_es_utils cuti)
+$(call bjam-exe-project,x264_encoding_service,x264_encoding_service,x264_es_utils cuti)
 
 $(call bjam-statlib-project,x264_es_utils,x264_es_utils/x264_es_utils,x264_es_utils,x264_proto cuti x264)
 $(call bjam-test-project,x264_es_utils_unit_tests,x264_es_utils/unit_tests,x264_es_utils)
