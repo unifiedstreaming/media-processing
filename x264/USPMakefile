@@ -97,6 +97,8 @@ else
   #
   # Install pre-built binaries
   #
+  $(warning using pre-built binaries)
+
   prebuilt-dir := $(x264-src-dir)/prebuilt/msvc-14.2/$(variant)/address-model-$(address-model)
   filenames := $(patsubst $(prebuilt-dir)/%,%,$(call find-files,%,$(prebuilt-dir)))
   staged-files := $(addprefix $(stage-dir)/,$(filenames))
