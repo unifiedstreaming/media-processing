@@ -113,9 +113,9 @@ to-native = $(if $(cygwin),$(shell cygpath --windows "$(call to-shell,$1)"),$(ca
 # $(call non-relative-path,<path>)
 #
 # Converts <path> to a path insensitive to changing the current
-# directory, preserving (single) spaces.
+# directory, preserving (single) spaces.  Please note that the
+# path is not normalized.
 #
-
 reject-drive-relative = $(if $(findstring :./,$1),$(error drive-relative paths not supported),$1)
 
 non-relative-path = $(strip \
