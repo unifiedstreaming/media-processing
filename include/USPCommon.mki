@@ -110,6 +110,20 @@ to-shell = $(if $(unix-like),$(call unescape,$1),$(subst /,\,$(call unescape,$1)
 to-native = $(if $(cygwin),$(shell cygpath --windows "$(call to-shell,$1)"),$(call to-shell,$1))
 
 #
+# $(call non-relative-path,<path>)
+#
+# Converts <path> to a path insensitive to changing the current
+# directory, preserving (single) spaces.
+#
+
+reject-drive-relative = $(if $(findstring :./,$1),$(error drive-relative paths not supported),$1)
+
+non-relative-path = $(strip \
+  $(call reject-drive-relative,$(abspath $(word 1,$1))) \
+  $(wordlist 2,$(words $1),$1) \
+)
+
+#
 # $(call find-files,<pattern>*,<root>*)
 #
 # Recursively lists all non-directories matching any <pattern>,
@@ -239,23 +253,9 @@ bjam-implib-filename = $(if $(windows),,lib)$1_$2$(if $(windows),.lib,$(if $(dar
 bjam-statlib-filename = lib$1$(if $(windows),.lib,.a)
 
 #
-# $(call is-absolute,<path>)
-#
-is-absolute = $(strip \
-  $(if $(firstword $1), \
-    $(if $(filter $(abspath $(firstword $1)),$(firstword $1)),yes) \
-  ) \
-)
-
-#
-# $(call check-absolute,<path>)
-#
-check-absolute = $(if $(call is-absolute,$1),$1,$(error '$1' is not an absolute path))
-
-#
 # establish dest-dir
 #
-override dest-dir := $(if $(dest-dir),$(call to-make,$(call check-absolute,$(subst \,/,$(dest-dir)))))
+override dest-dir := $(call to-make,$(call non-relative-path,$(dest-dir)))
 
 #
 # $(call required-value,<name>)
