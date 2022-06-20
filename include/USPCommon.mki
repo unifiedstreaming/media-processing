@@ -276,8 +276,13 @@ keep-last-instance-impl = $(if $(firstword $1), \
 keep-last-instance = $(strip $(call keep-last-instance-impl,$1))
 
 #
-# Property list parsing: use one of find-prop-values, find-prop-value
-# or get-prop-value.  Please see below.
+# $(call call-stripped,<function>[,<arg1>[,<arg2>,[<arg3>[,<arg4>[,<arg5>[,<arg6>[,<arg7>[,<arg8>[,<arg9>[,<arg10>]]]]]]]]]])
+#
+call-stripped = $(call $(strip $1),$(strip $2),$(strip $3),$(strip $4),$(strip $5),$(strip $6),$(strip $7),$(strip $8),$(strip $9),$(strip $(10)),$(strip $(11)))
+
+#
+# Utilities for property list parsing.  Users should call one of
+# find-values, find-value, or get-value (please see below).
 #
 
 #
@@ -343,11 +348,11 @@ skip-prop-values = $(strip \
 )
 
 #
-# $(call find-prop-values-impl,<key>,<token>*,<recognized key>*)
+# $(call find-values-impl,<key>,<token>*,<recognized key>*)
 #
-# Implements find-prop-values, taking a tokenized property list.
+# Implements find-values, taking a tokenized property list.
 #
-find-prop-values-impl = $(strip \
+find-values-impl = $(strip \
   $(if $(word 1,$2), \
     $(if $(call at-prop-key,$2), \
       $(if $(filter-out $3,$(call at-prop-key,$2)), \
@@ -356,14 +361,14 @@ find-prop-values-impl = $(strip \
       $(if $(filter $1,$(call at-prop-key,$2)), \
         $(call list-prop-values,$(wordlist 3,$(words $2),$2)) \
       ) \
-      $(call find-prop-values-impl,$1, \
+      $(call find-values-impl,$1, \
         $(call skip-prop-values,$(wordlist 3,$(words $2),$2)),$3) \
     , \
       $(if $(call at-prop-value,$2), \
         $(error property value '$(call at-prop-value,$2)' \
           without preceeding key) \
       ) \
-      $(call find-prop-values-impl,$1,$(wordlist 2,$(words $2),$2),$3) \
+      $(call find-values-impl,$1,$(wordlist 2,$(words $2),$2),$3) \
     ) \
   ) \
 )
@@ -390,31 +395,36 @@ require-prop-value = $(strip \
 )
   
 #
-# $(call find-prop-values,<key>,<property list>,<recognized-key>*)
+# User entry points for parsing property lists: use one of
+# find-values, find-value, or get-value.
+#
+
+#
+# $(call find-values,<key>,<property list>,<recognized-key>*)
 #
 # Returns the property values, if any, for <key>.  Each property key
 # in the list must be one of the recognized keys.
 #
-find-prop-values = $(strip \
-  $(call find-prop-values-impl,$1,$(call tokenize-proplist,$2),$3) \
+find-values = $(strip \
+  $(call find-values-impl,$1,$(call tokenize-proplist,$2),$3) \
 )
 
 #
-# $(call find-prop-value,<key>,<property list>,<recognized-key>*)
+# $(call find-value,<key>,<property list>,<recognized-key>*)
 #
 # Returns at most one property value for <key>.  Each property key
 # in the list must be one of the recognized keys.
 #
-find-prop-value = $(strip \
-  $(call reject-multiple-prop-values,$1,$(call find-prop-values,$1,$2,$3)) \
+find-value = $(strip \
+  $(call reject-multiple-prop-values,$1,$(call find-values,$1,$2,$3)) \
 )
 
 #
-# $(call get-prop-value,<key>,<property list>,<recognized-key>*)
+# $(call get-value,<key>,<property list>,<recognized-key>*)
 #
 # Returns exactly one property value for <key>.  Each property key
 # in the list must be one of the recognized keys.
 #
-get-prop-value = $(strip \
-  $(call require-prop-value,$1,$(call find-prop-value,$1,$2,$3)) \
+get-value = $(strip \
+  $(call require-prop-value,$1,$(call find-value,$1,$2,$3)) \
 )

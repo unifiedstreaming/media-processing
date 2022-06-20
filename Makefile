@@ -165,9 +165,21 @@ $1.clean:
 endef
 
 #
-# $(call gmake-project,<name> <version>?,<makefile>,<prereq name>*)
+# $(call gmake-project,<properties>)
 #
-gmake-project = $(call expand,$(call gmake-project-impl,$(word 1,$1),$(word 2,$1),$2,$3))
+# properties are:
+# name      project name
+# version?  version number
+# makefile  path to makefile
+# prereqs*  prerequisite projects
+#
+gmake-keys := name version makefile prereqs
+gmake-project = $(call expand,$(call call-stripped,gmake-project-impl, \
+  $(call get-value,name,$1,$(gmake-keys)), \
+  $(call find-value,version,$1,$(gmake-keys)), \
+  $(call get-value,makefile,$1,$(gmake-keys)), \
+  $(call find-values,prereqs,$1,$(gmake-keys)) \
+))
 
 #
 # $(call bjam-options,<project name>)
@@ -405,7 +417,10 @@ $(call bjam-dll-project,x264_proto 0_0_0,x264_proto/x264_proto,x264_proto,cuti)
 $(call bjam-dll-project,cuti 0_0_0,cuti/cuti,cuti)
 $(call bjam-test-project,cuti_unit_tests,cuti/unit_tests,cuti)
 
-$(call gmake-project,x264,x264/USPMakefile)
+$(call gmake-project, \
+  name: x264 \
+  makefile: x264/USPMakefile \
+)
 
 #
 # User-level targets
