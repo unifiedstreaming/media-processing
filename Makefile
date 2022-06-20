@@ -173,12 +173,13 @@ endef
 # makefile  path to makefile
 # prereqs*  prerequisite projects
 #
-gmake-keys := name version makefile prereqs
-gmake-project = $(call expand,$(call call-stripped,gmake-project-impl, \
-  $(call get-value,name,$1,$(gmake-keys)), \
-  $(call find-value,version,$1,$(gmake-keys)), \
-  $(call get-value,makefile,$1,$(gmake-keys)), \
-  $(call find-values,prereqs,$1,$(gmake-keys)) \
+gmake-props := name version makefile prereqs
+gmake-project = $(call expand,$(call call-stripped, \
+  gmake-project-impl, \
+  $(call get-value,name,$1,$(gmake-props)), \
+  $(call find-value,version,$1,$(gmake-props)), \
+  $(call get-value,makefile,$1,$(gmake-props)), \
+  $(call find-values,prereqs,$1,$(gmake-props)) \
 ))
 
 #
@@ -234,9 +235,22 @@ $1.clean:
 endef
 
 #
-# $(call bjam-legacy-project,<name> <version>?,<source dir>,<prereq name>*)
+# $(call bjam-legacy-project,<properties>)
 #
-bjam-legacy-project = $(call expand,$(call bjam-legacy-project-impl,$(word 1,$1),$(word 2,$1),$2,$3))
+# properties are:
+# name       project name
+# version?   version number
+# source-dir source directory
+# prereqs*   prerequisite projects
+#
+bjam-legacy-props := name version source-dir prereqs
+bjam-legacy-project = $(call expand,$(call call-stripped, \
+  bjam-legacy-project-impl, \
+  $(call get-value,name,$1,$(bjam-legacy-props)), \
+  $(call find-value,version,$1,$(bjam-legacy-props)), \
+  $(call get-value,source-dir,$1,$(bjam-legacy-props)), \
+  $(call find-values,prereqs,$1,$(bjam-legacy-props)) \
+))
 
 #
 # $(call bjam-dll-project-impl,<name>,<version>,<source dir>,<header dir>,<prereq name>*)
