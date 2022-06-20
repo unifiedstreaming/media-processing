@@ -173,13 +173,13 @@ endef
 # makefile  path to makefile
 # prereqs*  prerequisite projects
 #
-gmake-props := name version makefile prereqs
+gmake-keys := name version makefile prereqs
 gmake-project = $(call expand,$(call call-stripped, \
   gmake-project-impl, \
-  $(call get-value,name,$1,$(gmake-props)), \
-  $(call find-value,version,$1,$(gmake-props)), \
-  $(call get-value,makefile,$1,$(gmake-props)), \
-  $(call find-values,prereqs,$1,$(gmake-props)) \
+  $(call get-value,name,$1,$(gmake-keys)), \
+  $(call find-value,version,$1,$(gmake-keys)), \
+  $(call get-value,makefile,$1,$(gmake-keys)), \
+  $(call find-values,prereqs,$1,$(gmake-keys)) \
 ))
 
 #
@@ -243,23 +243,23 @@ endef
 # source-dir source directory
 # prereqs*   prerequisite projects
 #
-bjam-legacy-props := name version source-dir prereqs
+bjam-legacy-keys := name version source-dir prereqs
 bjam-legacy-project = $(call expand,$(call call-stripped, \
   bjam-legacy-project-impl, \
-  $(call get-value,name,$1,$(bjam-legacy-props)), \
-  $(call find-value,version,$1,$(bjam-legacy-props)), \
-  $(call get-value,source-dir,$1,$(bjam-legacy-props)), \
-  $(call find-values,prereqs,$1,$(bjam-legacy-props)) \
+  $(call get-value,name,$1,$(bjam-legacy-keys)), \
+  $(call find-value,version,$1,$(bjam-legacy-keys)), \
+  $(call get-value,source-dir,$1,$(bjam-legacy-keys)), \
+  $(call find-values,prereqs,$1,$(bjam-legacy-keys)) \
 ))
 
 #
-# $(call bjam-dll-project-impl,<name>,<version>,<source dir>,<header dir>,<prereq name>*)
+# $(call bjam-dll-project-impl,<name>,<version>,<source dir>,<include dir>,<prereq name>*)
 #
 define bjam-dll-project-impl =
 #
 # $1 (bjam dll project)
 #
-$1.version := $(if $2,$2,$(error missing version for bjam-dll-project $1))
+$1.version := $2
 $1.prereqs := $5
 
 .PHONY: $1
@@ -299,12 +299,27 @@ $(stage-dir)/lib/jamfiles/$1:
 endef
 
 #
-# $(call bjam-dll-project,<name> <version>,<source dir>,<header dir>,<prereq name>*)
+# $(call bjam-dll-project,<properties>)
 #
-bjam-dll-project = $(call expand,$(call bjam-dll-project-impl,$(word 1,$1),$(word 2,$1),$2,$3,$4))
+# properties are:
+# name        project name
+# version     version number
+# source-dir  source directory
+# include-dir include directory
+# prereqs*    prerequisite projects
+#
+bjam-dll-keys := name version source-dir include-dir prereqs
+bjam-dll-project = $(call expand,$(call call-stripped, \
+  bjam-dll-project-impl, \
+  $(call get-value,name,$1,$(bjam-dll-keys)), \
+  $(call get-value,version,$1,$(bjam-dll-keys)), \
+  $(call get-value,source-dir,$1,$(bjam-dll-keys)), \
+  $(call get-value,include-dir,$1,$(bjam-dll-keys)), \
+  $(call find-values,prereqs,$1,$(bjam-dll-keys)) \
+))
 
 #
-# $(call bjam-statlib-project-impl,<name>,<source dir>,<header dir>,<prereq name>*)
+# $(call bjam-statlib-project-impl,<name>,<source dir>,<include dir>,<prereq name>*)
 #
 define bjam-statlib-project-impl =
 #
@@ -350,7 +365,7 @@ $(stage-dir)/lib/jamfiles/$1:
 endef
 
 #
-# $(call bjam-statlib-project,<name>,<source dir>,<header dir>,<prereq name>*)
+# $(call bjam-statlib-project,<name>,<source dir>,<include dir>,<prereq name>*)
 #
 bjam-statlib-project = $(call expand,$(call bjam-statlib-project-impl,$1,$2,$3,$4))
 
@@ -426,9 +441,21 @@ $(call bjam-exe-project,x264_encoding_service,x264_encoding_service,x264_es_util
 $(call bjam-statlib-project,x264_es_utils,x264_es_utils/x264_es_utils,x264_es_utils,x264_proto cuti x264)
 $(call bjam-test-project,x264_es_utils_unit_tests,x264_es_utils/unit_tests,x264_es_utils)
 
-$(call bjam-dll-project,x264_proto 0_0_0,x264_proto/x264_proto,x264_proto,cuti)
+$(call bjam-dll-project, \
+  name: x264_proto \
+  version: 0_0_0 \
+  source-dir: x264_proto/x264_proto \
+  include-dir: x264_proto \
+  prereqs: cuti \
+)
 
-$(call bjam-dll-project,cuti 0_0_0,cuti/cuti,cuti)
+$(call bjam-dll-project, \
+  name: cuti \
+  version: 0_0_0 \
+  source-dir: cuti/cuti \
+  include-dir: cuti \
+)
+
 $(call bjam-test-project,cuti_unit_tests,cuti/unit_tests,cuti)
 
 $(call gmake-project, \
