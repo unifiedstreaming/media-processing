@@ -383,7 +383,7 @@ bjam-statlib-project = $(call expand,$(call call-stripped, \
 ))
 
 #
-# $(call bjam-exe-project-impl,<name>,<source dir>,,<prereq name>*)
+# $(call bjam-exe-project-impl,<name>,<source dir>,<prereq name>*)
 #
 define bjam-exe-project-impl =
 #
@@ -410,9 +410,20 @@ $1.clean:
 endef
 
 #
-# $(call bjam-exe-project,<name>,<source dir>,<prereq name>*)
+# $(call bjam-exe-project,<properties>)
 #
-bjam-exe-project = $(call expand,$(call bjam-exe-project-impl,$1,$2,$3))
+# properties are:
+# name        project name
+# source-dir  source directory
+# prereqs*    prerequisite projects
+#
+bjam-exe-keys := name source-dir prereqs
+bjam-exe-project = $(call expand,$(call call-stripped, \
+  bjam-exe-project-impl, \
+  $(call get-value,name,$1,$(bjam-exe-keys)), \
+  $(call get-value,source-dir,$1,$(bjam-exe-keys)), \
+  $(call find-values,prereqs,$1,$(bjam-exe-keys)) \
+))
 
 #
 # $(call bjam-test-project-impl,<name>,<source dir>,<prereq name>*)
@@ -449,7 +460,11 @@ bjam-test-project = $(call expand,$(call bjam-test-project-impl,$1,$2,$3))
 #
 # Generated project targets
 #
-$(call bjam-exe-project,x264_encoding_service,x264_encoding_service,x264_es_utils cuti)
+$(call bjam-exe-project, \
+  name: x264_encoding_service \
+  source-dir: x264_encoding_service \
+  prereqs: x264_es_utils cuti \
+)
 
 $(call bjam-statlib-project, \
   name: x264_es_utils \
