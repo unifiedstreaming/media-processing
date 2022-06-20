@@ -453,9 +453,20 @@ $1.%: build-dir-skeleton $(addsuffix .stage,$3)
 endef
 
 #
-# $(call bjam-test-project,<name>,<source dir>,<prereq name>*)
+# $(call bjam-test-project,<properties>)
 #
-bjam-test-project = $(call expand,$(call bjam-test-project-impl,$1,$2,$3))
+# properties are:
+# name        project name
+# source-dir  source directory
+# prereqs*    prerequisite projects
+#
+bjam-test-keys := name source-dir prereqs
+bjam-test-project = $(call expand,$(call call-stripped, \
+  bjam-test-project-impl, \
+  $(call get-value,name,$1,$(bjam-test-keys)), \
+  $(call get-value,source-dir,$1,$(bjam-test-keys)), \
+  $(call find-values,prereqs,$1,$(bjam-test-keys)) \
+))
 
 #
 # Generated project targets
@@ -473,7 +484,11 @@ $(call bjam-statlib-project, \
   prereqs: x264_proto cuti x264 \
 )
 
-$(call bjam-test-project,x264_es_utils_unit_tests,x264_es_utils/unit_tests,x264_es_utils)
+$(call bjam-test-project, \
+  name: x264_es_utils_unit_tests \
+  source-dir: x264_es_utils/unit_tests \
+  prereqs: x264_es_utils \
+)
 
 $(call bjam-dll-project, \
   name: x264_proto \
@@ -490,7 +505,11 @@ $(call bjam-dll-project, \
   include-dir: cuti \
 )
 
-$(call bjam-test-project,cuti_unit_tests,cuti/unit_tests,cuti)
+$(call bjam-test-project, \
+  name: cuti_unit_tests \
+  source-dir: cuti/unit_tests \
+  prereqs: cuti \
+)
 
 $(call gmake-project, \
   name: x264 \
