@@ -365,9 +365,22 @@ $(stage-dir)/lib/jamfiles/$1:
 endef
 
 #
-# $(call bjam-statlib-project,<name>,<source dir>,<include dir>,<prereq name>*)
+# $(call bjam-statlib-project,<properties>)
 #
-bjam-statlib-project = $(call expand,$(call bjam-statlib-project-impl,$1,$2,$3,$4))
+# properties are:
+# name        project name
+# source-dir  source directory
+# include-dir include directory
+# prereqs*    prerequisite projects
+#
+bjam-statlib-keys := name source-dir include-dir prereqs
+bjam-statlib-project = $(call expand,$(call call-stripped, \
+  bjam-statlib-project-impl, \
+  $(call get-value,name,$1,$(bjam-statlib-keys)), \
+  $(call get-value,source-dir,$1,$(bjam-statlib-keys)), \
+  $(call get-value,include-dir,$1,$(bjam-statlib-keys)), \
+  $(call find-values,prereqs,$1,$(bjam-statlib-keys)) \
+))
 
 #
 # $(call bjam-exe-project-impl,<name>,<source dir>,,<prereq name>*)
@@ -438,7 +451,13 @@ bjam-test-project = $(call expand,$(call bjam-test-project-impl,$1,$2,$3))
 #
 $(call bjam-exe-project,x264_encoding_service,x264_encoding_service,x264_es_utils cuti)
 
-$(call bjam-statlib-project,x264_es_utils,x264_es_utils/x264_es_utils,x264_es_utils,x264_proto cuti x264)
+$(call bjam-statlib-project, \
+  name: x264_es_utils \
+  source-dir: x264_es_utils/x264_es_utils \
+  include-dir: x264_es_utils \
+  prereqs: x264_proto cuti x264 \
+)
+
 $(call bjam-test-project,x264_es_utils_unit_tests,x264_es_utils/unit_tests,x264_es_utils)
 
 $(call bjam-dll-project, \
