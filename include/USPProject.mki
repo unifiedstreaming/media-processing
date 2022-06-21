@@ -69,7 +69,7 @@ $(stage-dir)/lib: | $(stage-dir)
 $(stage-dir)/lib/jamfiles: | $(stage-dir)/lib
 
 $(skeleton-build-dirs):
-	$(mkdir) "$(call to-shell,$@)"
+	$(mkdir-p) "$(call to-shell,$@)"
 
 define staged-jamroot-content :=
 project staged-jamfiles ;
@@ -161,7 +161,7 @@ $1.dist: $1.all $(addsuffix .dist,$4)
 
 .PHONY: $1.clean
 $1.clean:
-	$(rmdir) "$(call to-shell,$(call project-work-dir,$1))"
+	$(rm-rf) "$(call to-shell,$(call project-work-dir,$1))"
 
 endef
 
@@ -295,7 +295,7 @@ $(stage-dir)/lib/jamfiles/$1/jamfile: $(stage-dir)/lib/$(call bjam-implib-filena
 	@echo generated $$@
 
 $(stage-dir)/lib/jamfiles/$1:
-	$(mkdir) "$$(call to-shell,$$@)"
+	$(mkdir-p) "$$(call to-shell,$$@)"
 	
 endef
 
@@ -361,7 +361,7 @@ $(stage-dir)/lib/jamfiles/$1/jamfile: $(stage-dir)/lib/$(call bjam-statlib-filen
 	@echo generated $$@
 
 $(stage-dir)/lib/jamfiles/$1:
-	$(mkdir) "$$(call to-shell,$$@)"
+	$(mkdir-p) "$$(call to-shell,$$@)"
 	
 endef
 
@@ -471,4 +471,4 @@ bjam-test-project = $(call expand,$(call call-stripped, \
 
 PHONY: clean
 clean:
-	$(rmdir) "$(call to-shell,$(build-dir))"
+	$(rm-rf) "$(call to-shell,$(build-dir))"

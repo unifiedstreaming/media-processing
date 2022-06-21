@@ -66,12 +66,27 @@ freebsd := $(if $(filter freeBSD% FreeBSD%,$(uname-s)),yes)
 dev-null := $(if $(unix-like),/dev/null,NUL)
 
 #
-# shell filesystem commands
+# $(call get-command,<usp variable name>,<unix default>,<windows default>)
 #
-copy := $(if $(unix-like),cp,copy /Y)
-mkdir := $(if $(unix-like),mkdir -p,mkdir)
-rmdir := $(if $(unix-like),rm -rf,-rmdir /S /Q)
-move := $(if $(unix-like),mv -f,move)
+get-command = $(strip \
+  $(if $(strip $($1)), \
+    $($1) \
+  , \
+    $(if $(unix-like), \
+      $2 \
+    , \
+      $3 \
+    ) \
+  ) \
+)
+
+#
+# pick up filesystem commands for the shell
+#
+override cp := $(call get-command,usp-cp,cp,copy /Y)
+override mkdir-p := $(call get-command,usp-mkdir-p,mkdir -p,mkdir)
+override mv-f := $(call get-command,usp-mv-f,mv -f,move)
+override rm-rf := $(call get-command,usp-rm-rf,rm -rf,-rmdir /S /Q)
 
 #
 # $(call escape,<path>)
@@ -224,7 +239,8 @@ sanitizer-flags := $(strip \
 #
 # Determine the name of the bjam executable, preferring 'b2' over 'bjam'
 #
-bjam := $(if $(shell b2 --version 2>$(dev-null)),b2,bjam)
+default-bjam := $(if $(shell b2 --version 2>$(dev-null)),b2,bjam)
+override bjam := $(call get-command,usp-bjam,$(default-bjam),$(default-bjam))
 
 #
 # $(call staged-jamfile-content,<library name>,<library file>,<include directory>,<prereq library>...)
