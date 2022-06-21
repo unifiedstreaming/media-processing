@@ -31,6 +31,7 @@ install dist
 :
   <install-dependencies>off
   <install-type>EXE
+  <install-type>PDB
   <conditional>@dist-exe-location
 ;
 

@@ -59,6 +59,7 @@ install dist
 :
   <install-dependencies>off
   <install-type>SHARED_LIB
+  <install-type>PDB
   <conditional>@dist-dll-location
 ;
 
