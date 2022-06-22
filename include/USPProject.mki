@@ -69,7 +69,7 @@ $(stage-dir)/lib: | $(stage-dir)
 $(stage-dir)/lib/jamfiles: | $(stage-dir)/lib
 
 $(skeleton-build-dirs):
-	$(mkdir-p) "$(call to-shell,$@)"
+	$(usp-mkdir-p) "$(call to-shell,$@)"
 
 define staged-jamroot-content :=
 project staged-jamfiles ;
@@ -161,7 +161,7 @@ $1.dist: $1.all $(addsuffix .dist,$4)
 
 .PHONY: $1.clean
 $1.clean:
-	$(rm-rf) "$(call to-shell,$(call project-work-dir,$1))"
+	$(usp-rm-rf) "$(call to-shell,$(call project-work-dir,$1))"
 
 endef
 
@@ -218,7 +218,7 @@ $1: $1.all
 
 .PHONY: $1.all
 $1.all: build-dir-skeleton $(addsuffix .stage,$4)
-	$(bjam) $$(call bjam-options,$1) $(build-settings) $3
+	$(usp-bjam) $$(call bjam-options,$1) $(build-settings) $3
 
 # Legacy bjam project: no staging; consumers can only be other
 # jamfiles referring to this project's jamfile
@@ -227,11 +227,11 @@ $1.stage: $1.all
 
 .PHONY: $1.dist
 $1.dist: $1.all $(addsuffix .dist,$4)
-	$(bjam) $$(call bjam-dist-options,$1) $(build-settings) $3//dist
+	$(usp-bjam) $$(call bjam-dist-options,$1) $(build-settings) $3//dist
 	
 .PHONY: $1.clean
 $1.clean:
-	$(bjam) --clean $$(call bjam-options,$1) $(build-settings) $3
+	$(usp-bjam) --clean $$(call bjam-options,$1) $(build-settings) $3
 
 endef
 
@@ -268,7 +268,7 @@ $1: $1.all
 
 .PHONY: $1.all
 $1.all: build-dir-skeleton $(addsuffix .stage,$5)
-	$(bjam) $$(call bjam-options,$1) $(build-settings) $3
+	$(usp-bjam) $$(call bjam-options,$1) $(build-settings) $3
 
 # We deliberately abuse recursive make here to avoid touching the
 # jamfile in the stage dir when bjam-stage did nothing.  (The .dist
@@ -280,22 +280,22 @@ $1.stage: $1.bjam-stage
 
 .PHONY: $1.dist
 $1.dist: $1.all $(addsuffix .dist,$5)
-	$(bjam) $$(call bjam-dist-options,$1) $(build-settings) $3//dist
+	$(usp-bjam) $$(call bjam-dist-options,$1) $(build-settings) $3//dist
 	
 .PHONY: $1.clean
 $1.clean:
-	$(bjam) --clean $$(call bjam-options,$1) $(build-settings) $3
+	$(usp-bjam) --clean $$(call bjam-options,$1) $(build-settings) $3
 
 .PHONY: $1.bjam-stage
 $1.bjam-stage: $1.all
-	$(bjam) $$(call bjam-options,$1) $(build-settings) $3//stage
+	$(usp-bjam) $$(call bjam-options,$1) $(build-settings) $3//stage
 	
 $(stage-dir)/lib/jamfiles/$1/jamfile: $(stage-dir)/lib/$(call bjam-implib-filename,$1,$2) | $(stage-dir)/lib/jamfiles/$1
 	$$(file >$$@,$$(call staged-jamfile-content,$1,$(stage-dir)/lib/$(call bjam-implib-filename,$1,$2),$(abspath $4),$5))
 	@echo generated $$@
 
 $(stage-dir)/lib/jamfiles/$1:
-	$(mkdir-p) "$$(call to-shell,$$@)"
+	$(usp-mkdir-p) "$$(call to-shell,$$@)"
 	
 endef
 
@@ -334,7 +334,7 @@ $1: $1.all
 
 .PHONY: $1.all
 $1.all: build-dir-skeleton $(addsuffix .stage,$4)
-	$(bjam) $$(call bjam-options,$1) $(build-settings) $2
+	$(usp-bjam) $$(call bjam-options,$1) $(build-settings) $2
 
 # We deliberately abuse recursive make here to avoid touching the
 # jamfile in the stage dir when bjam-stage did nothing.  (The .dist
@@ -350,18 +350,18 @@ $1.dist: $1.all $(addsuffix .dist,$4)
 	
 .PHONY: $1.clean
 $1.clean:
-	$(bjam) --clean $$(call bjam-options,$1) $(build-settings) $2
+	$(usp-bjam) --clean $$(call bjam-options,$1) $(build-settings) $2
 
 .PHONY: $1.bjam-stage
 $1.bjam-stage: $1.all
-	$(bjam) $$(call bjam-options,$1) $(build-settings) $2//stage
+	$(usp-bjam) $$(call bjam-options,$1) $(build-settings) $2//stage
 	
 $(stage-dir)/lib/jamfiles/$1/jamfile: $(stage-dir)/lib/$(call bjam-statlib-filename,$1) | $(stage-dir)/lib/jamfiles/$1
 	$$(file >$$@,$$(call staged-jamfile-content,$1,$(stage-dir)/lib/$(call bjam-statlib-filename,$1),$(abspath $3),$4))
 	@echo generated $$@
 
 $(stage-dir)/lib/jamfiles/$1:
-	$(mkdir-p) "$$(call to-shell,$$@)"
+	$(usp-mkdir-p) "$$(call to-shell,$$@)"
 	
 endef
 
@@ -398,15 +398,15 @@ $1: $1.all
 
 .PHONY: $1.all
 $1.all: build-dir-skeleton $(addsuffix .stage,$3)
-	$(bjam) $$(call bjam-options,$1) $(build-settings) $2
+	$(usp-bjam) $$(call bjam-options,$1) $(build-settings) $2
 
 .PHONY: $1.dist
 $1.dist: $1.all $(addsuffix .dist,$3)
-	$(bjam) $$(call bjam-dist-options,$1) $(build-settings) $2//dist
+	$(usp-bjam) $$(call bjam-dist-options,$1) $(build-settings) $2//dist
 	
 .PHONY: $1.clean
 $1.clean:
-	$(bjam) --clean $$(call bjam-options,$1) $(build-settings) $2
+	$(usp-bjam) --clean $$(call bjam-options,$1) $(build-settings) $2
 	
 endef
 
@@ -440,16 +440,16 @@ $1.prereqs := $3
 $1: $1.all
 
 $1.all: build-dir-skeleton $(addsuffix .stage,$3)
-	$(bjam) $$(call bjam-options,$1) $(build-settings) $2
+	$(usp-bjam) $$(call bjam-options,$1) $(build-settings) $2
 
 .PHONY: $1.clean
 $1.clean:
-	$(bjam) --clean $$(call bjam-options,$1) $(build-settings) $2
+	$(usp-bjam) --clean $$(call bjam-options,$1) $(build-settings) $2
 
 # Pattern rule for running a specific test
 .PHONY: $1.%
 $1.%: build-dir-skeleton $(addsuffix .stage,$3)
-	$(bjam) $$(call bjam-options,$1) $(build-settings) $2//$$*
+	$(usp-bjam) $$(call bjam-options,$1) $(build-settings) $2//$$*
 
 endef
 
@@ -471,4 +471,4 @@ bjam-test-project = $(call expand,$(call call-stripped, \
 
 PHONY: clean
 clean:
-	$(rm-rf) "$(call to-shell,$(build-dir))"
+	$(usp-rm-rf) "$(call to-shell,$(build-dir))"

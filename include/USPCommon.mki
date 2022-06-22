@@ -83,10 +83,10 @@ get-command = $(strip \
 #
 # pick up filesystem commands for the shell
 #
-override cp := $(call get-command,usp-cp,cp,copy /Y)
-override mkdir-p := $(call get-command,usp-mkdir-p,mkdir -p,mkdir)
-override mv-f := $(call get-command,usp-mv-f,mv -f,move)
-override rm-rf := $(call get-command,usp-rm-rf,rm -rf,-rmdir /S /Q)
+usp-cp := $(call get-command,usp-cp,cp,copy /Y)
+usp-mkdir-p := $(call get-command,usp-mkdir-p,mkdir -p,mkdir)
+usp-mv-f := $(call get-command,usp-mv-f,mv -f,move)
+usp-rm-rf := $(call get-command,usp-rm-rf,rm -rf,-rmdir /S /Q)
 
 #
 # $(call escape,<path>)
@@ -240,7 +240,7 @@ sanitizer-flags := $(strip \
 # Determine the name of the bjam executable, preferring 'b2' over 'bjam'
 #
 default-bjam := $(if $(shell b2 --version 2>$(dev-null)),b2,bjam)
-override bjam := $(call get-command,usp-bjam,$(default-bjam),$(default-bjam))
+usp-bjam := $(call get-command,usp-bjam,$(default-bjam),$(default-bjam))
 
 #
 # $(call staged-jamfile-content,<library name>,<library file>,<include directory>,<prereq library>...)

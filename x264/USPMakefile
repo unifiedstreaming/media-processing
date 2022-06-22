@@ -67,14 +67,14 @@ ifneq ($(build-x264),)
 
   .PHONY: clean
   clean:
-	$(rm-rf) "$(call to-shell,$(work-dir))"
+	$(usp-rm-rf) "$(call to-shell,$(work-dir))"
 
   $(work-dir)/usp-build-stamp: $(work-dir)/config.mak $(sources)
 	$(file >$@.dep.next,$(call dependency-listing,$@,$(sources)))
 	@echo generated $@.dep.next
 	$(MAKE) -C $(work-dir)
 	echo timestamp >"$(call to-shell,$@)"
-	$(mv-f) "$(call to-shell,$@.dep.next)" "$(call to-shell,$@.dep)" 
+	$(usp-mv-f) "$(call to-shell,$@.dep.next)" "$(call to-shell,$@.dep)" 
 
   #
   # libx264's configure script generates a symlink for the Makefile in
@@ -117,10 +117,10 @@ else
   $(staged-files): | $(staged-subdirs)
 
   $(staged-files): $(stage-dir)/%: $(prebuilt-dir)/%
-	$(cp) "$(call to-shell,$<)" "$(call to-shell,$@)"
+	$(usp-cp) "$(call to-shell,$<)" "$(call to-shell,$@)"
 
   $(staged-subdirs):
-	$(mkdir-p) "$(call to-shell,$@)"
+	$(usp-mkdir-p) "$(call to-shell,$@)"
 
 endif
 
@@ -134,7 +134,7 @@ $(stage-dir)/lib/jamfiles/x264/jamfile: \
 	@echo generated $@
 
 $(work-dir):
-	$(mkdir-p) "$(call to-shell,$@)"
+	$(usp-mkdir-p) "$(call to-shell,$@)"
   
 $(stage-dir)/lib/jamfiles/x264:
-	$(mkdir-p) "$(call to-shell,$@)"
+	$(usp-mkdir-p) "$(call to-shell,$@)"
