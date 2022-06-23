@@ -115,6 +115,16 @@ required-versions = $(strip \
 expand = $(if $(expand-info),$(info $1))$(eval $1)
 
 #
+# $(call add-project,<project list>,<project-name>)
+#
+# Returns a new project list.
+#
+add-project = $(strip \
+  $(if $(filter $1,$2),$(error duplicate project name '$2')) \
+  $1 $2 \
+)
+
+#
 # $(call gmake-options,<project name>)
 # (to be evaluated very lazily, as part of a recipe)
 #
@@ -141,6 +151,8 @@ define gmake-project-impl =
 #
 # $1 (gmake project)
 #
+all-projects := $$(call add-project,$$(all-projects),$1)
+
 $1.version := $2
 $1.prereqs := $4
 $1.package := $5
@@ -213,6 +225,8 @@ define bjam-legacy-project-impl =
 #
 # $1 (bjam legacy project)
 #
+all-projects := $$(call add-project,$$(all-projects),$1)
+
 $1.version := $2
 $1.prereqs := $4
 $1.package := $5
@@ -266,6 +280,8 @@ define bjam-dll-project-impl =
 #
 # $1 (bjam dll project)
 #
+all-projects := $$(call add-project,$$(all-projects),$1)
+
 $1.version := $2
 $1.prereqs := $5
 $1.package := $6
@@ -335,6 +351,8 @@ define bjam-statlib-project-impl =
 #
 # $1 (bjam static library project)
 #
+all-projects := $$(call add-project,$$(all-projects),$1)
+
 $1.version :=
 $1.prereqs := $4
 
@@ -399,6 +417,8 @@ define bjam-exe-project-impl =
 #
 # $1 (bjam exe project)
 #
+all-projects := $$(call add-project,$$(all-projects),$1)
+
 $1.version := 
 $1.prereqs := $3
 $1.package := $4
@@ -445,6 +465,8 @@ define bjam-test-project-impl =
 #
 # $1 (bjam test project)
 #
+all-projects := $$(call add-project,$$(all-projects),$1)
+
 $1.version :=
 $1.prereqs := $3
 
@@ -480,3 +502,5 @@ bjam-test-project = $(call expand,$(call call-stripped, \
   $(call get-value,source-dir,$1,$(bjam-test-keys)), \
   $(call find-values,prereqs,$1,$(bjam-test-keys)) \
 ))
+
+all-projects :=
