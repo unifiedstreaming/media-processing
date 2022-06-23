@@ -135,7 +135,7 @@ gmake-dist-options = $(strip \
 )
 
 #
-# $(call gmake-project-impl,<name>,<version>?,<makefile>,<prereq name>*)
+# $(call gmake-project-impl,<name>,<version>?,<makefile>,<prereq name>*,<package>?)
 #
 define gmake-project-impl =
 #
@@ -143,6 +143,7 @@ define gmake-project-impl =
 #
 $1.version := $2
 $1.prereqs := $4
+$1.package := $5
 
 .PHONY: $1
 $1: $1.all
@@ -173,14 +174,16 @@ endef
 # version?  version number
 # makefile  path to makefile
 # prereqs*  prerequisite projects
+# package?  package name for distributed artifacts
 #
-gmake-keys := name version makefile prereqs
+gmake-keys := name version makefile prereqs package
 gmake-project = $(call expand,$(call call-stripped, \
   gmake-project-impl, \
   $(call get-value,name,$1,$(gmake-keys)), \
   $(call find-value,version,$1,$(gmake-keys)), \
   $(call get-value,makefile,$1,$(gmake-keys)), \
-  $(call find-values,prereqs,$1,$(gmake-keys)) \
+  $(call find-values,prereqs,$1,$(gmake-keys)), \
+  $(call find-value,package,$1,$(gmake-keys)) \
 ))
 
 #
@@ -204,7 +207,7 @@ bjam-dist-options = $(strip \
 )
 
 #
-# $(call bjam-legacy-project-impl,<name>,<version>?,<source dir>,<prereq name>*)
+# $(call bjam-legacy-project-impl,<name>,<version>?,<source dir>,<prereq name>*,<package>?)
 #
 define bjam-legacy-project-impl =
 #
@@ -212,6 +215,7 @@ define bjam-legacy-project-impl =
 #
 $1.version := $2
 $1.prereqs := $4
+$1.package := $5
 
 .PHONY: $1
 $1: $1.all
@@ -243,18 +247,20 @@ endef
 # version?   version number
 # source-dir source directory
 # prereqs*   prerequisite projects
+# package?   package name for distributed artifacts
 #
-bjam-legacy-keys := name version source-dir prereqs
+bjam-legacy-keys := name version source-dir prereqs package
 bjam-legacy-project = $(call expand,$(call call-stripped, \
   bjam-legacy-project-impl, \
   $(call get-value,name,$1,$(bjam-legacy-keys)), \
   $(call find-value,version,$1,$(bjam-legacy-keys)), \
   $(call get-value,source-dir,$1,$(bjam-legacy-keys)), \
-  $(call find-values,prereqs,$1,$(bjam-legacy-keys)) \
+  $(call find-values,prereqs,$1,$(bjam-legacy-keys)), \
+  $(call find-value,package,$1,$(bjam-legacy-keys)) \
 ))
 
 #
-# $(call bjam-dll-project-impl,<name>,<version>,<source dir>,<include dir>,<prereq name>*)
+# $(call bjam-dll-project-impl,<name>,<version>,<source dir>,<include dir>,<prereq name>*,<package>?)
 #
 define bjam-dll-project-impl =
 #
@@ -262,6 +268,7 @@ define bjam-dll-project-impl =
 #
 $1.version := $2
 $1.prereqs := $5
+$1.package := $6
 
 .PHONY: $1
 $1: $1.all
@@ -308,15 +315,17 @@ endef
 # source-dir  source directory
 # include-dir include directory
 # prereqs*    prerequisite projects
+# package?    package name for distributed artifacts
 #
-bjam-dll-keys := name version source-dir include-dir prereqs
+bjam-dll-keys := name version source-dir include-dir prereqs package
 bjam-dll-project = $(call expand,$(call call-stripped, \
   bjam-dll-project-impl, \
   $(call get-value,name,$1,$(bjam-dll-keys)), \
   $(call get-value,version,$1,$(bjam-dll-keys)), \
   $(call get-value,source-dir,$1,$(bjam-dll-keys)), \
   $(call get-value,include-dir,$1,$(bjam-dll-keys)), \
-  $(call find-values,prereqs,$1,$(bjam-dll-keys)) \
+  $(call find-values,prereqs,$1,$(bjam-dll-keys)), \
+  $(call find-value,package,$1,$(bjam-dll-keys)) \
 ))
 
 #
@@ -384,7 +393,7 @@ bjam-statlib-project = $(call expand,$(call call-stripped, \
 ))
 
 #
-# $(call bjam-exe-project-impl,<name>,<source dir>,<prereq name>*)
+# $(call bjam-exe-project-impl,<name>,<source dir>,<prereq name>*,<package>?)
 #
 define bjam-exe-project-impl =
 #
@@ -392,6 +401,7 @@ define bjam-exe-project-impl =
 #
 $1.version := 
 $1.prereqs := $3
+$1.package := $4
 
 .PHONY: $1
 $1: $1.all
@@ -417,13 +427,15 @@ endef
 # name        project name
 # source-dir  source directory
 # prereqs*    prerequisite projects
+# package?    package name for distributed artifacts
 #
-bjam-exe-keys := name source-dir prereqs
+bjam-exe-keys := name source-dir prereqs package
 bjam-exe-project = $(call expand,$(call call-stripped, \
   bjam-exe-project-impl, \
   $(call get-value,name,$1,$(bjam-exe-keys)), \
   $(call get-value,source-dir,$1,$(bjam-exe-keys)), \
-  $(call find-values,prereqs,$1,$(bjam-exe-keys)) \
+  $(call find-values,prereqs,$1,$(bjam-exe-keys)), \
+  $(call find-value,package,$1,$(bjam-exe-keys)) \
 ))
 
 #
