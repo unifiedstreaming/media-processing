@@ -9,7 +9,14 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 #
 
-include include/USPProject.pre
-include USPProjectDefs.mki
-include include/USPProject.post
-include USPTargets.mki
+#
+# Common targets
+#
+.PHONY: all
+all: x264_encoding_service
+
+.PHONY: unit_tests
+unit_tests: cuti_unit_tests x264_es_utils_unit_tests
+
+.PHONY: dist
+dist: x264_encoding_service.dist

@@ -1,0 +1,59 @@
+#
+# "THE BEER-WARE LICENSE" (Revision CS-42):
+#
+# This file was written by the CodeShop developers.  As long as you
+# retain this notice you can do whatever you want with it.
+# If we meet some day, and you think this file is worth it, you can
+# buy us a beer in return.  Even if you do that, this file still
+# comes WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+#
+
+#
+# Project definitions
+#
+$(call bjam-exe-project, \
+  name: x264_encoding_service \
+  source-dir: x264_encoding_service \
+  prereqs: x264_es_utils cuti \
+)
+
+$(call bjam-statlib-project, \
+  name: x264_es_utils \
+  source-dir: x264_es_utils/x264_es_utils \
+  include-dir: x264_es_utils \
+  prereqs: x264_proto cuti x264 \
+)
+
+$(call bjam-test-project, \
+  name: x264_es_utils_unit_tests \
+  source-dir: x264_es_utils/unit_tests \
+  prereqs: x264_es_utils \
+)
+
+$(call bjam-dll-project, \
+  name: x264_proto \
+  version: 0_0_0 \
+  source-dir: x264_proto/x264_proto \
+  include-dir: x264_proto \
+  prereqs: cuti \
+)
+
+$(call bjam-dll-project, \
+  name: cuti \
+  version: 0_0_0 \
+  source-dir: cuti/cuti \
+  include-dir: cuti \
+)
+
+$(call bjam-test-project, \
+  name: cuti_unit_tests \
+  source-dir: cuti/unit_tests \
+  prereqs: cuti \
+)
+
+$(call gmake-project, \
+  name: x264 \
+  makefile: x264/USPMakefile \
+)
+
