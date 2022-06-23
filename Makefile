@@ -9,7 +9,7 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 #
 
-include include/USPProject.mki
+include include/USPProject.pre
 
 #
 # Project definitions
@@ -58,6 +58,8 @@ $(call gmake-project, \
   name: x264 \
   makefile: x264/USPMakefile \
 )
+
+include include/USPProject.post
 
 #
 # Common targets

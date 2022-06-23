@@ -480,7 +480,3 @@ bjam-test-project = $(call expand,$(call call-stripped, \
   $(call get-value,source-dir,$1,$(bjam-test-keys)), \
   $(call find-values,prereqs,$1,$(bjam-test-keys)) \
 ))
-
-PHONY: clean
-clean:
-	$(usp-rm-rf) "$(call to-shell,$(build-dir))"
