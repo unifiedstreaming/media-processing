@@ -9,6 +9,24 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 #
 
+#
+# $(call check-project-cycle,<project>,<visiting>*)
+#
+check-project-cycle = $(strip \
+  $(if $(filter $1,$2), \
+    $(error cyclic project prerequisite: hit '$1' while visiting '$2') \
+  ) \
+  $(foreach pre,$($1.prereqs), \
+    $(call check-project-cycle,$(pre),$(strip $2 $1)) \
+  ) \
+)
+
+#
+# Check all projects for cyclic prerequisites
+#
+$(foreach proj,$(all-projects),$(call check-project-cycle,$(proj)))
+
 PHONY: clean
 clean:
 	$(usp-rm-rf) "$(call to-shell,$(build-dir))"
+
