@@ -10,6 +10,11 @@
 #
 
 #
+# Check all projects for cyclic prerequisites; from that point on, we
+# know the project prerequisites form a proper DAG.
+#
+
+#
 # $(call check-project-cycle,<project>,<visiting>*)
 #
 check-project-cycle = $(strip \
@@ -25,10 +30,20 @@ check-project-cycle = $(strip \
   ) \
 )
 
-#
-# Check all projects for cyclic prerequisites
-#
 $(foreach proj,$(all-projects),$(call check-project-cycle,$(proj)))
+
+#
+# $(call is-prereq-project,<project>,<other project>*)
+#
+is-prereq-project = $(strip \
+  $(if $(firstword $2), \
+    $(if $(filter $1,$(foreach other,$2,$($(other).prereqs))), \
+      yes \
+    , \
+      $(call is-prereq-project,$1,$(foreach other,$2,$($(other).prereqs))) \
+    ) \
+  ) \
+)
 
 PHONY: clean
 clean:
