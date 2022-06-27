@@ -13,11 +13,15 @@
 # $(call check-project-cycle,<project>,<visiting>*)
 #
 check-project-cycle = $(strip \
-  $(if $(filter $1,$2), \
-    $(error cyclic project prerequisite: hit '$1' while visiting '$2') \
-  ) \
-  $(foreach pre,$($1.prereqs), \
-    $(call check-project-cycle,$(pre),$(strip $2 $1)) \
+  $(if $(strip $($1.project-cycle-checked)), \
+  , \
+    $(if $(filter $1,$2), \
+      $(error cyclic project prerequisite: hit '$1' while visiting '$2') \
+    ) \
+    $(foreach pre,$($1.prereqs), \
+      $(call check-project-cycle,$(pre),$(strip $2 $1)) \
+    ) \
+    $(eval $1.project-cycle-checked := yes) \
   ) \
 )
 
