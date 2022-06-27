@@ -115,13 +115,26 @@ required-versions = $(strip \
 expand = $(if $(expand-info),$(info $1))$(eval $1)
 
 #
-# $(call add-project,<project list>,<project-name>)
+# $(call add-project,<project list>,<project name>)
 #
 # Returns a new project list.
 #
 add-project = $(strip \
   $(if $(filter $1,$2),$(error duplicate project name '$2')) \
   $1 $2 \
+)
+
+#
+# $(call add-package,<package list>,<package name>)
+#
+# Returns a new package list
+#
+add-package = $(strip \
+  $(if $(filter $2,$1), \
+    $1 \
+  , \
+    $1 $2 \
+  ) \
 )
 
 #
@@ -226,6 +239,7 @@ define bjam-legacy-project-impl =
 # $1 (bjam legacy project)
 #
 all-projects := $$(call add-project,$$(all-projects),$1)
+all-packages := $$(call add-package,$$(all-packages),$5)
 
 $1.version := $2
 $1.prereqs := $4
@@ -281,6 +295,7 @@ define bjam-dll-project-impl =
 # $1 (bjam dll project)
 #
 all-projects := $$(call add-project,$$(all-projects),$1)
+all-packages := $$(call add-package,$$(all-packages),$6)
 
 $1.version := $2
 $1.prereqs := $5
@@ -418,6 +433,7 @@ define bjam-exe-project-impl =
 # $1 (bjam exe project)
 #
 all-projects := $$(call add-project,$$(all-projects),$1)
+all-packages := $$(call add-package,$$(all-packages),$4)
 
 $1.version := 
 $1.prereqs := $3
@@ -504,3 +520,4 @@ bjam-test-project = $(call expand,$(call call-stripped, \
 ))
 
 all-projects :=
+all-packages := 

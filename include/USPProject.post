@@ -33,6 +33,37 @@ check-project-cycle = $(strip \
 $(foreach proj,$(all-projects),$(call check-project-cycle,$(proj)))
 
 #
+# Check all projects for packaging cycles
+#
+
+#
+# $(call check-package-cycle,<project>,<current package>?,<depending package*>)
+#
+check-package-cycle = $(strip \
+  $(if $($1.package), \
+    $(if $(filter $($1.package),$3), \
+      $(error project '$1' cannot be included in depending package \
+        '$(filter $($1.package),$3)') \
+    ) \
+    $(if $(filter $($1.package),$2), \
+      $(foreach pre,$($1.prereqs), \
+        $(call check-package-cycle,$(pre),$2,$3) \
+      ) \
+    , \
+      $(foreach pre,$($1.prereqs), \
+        $(call check-package-cycle,$(pre),$($1.package),$2 $3) \
+      ) \
+    ) \
+  , \
+    $(foreach pre,$($1.prereqs), \
+      $(call check-package-cycle,$(pre),$2,$3) \
+    ) \
+  ) \
+)
+    
+$(foreach proj,$(all-projects),$(call check-package-cycle,$(proj)))
+
+#
 # $(call is-prereq-project,<project>,<other project>*)
 #
 is-prereq-project = $(strip \
@@ -44,6 +75,8 @@ is-prereq-project = $(strip \
     ) \
   ) \
 )
+
+$(info all-packages: $(all-packages))
 
 PHONY: clean
 clean:
