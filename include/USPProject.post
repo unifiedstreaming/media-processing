@@ -42,8 +42,8 @@ $(foreach proj,$(all-projects),$(call check-project-cycle,$(proj)))
 check-package-cycle = $(strip \
   $(if $($1.package), \
     $(if $(filter $($1.package),$3), \
-      $(error project '$1' cannot be included in depending package \
-        '$(filter $($1.package),$3)') \
+      $(error package cycle: project '$1' cannot be included in \
+        depending package '$($1.package)') \
     ) \
     $(if $(filter $($1.package),$2), \
       $(foreach pre,$($1.prereqs), \
