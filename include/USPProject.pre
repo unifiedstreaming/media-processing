@@ -165,6 +165,7 @@ define gmake-project-impl =
 # $1 (gmake project)
 #
 all-projects := $$(call add-project,$$(all-projects),$1)
+all-packages := $$(call add-package,$$(all-packages),$5)
 
 $1.version := $2
 $1.prereqs := $4

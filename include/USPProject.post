@@ -76,8 +76,6 @@ is-prereq-project = $(strip \
   ) \
 )
 
-$(info all-packages: $(all-packages))
-
 PHONY: clean
 clean:
 	$(usp-rm-rf) "$(call to-shell,$(build-dir))"
