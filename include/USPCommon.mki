@@ -276,7 +276,13 @@ override dest-dir := $(call to-make,$(call non-relative-path,$(dest-dir)))
 #
 # $(call required-value,<name>)
 #
-required-value = $(if $($1),$($1),$(error '$1' must be be set))
+required-value = $(strip \
+  $(if $(strip $($1)), \
+    $($1) \
+  , \
+    $(error '$1' must be be set) \
+  ) \
+)
 
 #
 # $(call keep-last-instance,<word>*)
