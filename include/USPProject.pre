@@ -78,7 +78,7 @@ endef
 
 $(stage-dir)/lib/jamfiles/Jamroot: | $(stage-dir)/lib/jamfiles
 	$(file >$@,$(staged-jamroot-content))
-	@echo generated $@
+	@echo updated $@
 
 #
 # Windows: unit tests must find DLLs in $(stage-dir)/lib
