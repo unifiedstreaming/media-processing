@@ -38,6 +38,12 @@ endef
 comma := ,
 
 #
+# Use $(open-paren) and $(close-paren) for parentheses
+#
+open-paren := (
+close-paren := )
+
+#
 # $(windows) is non-empty when on Windows
 #
 windows := $(if $(findstring Windows,$(OS)),yes,)
@@ -449,4 +455,14 @@ find-value = $(strip \
 #
 get-value = $(strip \
   $(call require-prop-value,$1,$(call find-value,$1,$2,$3)) \
+)
+
+#
+# $(call reverse,<word>*)
+#
+reverse = $(strip \
+  $(if $(firstword $1), \
+    $(call reverse,$(wordlist 2,$(words $1),$1)) \
+    $(firstword $1) \
+  ) \
 )

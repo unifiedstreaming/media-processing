@@ -500,4 +500,7 @@ bjam-test-project = $(call expand,$(call call-stripped, \
   $(call find-values,prereqs,$1,$(bjam-test-keys)) \
 ))
 
+#
+# Clear the list of projects just before reading the project definitions
+#
 all-projects :=
