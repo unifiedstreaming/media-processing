@@ -289,6 +289,11 @@ bjam-statlib-filename = lib$1$(if $(windows),.lib,.a)
 override dest-dir := $(call to-make,$(call non-relative-path,$(dest-dir)))
 
 #
+# establish packages-dir
+#
+override packages-dir := $(call to-make,$(call non-relative-path,$(packages-dir)))
+
+#
 # $(call required-value,<name>)
 #
 required-value = $(strip \
