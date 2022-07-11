@@ -145,7 +145,7 @@ gmake-dist-options = $(strip \
 )
 
 #
-# $(call gmake-project-impl,<name>,<version>?,<makefile>,<prereq name>*,<package>?)
+# $(call gmake-project-impl,<name>,<version>?,<makefile>,<prereq name>*,<distributable>?,<package>?)
 #
 define gmake-project-impl =
 #
@@ -155,7 +155,8 @@ all-projects := $$(call add-project,$$(all-projects),$1)
 
 $1.version := $2
 $1.prereqs := $4
-$1.package := $5
+$1.distributable := $5
+$1.package := $6
 
 .PHONY: $1
 $1: $1.all
@@ -182,19 +183,21 @@ endef
 # $(call gmake-project,<properties>)
 #
 # properties are:
-# name      project name
-# version?  version number
-# makefile  path to makefile
-# prereqs*  prerequisite projects
-# package?  package name for distributed artifacts
+# name          project name
+# version?      version number
+# makefile      path to makefile
+# prereqs*      prerequisite projects
+# distributable either 'yes' or 'no' 
+# package?      package name for distributed artifacts
 #
-gmake-keys := name version makefile prereqs package
+gmake-keys := name version makefile prereqs distributable package
 gmake-project = $(call expand,$(call call-stripped, \
   gmake-project-impl, \
   $(call get-value,name,$1,$(gmake-keys)), \
   $(call find-value,version,$1,$(gmake-keys)), \
   $(call get-value,makefile,$1,$(gmake-keys)), \
   $(call find-values,prereqs,$1,$(gmake-keys)), \
+  $(call get-boolean-value,distributable,$1,$(gmake-keys)), \
   $(call find-value,package,$1,$(gmake-keys)) \
 ))
 
@@ -230,7 +233,7 @@ update-staged-jamfile-args = $(strip \
 )
 
 #
-# $(call bjam-legacy-project-impl,<name>,<version>?,<source dir>,<prereq name>*,<package>?)
+# $(call bjam-legacy-project-impl,<name>,<version>?,<source dir>,<prereq name>*,<distributable>?,<package>?)
 #
 define bjam-legacy-project-impl =
 #
@@ -240,7 +243,8 @@ all-projects := $$(call add-project,$$(all-projects),$1)
 
 $1.version := $2
 $1.prereqs := $4
-$1.package := $5
+$1.distributable := $5
+$1.package := $6
 
 .PHONY: $1
 $1: $1.all
@@ -257,7 +261,7 @@ $1.stage: $1.all
 .PHONY: $1.dist
 $1.dist: $1.all $(addsuffix .dist,$4)
 	$(usp-bjam) $$(call bjam-dist-options,$1) $(build-settings) $3//dist
-	
+
 .PHONY: $1.clean
 $1.clean:
 	$(usp-bjam) --clean $$(call bjam-options,$1) $(build-settings) $3
@@ -268,19 +272,21 @@ endef
 # $(call bjam-legacy-project,<properties>)
 #
 # properties are:
-# name       project name
-# version?   version number
-# source-dir source directory
-# prereqs*   prerequisite projects
-# package?   package name for distributed artifacts
+# name          project name
+# version?      version number
+# source-dir    source directory
+# prereqs*      prerequisite projects
+# distributable either 'yes' or 'no' 
+# package?      package name for distributed artifacts
 #
-bjam-legacy-keys := name version source-dir prereqs package
+bjam-legacy-keys := name version source-dir prereqs distributable package
 bjam-legacy-project = $(call expand,$(call call-stripped, \
   bjam-legacy-project-impl, \
   $(call get-value,name,$1,$(bjam-legacy-keys)), \
   $(call find-value,version,$1,$(bjam-legacy-keys)), \
   $(call get-value,source-dir,$1,$(bjam-legacy-keys)), \
   $(call find-values,prereqs,$1,$(bjam-legacy-keys)), \
+  $(call get-boolean-value,distributable,$1,$(bjam-legacy-keys)), \
   $(call find-value,package,$1,$(bjam-legacy-keys)) \
 ))
 
@@ -295,6 +301,7 @@ all-projects := $$(call add-project,$$(all-projects),$1)
 
 $1.version := $2
 $1.prereqs := $5
+$1.distributable := yes
 $1.package := $6
 
 .PHONY: $1
@@ -315,7 +322,7 @@ $1.stage: $1.bjam-stage
 .PHONY: $1.dist
 $1.dist: $1.all $(addsuffix .dist,$5)
 	$(usp-bjam) $$(call bjam-dist-options,$1) $(build-settings) $3//dist
-	
+
 .PHONY: $1.clean
 $1.clean:
 	$(usp-bjam) --clean $$(call bjam-options,$1) $(build-settings) $3
@@ -323,7 +330,7 @@ $1.clean:
 .PHONY: $1.bjam-stage
 $1.bjam-stage: $1.all
 	$(usp-bjam) $$(call bjam-options,$1) $(build-settings) $3//stage
-	
+
 endef
 
 #
@@ -359,6 +366,8 @@ all-projects := $$(call add-project,$$(all-projects),$1)
 
 $1.version :=
 $1.prereqs := $4
+$1.distributable :=
+$1.package :=
 
 .PHONY: $1
 $1: $1.all
@@ -378,7 +387,7 @@ $1.stage: $1.bjam-stage
 # Static library: nothing to do for disting
 .PHONY: $1.dist
 $1.dist: $1.all $(addsuffix .dist,$4)
-	
+
 .PHONY: $1.clean
 $1.clean:
 	$(usp-bjam) --clean $$(call bjam-options,$1) $(build-settings) $2
@@ -386,7 +395,7 @@ $1.clean:
 .PHONY: $1.bjam-stage
 $1.bjam-stage: $1.all
 	$(usp-bjam) $$(call bjam-options,$1) $(build-settings) $2//stage
-	
+
 endef
 
 #
@@ -418,6 +427,7 @@ all-projects := $$(call add-project,$$(all-projects),$1)
 
 $1.version := 
 $1.prereqs := $3
+$1.distributable := yes
 $1.package := $4
 
 .PHONY: $1
@@ -430,11 +440,11 @@ $1.all: build-dir-skeleton $(addsuffix .stage,$3)
 .PHONY: $1.dist
 $1.dist: $1.all $(addsuffix .dist,$3)
 	$(usp-bjam) $$(call bjam-dist-options,$1) $(build-settings) $2//dist
-	
+
 .PHONY: $1.clean
 $1.clean:
 	$(usp-bjam) --clean $$(call bjam-options,$1) $(build-settings) $2
-	
+
 endef
 
 #
@@ -466,6 +476,8 @@ all-projects := $$(call add-project,$$(all-projects),$1)
 
 $1.version :=
 $1.prereqs := $3
+$1.distributable :=
+$1.package :=
 
 .PHONY: $1
 $1: $1.all

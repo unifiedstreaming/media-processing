@@ -98,14 +98,7 @@ add-packager = $(strip \
 # $(call add-packagers,<project>,<depending project>*,<packager>?)
 #
 add-packagers = $(strip \
-  $(if $(filter no,$($1.distributable)), \
-    $(if $($1.package), \
-      $(error $(strip \
-        project '$1' cannot have a package because is not distributable \
-      )) \
-    ) \
-    $(eval $1.packagers :=) \
-  , \
+  $(if $($1.distributable), \
     $(if $($1.package), \
       $(if $(filter-out $($3.package),$($1.package)), \
         $(if $(filter $(foreach dep,$2,$($(dep).package)),$($1.package)), \
@@ -124,6 +117,13 @@ add-packagers = $(strip \
         $(eval $1.packagers := $(call add-packager,$($1.packagers),$3)) \
       ) \
     ) \
+  , \
+    $(if $($1.package), \
+      $(error $(strip \
+        project '$1' cannot have a package because it is not distributable \
+      )) \
+    ) \
+    $(eval $1.packagers :=) \
   ) \
   \
   $(foreach pre,$($1.prereqs), \
@@ -197,10 +197,10 @@ $(strip \
       $(info $(strip \
         projects for package '$(pkg)': \
         $(foreach proj,$(all-projects), \
-	  $(if $(filter $(pkg),$($(proj).package)), \
-	    '$(proj)' \
-	  ) \
-	) \
+          $(if $(filter $(pkg),$($(proj).package)), \
+            '$(proj)' \
+          ) \
+        ) \
       )) \
     ) \
   ) \
