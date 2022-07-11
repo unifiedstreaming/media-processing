@@ -171,7 +171,7 @@ $1.stage: $1.all
 
 .PHONY: $1.dist
 $1.dist: $1.all $(addsuffix .dist,$4)
-	$$(MAKE) -C $(dir $3) -f $(notdir $3) $$(call gmake-dist-options,$1) $(build-settings) dist
+$(if $5,$(tab)$$(MAKE) -C $(dir $3) -f $(notdir $3) $$(call gmake-dist-options,$1) $(build-settings) dist)
 
 .PHONY: $1.clean
 $1.clean:
@@ -260,7 +260,7 @@ $1.stage: $1.all
 
 .PHONY: $1.dist
 $1.dist: $1.all $(addsuffix .dist,$4)
-	$(usp-bjam) $$(call bjam-dist-options,$1) $(build-settings) $3//dist
+$(if $5,$(tab)$(usp-bjam) $$(call bjam-dist-options,$1) $(build-settings) $3//dist)
 
 .PHONY: $1.clean
 $1.clean:

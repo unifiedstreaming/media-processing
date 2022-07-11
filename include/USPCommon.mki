@@ -19,10 +19,19 @@
 .SECONDEXPANSION:
 
 #
-# Use $(space) for embedding a space in a list of (space-separated) tokens
+# A well-known hack for embedding characters that are skipped otherwise
 #
 empty :=
+
+#
+# Use $(space) for embedding a space in a list of (space-separated) tokens
+#
 space := $(empty) $(empty)
+
+#
+# Use $(tab) for embedding a tab in a list of (space-separated) tokens
+#
+tab := $(empty)	$(empty)
 
 #
 # Use $(newline) for embedding a newline in text
