@@ -26,6 +26,7 @@ check-prereqs = $(strip \
         '$(pre)' \
       )) \
     ) \
+    $(eval all-leaf-projects := $(filter-out $(pre),$(all-leaf-projects))) \
     $(call check-prereqs,$(pre),$(strip $1 $2)) \
   ) \
 )
@@ -154,7 +155,7 @@ set-package-impl = $(strip \
       ) \
     , \
       $(error $(strip \
-        cannot implicitly determine package for project '$1' because \
+        cannot implicitly determine the package for project '$1' because \
         not all packaged projects depending on this project \
         [$(foreach pkgr,$($1.packagers),$(call proj-with-pkg,$(pkgr)))] \
         are in the same package \
@@ -191,19 +192,25 @@ endef
 #
 # Check the prerequisites for all projects, so we know they form
 # a proper dependency DAG without dangling project references.
+# As a side effect, prerequisite projects are filtered out of
+# $(all-leaf-projects).
 #
+all-leaf-projects := $(all-projects)
 $(foreach proj,$(all-projects),$(call check-prereqs,$(proj)))
 
 #
-# For each project, determine the list of (zero or more) packagers.
-# A packager is a project with an explicit package attribute.
+# Starting from the leaf projects in the tree, for each project,
+# establish a list of (zero or more) packagers while removing
+# packagers that depend on one of project's other packagers.  A
+# packager is a project with an explicit 'package' attribute.
 #
 $(foreach proj,$(all-projects),$(eval $(proj).packagers :=))
-$(foreach proj,$(all-projects),$(call add-packagers,$(proj)))
+$(foreach proj,$(all-leaf-projects),$(call add-packagers,$(proj)))
 
 #
-# For each project, determine the package (if any) by examining its
-# list of packagers.
+# For each project, determine the package it is in (if any) by
+# inspecting its list of remaining packagers.  As a side effect,
+# the list of all packages is established.
 #
 all-packages :=
 $(foreach proj,$(all-projects),$(call set-package,$(proj)))
