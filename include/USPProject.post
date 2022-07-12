@@ -170,9 +170,9 @@ set-package-impl = $(strip \
 set-package = $(call set-package-impl,$1,$(call potential-packages,$1))
 
 #
-# $(call projects-for-package,<package>)
+# $(call projects-in-package,<package>)
 #
-projects-for-package = $(strip \
+projects-in-package = $(strip \
   $(foreach proj,$(all-projects), \
     $(if $(filter $1,$($(proj).package)), \
       $(proj) \
@@ -184,8 +184,8 @@ projects-for-package = $(strip \
 # $(call package-target,<package>)
 #
 define package-target =
-.PHONY: package.$1
-package.$1: $(foreach proj,$(call projects-for-package,$1),$(proj).package-project)
+.PHONY: $1.package
+$1.package: $(foreach proj,$(call projects-in-package,$1),$(proj).package-project)
 
 endef
 
@@ -216,7 +216,7 @@ all-packages :=
 $(foreach proj,$(all-projects),$(call set-package,$(proj)))
 
 #
-# For each package, define a 'package.<package>' target
+# For each package, define a '<package>.package' target
 #
 $(strip \
   $(foreach pkg,$(all-packages), \
@@ -224,8 +224,8 @@ $(strip \
   ) \
 )
 
-.PHONY: package.all
-package.all: $(foreach pkg,$(all-packages),package.$(pkg)) 
+.PHONY: all.package
+all.package: $(foreach pkg,$(all-packages),$(pkg).package) 
 
 PHONY: clean
 clean:
