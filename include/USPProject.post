@@ -167,7 +167,27 @@ set-package-impl = $(strip \
 # $(call set-package,<project>)
 #
 set-package = $(call set-package-impl,$1,$(call potential-packages,$1))
- 
+
+#
+# $(call projects-for-package,<package>)
+#
+projects-for-package = $(strip \
+  $(foreach proj,$(all-projects), \
+    $(if $(filter $1,$($(proj).package)), \
+      $(proj) \
+    ) \
+  ) \
+)
+
+#
+# $(call package-target,<package>)
+#
+define package-target =
+.PHONY: package.$1
+package.$1: $(foreach proj,$(call projects-for-package,$1),$(proj).package-project)
+
+endef
+
 #
 # Check the prerequisites for all projects, so we know they form
 # a proper dependency DAG without dangling project references.
@@ -188,23 +208,17 @@ $(foreach proj,$(all-projects),$(call add-packagers,$(proj)))
 all-packages :=
 $(foreach proj,$(all-projects),$(call set-package,$(proj)))
 
+#
+# For each package, define a 'package.<package>' target
+#
 $(strip \
-  $(if $(expand-info), \
-    $(foreach proj,$(all-projects), \
-      $(info package for project '$(proj)': '$($(proj).package)') \
-    ) \
-    $(foreach pkg,$(all-packages), \
-      $(info $(strip \
-        projects for package '$(pkg)': \
-        $(foreach proj,$(all-projects), \
-          $(if $(filter $(pkg),$($(proj).package)), \
-            '$(proj)' \
-          ) \
-        ) \
-      )) \
-    ) \
+  $(foreach pkg,$(all-packages), \
+    $(call expand,$(call package-target,$(pkg))) \
   ) \
 )
+
+.PHONY: package.all
+package.all: $(foreach pkg,$(all-packages),package.$(pkg)) 
 
 PHONY: clean
 clean:
