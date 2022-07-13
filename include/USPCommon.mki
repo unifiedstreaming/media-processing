@@ -19,6 +19,14 @@
 .SECONDEXPANSION:
 
 #
+# $(call REM,<word>*)
+#
+# Insert random comments in function bodies.  Beware of dollars and
+# parentheses.
+#
+REM =
+
+#
 # A well-known hack for embedding characters that are skipped otherwise
 #
 empty :=
@@ -520,3 +528,26 @@ reverse = $(strip \
     $(firstword $1) \
   ) \
 )
+
+#
+# $(call add-to-set,<word>*,<new word>*)
+#
+# Adds each <new word> to the set of each <word>, returning the new set.
+#
+add-to-set = $(strip \
+  $(if $(firstword $2), \
+    $(call add-to-set, \
+      $1 $(filter-out $1,$(firstword $2)), \
+      $(wordlist 2,$(words $2),$2) \
+    ) \
+  , \
+    $1 \
+  ) \
+)
+
+#
+# $(call dedup,<word>*)
+#
+# Removes duplicates from the list of each <word>, returning the new list.
+#
+dedup = $(call add-to-set,,$1)
