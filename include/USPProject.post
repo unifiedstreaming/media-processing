@@ -240,11 +240,15 @@ projects-in-package = $(strip \
 )
 
 #
-# $(call package-target,<package>)
+# $(call packaging-targets,<package>)
 #
-define package-target =
+define packaging-targets =
 .PHONY: $1.package
 $1.package: $(foreach proj,$(call projects-in-package,$1),$(proj).package-project)
+
+.PHONY: $1.clean-package
+$1.clean-package:
+	$(usp-rm-rf) "$$(call to-shell,$$(call pkg-dir-for-pkg,$1))"
 
 endef
 
@@ -275,17 +279,21 @@ all-packages :=
 $(foreach proj,$(all-projects),$(call set-package,$(proj)))
 
 #
-# For each package, define a '<package>.package' target
+# Define packaging targets for all packages
 #
 $(strip \
   $(foreach pkg,$(all-packages), \
-    $(call expand,$(call package-target,$(pkg))) \
+    $(call expand,$(call packaging-targets,$(pkg))) \
   ) \
 )
 
 .PHONY: all.package
 all.package: $(foreach pkg,$(all-packages),$(pkg).package) 
 
+.PHONY: all.clean-package
+all.clean-package:
+	$(usp-rm-rf) "$(call to-shell,$(call required-value,packages-dir))"
+	
 PHONY: clean
 clean:
 	$(usp-rm-rf) "$(call to-shell,$(build-dir))"

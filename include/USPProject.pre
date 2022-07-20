@@ -125,12 +125,20 @@ add-project = $(strip \
 )
 
 #
-# $(call project-package-dir,<project>)
+# $(call pkg-dir-for-pkg,<package>)
 # (to be evaluated very lazily, as part of a recipe)
 #
-project-package-dir = $(strip \
+pkg-dir-for-pkg = $(strip \
+  $(call required-value,packages-dir)/$1 \
+)
+
+#
+# $(call pkg-dir-for-proj,<project>)
+# (to be evaluated very lazily, as part of a recipe)
+#
+pkg-dir-for-proj = $(strip \
   $(if $($1.package), \
-    $(call required-value,packages-dir)/$($1.package) \
+    $(call pkg-dir-for-pkg,$($1.package)) \
   , \
     $(error project '$1' is not included in any package) \
   ) \
@@ -162,7 +170,7 @@ gmake-dist-options = $(strip \
 #
 gmake-package-options = $(strip \
   $(call gmake-options,$1) \
-  dest-dir="$(call to-shell,$(call project-package-dir,$1))" \
+  dest-dir="$(call to-shell,$(call pkg-dir-for-proj,$1))" \
 )
 
 #
@@ -252,7 +260,7 @@ bjam-dist-options = $(strip \
 #
 bjam-package-options = $(strip \
   $(call bjam-options,$1) \
-  -sdest-dir="$(call to-native,$(call project-package-dir,$1))" \
+  -sdest-dir="$(call to-native,$(call pkg-dir-for-proj,$1))" \
 )
 
 #
