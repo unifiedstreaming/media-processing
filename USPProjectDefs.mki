@@ -46,7 +46,7 @@ $(call bjam-dll-project, \
   version: 0_0_0 \
   source-dir: cuti/cuti \
   include-dir: cuti \
-  $(call REM, package: cuti) \
+  package: cuti \
 )
 
 $(call bjam-test-project, \
