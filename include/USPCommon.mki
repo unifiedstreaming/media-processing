@@ -530,13 +530,13 @@ reverse = $(strip \
 )
 
 #
-# $(call add-to-set,<word>*,<new word>*)
+# $(call set-add,<word>*,<new word>*)
 #
-# Adds each <new word> to the set of each <word>, returning the new set.
+# Adds each <new word> to the set of <word>s, returning the new set.
 #
-add-to-set = $(strip \
+set-add = $(strip \
   $(if $(firstword $2), \
-    $(call add-to-set, \
+    $(call set-add, \
       $1 $(filter-out $1,$(firstword $2)), \
       $(wordlist 2,$(words $2),$2) \
     ) \
@@ -550,4 +550,4 @@ add-to-set = $(strip \
 #
 # Removes duplicates from the list of each <word>, returning the new list.
 #
-dedup = $(call add-to-set,,$1)
+dedup = $(call set-add,,$1)

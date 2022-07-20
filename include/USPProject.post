@@ -209,9 +209,7 @@ set-package-impl = $(strip \
       $(call REM,single package) \
       \
       $(eval $1.package := $(firstword $2)) \
-      $(if $(filter-out $(all-packages),$(firstword $2)), \
-        $(eval all-packages += $(firstword $2)) \
-      ) \
+      $(eval all-packages := $(call set-add,$(all-packages),$(firstword $2))) \
     , \
       $(call REM,multiple packages) \
       \
@@ -262,16 +260,16 @@ $(foreach proj,$(all-projects),$(call check-prereqs,$(proj)))
 #
 # Starting from the leaf projects in the tree, for each project,
 # establish a list of (zero or more) packagers while removing
-# packagers that depend on one of project's other packagers.  A
-# packager is a project with an explicit 'package' attribute.
+# packagers that depend on one of the project's other packagers.  (A
+# packager is a project with an explicit 'package' attribute.)
 #
 $(foreach proj,$(all-projects),$(eval $(proj).packagers :=))
 $(foreach proj,$(all-leaf-projects),$(call add-packagers,$(proj)))
 
 #
 # For each project, determine the package it is in (if any) by
-# inspecting its list of remaining packagers.  As a side effect,
-# the list of all packages is established.
+# inspecting its list of packagers.  As a side effect, the list of all
+# packages is established.
 #
 all-packages :=
 $(foreach proj,$(all-projects),$(call set-package,$(proj)))
