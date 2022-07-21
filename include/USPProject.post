@@ -61,7 +61,6 @@ proj-with-pkg = $(strip \
 is-prereq = $(strip \
   $(if $(firstword $2), \
     $(if $(filter $(foreach of,$2,$($(of).prereqs)),$1), \
-      \
       $(call REM,direct prereq found) \
       yes \
     , \
@@ -79,7 +78,6 @@ is-prereq = $(strip \
 contains-prereq = $(strip \
   $(if $(firstword $1), \
     $(if $(call is-prereq,$(firstword $1),$2), \
-      \
       $(call REM,prereq found at head of list) \
       yes \
     , \
@@ -94,12 +92,11 @@ contains-prereq = $(strip \
 # $(call remove-depending,<project *>,<on project>)
 #
 # Returns a new list of projects with projects depending on some
-# specific projects removed
+# specific project removed
 #
 remove-depending = $(strip \
   $(foreach proj,$1, \
     $(if $(call is-prereq,$2,$(proj)), \
-      \
       $(call REM,skip proj) \
     , \
       $(call REM,keep proj) \
@@ -116,16 +113,13 @@ remove-depending = $(strip \
 #
 add-packager = $(strip \
   $(if $(filter $1,$2), \
-    \
     $(call REM,already there so return old set) \
     $1 \
   , \
     $(if $(call contains-prereq,$1,$2), \
-      \
       $(call REM,prereqs take priority so return old set) \
       $1 \
     , \
-      \
       $(call REM,add after removing any depending packagers from set) \
       $2 $(call remove-depending,$1,$2) \
     ) \
@@ -138,19 +132,14 @@ add-packager = $(strip \
 # Sets the potential packagers for <project> and its prereqs.
 #
 add-packagers = $(strip \
-  \
   $(if $($1.distributable), \
-    $(call REM,distributables can be packaged) \
-    \
+    $(call REM,only distributables can be packaged) \
     $(if $($1.package), \
       $(call REM,project is its own packager) \
-      \
       $(if $(filter-out $($3.package),$($1.package)), \
-        $(call REM,switching package name) \
-        \
+        $(call REM,entering another package) \
         $(if $(filter $(foreach dep,$2,$($(dep).package)),$($1.package)), \
           $(call REM,re-entering previously visited package) \
-          \
           $(error $(strip \
             package cycle in project prereq chain \
             $(foreach proj,$(call reverse,$2), \
@@ -163,14 +152,12 @@ add-packagers = $(strip \
       $(eval $1.packagers := $1) \
     , \
       $(call REM,add depending packager if available) \
-      \
       $(if $(strip $3), \
         $(eval $1.packagers := $(call add-packager,$($1.packagers),$3)) \
       ) \
     ) \
   , \
     $(call REM,not distributable) \
-    \
     $(if $($1.package), \
       $(error $(strip \
         project '$1' cannot have a package because it is not distributable \
@@ -180,7 +167,6 @@ add-packagers = $(strip \
   ) \
   \
   $(call REM,visit prereqs) \
-  \
   $(foreach pre,$($1.prereqs), \
     $(call add-packagers,$(pre),$(strip $1 $2),$(if $($1.package),$1,$3)) \
   ) \
@@ -189,7 +175,7 @@ add-packagers = $(strip \
 #
 # $(call potential-packages,<project>)
 #
-# Gets the potential packages for <project> by fetching the packages
+# Gets the potential packages for <project> by fetching the package names
 # from its packagers.
 #
 potential-packages = $(strip \
@@ -202,17 +188,14 @@ potential-packages = $(strip \
 set-package-impl = $(strip \
   $(if $(filter 0,$(words $2)), \
     $(call REM,no package) \
-    \
     $(eval $1.package :=) \
   , \
     $(if $(filter 1,$(words $2)), \
       $(call REM,single package) \
-      \
       $(eval $1.package := $(firstword $2)) \
       $(eval all-packages := $(call set-add,$(all-packages),$(firstword $2))) \
     , \
       $(call REM,multiple packages) \
-      \
       $(error $(strip \
         cannot implicitly determine the package for project '$1' because \
         not all packaged projects depending on this project \
@@ -240,11 +223,33 @@ projects-in-package = $(strip \
 )
 
 #
+# $(call prereq-packages-impl,<root package>,<project>*)
+#
+prereq-packages-impl = $(strip \
+  $(call dedup, \
+    $(foreach prj,$2, \
+      $(filter-out $1,$($(prj).package)) \
+      $(call prereq-packages-impl,$1,$($(prj).prereqs)) \
+    ) \
+  ) \
+)
+
+#
+# $(call prereq-packages,<package>)
+#
+prereq-packages = $(strip \
+  $(call prereq-packages-impl,$1,$(call projects-in-package,$1)) \
+)
+
+#
 # $(call packaging-targets,<package>)
 #
 define packaging-targets =
+#
+# package $1
+#
 .PHONY: $1.package
-$1.package: $(foreach proj,$(call projects-in-package,$1),$(proj).package-project)
+$1.package: $(strip $(foreach pkg,$(call prereq-packages,$1),$(pkg).package) $(foreach prj,$(call projects-in-package,$1),$(prj).package-project))
 
 .PHONY: $1.clean-package
 $1.clean-package:
