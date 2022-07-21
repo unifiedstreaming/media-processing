@@ -250,6 +250,7 @@ define packaging-targets =
 #
 .PHONY: $1.package
 $1.package: $(strip $(foreach pkg,$(call prereq-packages,$1),$(pkg).package) $(foreach prj,$(call projects-in-package,$1),$(prj).package-project))
+	$(if $(external-packager),$(external-packager) $1 $(call prereq-packages,$1))
 
 .PHONY: $1.clean-package
 $1.clean-package:
@@ -294,6 +295,7 @@ $(strip \
 
 .PHONY: all.package
 all.package: $(foreach pkg,$(all-packages),$(pkg).package) 
+	$(if $(external-packager),$(external-packager) all $(all-packages))
 
 .PHONY: all.clean-package
 all.clean-package:
@@ -302,4 +304,3 @@ all.clean-package:
 PHONY: clean
 clean:
 	$(usp-rm-rf) "$(call to-shell,$(build-dir))"
-
