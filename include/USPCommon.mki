@@ -10,6 +10,30 @@
 #
 
 #
+# Check for GNU make
+#
+$(strip \
+  $(if $(filter GNU,$(word 1,$(shell $(MAKE) -v))), \
+  , \
+    $(error this file requires GNU make) \
+  ) \
+)
+
+#
+# $(call check-make-version,<minimum>)
+# (Inspired by John Graham-Cumming)
+#
+check-make-version = $(strip \
+  $(if $(filter $1,$(word 1,$(sort $1 $(MAKE_VERSION)))), \
+    \
+  , \
+    $(error this file requires $(MAKE) version $1 or higher) \
+  ) \
+)
+
+$(call check-make-version,4.2.1) 
+    
+#
 # Some common settings and utilities
 #
 
