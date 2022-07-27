@@ -125,14 +125,6 @@ add-project = $(strip \
 )
 
 #
-# $(call pkg-dir-for-pkg,<package>)
-# (to be evaluated very lazily, as part of a recipe)
-#
-pkg-dir-for-pkg = $(strip \
-  $(call required-value,packages-dir)/$1 \
-)
-
-#
 # $(call pkg-dir-for-proj,<project>)
 # (to be evaluated very lazily, as part of a recipe)
 #

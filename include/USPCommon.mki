@@ -337,6 +337,14 @@ required-value = $(strip \
 )
 
 #
+# $(call pkg-dir-for-pkg,<package>)
+# (to be evaluated very lazily, as part of a recipe)
+#
+pkg-dir-for-pkg = $(strip \
+  $(call required-value,packages-dir)/$1 \
+)
+
+#
 # $(call keep-last-instance,<word>*)
 #
 keep-last-instance-impl = $(if $(firstword $1), \

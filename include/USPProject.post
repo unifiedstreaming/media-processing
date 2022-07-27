@@ -250,7 +250,7 @@ define packaging-targets =
 #
 .PHONY: $1.package
 $1.package: $(strip $(foreach pkg,$(call prereq-packages,$1),$(pkg).package) $(foreach prj,$(call projects-in-package,$1),$(prj).package-project))
-	$(if $(external-packager),$(external-packager) $1 $(call prereq-packages,$1))
+	$(if $(packaging-makefile),$(MAKE) -f $(packaging-makefile) $(build-settings) packages-dir="$$(call to-shell,$$(call required-value,packages-dir))" package=$1 prereq-packages="$(call prereq-packages,$1)")
 
 .PHONY: $1.clean-package
 $1.clean-package:
@@ -295,7 +295,9 @@ $(strip \
 
 .PHONY: all.package
 all.package: $(foreach pkg,$(all-packages),$(pkg).package) 
-	$(if $(external-packager),$(external-packager) all $(all-packages))
+	$(if $(packaging-makefile),$(MAKE) -f $(packaging-makefile) $(build-settings) packages-dir="$(call to-shell,$(call required-value,packages-dir))" package=all prereq-packages="$(all-packages)"
+
+	$(if $(packaging-makefile),$(packaging-makefile) all $(all-packages))
 
 .PHONY: all.clean-package
 all.clean-package:
