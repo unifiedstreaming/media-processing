@@ -295,9 +295,7 @@ $(strip \
 
 .PHONY: all.package
 all.package: $(foreach pkg,$(all-packages),$(pkg).package) 
-	$(if $(packaging-makefile),$(MAKE) -f $(packaging-makefile) $(build-settings) packages-dir="$(call to-shell,$(call required-value,packages-dir))" package=all prereq-packages="$(all-packages)"
-
-	$(if $(packaging-makefile),$(packaging-makefile) all $(all-packages))
+	$(if $(packaging-makefile),$(MAKE) -f $(packaging-makefile) $(build-settings) packages-dir="$(call to-shell,$(call required-value,packages-dir))" package=all prereq-packages="$(all-packages)")
 
 .PHONY: all.clean-package
 all.clean-package:
