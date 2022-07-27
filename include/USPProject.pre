@@ -110,11 +110,6 @@ required-versions = $(strip \
 )
 
 #
-# $(call expand,<text>)
-#
-expand = $(if $(expand-info),$(info $1))$(eval $1)
-
-#
 # $(call add-project,<project list>,<project name>)
 #
 # Returns a new project list.
