@@ -300,7 +300,6 @@ $(strip \
 
 .PHONY: all.package
 all.package: $(foreach pkg,$(all-packages),$(pkg).package) 
-	$(if $(packaging-makefile),$(MAKE) -I include -f "$(call to-shell,$(packaging-makefile))" $(build-settings) packages-dir="$(call to-shell,$(call required-value,packages-dir))" package=all prereq-packages="$(all-packages)")
 
 .PHONY: all.clean-package
 all.clean-package:
