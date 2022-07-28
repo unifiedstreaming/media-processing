@@ -253,13 +253,17 @@ define packaging-targets =
 #
 # package $1
 #
+$(packages-dir)/$1: | $(packages-dir)
+	$(usp-mkdir-p) "$$(call to-shell,$$@)"
+
+$(foreach prj,$(call projects-in-package,$1),$(prj).package-project: | $(packages-dir)/$1$(newline))
+
 .PHONY: $1.package
 $1.package: $(strip $(foreach pkg,$(call prereq-packages,$1),$(pkg).package) $(foreach prj,$(call projects-in-package,$1),$(prj).package-project))
-	$(if $(packaging-makefile),$(MAKE) -I include -f "$(call to-shell,$(packaging-makefile))" $(build-settings) packages-dir="$$(call to-shell,$$(call required-value,packages-dir))" package=$1 prereq-packages="$(call prereq-packages,$1)")
 
 .PHONY: $1.clean-package
 $1.clean-package:
-	$(usp-rm-rf) "$$(call to-shell,$$(call pkg-dir-for-pkg,$1))"
+	$(usp-rm-rf) "$$(call to-shell,$(packages-dir)/$1)"
 
 endef
 
@@ -303,7 +307,7 @@ all.package: $(foreach pkg,$(all-packages),$(pkg).package)
 
 .PHONY: all.clean-package
 all.clean-package:
-	$(usp-rm-rf) "$(call to-shell,$(call required-value,packages-dir))"
+	$(foreach f,$(wildcard $(packages-dir)/*),$(usp-rm-rf) "$(call to-shell,$f)"$(newline))
 	
 PHONY: clean
 clean:

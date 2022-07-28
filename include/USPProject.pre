@@ -46,6 +46,11 @@ build-mode-dir := $(build-dir)/other/$(subst $(space),/,$(subst =,-,$(build-sett
 stage-dir := $(build-mode-dir)/stage
 
 #
+# Determine the (build setting-specific) packages directory
+#
+packages-dir := $(build-mode-dir)/packages
+
+#
 # Generating a skeleton build directory
 #
 
@@ -53,6 +58,7 @@ skeleton-build-dirs := \
   $(build-dir) \
   $(bjam-build-dir) \
   $(build-mode-dir) \
+  $(packages-dir) \
   $(stage-dir) \
   $(stage-dir)/include \
   $(stage-dir)/lib \
@@ -63,6 +69,7 @@ build-dir-skeleton: $(stage-dir)/lib/jamfiles/Jamroot | $(skeleton-build-dirs)
 
 $(bjam-build-dir): | $(build-dir)
 $(build-mode-dir): | $(build-dir)
+$(packages-dir): | $(build-mode-dir)
 $(stage-dir): | $(build-mode-dir)
 $(stage-dir)/include: | $(stage-dir)
 $(stage-dir)/lib: | $(stage-dir)
@@ -125,7 +132,7 @@ add-project = $(strip \
 #
 pkg-dir-for-proj = $(strip \
   $(if $($1.package), \
-    $(call pkg-dir-for-pkg,$($1.package)) \
+    $(packages-dir)/$($1.package) \
   , \
     $(error project '$1' is not included in any package) \
   ) \
