@@ -242,28 +242,23 @@ prereq-packages = $(strip \
 )
 
 #
-# establish packaging makefile
+# $(call artifact-targets,<package>)
 #
-override packaging-makefile := $(call to-make,$(call non-relative-path,$(packaging-makefile)))
-
+define artifact-targets =
 #
-# $(call packaging-targets,<package>)
+# distributable artifact targets for package $1
 #
-define packaging-targets =
-#
-# package $1
-#
-$(packages-dir)/$1: | $(packages-dir)
+$(artifacts-dir)/$1: | $(artifacts-dir)
 	$(usp-mkdir-p) "$$(call to-shell,$$@)"
 
-$(foreach prj,$(call projects-in-package,$1),$(prj).package-project: | $(packages-dir)/$1$(newline))
+$(foreach prj,$(call projects-in-package,$1),$(prj).project-artifacts: | $(artifacts-dir)/$1$(newline))
 
-.PHONY: $1.package
-$1.package: $(strip $(foreach pkg,$(call prereq-packages,$1),$(pkg).package) $(foreach prj,$(call projects-in-package,$1),$(prj).package-project))
+.PHONY: $1.artifacts
+$1.artifacts: $(strip $(foreach pkg,$(call prereq-packages,$1),$(pkg).artifacts) $(foreach prj,$(call projects-in-package,$1),$(prj).project-artifacts))
 
-.PHONY: $1.clean-package
-$1.clean-package:
-	$(usp-rm-rf) "$$(call to-shell,$(packages-dir)/$1)"
+.PHONY: $1.clean-artifacts
+$1.clean-artifacts:
+	$(usp-rm-rf) "$$(call to-shell,$(artifacts-dir)/$1)"
 
 endef
 
@@ -294,20 +289,20 @@ all-packages :=
 $(foreach proj,$(all-projects),$(call set-package,$(proj)))
 
 #
-# Define packaging targets for all packages
+# Define artifact targets for all packages
 #
 $(strip \
   $(foreach pkg,$(all-packages), \
-    $(call expand,$(call packaging-targets,$(pkg))) \
+    $(call expand,$(call artifact-targets,$(pkg))) \
   ) \
 )
 
-.PHONY: all.package
-all.package: $(foreach pkg,$(all-packages),$(pkg).package) 
+.PHONY: all.artifacts
+all.artifacts: $(foreach pkg,$(all-packages),$(pkg).artifacts) 
 
-.PHONY: all.clean-package
-all.clean-package:
-	$(foreach f,$(wildcard $(packages-dir)/*),$(usp-rm-rf) "$(call to-shell,$f)"$(newline))
+.PHONY: all.clean-artifacts
+all.clean-artifacts:
+	$(foreach f,$(wildcard $(artifacts-dir)/*),$(usp-rm-rf) "$(call to-shell,$f)"$(newline))
 	
 PHONY: clean
 clean:

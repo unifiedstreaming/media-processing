@@ -46,9 +46,10 @@ build-mode-dir := $(build-dir)/other/$(subst $(space),/,$(subst =,-,$(build-sett
 stage-dir := $(build-mode-dir)/stage
 
 #
-# Determine the (build setting-specific) packages directory
+# Determine the (build setting-specific) directory for distributable
+# artifacts (one subdir per package)
 #
-packages-dir := $(build-mode-dir)/packages
+artifacts-dir := $(build-mode-dir)/artifacts
 
 #
 # Generating a skeleton build directory
@@ -58,7 +59,7 @@ skeleton-build-dirs := \
   $(build-dir) \
   $(bjam-build-dir) \
   $(build-mode-dir) \
-  $(packages-dir) \
+  $(artifacts-dir) \
   $(stage-dir) \
   $(stage-dir)/include \
   $(stage-dir)/lib \
@@ -69,7 +70,7 @@ build-dir-skeleton: $(stage-dir)/lib/jamfiles/Jamroot | $(skeleton-build-dirs)
 
 $(bjam-build-dir): | $(build-dir)
 $(build-mode-dir): | $(build-dir)
-$(packages-dir): | $(build-mode-dir)
+$(artifacts-dir): | $(build-mode-dir)
 $(stage-dir): | $(build-mode-dir)
 $(stage-dir)/include: | $(stage-dir)
 $(stage-dir)/lib: | $(stage-dir)
@@ -127,12 +128,12 @@ add-project = $(strip \
 )
 
 #
-# $(call pkg-dir-for-proj,<project>)
+# $(call project-artifacts-dir,<project>)
 # (to be evaluated very lazily, as part of a recipe)
 #
-pkg-dir-for-proj = $(strip \
+project-artifacts-dir = $(strip \
   $(if $($1.package), \
-    $(packages-dir)/$($1.package) \
+    $(artifacts-dir)/$($1.package) \
   , \
     $(error project '$1' is not included in any package) \
   ) \
@@ -164,7 +165,7 @@ gmake-dist-options = $(strip \
 #
 gmake-package-options = $(strip \
   $(call gmake-options,$1) \
-  dest-dir="$(call to-shell,$(call pkg-dir-for-proj,$1))" \
+  dest-dir="$(call to-shell,$(call project-artifacts-dir,$1))" \
 )
 
 #
@@ -196,8 +197,8 @@ $1.stage: $1.all
 $1.dist: $1.all $(addsuffix .dist,$4)
 $(if $5,$(tab)$$(MAKE) -C $(dir $3) -f $(notdir $3) $$(call gmake-dist-options,$1) $(build-settings) dist)
 
-$(if $5,PHONY: $1.package-project)
-$(if $5,$1.package-project: $1.all)
+$(if $5,PHONY: $1.project-artifacts)
+$(if $5,$1.project-artifacts: $1.all)
 $(if $5,$(tab)$$(MAKE) -C $(dir $3) -f $(notdir $3) $$(call gmake-package-options,$1) $(build-settings) dist)
 
 .PHONY: $1.clean
@@ -254,7 +255,7 @@ bjam-dist-options = $(strip \
 #
 bjam-package-options = $(strip \
   $(call bjam-options,$1) \
-  -sdest-dir="$(call to-native,$(call pkg-dir-for-proj,$1))" \
+  -sdest-dir="$(call to-native,$(call project-artifacts-dir,$1))" \
 )
 
 #
@@ -298,8 +299,8 @@ $1.stage: $1.all
 $1.dist: $1.all $(addsuffix .dist,$4)
 $(if $5,$(tab)$(usp-bjam) $$(call bjam-dist-options,$1) $(build-settings) $3//dist)
 
-$(if $5,.PHONY: $1.package-project)
-$(if $5,$1.package-project: $1.all)
+$(if $5,.PHONY: $1.project-artifacts)
+$(if $5,$1.project-artifacts: $1.all)
 $(if $5,$(tab)$(usp-bjam) $$(call bjam-package-options,$1) $(build-settings) $3//dist)
 
 .PHONY: $1.clean
@@ -363,8 +364,8 @@ $1.stage: $1.bjam-stage
 $1.dist: $1.all $(addsuffix .dist,$5)
 	$(usp-bjam) $$(call bjam-dist-options,$1) $(build-settings) $3//dist
 
-PHONY: $1.package-project
-$1.package-project: $1.all
+PHONY: $1.project-artifacts
+$1.project-artifacts: $1.all
 	$(usp-bjam) $$(call bjam-package-options,$1) $(build-settings) $3//dist
 
 .PHONY: $1.clean
@@ -485,8 +486,8 @@ $1.all: build-dir-skeleton $(addsuffix .stage,$3)
 $1.dist: $1.all $(addsuffix .dist,$3)
 	$(usp-bjam) $$(call bjam-dist-options,$1) $(build-settings) $2//dist
 
-PHONY: $1.package-project
-$1.package-project: $1.all
+PHONY: $1.project-artifacts
+$1.project-artifacts: $1.all
 	$(usp-bjam) $$(call bjam-package-options,$1) $(build-settings) $2//dist
 
 .PHONY: $1.clean
