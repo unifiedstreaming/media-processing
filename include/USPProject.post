@@ -125,7 +125,7 @@ add-packager = $(strip \
     ) \
   ) \
 )
-      
+
 #
 # $(call add-packagers,<project>,<depending project>*,<packager>?)
 #
@@ -136,6 +136,7 @@ add-packagers = $(strip \
     $(call REM,only distributables can be packaged) \
     $(if $($1.package), \
       $(call REM,project is its own packager) \
+      $(call validate-package-name,$($1.package)) \
       $(if $(filter-out $($3.package),$($1.package)), \
         $(call REM,entering another package) \
         $(if $(filter $(foreach dep,$2,$($(dep).package)),$($1.package)), \
@@ -303,7 +304,7 @@ all.artifacts: $(foreach pkg,$(all-packages),$(pkg).artifacts)
 .PHONY: all.clean-artifacts
 all.clean-artifacts:
 	$(foreach f,$(wildcard $(artifacts-dir)/*),$(usp-rm-rf) "$(call to-shell,$f)"$(newline))
-	
+
 PHONY: clean
 clean:
 	$(usp-rm-rf) "$(call to-shell,$(build-dir))"

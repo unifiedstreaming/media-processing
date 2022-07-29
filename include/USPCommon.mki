@@ -610,3 +610,45 @@ split-word-impl = $(if $(firstword $2), \
 split-word-charset := $(alnums) $(puncts)
 split-word = $(strip $(call split-word-impl,$1,$(split-word-charset)))
     
+#
+# $(call validate-package-name-tail,<name>,<char *>)
+#
+validate-package-name-tail = $(strip \
+  $(if $(firstword $2), \
+    $(if $(filter-out $(lowers) $(digits) + -,$(firstword $2)), \
+      $(error $(strip \
+        package name '$1' must consist of \
+        lower case letters, digits, '+', and '-' \
+      )) \
+    ) \
+    $(call validate-package-name-tail,$1,$(wordlist 2,$(words $2),$2)) \
+  ) \
+)
+
+#
+# $(call validate-package-name-impl,<name>,<char *>)
+#
+validate-package-name-impl = $(strip \
+  $(if $(filter-out $(lowers) $(digits),$(firstword $2)), \
+    $(error $(strip \
+      package name '$1' must start with a lower case letter or digit \
+    )) \
+  ) \
+  $(if $(filter 0 1,$(words $2)), \
+    $(error $(strip \
+      package name '$1' must have at least two characters \
+    )) \
+  ) \
+  $(call validate-package-name-tail,$1,$(wordlist 2,$(words $2),$2)) \
+)
+
+#
+# $(call validate-package-name,<name>)
+#
+validate-package-name = $(strip \
+  $(if $(filter-out 1,$(words $1)), \
+    $(error package name '$1' must have exactly one word) \
+  ) \
+  $(call validate-package-name-impl,$1,$(call split-word,$(firstword $1))) \
+)
+      
