@@ -611,7 +611,7 @@ split-word-charset := $(alnums) $(puncts)
 split-word = $(strip $(call split-word-impl,$1,$(split-word-charset)))
     
 #
-# $(call validate-package-name-tail,<name>,<char *>)
+# $(call validate-package-name-tail,<name>,<char>*)
 #
 validate-package-name-tail = $(strip \
   $(if $(firstword $2), \
@@ -626,7 +626,7 @@ validate-package-name-tail = $(strip \
 )
 
 #
-# $(call validate-package-name-impl,<name>,<char *>)
+# $(call validate-package-name-impl,<name>,<char>*)
 #
 validate-package-name-impl = $(strip \
   $(if $(filter-out $(lowers) $(digits),$(firstword $2)), \
@@ -651,4 +651,4 @@ validate-package-name = $(strip \
   ) \
   $(call validate-package-name-impl,$1,$(call split-word,$(firstword $1))) \
 )
-      
+
