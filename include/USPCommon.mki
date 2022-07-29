@@ -576,3 +576,37 @@ dedup = $(call set-add,,$1)
 #
 expand = $(if $(expand-info),$(info $1))$(eval $1)
 
+#
+# Some character classification sets.  Note that $(puncts) is
+# deliberately limited to avoid syntactic complications.
+#
+lowers := a b c d e f g h i j k l m n o p q r s t u v w x y z
+uppers := A B C D E D G H I J K L M N O P Q R S T U V W X Y Z
+alphas := $(lowers) $(uppers)
+digits := 0 1 2 3 4 5 6 7 8 9
+alnums := $(alphas) $(digits)
+puncts := ! " & ' * + - . : ; < = > ? @ [ ] ^ _ ` { | } ~ 
+
+#
+# $(call split-word-impl,<word>,<char>*)
+#
+split-word-impl = $(if $(firstword $2), \
+  $(subst $(firstword $2),$(firstword $2) , \
+    $(call split-word-impl,$1,$(wordlist 2,$(words $2),$2)) \
+  ) \
+, \
+  $1 \
+)
+
+#
+# $(call split-word,<word>)
+#
+# Returns a list of space-separated 'character' tokens from the
+# characters in <word>.
+#
+# Please note that characters not in $(split-word-charset) are *not*
+# separated from their successors.
+#
+split-word-charset := $(alnums) $(puncts)
+split-word = $(strip $(call split-word-impl,$1,$(split-word-charset)))
+    
