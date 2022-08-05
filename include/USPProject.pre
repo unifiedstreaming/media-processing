@@ -52,6 +52,11 @@ stage-dir := $(build-mode-dir)/stage
 artifacts-dir := $(build-mode-dir)/artifacts
 
 #
+# Determine the working directory for packaging (.deb, .rpm. etc)
+#
+packaging-work-dir := $(build-mode-dir)/packaging
+
+#
 # Generating a skeleton build directory
 #
 
@@ -60,6 +65,7 @@ skeleton-build-dirs := \
   $(bjam-build-dir) \
   $(build-mode-dir) \
   $(artifacts-dir) \
+  $(packaging-work-dir) \
   $(stage-dir) \
   $(stage-dir)/include \
   $(stage-dir)/lib \
@@ -71,6 +77,7 @@ build-dir-skeleton: $(stage-dir)/lib/jamfiles/Jamroot | $(skeleton-build-dirs)
 $(bjam-build-dir): | $(build-dir)
 $(build-mode-dir): | $(build-dir)
 $(artifacts-dir): | $(build-mode-dir)
+$(packaging-work-dir): | $(build-mode-dir)
 $(stage-dir): | $(build-mode-dir)
 $(stage-dir)/include: | $(stage-dir)
 $(stage-dir)/lib: | $(stage-dir)

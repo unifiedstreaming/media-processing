@@ -136,7 +136,7 @@ add-packagers = $(strip \
     $(call REM,only distributables can be packaged) \
     $(if $($1.package), \
       $(call REM,project is its own packager) \
-      $(call validate-package-name,$($1.package)) \
+      $(eval $1.package := $(call checked-package-name,$($1.package))) \
       $(if $(filter-out $($3.package),$($1.package)), \
         $(call REM,entering another package) \
         $(if $(filter $(foreach dep,$2,$($(dep).package)),$($1.package)), \
@@ -257,6 +257,10 @@ $(foreach prj,$(call projects-in-package,$1),$(prj).project-artifacts: | $(artif
 .PHONY: $1.artifacts
 $1.artifacts: $(strip $(foreach pkg,$(call prereq-packages,$1),$(pkg).artifacts) $(foreach prj,$(call projects-in-package,$1),$(prj).project-artifacts))
 
+.PHONY: $1.deb-package
+$1.deb-package: $(strip $(foreach pkg,$(call prereq-packages,$1),$(pkg).deb-package) $1.artifacts)
+	$$(MAKE) -f lib/DebPackage.mak $(build-settings) package=$1 prereq-packages="$(call prereq-packages,$1)" artifacts-dir="$(call to-shell,$(artifacts-dir))" packaging-work-dir="$(call to-shell,$(packaging-work-dir))" deb-package
+
 .PHONY: $1.clean-artifacts
 $1.clean-artifacts:
 	$(usp-rm-rf) "$$(call to-shell,$(artifacts-dir)/$1)"
@@ -300,6 +304,9 @@ $(strip \
 
 .PHONY: all.artifacts
 all.artifacts: $(foreach pkg,$(all-packages),$(pkg).artifacts) 
+
+.PHONY: all.deb-package
+all.deb-package: $(foreach pkg,$(all-packages),$(pkg).deb-package) 
 
 .PHONY: all.clean-artifacts
 all.clean-artifacts:

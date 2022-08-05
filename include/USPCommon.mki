@@ -244,18 +244,32 @@ validate-build-setting = $(strip \
 #
 # Determine bjam-like build settings
 #
+override default-address-model := 64
+override default-toolset := $(strip \
+  $(if $(windows), \
+    msvc \
+  , \
+    $(if $(or $(darwin),$(freebsd)), \
+      clang \
+    , \
+      gcc \
+    ) \
+  ) \
+)
+override default-variant := debug
+
 override address-model :=\
-  $(call validate-build-setting,address-model,32 64,64)
+  $(call validate-build-setting,address-model,32 64,$(default-address-model))
 override address-sanitizer :=\
   $(call validate-build-setting,address-sanitizer,on norecover,)
 override thread-sanitizer :=\
   $(call validate-build-setting,thread-sanitizer,on norecover,)
 override toolset :=\
-  $(call validate-build-setting,toolset,%,$(if $(windows),msvc,$(if $(or $(darwin),$(freebsd)),clang,gcc)))
+  $(call validate-build-setting,toolset,%,$(default-toolset))
 override undefined-sanitizer :=\
   $(call validate-build-setting,undefined-sanitizer,on norecover,)
 override variant :=\
-  $(call validate-build-setting,variant,debug release,debug)
+  $(call validate-build-setting,variant,debug release,$(default-variant))
 
 override build-settings := $(strip \
   address-model=$(address-model) \
@@ -265,6 +279,19 @@ override build-settings := $(strip \
   $(addprefix undefined-sanitizer=,$(undefined-sanitizer)) \
   variant=$(variant) \
 )
+
+#
+# Determine the build settings suffix for package names
+#
+override toolset-suffix := $(addprefix -, \
+  $(filter-out $(default-toolset),$(toolset)))
+override variant-suffix := $(addprefix -, \
+  $(filter-out release,$(variant)))
+override asan-suffix := $(addprefix -asan-,$(address-sanitizer))
+override tsan-suffix := $(addprefix -tsan-,$(thread-sanitizer))
+override ubsan-suffix := $(addprefix -ubsan-,$(undefined-sanitizer))
+
+override build-settings-suffix := $(toolset-suffix)$(variant-suffix)$(asan-suffix)$(tsan-suffix)$(ubsan-suffix)
 
 #
 # Determine sanitizer flags for compiler command lines
@@ -611,24 +638,9 @@ split-word-charset := $(alnums) $(puncts)
 split-word = $(strip $(call split-word-impl,$1,$(split-word-charset)))
     
 #
-# $(call validate-package-name-tail,<name>,<char>*)
+# $(call checked-package-name-impl,<package name>,<char>*)
 #
-validate-package-name-tail = $(strip \
-  $(if $(firstword $2), \
-    $(if $(filter-out $(lowers) $(digits) + -,$(firstword $2)), \
-      $(error $(strip \
-        package name '$1' must consist of \
-        lower case letters, digits, '+', and '-' \
-      )) \
-    ) \
-    $(call validate-package-name-tail,$1,$(wordlist 2,$(words $2),$2)) \
-  ) \
-)
-
-#
-# $(call validate-package-name-impl,<name>,<char>*)
-#
-validate-package-name-impl = $(strip \
+checked-package-name-impl = $(strip \
   $(if $(filter-out $(lowers) $(digits),$(firstword $2)), \
     $(error $(strip \
       package name '$1' must start with a lower case letter or digit \
@@ -639,16 +651,23 @@ validate-package-name-impl = $(strip \
       package name '$1' must have at least two characters \
     )) \
   ) \
-  $(call validate-package-name-tail,$1,$(wordlist 2,$(words $2),$2)) \
+  $(if $(filter-out $(lowers) $(digits) + -,$(wordlist 2,$(words $2),$2)), \
+    $(error $(strip \
+      package name '$1' may only contain lower case letters, \
+      digits, '+', and '-' \
+    )) \
+  ) \
+  $1 \
 )
 
 #
-# $(call validate-package-name,<name>)
+# $(call checked-package-name,<name>)
 #
-validate-package-name = $(strip \
+checked-package-name = $(strip \
   $(if $(filter-out 1,$(words $1)), \
     $(error package name '$1' must have exactly one word) \
   ) \
-  $(call validate-package-name-impl,$1,$(call split-word,$(firstword $1))) \
+  $(call checked-package-name-impl,$(strip $1), \
+    $(call split-word,$(strip $1))) \
 )
 
