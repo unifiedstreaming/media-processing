@@ -42,13 +42,21 @@ get-deb-arch = $(call checked-dpkg-architecture-output, \
 )
 
 #
-# $(call is-elf-file,<file>)
+# $(call is-elf-file-output,<output>)
 #
-is-elf-file = $(strip \
-  $(if $(filter ELF,$(shell file "$(call to-shell,$1)")), \
+is-elf-file-output = $(strip \
+  $(if $(filter 0,$(words $1)), \
+    $(error 'file' command failure) \
+  ) \
+  $(if $(filter ELF,$1), \
     yes \
   ) \
 )
+
+#
+# $(call is-elf-file,<file>)
+#
+is-elf-file = $(call is-elf-file-output,$(shell file "$(call to-shell,$1)"))
 
 #
 # $(call find-elf-files,<directory>)
