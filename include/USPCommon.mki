@@ -335,7 +335,7 @@ endef
 #
 # $(call bjam-implib-filename,<library name>,<version>)
 #
-bjam-implib-filename = $(if $(windows),,lib)$1_$2$(if $(windows),.lib,$(if $(darwin),.dylib,.so))
+bjam-implib-filename = $(if $(windows),,lib)$1$(build-settings-suffix)_$2$(if $(windows),.lib,$(if $(darwin),.dylib,.so))
 
 #
 # $(call bjam-statlib-filename,<library name>)

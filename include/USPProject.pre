@@ -244,6 +244,7 @@ bjam-options = $(strip \
  $(if $(verbose),-d+2) \
  --build-dir="$(call to-native,$(bjam-build-dir))" \
  -sstage-dir="$(call to-native,$(stage-dir))" \
+ -sbuild-settings-suffix="$(build-settings-suffix)" \
  $(addprefix -s,$(call required-versions,$1)) \
 )
 

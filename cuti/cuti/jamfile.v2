@@ -20,15 +20,17 @@
 import os ;
 import errors ;
 
+constant BUILD_SETTINGS_SUFFIX : [ os.environ build-settings-suffix ] ;
+
 if [ os.environ cuti.version ] = ""
 {
   errors.error cuti.version must be set ;
 }
 constant CUTI_VERSION : [ os.environ cuti.version ] ;
 
-alias cuti : cuti_$(CUTI_VERSION) ;
+alias cuti : cuti$(BUILD_SETTINGS_SUFFIX)_$(CUTI_VERSION) ;
 
-lib cuti_$(CUTI_VERSION)
+lib cuti$(BUILD_SETTINGS_SUFFIX)_$(CUTI_VERSION)
 :
   add_handler.cpp
   args_reader.cpp
