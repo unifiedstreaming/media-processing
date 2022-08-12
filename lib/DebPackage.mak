@@ -161,7 +161,7 @@ override artifacts-dir := $(call to-make,$(call required-value,artifacts-dir))
 
 override pkg-version := $(if $(pkg-version),$(call checked-pkg-version-or-revision,pkg-version),$(call required-value,pkg-version))
 
-override debs-dir := $(call to-make,$(call required-value,debs-dir))
+override pkgs-dir := $(call to-make,$(call required-value,pkgs-dir))
 
 override debs-work-dir := $(call to-make,$(call required-value,packaging-work-dir))/deb
 
@@ -200,14 +200,14 @@ override work-dir-dirs := $(call dedup,$(filter-out $(package-work-dir),$(patsub
 all: deb-package
 
 .PHONY: deb-package
-deb-package: $(debs-dir)/$(deb-package-basename).deb
+deb-package: $(pkgs-dir)/$(deb-package-basename).deb
 
 # Remove $(package-work-dir)/debian first to prevent it from being packaged
-$(debs-dir)/$(deb-package-basename).deb: $(package-work-dir)/DEBIAN/control | $(debs-dir)
+$(pkgs-dir)/$(deb-package-basename).deb: $(package-work-dir)/DEBIAN/control | $(pkgs-dir)
 	$(usp-rm-rf) "$(call to-shell,$(package-work-dir)/debian)"
 	dpkg-deb --root-owner-group --build "$(call to-shell,$(package-work-dir))" "$(call to-shell,$@)"
 
-$(debs-dir):
+$(pkgs-dir):
 	$(usp-mkdir-p) "$(call to-shell,$@)"
 
 $(package-work-dir)/DEBIAN/control: $(package-work-dir)/debian/control $(package-work-dir)/DEBIAN $(work-dir-artifacts)
