@@ -172,9 +172,9 @@ override package := $(call checked-package-name,$(call required-value,package))
 #
 # Get optional settings
 #
-override deb-description := $(if $(deb-description),$(deb-description),not specified)
+override pkg-description := $(if $(pkg-description),$(pkg-description),not specified)
 
-override deb-maintainer := $(if $(deb-maintainer),$(deb-maintainer),not specified)
+override pkg-maintainer := $(if $(pkg-maintainer),$(pkg-maintainer),not specified)
 
 override pkg-revision := $(if $(pkg-revision),$(call checked-pkg-version-or-revision,pkg-revision),1)
 
@@ -211,7 +211,7 @@ $(debs-dir):
 	$(usp-mkdir-p) "$(call to-shell,$@)"
 
 $(package-work-dir)/DEBIAN/control: $(package-work-dir)/debian/control $(package-work-dir)/DEBIAN $(work-dir-artifacts)
-	$(file >$@,$(call control-file-content,$(package),$(build-settings-suffix),$(pkg-version)-$(pkg-revision),$(deb-arch),$(prereq-packages),$(package-work-dir),$(deb-maintainer),$(deb-description)))
+	$(file >$@,$(call control-file-content,$(package),$(build-settings-suffix),$(pkg-version)-$(pkg-revision),$(deb-arch),$(prereq-packages),$(package-work-dir),$(pkg-maintainer),$(pkg-description)))
 	@echo generated $@
 
 # empty file required by dpkg-shlibdeps
