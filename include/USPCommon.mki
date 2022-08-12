@@ -651,10 +651,10 @@ checked-package-name-impl = $(strip \
       package name '$1' must have at least two characters \
     )) \
   ) \
-  $(if $(filter-out $(lowers) $(digits) + -,$(wordlist 2,$(words $2),$2)), \
+  $(if $(filter-out $(lowers) $(digits) -,$(wordlist 2,$(words $2),$2)), \
     $(error $(strip \
       package name '$1' may only contain lower case letters, \
-      digits, '+', and '-' \
+      digits, and '-' \
     )) \
   ) \
   $1 \
