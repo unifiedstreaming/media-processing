@@ -12,19 +12,6 @@
 include include/USPCommon.mki
 
 #
-# $(call checked-deb-version-or-revision,<variable name>)
-#
-checked-deb-version-or-revision = $(strip \
-  $(if $(filter-out 1,$(words $($1))), \
-    $(error $1 '$($1)' must contain exactly one word) \
-  ) \
-  $(if $(filter-out $(alnums) + . ~,$(call split-word,$($1))), \
-    $(error $1 '$($1)' may only contain alphanumerics, '+', '.', and '~') \
-  ) \
-  $($1) \
-)
-
-#
 # $(call checked-deb-arch-output,<output>)
 #
 checked-dpkg-architecture-output = $(strip \
@@ -172,7 +159,7 @@ override deb-arch := $(call get-deb-arch)
 #
 override artifacts-dir := $(call to-make,$(call required-value,artifacts-dir))
 
-override deb-version := $(if $(deb-version),$(call checked-deb-version-or-revision,deb-version),$(call required-value,deb-version))
+override pkg-version := $(if $(pkg-version),$(call checked-pkg-version-or-revision,pkg-version),$(call required-value,pkg-version))
 
 override debs-dir := $(call to-make,$(call required-value,debs-dir))
 
@@ -189,14 +176,14 @@ override deb-description := $(if $(deb-description),$(deb-description),not speci
 
 override deb-maintainer := $(if $(deb-maintainer),$(deb-maintainer),not specified)
 
-override deb-revision := $(if $(deb-revision),$(call checked-deb-version-or-revision,deb-revision),1)
+override pkg-revision := $(if $(pkg-revision),$(call checked-pkg-version-or-revision,pkg-revision),1)
 
 override prereq-packages := $(foreach pkg,$(prereq-packages),$(call checked-package-name,$(pkg)))
 
 #
 # Set some derived variables
 #
-override deb-package-basename := $(package)$(build-settings-suffix)_$(deb-version)-$(deb-revision)_$(deb-arch)
+override deb-package-basename := $(package)$(build-settings-suffix)_$(pkg-version)-$(pkg-revision)_$(deb-arch)
 
 override package-work-dir := $(debs-work-dir)/$(deb-package-basename)
 
@@ -224,7 +211,7 @@ $(debs-dir):
 	$(usp-mkdir-p) "$(call to-shell,$@)"
 
 $(package-work-dir)/DEBIAN/control: $(package-work-dir)/debian/control $(package-work-dir)/DEBIAN $(work-dir-artifacts)
-	$(file >$@,$(call control-file-content,$(package),$(build-settings-suffix),$(deb-version)-$(deb-revision),$(deb-arch),$(prereq-packages),$(package-work-dir),$(deb-maintainer),$(deb-description)))
+	$(file >$@,$(call control-file-content,$(package),$(build-settings-suffix),$(pkg-version)-$(pkg-revision),$(deb-arch),$(prereq-packages),$(package-work-dir),$(deb-maintainer),$(deb-description)))
 	@echo generated $@
 
 # empty file required by dpkg-shlibdeps
