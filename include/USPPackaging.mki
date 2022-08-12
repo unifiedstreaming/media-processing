@@ -1,0 +1,53 @@
+#
+# "THE BEER-WARE LICENSE" (Revision CS-42):
+#
+# This file was written by the CodeShop developers.  As long as you
+# retain this notice you can do whatever you want with it.
+# If we meet some day, and you think this file is worth it, you can
+# buy us a beer in return.  Even if you do that, this file still
+# comes WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+#
+
+#
+# Common stuff for packaging backends
+#
+
+include include/USPCommon.mki
+
+#
+# $(call checked-pkg-version-or-revision,<variable name>)
+#
+checked-pkg-version-or-revision = $(strip \
+  $(if $(filter-out 1,$(words $($1))), \
+    $(error $1 '$($1)' must contain exactly one word) \
+  ) \
+  $(if $(filter-out $(alnums) + . ~,$(call split-word,$($1))), \
+    $(error $1 '$($1)' may only contain alphanumerics, '+', '.', and '~') \
+  ) \
+  $($1) \
+)
+
+#
+# Get required settings
+#
+override artifacts-dir := $(call to-make,$(call required-value,artifacts-dir))
+
+override pkg-version := $(if $(pkg-version),$(call checked-pkg-version-or-revision,pkg-version),$(call required-value,pkg-version))
+
+override pkgs-dir := $(call to-make,$(call required-value,pkgs-dir))
+
+override installation-prefix := $(call to-make,$(call non-relative-path,$(call required-value,installation-prefix)))
+
+override package := $(call checked-package-name,$(call required-value,package))
+
+#
+# Get optional settings
+#
+override pkg-description := $(if $(pkg-description),$(pkg-description),not specified)
+
+override pkg-maintainer := $(if $(pkg-maintainer),$(pkg-maintainer),not specified)
+
+override pkg-revision := $(if $(pkg-revision),$(call checked-pkg-version-or-revision,pkg-revision),1)
+
+override prereq-packages := $(foreach pkg,$(prereq-packages),$(call checked-package-name,$(pkg)))

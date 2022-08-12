@@ -9,7 +9,7 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 #
 
-include include/USPCommon.mki
+include include/USPPackaging.mki
 
 #
 # $(call checked-deb-arch-output,<output>)
@@ -151,38 +151,13 @@ endef
 #
 # Get system-provided settings
 #
-
 override deb-arch := $(call get-deb-arch)
-
-#
-# Get required settings
-#
-override artifacts-dir := $(call to-make,$(call required-value,artifacts-dir))
-
-override pkg-version := $(if $(pkg-version),$(call checked-pkg-version-or-revision,pkg-version),$(call required-value,pkg-version))
-
-override pkgs-dir := $(call to-make,$(call required-value,pkgs-dir))
-
-override debs-work-dir := $(call to-make,$(call required-value,packaging-work-dir))/deb
-
-override installation-prefix := $(call to-make,$(call non-relative-path,$(call required-value,installation-prefix)))
-
-override package := $(call checked-package-name,$(call required-value,package))
-
-#
-# Get optional settings
-#
-override pkg-description := $(if $(pkg-description),$(pkg-description),not specified)
-
-override pkg-maintainer := $(if $(pkg-maintainer),$(pkg-maintainer),not specified)
-
-override pkg-revision := $(if $(pkg-revision),$(call checked-pkg-version-or-revision,pkg-revision),1)
-
-override prereq-packages := $(foreach pkg,$(prereq-packages),$(call checked-package-name,$(pkg)))
 
 #
 # Set some derived variables
 #
+override debs-work-dir := $(call to-make,$(call required-value,packaging-work-dir))/deb
+
 override deb-package-basename := $(package)$(build-settings-suffix)_$(pkg-version)-$(pkg-revision)_$(deb-arch)
 
 override package-work-dir := $(debs-work-dir)/$(deb-package-basename)

@@ -671,16 +671,3 @@ checked-package-name = $(strip \
     $(call split-word,$(strip $1))) \
 )
 
-#
-# $(call checked-pkg-version-or-revision,<variable name>)
-#
-checked-pkg-version-or-revision = $(strip \
-  $(if $(filter-out 1,$(words $($1))), \
-    $(error $1 '$($1)' must contain exactly one word) \
-  ) \
-  $(if $(filter-out $(alnums) + . ~,$(call split-word,$($1))), \
-    $(error $1 '$($1)' may only contain alphanumerics, '+', '.', and '~') \
-  ) \
-  $($1) \
-)
-
