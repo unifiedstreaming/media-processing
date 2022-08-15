@@ -29,6 +29,66 @@ get-rpm-arch = $(call checked-rpm-arch-output, \
 )
 
 #
+# $(call requires-line-elt,<prereq package>)
+#
+requires-line-elt = $1 = %{version}-%{release}
+
+#
+# $(call requires-line-cont,<prereq package>*)
+#
+requires-line-cont = $(if $(firstword $1),$(comma) $(call requires-line-elt,$(firstword $1))$(call requires-line-cont,$(wordlist 2,$(words $1),$1)))
+
+#
+# $(call requires-line,<prereq package>*)
+#
+requires-line = $(if $(firstword $1),Requires: $(call requires-line-elt,$(firstword $1))$(call requires-line-cont,$(wordlist 2,$(words $1),$1)),# No explicit Requires: line)
+
+#
+# $(call directory-install-lines-elt,<installation prefix>,<directory>)
+#
+directory-install-lines-elt = $(usp-mkdir-p) "%{buildroot}$(call to-shell,$1/$2)"
+
+#
+# $(call directory-install-lines-cont,<installation prefix>,<directory>*)
+#
+directory-install-lines-cont = $(if $(firstword $2),$(newline)$(call directory-install-lines-elt,$1,$(firstword $2))$(call directory-install-lines-cont,$1,$(wordlist 2,$(words $2),$2))) 
+
+#
+# $(call directory-install-lines,<installation prefix>,<directory>*)
+#
+directory-install-lines = $(if $(firstword $2),$(call directory-install-lines-elt,$1,$(firstword $2))$(call directory-install-lines-cont,$1,$(wordlist 2,$(words $2),$2)),# No directories to install) 
+
+#
+# $(call file-install-lines-elt,<source dir>,<installation prefix>,<file>)
+#
+file-install-lines-elt = $(usp-cp) "$(call to-shell,$1/$3)" "%{buildroot}$(call to-shell,$2/$3)"
+
+#
+# $(call file-install-lines-cont,<source dir>,<installation prefix>,<file>*)
+#
+file-install-lines-cont = $(if $(firstword $3),$(newline)$(call file-install-lines-elt,$1,$2,$(firstword $3))$(call file-install-lines-cont,$1,$2,$(wordlist 2,$(words $3),$3)))
+
+#
+# $(call file-install-lines,<source-dir>,<installation prefix>,<file>*)
+#
+file-install-lines = $(if $(firstword $3),$(call file-install-lines-elt,$1,$2,$(firstword $3))$(call file-install-lines-cont,$1,$2,$(wordlist 2,$(words $3),$3)),# No files to install)
+
+#
+# $(call file-listing-lines-elt,<installation prefix>,<file>)
+#
+file-listing-lines-elt = $1/$2
+
+#
+# $(call file-listing-lines-cont,<installation prefix>,<file>*)
+#
+file-listing-lines-cont = $(if $(firstword $2),$(newline)$(call file-listing-lines-elt,$1,$(firstword $2))$(call file-listing-lines-cont,$1,$(wordlist 2,$(words $2),$2)))
+
+#
+# $(call file-listing-lines,<installation-prefux,<file>*)
+#
+file-listing-lines = $(if $(firstword $2),$(call file-listing-lines-elt,$1,$(firstword $2))$(call file-listing-lines-cont,$1,$(wordlist 2,$(words $2),$2)),# No files to package)
+
+#
 # Get system-provided settings
 #
 override rpm-arch := $(call get-rpm-arch)
@@ -55,7 +115,8 @@ Name: $1
 Version: $2
 Release: $3
 Summary: $4
-License: FIXME$(if $(strip $5),$(newline)Requires: $(foreach p,$5,$p = %{version}-%{release}))
+License: FIXME
+$(call requires-line,$5)
 Provides: %{name} = %{version}
 
 %description
@@ -65,9 +126,12 @@ $4
 
 %build
 
-%install$(foreach d,$8,$(newline)mkdir -p %{buildroot}$7/$d)$(foreach f,$9,$(newline)cp $6/$f %{buildroot}$7/$f)
+%install
+$(call directory-install-lines,$7,$8)
+$(call file-install-lines,$6,$7,$9)
 
-%files$(foreach f,$9,$(newline)$7/$f)
+%files
+$(call file-listing-lines,$7,$9)
 
 endef
 
