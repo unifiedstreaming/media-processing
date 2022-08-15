@@ -41,6 +41,8 @@ override installation-prefix := $(call to-make,$(call non-relative-path,$(call r
 
 override package := $(call checked-package-name,$(call required-value,package))
 
+override packaging-work-dir := $(call to-make,$(call required-value,packaging-work-dir))
+
 #
 # Get optional settings
 #

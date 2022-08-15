@@ -261,6 +261,10 @@ $1.artifacts: $(strip $(foreach pkg,$(call prereq-packages,$1),$(pkg).artifacts)
 $1.deb-package: $(strip $(foreach pkg,$(call prereq-packages,$1),$(pkg).deb-package) $1.artifacts)
 	$$(MAKE) -f lib/DebPackage.mak $(build-settings) package=$1 prereq-packages="$(call prereq-packages,$1)" artifacts-dir="$(call to-shell,$(artifacts-dir))" packaging-work-dir="$(call to-shell,$(packaging-work-dir))" deb-package
 
+.PHONY: $1.rpm-package
+$1.rpm-package: $(strip $(foreach pkg,$(call prereq-packages,$1),$(pkg).rpm-package) $1.artifacts)
+	$$(MAKE) -f lib/RpmPackage.mak $(build-settings) package=$1 prereq-packages="$(call prereq-packages,$1)" artifacts-dir="$(call to-shell,$(artifacts-dir))" packaging-work-dir="$(call to-shell,$(packaging-work-dir))" rpm-package
+
 .PHONY: $1.clean-artifacts
 $1.clean-artifacts:
 	$(usp-rm-rf) "$$(call to-shell,$(artifacts-dir)/$1)"
@@ -307,6 +311,9 @@ all.artifacts: $(foreach pkg,$(all-packages),$(pkg).artifacts)
 
 .PHONY: all.deb-package
 all.deb-package: $(foreach pkg,$(all-packages),$(pkg).deb-package) 
+
+.PHONY: all.rpm-package
+all.rpm-package: $(foreach pkg,$(all-packages),$(pkg).rpm-package) 
 
 .PHONY: all.clean-artifacts
 all.clean-artifacts:
