@@ -243,6 +243,17 @@ prereq-packages = $(strip \
 )
 
 #
+# $(call native-packager-settings,<project>)
+#
+native-packager-settings = $(strip \
+  $(build-settings) \
+  package=$1 \
+  prereq-packages="$(call prereq-packages,$1)" \
+  artifacts-dir="$(call to-shell,$(artifacts-dir))" \
+  packaging-work-dir="$(call to-shell,$(packaging-work-dir))" \
+)
+
+#
 # $(call artifact-targets,<package>)
 #
 define artifact-targets =
@@ -259,11 +270,11 @@ $1.artifacts: $(strip $(foreach pkg,$(call prereq-packages,$1),$(pkg).artifacts)
 
 .PHONY: $1.deb-package
 $1.deb-package: $(strip $(foreach pkg,$(call prereq-packages,$1),$(pkg).deb-package) $1.artifacts)
-	$$(MAKE) -f lib/DebPackage.mak $(build-settings) package=$1 prereq-packages="$(call prereq-packages,$1)" artifacts-dir="$(call to-shell,$(artifacts-dir))" packaging-work-dir="$(call to-shell,$(packaging-work-dir))" deb-package
+	$$(MAKE) -f lib/DebPackage.mak $(call native-packager-settings,$1) deb-package
 
 .PHONY: $1.rpm-package
 $1.rpm-package: $(strip $(foreach pkg,$(call prereq-packages,$1),$(pkg).rpm-package) $1.artifacts)
-	$$(MAKE) -f lib/RpmPackage.mak $(build-settings) package=$1 prereq-packages="$(call prereq-packages,$1)" artifacts-dir="$(call to-shell,$(artifacts-dir))" packaging-work-dir="$(call to-shell,$(packaging-work-dir))" rpm-package
+	$$(MAKE) -f lib/RpmPackage.mak $(call native-packager-settings,$1) rpm-package
 
 .PHONY: $1.clean-artifacts
 $1.clean-artifacts:

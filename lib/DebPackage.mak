@@ -132,12 +132,12 @@ package-deps = $(strip \
 depends-line-impl = $(if $(strip $1),Depends: $(subst $(space),$(comma)$(space),$(strip $1))$(newline))
 
 #
-# $(call depends-line,<prereq-package>*,<build-settings-suffix>,<version>,<package-work-dir)
+# $(call depends-line,<prereq-package>*,<build-settings-suffix>,<version>,<deb-work-dir)
 #
 depends-line = $(call depends-line-impl,$(call package-deps,$(addsuffix $2,$1),$3,$4))
 
 #
-# $(call control-file-content,<package>,<build-settings-suffix>,<version>,<architecture>,<prereq-package>*,<package-work-dir>,<maintainer>,<description>)
+# $(call control-file-content,<package>,<build-settings-suffix>,<version>,<architecture>,<prereq-package>*,<work-dir>,<maintainer>,<description>)
 #
 define control-file-content =
 Package: $1$2
@@ -156,17 +156,15 @@ override deb-arch := $(call get-deb-arch)
 #
 # Set some derived variables
 #
-override debs-work-dir := $(packaging-work-dir)/deb
-
 override deb-package-basename := $(package)$(build-settings-suffix)_$(pkg-version)-$(pkg-revision)_$(deb-arch)
 
-override package-work-dir := $(debs-work-dir)/$(deb-package-basename)
+override deb-work-dir := $(packaging-work-dir)/deb/$(deb-package-basename)
 
 override artifacts := $(patsubst $(artifacts-dir)/$(package)/%,%,$(call find-files,%,$(artifacts-dir)/$(package)))
 
-override work-dir-artifacts := $(foreach a,$(artifacts),$(package-work-dir)$(installation-prefix)/$a)
+override work-dir-artifacts := $(addprefix $(deb-work-dir)$(installation-prefix)/,$(artifacts))
 
-override work-dir-dirs := $(call dedup,$(filter-out $(package-work-dir),$(patsubst %/,%,$(dir $(work-dir-artifacts)))))
+override work-dir-dirs := $(call dedup,$(filter-out $(deb-work-dir),$(patsubst %/,%,$(dir $(work-dir-artifacts)))))
 
 #
 # Rules
@@ -177,37 +175,37 @@ all: deb-package
 .PHONY: deb-package
 deb-package: $(pkgs-dir)/$(deb-package-basename).deb
 
-# Remove $(package-work-dir)/debian first to prevent it from being packaged
-$(pkgs-dir)/$(deb-package-basename).deb: $(package-work-dir)/DEBIAN/control | $(pkgs-dir)
-	$(usp-rm-rf) "$(call to-shell,$(package-work-dir)/debian)"
-	dpkg-deb --root-owner-group --build "$(call to-shell,$(package-work-dir))" "$(call to-shell,$@)"
+# Remove $(deb-work-dir)/debian first to prevent it from being packaged
+$(pkgs-dir)/$(deb-package-basename).deb: $(deb-work-dir)/DEBIAN/control | $(pkgs-dir)
+	$(usp-rm-rf) "$(call to-shell,$(deb-work-dir)/debian)"
+	dpkg-deb --root-owner-group --build "$(call to-shell,$(deb-work-dir))" "$(call to-shell,$@)"
 
 $(pkgs-dir):
 	$(usp-mkdir-p) "$(call to-shell,$@)"
 
-$(package-work-dir)/DEBIAN/control: $(package-work-dir)/debian/control $(package-work-dir)/DEBIAN $(work-dir-artifacts)
-	$(file >$@,$(call control-file-content,$(package),$(build-settings-suffix),$(pkg-version)-$(pkg-revision),$(deb-arch),$(prereq-packages),$(package-work-dir),$(pkg-maintainer),$(pkg-description)))
+$(deb-work-dir)/DEBIAN/control: $(deb-work-dir)/debian/control $(deb-work-dir)/DEBIAN $(work-dir-artifacts)
+	$(file >$@,$(call control-file-content,$(package),$(build-settings-suffix),$(pkg-version)-$(pkg-revision),$(deb-arch),$(prereq-packages),$(deb-work-dir),$(pkg-maintainer),$(pkg-description)))
 	@echo generated $@
 
 # empty file required by dpkg-shlibdeps
-$(package-work-dir)/debian/control: $(package-work-dir)/debian
+$(deb-work-dir)/debian/control: $(deb-work-dir)/debian
 	$(file >$@,)
 	@echo generated $@
 
-$(package-work-dir)/debian $(package-work-dir)/DEBIAN: clean-work-dir
+$(deb-work-dir)/debian $(deb-work-dir)/DEBIAN: clean-deb-work-dir
 	$(usp-mkdir-p) "$(call to-shell,$@)"
 
 $(work-dir-artifacts): $(work-dir-dirs)
 
-$(work-dir-artifacts): $(package-work-dir)$(installation-prefix)/%: $(artifacts-dir)/$(package)/%
+$(work-dir-artifacts): $(deb-work-dir)$(installation-prefix)/%: $(artifacts-dir)/$(package)/%
 	$(usp-cp) "$(call to-shell,$<)" "$(call to-shell,$@)"
 
-$(work-dir-dirs): clean-work-dir
+$(work-dir-dirs): clean-deb-work-dir
 
-$(work-dir-dirs): $(package-work-dir)$(installation-prefix)/%:
+$(work-dir-dirs): $(deb-work-dir)$(installation-prefix)/%:
 	$(usp-mkdir-p) "$(call to-shell,$@)"
 
-.PHONY: clean-work-dir
-clean-work-dir:
-	$(usp-rm-rf) "$(call to-shell,$(package-work-dir))"
-	$(usp-mkdir-p) "$(call to-shell,$(package-work-dir))"
+.PHONY: clean-deb-work-dir
+clean-deb-work-dir:
+	$(usp-rm-rf) "$(call to-shell,$(deb-work-dir))"
+	$(usp-mkdir-p) "$(call to-shell,$(deb-work-dir))"
