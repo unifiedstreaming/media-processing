@@ -276,6 +276,10 @@ $1.deb-package: $(strip $(foreach pkg,$(call prereq-packages,$1),$(pkg).deb-pack
 $1.rpm-package: $(strip $(foreach pkg,$(call prereq-packages,$1),$(pkg).rpm-package) $1.artifacts)
 	$$(MAKE) -f lib/RpmPackage.mak $(call native-packager-settings,$1) rpm-package
 
+.PHONY: $1.apk-package
+$1.apk-package: $(strip $(foreach pkg,$(call prereq-packages,$1),$(pkg).apk-package) $1.artifacts)
+	$$(MAKE) -f lib/ApkPackage.mak $(call native-packager-settings,$1) apk-package
+
 .PHONY: $1.clean-artifacts
 $1.clean-artifacts:
 	$(usp-rm-rf) "$$(call to-shell,$(artifacts-dir)/$1)"
@@ -325,6 +329,9 @@ all.deb-package: $(foreach pkg,$(all-packages),$(pkg).deb-package)
 
 .PHONY: all.rpm-package
 all.rpm-package: $(foreach pkg,$(all-packages),$(pkg).rpm-package) 
+
+.PHONY: all.apk-package
+all.apk-package: $(foreach pkg,$(all-packages),$(pkg).apk-package) 
 
 .PHONY: all.clean-artifacts
 all.clean-artifacts:
