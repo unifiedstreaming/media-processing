@@ -96,6 +96,8 @@ override rpm-arch := $(call get-rpm-arch)
 #
 # Set some derived variables
 #
+override installation-prefix := $(call required-value,installation-prefix)
+
 override rpm-package-basename := $(package)$(build-settings-suffix)-$(pkg-version)-$(pkg-revision).$(rpm-arch)
 
 override rpm-work-dir := $(packaging-work-dir)/rpm/$(rpm-package-basename)

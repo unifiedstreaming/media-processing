@@ -156,6 +156,8 @@ override deb-arch := $(call get-deb-arch)
 #
 # Set some derived variables
 #
+override installation-prefix := $(call required-value,installation-prefix)
+
 override deb-package-basename := $(package)$(build-settings-suffix)_$(pkg-version)-$(pkg-revision)_$(deb-arch)
 
 override deb-work-dir := $(packaging-work-dir)/deb/$(deb-package-basename)

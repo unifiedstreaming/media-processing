@@ -53,6 +53,8 @@ override apk-arch := $(call get-apk-arch)
 #
 # Set some derived variables
 #
+override installation-prefix := $(call required-value,installation-prefix)
+
 override apk-package-basename := $(package)$(build-settings-suffix)-$(pkg-version)-r$(pkg-revision)
 override apk-work-dir := $(packaging-work-dir)/apk/$(apk-package-basename)
 

@@ -37,7 +37,7 @@ override pkg-version := $(if $(pkg-version),$(call checked-pkg-version-or-revisi
 
 override pkgs-dir := $(call to-make,$(call required-value,pkgs-dir))
 
-override installation-prefix := $(call to-make,$(call non-relative-path,$(call required-value,installation-prefix)))
+override installation-prefix := $(if $(strip $(installation-prefix)),$(call to-make,$(call non-relative-path,$(installation-prefix))))
 
 override package := $(call checked-package-name,$(call required-value,package))
 
