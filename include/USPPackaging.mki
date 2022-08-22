@@ -35,7 +35,7 @@ override artifacts-dir := $(call to-make,$(call required-value,artifacts-dir))
 
 override pkg-version := $(if $(pkg-version),$(call checked-pkg-version-or-revision,pkg-version),$(call required-value,pkg-version))
 
-override pkgs-dir := $(call to-make,$(call required-value,pkgs-dir))
+override pkgs-dir := $(call to-make,$(call non-relative-path,$(call required-value,pkgs-dir)))
 
 override installation-prefix := $(if $(strip $(installation-prefix)),$(call to-make,$(call non-relative-path,$(installation-prefix))))
 
