@@ -115,8 +115,8 @@ all: apk-package
 .PHONY: apk-package
 apk-package: $(apk-work-dir)/APKBUILD $(apk-work-dir)/fake-git/git \
   | $(pkgs-dir)/apk/$(apk-arch)
-	(cd "$(call to-shell,$(apk-work-dir))" && abuild -m -P "$(call to-shell,$(pkgs-dir))" cleanpkg)
-	(cd "$(call to-shell,$(apk-work-dir))" && abuild -m -d -P "$(call to-shell,$(pkgs-dir))")
+	cd "$(call to-shell,$(apk-work-dir))" && abuild -m -P "$(call to-shell,$(pkgs-dir))" cleanpkg
+	cd "$(call to-shell,$(apk-work-dir))" && abuild -m -d -P "$(call to-shell,$(pkgs-dir))"
 
 $(apk-work-dir)/APKBUILD: $(apk-work-dir)/$(package).tar
 	$(file >$@,$(call apkbuild-content,$(package),$(build-settings-suffix),$(pkg-version),$(pkg-revision),$(pkg-description),$(pkg-maintainer),$(prereq-packages),$(apk-work-dir)/$(package).tar,$(installation-prefix)))
