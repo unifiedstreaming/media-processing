@@ -15,7 +15,7 @@ include include/USPPackaging.mki
 # $(call check-package-not-installed,<package>)
 #
 check-package-not-installed = $(strip \
-  $(if $(shell dpkg -l "$1" 2>/dev/null), \
+  $(if $(shell dpkg -l "$1" >/dev/null 2>&1 && echo yes), \
     $(error package "$1" appears to be installed - please purge it first) \
   ) \
 )
@@ -163,7 +163,8 @@ endef
 override deb-arch := $(call get-deb-arch)
 
 #
-# Check that the package is not installed
+# Check that the package is not installed, as that may interfere with
+# automatic shared library dependency detection from depending packages
 #
 $(call check-package-not-installed,$(package)$(build-settings-suffix))
 
