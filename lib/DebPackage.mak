@@ -12,6 +12,15 @@
 include include/USPPackaging.mki
 
 #
+# $(call check-package-not-installed,<package>)
+#
+check-package-not-installed = $(strip \
+  $(if $(shell dpkg -l "$1" 2>/dev/null), \
+    $(error package "$1" appears to be installed - please purge it first) \
+  ) \
+)
+  
+#
 # $(call checked-deb-arch-output,<output>)
 #
 checked-dpkg-architecture-output = $(strip \
@@ -152,6 +161,11 @@ endef
 # Get system-provided settings
 #
 override deb-arch := $(call get-deb-arch)
+
+#
+# Check that the package is not installed
+#
+$(call check-package-not-installed,$(package)$(build-settings-suffix))
 
 #
 # Set some derived variables
