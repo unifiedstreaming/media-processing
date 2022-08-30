@@ -11,9 +11,15 @@
 
 include include/USPPackaging.mki
 
-.PHONY: apk-package
-apk-package:
-
+#
+# $(call check-package-not-installed,<package>)
+#
+check-package-not-installed = $(strip \
+  $(if $(shell apk -e info "$1" >/dev/null 2>&1 && echo yes), \
+    $(error package "$1" appears to be installed - please purge it first) \
+  ) \
+)
+  
 #
 # $(call checked-apk-arch,<output>)
 #
@@ -29,6 +35,12 @@ checked-apk-arch = $(strip \
 # TODO: there has to be a better way...
 #
 get-apk-arch = $(call checked-apk-arch,$(shell arch))
+
+#
+# Check that the package is not installed, as that may interfere with
+# automatic shared library dependency detection from depending packages
+#
+$(call check-package-not-installed,$(package)$(build-settings-suffix))
 
 #
 # $(call checked-sha512sum,<output>)
