@@ -252,6 +252,7 @@ prereq-packages = $(strip \
 native-packager-settings = $(strip \
   $(build-settings) \
   package=$1 \
+  license="$($1.package-license)" \
   prereq-packages="$(call prereq-packages,$1)" \
   artifacts-dir="$(call to-shell,$(artifacts-dir))" \
   packaging-work-dir="$(call to-shell,$(packaging-work-dir))" \
