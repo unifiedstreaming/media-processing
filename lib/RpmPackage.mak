@@ -12,10 +12,15 @@
 include include/USPPackaging.mki
 
 #
+# $(call is-installed,<package>)
+#
+is-installed = $(shell rpm -q "$1" >/dev/null 2>&1 && echo yes)
+
+#
 # $(call check-package-not-installed,<package>)
 #
 check-package-not-installed = $(strip \
-  $(if $(shell rpm -q "$1" >/dev/null 2>&1 && echo yes), \
+  $(if $(call is-installed,$1), \
     $(error package "$1" appears to be installed - please purge it first) \
   ) \
 )

@@ -12,10 +12,15 @@
 include include/USPPackaging.mki
 
 #
+# $(call is-installed,<package>)
+#
+is-installed = $(shell apk -e info "$1" >/dev/null 2>&1 && echo yes)
+
+#
 # $(call check-package-not-installed,<package>)
 #
 check-package-not-installed = $(strip \
-  $(if $(shell apk -e info "$1" >/dev/null 2>&1 && echo yes), \
+  $(if $(call is-installed,$1), \
     $(error package "$1" appears to be installed - please purge it first) \
   ) \
 )
@@ -37,12 +42,6 @@ checked-apk-arch = $(strip \
 get-apk-arch = $(call checked-apk-arch,$(shell arch))
 
 #
-# Check that the package is not installed, as that may interfere with
-# automatic shared library dependency detection from depending packages
-#
-$(call check-package-not-installed,$(package)$(build-settings-suffix))
-
-#
 # $(call checked-sha512sum,<output>)
 #
 checked-sha512sum = $(strip \
@@ -61,6 +60,12 @@ sha512sum = $(call checked-sha512sum,$(shell sha512sum "$(call to-shell,$1)"))
 # Get system-provided settings
 #
 override apk-arch := $(call get-apk-arch)
+
+#
+# Check that the package is not installed, as that may interfere with
+# automatic shared library dependency detection from depending packages
+#
+$(call check-package-not-installed,$(package)$(build-settings-suffix))
 
 #
 # Set some derived variables
