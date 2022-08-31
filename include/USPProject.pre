@@ -135,6 +135,16 @@ add-project = $(strip \
 )
 
 #
+# $(call add-package,<package list>,<package name>)
+#
+# Returns a new package list.
+#
+add-package = $(strip \
+  $(if $(filter $2,$1),$(error duplicate package name '$2')) \
+  $1 $2 \
+)
+
+#
 # $(call project-artifacts-dir,<project>)
 # (to be evaluated very lazily, as part of a recipe)
 #
@@ -570,6 +580,36 @@ bjam-test-project = $(call expand,$(call call-stripped, \
 ))
 
 #
-# Clear the list of projects just before reading the project definitions
+# $(call package-impl,<package name>,<license>)
+#
+define package-impl =
+#
+# Attributes for package '$1'
+#
+
+all-packages := $$(call add-package,$$(all-packages),$(call checked-package-name,$1))
+
+$1.package-license := $2
+
+endef
+
+#
+# $(call package,<properties>)
+#
+# properties are:
+# name        package name
+# license     package license
+#
+package-keys := name license
+package = $(call expand,$(call call-stripped, \
+  package-impl, \
+  $(call get-value,name,$1,$(package-keys)), \
+  $(call get-value,license,$1,$(package-keys)), \
+))
+
+#
+# Clear the lists of projects and packages just before reading the
+# project definition file
 #
 all-projects :=
+all-packages :=

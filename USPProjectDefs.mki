@@ -61,3 +61,20 @@ $(call gmake-project, \
   distributable: no \
 )
 
+#
+# Package definitions
+#
+$(call package, \
+  name: x264-encoding-service \
+  license: GPLv2 \
+)
+
+$(call package, \
+  name: libx264-proto \
+  license: LGPLv2.1 \
+)
+
+$(call package, \
+  name: libcuti \
+  license: LGPLv2.1 \
+)

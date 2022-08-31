@@ -136,7 +136,12 @@ add-packagers = $(strip \
     $(call REM,only distributables can be packaged) \
     $(if $($1.package), \
       $(call REM,project is its own packager) \
-      $(eval $1.package := $(call checked-package-name,$($1.package))) \
+      $(if $(filter-out $(all-packages),$($1.package)), \
+        $(call REM,package not found) \
+        $(error $(strip \
+          project '$1': package '$($1.package)' not found \
+        )) \
+      ) \
       $(if $(filter-out $($3.package),$($1.package)), \
         $(call REM,entering another package) \
         $(if $(filter $(foreach dep,$2,$($(dep).package)),$($1.package)), \
@@ -194,7 +199,6 @@ set-package-impl = $(strip \
     $(if $(filter 1,$(words $2)), \
       $(call REM,single package) \
       $(eval $1.package := $(firstword $2)) \
-      $(eval all-packages := $(call set-add,$(all-packages),$(firstword $2))) \
     , \
       $(call REM,multiple packages) \
       $(error $(strip \
@@ -310,10 +314,8 @@ $(foreach proj,$(all-leaf-projects),$(call add-packagers,$(proj)))
 
 #
 # For each project, determine the package it is in (if any) by
-# inspecting its list of packagers.  As a side effect, the list of all
-# packages is established.
+# inspecting its list of packagers.
 #
-all-packages :=
 $(foreach proj,$(all-projects),$(call set-package,$(proj)))
 
 #
