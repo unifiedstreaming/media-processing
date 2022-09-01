@@ -378,7 +378,7 @@ call-stripped = $(call $(strip $1),$(strip $2),$(strip $3),$(strip $4),$(strip $
 
 #
 # Utilities for property list parsing.  Users should call one of
-# find-values, find-value, or get-value (please see below).
+# find-values, find-value, get-values or get-value (please see below).
 #
 
 #
@@ -491,6 +491,17 @@ require-prop-value = $(strip \
 )
   
 #
+# $(call require-prop-values,<key>,<value>*)
+#
+require-prop-values = $(strip \
+  $(if $(word 1,$2), \
+    $2 \
+  , \
+    $(error no property value for key '$1') \
+  ) \
+)
+  
+#
 # $(call to-boolean-value,<key>,<value>)
 #
 to-boolean-value = $(strip \
@@ -552,6 +563,16 @@ find-boolean-value = $(strip \
 #
 get-value = $(strip \
   $(call require-prop-value,$1,$(call find-value,$1,$2,$3)) \
+)
+
+#
+# $(call get-values,<key>,<property list>,<recognized-key>*)
+#
+# Returns one or more property values for <key>.  Each property key
+# in the list must be one of the recognized keys.
+#
+get-values = $(strip \
+  $(call require-prop-values,$1,$(call find-values,$1,$2,$3)) \
 )
 
 #

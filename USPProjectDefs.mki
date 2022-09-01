@@ -66,15 +66,18 @@ $(call gmake-project, \
 #
 $(call package, \
   name: x264-encoding-service \
-  license: GPLv2 \
+  license-dir: lib/licenses/GPLv2 \
+  copyright: 2021-2022 CodeShop B.V. \
 )
 
 $(call package, \
   name: libx264-proto \
-  license: LGPLv2.1 \
+  license-dir: lib/licenses/LGPLv2.1 \
+  copyright: 2021-2022 CodeShop B.V. \
 )
 
 $(call package, \
   name: libcuti \
-  license: LGPLv2.1 \
+  license-dir: lib/licenses/LGPLv2.1 \
+  copyright: 2021-2022 CodeShop B.V. \
 )
