@@ -82,7 +82,7 @@ exit 0
 endef
 
 #
-# $(call apkbuild-content,<package>,<build settings suffix>,<version>,<revision>,<description>,<maintainer>,<prereq package>*,<source tarfile>,<installation_prefix>)
+# $(call apkbuild-content,<package>,<build settings suffix>,<version>,<revision>,<description>,<maintainer>,<prereq package>*,<source tarfile>,<installation_prefix>,<license>)
 #
 define apkbuild-content =
 pkgname="$1$2"
@@ -92,7 +92,7 @@ pkgdesc="$5"
 # maintainer="$6" (abuild requires a valid RFC822 address)
 url="FIXME"
 arch="all"
-license="FIXME"
+license="$(10)"
 depends="$(foreach p,$7,$p$2=$3-r$4)"
 subpackages=""
 source="$(call to-shell,$(notdir $8))"
@@ -136,7 +136,7 @@ apk-package: $(apk-work-dir)/APKBUILD $(apk-work-dir)/fake-git/git \
 	cd "$(call to-shell,$(apk-work-dir))" && abuild -m -d -P "$(call to-shell,$(pkgs-dir))"
 
 $(apk-work-dir)/APKBUILD: $(apk-work-dir)/$(package).tar
-	$(file >$@,$(call apkbuild-content,$(package),$(build-settings-suffix),$(pkg-version),$(pkg-revision),$(pkg-description),$(pkg-maintainer),$(prereq-packages),$(apk-work-dir)/$(package).tar,$(installation-prefix)))
+	$(file >$@,$(call apkbuild-content,$(package),$(build-settings-suffix),$(pkg-version),$(pkg-revision),$(pkg-description),$(pkg-maintainer),$(prereq-packages),$(apk-work-dir)/$(package).tar,$(installation-prefix),$(license)))
 	$(info generated $@)
 	
 $(apk-work-dir)/$(package).tar: clean-apk-work-dir
