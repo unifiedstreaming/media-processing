@@ -580,7 +580,7 @@ bjam-test-project = $(call expand,$(call call-stripped, \
 ))
 
 #
-# $(call package-impl,<package name>,<license dir>,<copyright>+)
+# $(call package-impl,<package name>,<license>)
 #
 define package-impl =
 #
@@ -589,9 +589,7 @@ define package-impl =
 
 all-packages := $$(call add-package,$$(all-packages),$(call checked-package-name,$1))
 
-$1.package-license := $(call notdir,$2)
-$1.package-license-dir := $(call non-relative-path,$2)
-$1.package-copyright := $3
+$1.package-license := $2
 
 endef
 
@@ -600,15 +598,13 @@ endef
 #
 # properties are:
 # name        package name
-# license-dir package license template dir
-# copyright+  copyight message
+# license     package license
 #
-package-keys := name license-dir copyright
+package-keys := name license
 package = $(call expand,$(call call-stripped, \
   package-impl, \
   $(call get-value,name,$1,$(package-keys)), \
-  $(call get-value,license-dir,$1,$(package-keys)), \
-  $(call get-values,copyright,$1,$(package-keys)) \
+  $(call get-value,license,$1,$(package-keys)), \
 ))
 
 #
