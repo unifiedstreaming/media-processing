@@ -607,7 +607,7 @@ package = $(call expand,$(call call-stripped, \
   package-impl, \
   $(call get-value,name,$1,$(package-keys)), \
   $(call get-value,license,$1,$(package-keys)), \
-  $(call find-values,doc-files,$1,$(package-keys)) \
+  $(call checked-for-duplicate-filenames,$(call find-values,doc-files,$1,$(package-keys))) \
 ))
 
 #

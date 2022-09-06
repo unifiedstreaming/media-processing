@@ -671,3 +671,32 @@ checked-package-name = $(strip \
     $(call split-word,$(strip $1))) \
 )
 
+#
+# $(call find-duplicate,<word>*)
+#
+find-duplicate = $(strip \
+  $(if $(strip $1), \
+    $(if $(filter $(firstword $1),$(wordlist 2,$(words $1),$1)), \
+      $(firstword $1) \
+    , \
+      $(call find-duplicate,$(wordlist 2,$(words $1),$1)) \
+    ) \
+  ) \
+)
+
+#
+# $(call checked-for-duplicate-filenames-impl,<filename>*,<duplicate>?)
+#
+checked-for-duplicate-filenames-impl = $(strip \
+  $(if $2, \
+    $(error duplicate filename '$2') \
+  ) \
+  $1 \
+)
+
+#
+# $(call checked-for-duplicate-filenames,<filename>*)
+#
+checked-for-duplicate-filenames = $(strip \
+  $(call checked-for-duplicate-filenames-impl,$1,$(call find-duplicate,$(notdir $1))) \
+)
