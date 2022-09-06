@@ -67,14 +67,23 @@ $(call gmake-project, \
 $(call package, \
   name: x264-encoding-service \
   license: GPLv2 \
+  doc-files: \
+    x264_encoding_service/packaging/doc/copyright \
+    x264_encoding_service/COPYING \
 )
 
 $(call package, \
   name: libx264-proto \
   license: LGPLv2.1 \
+  doc-files: \
+    x264_proto/packaging/doc/copyright \
+    x264_proto/COPYING.LIB \
 )
 
 $(call package, \
   name: libcuti \
   license: LGPLv2.1 \
+  doc-files: \
+    cuti/packaging/doc/copyright \
+    cuti/COPYING.LIB \
 )
