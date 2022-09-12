@@ -116,7 +116,7 @@ $(call check-package-not-installed,$(package)$(build-settings-suffix))
 #
 # Set some derived variables
 #
-override installation-prefix := $(call required-value,installation-prefix)
+override installation-prefix := /usr
 
 override rpm-package-basename := $(package)$(build-settings-suffix)-$(pkg-version)-$(pkg-revision).$(rpm-arch)
 

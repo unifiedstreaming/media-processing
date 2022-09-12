@@ -176,7 +176,7 @@ $(call check-package-not-installed,$(package)$(build-settings-suffix))
 #
 # Set some derived variables
 #
-override installation-prefix := $(call required-value,installation-prefix)
+override installation-prefix := /usr
 
 override deb-package-basename := $(package)$(build-settings-suffix)_$(pkg-version)-$(pkg-revision)_$(deb-arch)
 

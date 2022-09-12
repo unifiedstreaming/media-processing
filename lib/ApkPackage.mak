@@ -70,7 +70,7 @@ $(call check-package-not-installed,$(package)$(build-settings-suffix))
 #
 # Set some derived variables
 #
-override installation-prefix := $(call required-value,installation-prefix)
+override installation-prefix := /usr
 
 override apk-package-basename := $(package)$(build-settings-suffix)-$(pkg-version)-r$(pkg-revision)
 override apk-work-dir := $(packaging-work-dir)/apk/$(apk-package-basename)
