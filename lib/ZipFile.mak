@@ -28,7 +28,7 @@ zip-file: $(pkgs-dir)/$(zip-file-name)
 
 $(pkgs-dir)/$(zip-file-name) : force | $(pkgs-dir)
 	$(usp-rm-rf) "$(call to-shell,$@)"
-	cd "$(call to-shell,$(artifacts-dir)/$(package))" && zip -X -r "$(call to-shell,$@)" . 
+	cd "$(call to-shell,$(artifacts-dir)/$(package))" && $(usp-zip) -X -r "$(call to-shell,$@)" . 
 
 $(pkgs-dir):
 	$(usp-mkdir-p) "$(call to-shell,$@)"

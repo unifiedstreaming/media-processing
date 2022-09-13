@@ -70,6 +70,8 @@ $(call package, \
   doc-files: \
     x264_encoding_service/packaging/doc/copyright \
     x264_encoding_service/COPYING \
+  conf-file-templates: \
+    x264_encoding_service/etc/x264_encoding_service.conf-template \
 )
 
 $(call package, \

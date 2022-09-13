@@ -128,12 +128,14 @@ get-command = $(strip \
 )
 
 #
-# pick up filesystem commands for the shell
+# pick up system commands for the shell
 #
 usp-cp := $(call get-command,usp-cp,cp,copy /Y)
 usp-mkdir-p := $(call get-command,usp-mkdir-p,mkdir -p,mkdir)
 usp-mv-f := $(call get-command,usp-mv-f,mv -f,move)
 usp-rm-rf := $(call get-command,usp-rm-rf,rm -rf,-rmdir /S /Q)
+usp-sed := $(call get-command,usp-sed,sed,sed)
+usp-zip := $(call get-command,usp-zip,zip,zip)
 
 #
 # $(call escape,<path>)
@@ -672,31 +674,51 @@ checked-package-name = $(strip \
 )
 
 #
-# $(call find-duplicate,<word>*)
+# $(call find-duplicate-notdir,<filename>*)
 #
-find-duplicate = $(strip \
-  $(if $(strip $1), \
-    $(if $(filter $(firstword $1),$(wordlist 2,$(words $1),$1)), \
-      $(firstword $1) \
-    , \
-      $(call find-duplicate,$(wordlist 2,$(words $1),$1)) \
+find-duplicate-notdir = $(strip \
+  $(if $(firstword $1), \
+    $(if $(filter $(notdir $(firstword $1)),$(notdir $(wordlist 2,$(words $1),$1))), \
+      $(notdir $(firstword $1)) \
     ) \
+    $(call find-duplicate-notdir,$(wordlist 2,$(words $1),$1)) \
   ) \
 )
 
 #
-# $(call checked-for-duplicate-filenames-impl,<filename>*,<duplicate>?)
+# $(call check-duplicate-notdir,<filename>*)
 #
-checked-for-duplicate-filenames-impl = $(strip \
-  $(if $2, \
-    $(error duplicate filename '$2') \
+check-duplicate-notdir = $(strip \
+  $(if $(call find-duplicate-notdir,$1), \
+    $(error duplicate file name '$(call find-duplicate-notdir,$1)') \
   ) \
   $1 \
 )
 
 #
-# $(call checked-for-duplicate-filenames,<filename>*)
+# $(call strip-mandatory-suffix,<suffix>,<filename>*)
 #
-checked-for-duplicate-filenames = $(strip \
-  $(call checked-for-duplicate-filenames-impl,$1,$(call find-duplicate,$(notdir $1))) \
+strip-mandatory-suffix = $(strip \
+  $(if $(firstword $2), \
+    $(if $(filter %$1,$(firstword $2)), \
+      $(if $(patsubst %$1,%,$(notdir $(firstword $2))), \
+        $(patsubst %$1,%,$(firstword $2)) \
+        $(call strip-mandatory-suffix,$1,$(wordlist 2,$(words $2),$2)) \
+      , \
+        $(error '$(firstword $2)' must have a non-empty name before '$1') \
+      ) \
+    , \
+      $(error '$(firstword $2)' must have suffix '$1') \
+    ) \
+  ) \
+)
+      
+#
+# $(call check-duplicate-notdir-prefix,<suffix>,<filename>*)
+#
+check-duplicate-notdir-prefix = $(strip \
+  $(if $(call find-duplicate-notdir,$(call strip-mandatory-suffix,$1,$2)), \
+    $(error duplicate file name prefix '$(call find-duplicate-notdir,$(call strip-mandatory-suffix,$1,$2))') \
+  ) \
+  $2 \
 )
