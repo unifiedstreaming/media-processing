@@ -68,7 +68,7 @@ $(call package, \
   name: x264-encoding-service \
   license: GPLv2 \
   doc-files: \
-    x264_encoding_service/packaging/doc/copyright \
+    x264_encoding_service/doc/copyright \
     x264_encoding_service/COPYING \
   conf-file-templates: \
     x264_encoding_service/etc/x264_encoding_service.conf-template \
@@ -78,7 +78,7 @@ $(call package, \
   name: libx264-proto \
   license: LGPLv2.1 \
   doc-files: \
-    x264_proto/packaging/doc/copyright \
+    x264_proto/doc/copyright \
     x264_proto/COPYING.LIB \
 )
 
@@ -86,6 +86,6 @@ $(call package, \
   name: libcuti \
   license: LGPLv2.1 \
   doc-files: \
-    cuti/packaging/doc/copyright \
+    cuti/doc/copyright \
     cuti/COPYING.LIB \
 )
