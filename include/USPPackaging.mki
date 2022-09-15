@@ -29,6 +29,46 @@ checked-pkg-version-or-revision = $(strip \
 )
 
 #
+# Subdirectories for 'special' files in the artifacts dir
+
+config-artifacts-dir := etc
+doc-artifacts-dir := doc
+
+#
+# $(call filter-config-artifacts,<relative path in artifacts dir>*)
+#
+filter-config-artifacts = $(filter $(config-artifacts-dir)/%,$1)
+
+#
+# $(call filter-doc-artifacts,<relative path in artifacts dir>*)
+#
+filter-doc-artifacts = $(filter $(doc-artifacts-dir)/%,$1)
+
+#
+# $(call distro-path,<relative path in artifacts dir>)
+#
+distro-path = $(strip \
+  $(if $(filter $(config-artifacts-dir)/%,$1), \
+    $(patsubst $(config-artifacts-dir)/%,etc/%,$1) \
+  , \
+    $(if $(filter $(doc-artifacts-dir)/%,$1), \
+      $(patsubst $(doc-artifacts-dir)/%,usr/share/doc/%,$1) \
+    , \
+      usr/$1 \
+    ) \
+  ) \
+)
+      
+#
+# $(call copy-to-distro-root-rule,<distro root>,<artifacts dir>,<artifact>)
+#
+define copy-to-distro-root-rule =
+$1/$(call distro-path,$3): $2/$3
+	$(usp-cp) "$(call to-shell,$$<)" "$(call to-shell,$$@)"
+
+endef
+
+#
 # Get required settings
 #
 override artifacts-dir := $(call to-make,$(call required-value,artifacts-dir))

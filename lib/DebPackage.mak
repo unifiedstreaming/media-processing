@@ -163,6 +163,11 @@ Description: $8
 endef
 
 #
+# $(call conffiles-content,<conf-artifact>*)
+#
+conffiles-content = $(foreach a,$1,/$(call distro-path,$a)$(newline))
+
+#
 # Get system-provided settings
 #
 override deb-arch := $(call get-deb-arch)
@@ -176,15 +181,15 @@ $(call check-package-not-installed,$(package)$(build-settings-suffix))
 #
 # Set some derived variables
 #
-override installation-prefix := /usr
-
 override deb-package-basename := $(package)$(build-settings-suffix)_$(pkg-version)-$(pkg-revision)_$(deb-arch)
 
 override deb-work-dir := $(packaging-work-dir)/deb/$(deb-package-basename)
 
 override artifacts := $(patsubst $(artifacts-dir)/$(package)/%,%,$(call find-files,%,$(artifacts-dir)/$(package)))
 
-override work-dir-artifacts := $(addprefix $(deb-work-dir)$(installation-prefix)/,$(artifacts))
+override config-artifacts := $(call filter-config-artifacts,$(artifacts))
+
+override work-dir-artifacts := $(foreach a,$(artifacts),$(deb-work-dir)/$(call distro-path,$a))
 
 override work-dir-dirs := $(call dedup,$(filter-out $(deb-work-dir),$(patsubst %/,%,$(dir $(work-dir-artifacts)))))
 
@@ -198,7 +203,7 @@ all: deb-package
 deb-package: $(pkgs-dir)/$(deb-package-basename).deb
 
 # Remove $(deb-work-dir)/debian first to prevent it from being packaged
-$(pkgs-dir)/$(deb-package-basename).deb: $(deb-work-dir)/DEBIAN/control | $(pkgs-dir)
+$(pkgs-dir)/$(deb-package-basename).deb: $(deb-work-dir)/DEBIAN/control $(if $(config-artifacts),$(deb-work-dir)/DEBIAN/conffiles) | $(pkgs-dir)
 	$(usp-rm-rf) "$(call to-shell,$(deb-work-dir)/debian)"
 	dpkg-deb --root-owner-group --build "$(call to-shell,$(deb-work-dir))" "$(call to-shell,$@)"
 
@@ -209,6 +214,10 @@ $(deb-work-dir)/DEBIAN/control: $(deb-work-dir)/debian/control $(deb-work-dir)/D
 	$(file >$@,$(call control-file-content,$(package),$(build-settings-suffix),$(pkg-version)-$(pkg-revision),$(deb-arch),$(prereq-packages),$(deb-work-dir),$(pkg-maintainer),$(pkg-description)))
 	@echo generated $@
 
+$(deb-work-dir)/DEBIAN/conffiles: $(deb-work-dir)/DEBIAN $(work-dir-artifacts)
+	$(file >$@,$(call conffiles-content,$(config-artifacts)))
+	@echo generated $@
+	
 # empty file required by dpkg-shlibdeps
 $(deb-work-dir)/debian/control: $(deb-work-dir)/debian
 	$(file >$@,)
@@ -219,12 +228,9 @@ $(deb-work-dir)/debian $(deb-work-dir)/DEBIAN: clean-deb-work-dir
 
 $(work-dir-artifacts): $(work-dir-dirs)
 
-$(work-dir-artifacts): $(deb-work-dir)$(installation-prefix)/%: $(artifacts-dir)/$(package)/%
-	$(usp-cp) "$(call to-shell,$<)" "$(call to-shell,$@)"
+$(foreach a,$(artifacts),$(call expand,$(call copy-to-distro-root-rule,$(deb-work-dir),$(artifacts-dir)/$(package),$a)))
 
 $(work-dir-dirs): clean-deb-work-dir
-
-$(work-dir-dirs): $(deb-work-dir)$(installation-prefix)/%:
 	$(usp-mkdir-p) "$(call to-shell,$@)"
 
 .PHONY: clean-deb-work-dir
