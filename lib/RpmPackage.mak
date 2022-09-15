@@ -58,49 +58,49 @@ requires-line-cont = $(if $(firstword $1),$(comma) $(call requires-line-elt,$(fi
 requires-line = $(if $(firstword $1),Requires: $(call requires-line-elt,$(firstword $1))$(call requires-line-cont,$(wordlist 2,$(words $1),$1)),# No explicit Requires: line)
 
 #
-# $(call directory-install-lines-elt,<installation prefix>,<directory>)
+# $(call directory-install-lines-elt,<directory>)
 #
-directory-install-lines-elt = $(usp-mkdir-p) "%{buildroot}$(call to-shell,$1/$2)"
+directory-install-lines-elt = $(usp-mkdir-p) "%{buildroot}/$(call to-shell,$1)"
 
 #
-# $(call directory-install-lines-cont,<installation prefix>,<directory>*)
+# $(call directory-install-lines-cont,<directory>*)
 #
-directory-install-lines-cont = $(if $(firstword $2),$(newline)$(call directory-install-lines-elt,$1,$(firstword $2))$(call directory-install-lines-cont,$1,$(wordlist 2,$(words $2),$2))) 
+directory-install-lines-cont = $(if $(firstword $1),$(newline)$(call directory-install-lines-elt,$(firstword $1))$(call directory-install-lines-cont,$(wordlist 2,$(words $1),$1))) 
 
 #
-# $(call directory-install-lines,<installation prefix>,<directory>*)
+# $(call directory-install-lines,<directory>*)
 #
-directory-install-lines = $(if $(firstword $2),$(call directory-install-lines-elt,$1,$(firstword $2))$(call directory-install-lines-cont,$1,$(wordlist 2,$(words $2),$2)),# No directories to install) 
+directory-install-lines = $(if $(firstword $1),$(call directory-install-lines-elt,$(firstword $1))$(call directory-install-lines-cont,$(wordlist 2,$(words $1),$1)),# No directories to install) 
 
 #
-# $(call file-install-lines-elt,<source dir>,<installation prefix>,<file>)
+# $(call file-install-lines-elt,<source dir>,<source file>)
 #
-file-install-lines-elt = $(usp-cp) "$(call to-shell,$1/$3)" "%{buildroot}$(call to-shell,$2/$3)"
+file-install-lines-elt = $(usp-cp) "$(call to-shell,$1/$2)" "%{buildroot}/$(call to-shell,$(call distro-path,$2))"
 
 #
-# $(call file-install-lines-cont,<source dir>,<installation prefix>,<file>*)
+# $(call file-install-lines-cont,<source dir>,<source file>*)
 #
-file-install-lines-cont = $(if $(firstword $3),$(newline)$(call file-install-lines-elt,$1,$2,$(firstword $3))$(call file-install-lines-cont,$1,$2,$(wordlist 2,$(words $3),$3)))
+file-install-lines-cont = $(if $(firstword $2),$(newline)$(call file-install-lines-elt,$1,$(firstword $2))$(call file-install-lines-cont,$1,$(wordlist 2,$(words $2),$2)))
 
 #
-# $(call file-install-lines,<source-dir>,<installation prefix>,<file>*)
+# $(call file-install-lines,<source-dir>,<source file>*)
 #
-file-install-lines = $(if $(firstword $3),$(call file-install-lines-elt,$1,$2,$(firstword $3))$(call file-install-lines-cont,$1,$2,$(wordlist 2,$(words $3),$3)),# No files to install)
+file-install-lines = $(if $(firstword $2),$(call file-install-lines-elt,$1,$(firstword $2))$(call file-install-lines-cont,$1,$(wordlist 2,$(words $2),$2)),# No files to install)
 
 #
-# $(call file-listing-lines-elt,<installation prefix>,<file>)
+# $(call file-listing-lines-elt,<source file>)
 #
-file-listing-lines-elt = $1/$2
+file-listing-lines-elt = $(if $(call filter-config-artifacts,$1),%config$(open-paren)noreplace$(close-paren)$(space))/$(call distro-path,$1)
 
 #
-# $(call file-listing-lines-cont,<installation prefix>,<file>*)
+# $(call file-listing-lines-cont,<source file>*)
 #
-file-listing-lines-cont = $(if $(firstword $2),$(newline)$(call file-listing-lines-elt,$1,$(firstword $2))$(call file-listing-lines-cont,$1,$(wordlist 2,$(words $2),$2)))
+file-listing-lines-cont = $(if $(firstword $1),$(newline)$(call file-listing-lines-elt,$(firstword $1))$(call file-listing-lines-cont,$(wordlist 2,$(words $1),$1)))
 
 #
-# $(call file-listing-lines,<installation-prefux,<file>*)
+# $(call file-listing-lines,<source file>*)
 #
-file-listing-lines = $(if $(firstword $2),$(call file-listing-lines-elt,$1,$(firstword $2))$(call file-listing-lines-cont,$1,$(wordlist 2,$(words $2),$2)),# No files to package)
+file-listing-lines = $(if $(firstword $1),$(call file-listing-lines-elt,$(firstword $1))$(call file-listing-lines-cont,$(wordlist 2,$(words $1),$1)),# No files to package)
 
 #
 # Get system-provided settings
@@ -116,17 +116,14 @@ $(call check-package-not-installed,$(package)$(build-settings-suffix))
 #
 # Set some derived variables
 #
-override installation-prefix := /usr
-
 override rpm-package-basename := $(package)$(build-settings-suffix)-$(pkg-version)-$(pkg-revision).$(rpm-arch)
 
 override rpm-work-dir := $(packaging-work-dir)/rpm/$(rpm-package-basename)
 
-override installed-files := $(patsubst $(artifacts-dir)/$(package)/%,%,$(call find-files,%,$(artifacts-dir)/$(package)))
-override installed-dirs := $(call dedup,$(patsubst %/,%,$(dir $(installed-files))))
+override src-artifacts := $(patsubst $(artifacts-dir)/$(package)/%,%,$(call find-files,%,$(artifacts-dir)/$(package)))
 
 #
-# $(call spec-file-content,<package>,<version>,<revision>,<description>,<prereq-package>*,<source-dir>,<installation-prefix>,<installed-dir>*,<installed-file>*)
+# $(call spec-file-content,<package>,<version>,<revision>,<description>,<license>,<prereq-package>*,<source artifact dir>,<source artifact>*)
 #
 define spec-file-content =
 %define _build_id_links none
@@ -137,8 +134,8 @@ Name: $1
 Version: $2
 Release: $3
 Summary: $4
-License: $(10)
-$(call requires-line,$5)
+License: $5
+$(call requires-line,$6)
 Provides: %{name} = %{version}
 
 %description
@@ -149,11 +146,11 @@ $4
 %build
 
 %install
-$(call directory-install-lines,$7,$8)
-$(call file-install-lines,$6,$7,$9)
+$(call directory-install-lines,$(call dedup,$(patsubst %/,%,$(dir $(foreach a,$8,$(call distro-path,$a))))))
+$(call file-install-lines,$7,$8)
 
 %files
-$(call file-listing-lines,$7,$9)
+$(call file-listing-lines,$8)
 
 endef
 
@@ -173,7 +170,7 @@ $(rpm-work-dir)/RPMS/$(rpm-arch)/$(rpm-package-basename).rpm: $(rpm-work-dir)/SP
 	rpmbuild -bb --define '_topdir $(rpm-work-dir)' $<
 
 $(rpm-work-dir)/SPECS/$(package)$(build-settings-suffix).spec: $(rpm-work-dir)/SPECS
-	$(file >$@,$(call spec-file-content,$(package)$(build-settings-suffix),$(pkg-version),$(pkg-revision),$(pkg-description),$(addsuffix $(build-settings-suffix),$(prereq-packages)),$(artifacts-dir)/$(package),$(installation-prefix),$(installed-dirs),$(installed-files),$(license)))
+	$(file >$@,$(call spec-file-content,$(package)$(build-settings-suffix),$(pkg-version),$(pkg-revision),$(pkg-description),$(license),$(addsuffix $(build-settings-suffix),$(prereq-packages)),$(artifacts-dir)/$(package),$(src-artifacts)))
 	$(info generated $@)
 
 $(rpm-work-dir)/SPECS: clean-rpm-work-dir
