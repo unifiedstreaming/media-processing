@@ -60,6 +60,21 @@ distro-path = $(strip \
 )
       
 #
+# $(call distro-dirs,<relative path in artifact dir>*)
+#
+distro-dirs = $(strip \
+  $(call dedup, \
+    $(patsubst %/,%, \
+      $(dir \
+        $(foreach a,$1, \
+          $(call distro-path,$a) \
+        ) \
+      ) \
+    ) \
+  ) \
+)
+
+#
 # $(call copy-to-distro-root-rule,<distro root>,<artifacts dir>,<artifact>)
 #
 define copy-to-distro-root-rule =

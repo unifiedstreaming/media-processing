@@ -42,21 +42,6 @@ checked-apk-arch = $(strip \
 get-apk-arch = $(call checked-apk-arch,$(shell arch))
 
 #
-# $(call checked-sha512sum,<output>)
-#
-checked-sha512sum = $(strip \
-  $(if $(filter-out 2,$(words $1)), \
-    $(error 'sha512sum' command failed) \
-  ) \
-  $(firstword $1) \
-)
-
-#
-# $(call sha512sum,<file>)
-#
-sha512sum = $(call checked-sha512sum,$(shell sha512sum "$(call to-shell,$1)"))
-
-#
 # Get system-provided settings
 #
 override apk-arch := $(call get-apk-arch)
@@ -70,10 +55,10 @@ $(call check-package-not-installed,$(package)$(build-settings-suffix))
 #
 # Set some derived variables
 #
-override installation-prefix := /usr
-
 override apk-package-basename := $(package)$(build-settings-suffix)-$(pkg-version)-r$(pkg-revision)
 override apk-work-dir := $(packaging-work-dir)/apk/$(apk-package-basename)
+
+override artifacts := $(patsubst $(artifacts-dir)/$(package)/%,%,$(call find-files,%,$(artifacts-dir)/$(package)))
 
 define fake-git-content :=
 #! /bin/sh
@@ -82,7 +67,7 @@ exit 0
 endef
 
 #
-# $(call apkbuild-content,<package>,<build settings suffix>,<version>,<revision>,<description>,<maintainer>,<prereq package>*,<source tarfile>,<installation_prefix>,<license>)
+# $(call apkbuild-content,<package>,<build settings suffix>,<version>,<revision>,<description>,<maintainer>,<prereq package>*,<license>,<artifacts-dir>,<artifact>*)
 #
 define apkbuild-content =
 pkgname="$1$2"
@@ -92,11 +77,10 @@ pkgdesc="$5"
 # maintainer="$6" (abuild requires a valid RFC822 address)
 url="FIXME"
 arch="all"
-license="$(10)"
+license="$8"
 depends="$(foreach p,$7,$p$2=$3-r$4)"
 subpackages=""
-source="$(call to-shell,$(notdir $8))"
-builddir="$$srcdir"
+source=""
 options="!fhs !strip"
 
 prepare() {
@@ -112,12 +96,9 @@ check() {
 }
 
 package() {
-  $(usp-mkdir-p) "$$pkgdir$(patsubst %/,%,$(call to-shell,$(dir $9)))"
-  cp -dR "$(call to-shell,$1)" "$$pkgdir$(call to-shell,$9)"
-  return 0
+  $(foreach d,$(call distro-dirs,$(10)),$(usp-mkdir-p) "$$pkgdir/$(call to-shell,$d)"$(newline)$(space))
+  $(foreach a,$(10),$(usp-cp) "$(call to-shell,$9/$a)" "$$pkgdir/$(call to-shell,$(call distro-path,$a))"$(newline)$(space))
 }
-
-sha512sums="$(call sha512sum,$8)$(space)$(space)$(call to-shell,$(notdir $8))"
 
 endef
 
@@ -135,13 +116,10 @@ apk-package: $(apk-work-dir)/APKBUILD $(apk-work-dir)/fake-git/git \
 	cd "$(call to-shell,$(apk-work-dir))" && abuild -m -P "$(call to-shell,$(pkgs-dir))" cleanpkg
 	cd "$(call to-shell,$(apk-work-dir))" && abuild -m -d -P "$(call to-shell,$(pkgs-dir))"
 
-$(apk-work-dir)/APKBUILD: $(apk-work-dir)/$(package).tar
-	$(file >$@,$(call apkbuild-content,$(package),$(build-settings-suffix),$(pkg-version),$(pkg-revision),$(pkg-description),$(pkg-maintainer),$(prereq-packages),$(apk-work-dir)/$(package).tar,$(installation-prefix),$(license)))
+$(apk-work-dir)/APKBUILD: clean-apk-work-dir
+	$(file >$@,$(call apkbuild-content,$(package),$(build-settings-suffix),$(pkg-version),$(pkg-revision),$(pkg-description),$(pkg-maintainer),$(prereq-packages),$(license),$(artifacts-dir)/$(package),$(artifacts)))
 	$(info generated $@)
 	
-$(apk-work-dir)/$(package).tar: clean-apk-work-dir
-	cd "$(call to-shell,$(artifacts-dir))" && tar cf "$(call to-shell,$@)" "$(call to-shell,$(package))"
-
 #
 # install a fake git command in $(apk-work-dir)/fake-git
 # (to stop abuild's git magic)
