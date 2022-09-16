@@ -58,51 +58,6 @@ requires-line-cont = $(if $(firstword $1),$(comma) $(call requires-line-elt,$(fi
 requires-line = $(if $(firstword $1),Requires: $(call requires-line-elt,$(firstword $1))$(call requires-line-cont,$(wordlist 2,$(words $1),$1)),# No explicit Requires: line)
 
 #
-# $(call directory-install-lines-elt,<directory>)
-#
-directory-install-lines-elt = $(usp-mkdir-p) "%{buildroot}/$(call to-shell,$1)"
-
-#
-# $(call directory-install-lines-cont,<directory>*)
-#
-directory-install-lines-cont = $(if $(firstword $1),$(newline)$(call directory-install-lines-elt,$(firstword $1))$(call directory-install-lines-cont,$(wordlist 2,$(words $1),$1))) 
-
-#
-# $(call directory-install-lines,<directory>*)
-#
-directory-install-lines = $(if $(firstword $1),$(call directory-install-lines-elt,$(firstword $1))$(call directory-install-lines-cont,$(wordlist 2,$(words $1),$1)),# No directories to install) 
-
-#
-# $(call file-install-lines-elt,<source dir>,<source file>)
-#
-file-install-lines-elt = $(usp-cp) "$(call to-shell,$1/$2)" "%{buildroot}/$(call to-shell,$(call distro-path,$2))"
-
-#
-# $(call file-install-lines-cont,<source dir>,<source file>*)
-#
-file-install-lines-cont = $(if $(firstword $2),$(newline)$(call file-install-lines-elt,$1,$(firstword $2))$(call file-install-lines-cont,$1,$(wordlist 2,$(words $2),$2)))
-
-#
-# $(call file-install-lines,<source-dir>,<source file>*)
-#
-file-install-lines = $(if $(firstword $2),$(call file-install-lines-elt,$1,$(firstword $2))$(call file-install-lines-cont,$1,$(wordlist 2,$(words $2),$2)),# No files to install)
-
-#
-# $(call file-listing-lines-elt,<source file>)
-#
-file-listing-lines-elt = $(if $(call filter-config-artifacts,$1),%config$(open-paren)noreplace$(close-paren)$(space))/$(call distro-path,$1)
-
-#
-# $(call file-listing-lines-cont,<source file>*)
-#
-file-listing-lines-cont = $(if $(firstword $1),$(newline)$(call file-listing-lines-elt,$(firstword $1))$(call file-listing-lines-cont,$(wordlist 2,$(words $1),$1)))
-
-#
-# $(call file-listing-lines,<source file>*)
-#
-file-listing-lines = $(if $(firstword $1),$(call file-listing-lines-elt,$(firstword $1))$(call file-listing-lines-cont,$(wordlist 2,$(words $1),$1)),# No files to package)
-
-#
 # Get system-provided settings
 #
 override rpm-arch := $(call get-rpm-arch)
@@ -120,7 +75,7 @@ override rpm-package-basename := $(package)$(build-settings-suffix)-$(pkg-versio
 
 override rpm-work-dir := $(packaging-work-dir)/rpm/$(rpm-package-basename)
 
-override src-artifacts := $(patsubst $(artifacts-dir)/$(package)/%,%,$(call find-files,%,$(artifacts-dir)/$(package)))
+override artifacts := $(patsubst $(artifacts-dir)/$(package)/%,%,$(call find-files,%,$(artifacts-dir)/$(package)))
 
 #
 # $(call spec-file-content,<package>,<version>,<revision>,<description>,<license>,<prereq-package>*,<source artifact dir>,<source artifact>*)
@@ -146,11 +101,11 @@ $4
 %build
 
 %install
-$(call directory-install-lines,$(call dedup,$(patsubst %/,%,$(dir $(foreach a,$8,$(call distro-path,$a))))))
-$(call file-install-lines,$7,$8)
+$(foreach d,$(call distro-dirs,$8),$(newline)$(usp-mkdir-p) "%{buildroot}/$(call to-shell,$d)")
+$(foreach a,$8,$(newline)$(usp-cp) "$(call to-shell,$7/$a)" "%{buildroot}/$(call to-shell,$(call distro-path,$a))")
 
 %files
-$(call file-listing-lines,$8)
+$(foreach a,$8,$(newline)$(if $(call filter-config-artifacts,$a),%config(noreplace) )/$(call distro-path,$a))
 
 endef
 
@@ -170,7 +125,7 @@ $(rpm-work-dir)/RPMS/$(rpm-arch)/$(rpm-package-basename).rpm: $(rpm-work-dir)/SP
 	rpmbuild -bb --define '_topdir $(rpm-work-dir)' $<
 
 $(rpm-work-dir)/SPECS/$(package)$(build-settings-suffix).spec: $(rpm-work-dir)/SPECS
-	$(file >$@,$(call spec-file-content,$(package)$(build-settings-suffix),$(pkg-version),$(pkg-revision),$(pkg-description),$(license),$(addsuffix $(build-settings-suffix),$(prereq-packages)),$(artifacts-dir)/$(package),$(src-artifacts)))
+	$(file >$@,$(call spec-file-content,$(package)$(build-settings-suffix),$(pkg-version),$(pkg-revision),$(pkg-description),$(license),$(addsuffix $(build-settings-suffix),$(prereq-packages)),$(artifacts-dir)/$(package),$(artifacts)))
 	$(info generated $@)
 
 $(rpm-work-dir)/SPECS: clean-rpm-work-dir
