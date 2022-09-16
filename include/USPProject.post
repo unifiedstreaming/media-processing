@@ -261,7 +261,7 @@ native-packager-settings = $(strip \
 #
 # $(call doc-artifacts-dir,<package>)
 #
-doc-artifacts-dir = $(artifacts-dir)/$1/share/doc/$1$(build-settings-suffix)
+doc-artifacts-dir = $(artifacts-dir)/$1/doc/$1$(build-settings-suffix)
 
 #
 # $(call doc-artifact,<package>,<source file>)
