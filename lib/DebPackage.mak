@@ -168,6 +168,15 @@ endef
 conffiles-content = $(foreach a,$1,/$(call distro-path,$a)$(newline))
 
 #
+# $(call copy-to-distro-root-rule,<distro root>,<artifacts dir>,<artifact>)
+#
+define copy-to-distro-root-rule =
+$1/$(call distro-path,$3): $2/$3
+	$(usp-cp) "$(call to-shell,$$<)" "$(call to-shell,$$@)"
+
+endef
+
+#
 # Get system-provided settings
 #
 override deb-arch := $(call get-deb-arch)
@@ -191,7 +200,7 @@ override config-artifacts := $(call filter-config-artifacts,$(artifacts))
 
 override work-dir-artifacts := $(foreach a,$(artifacts),$(deb-work-dir)/$(call distro-path,$a))
 
-override work-dir-dirs := $(call dedup,$(filter-out $(deb-work-dir),$(patsubst %/,%,$(dir $(work-dir-artifacts)))))
+override work-dir-dirs := $(foreach d,$(call distro-dirs,$(artifacts)),$(deb-work-dir)/$d)
 
 #
 # Rules
