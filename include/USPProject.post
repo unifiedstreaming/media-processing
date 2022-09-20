@@ -256,6 +256,7 @@ native-packager-settings = $(strip \
   prereq-packages="$(call prereq-packages,$1)" \
   artifacts-dir="$(call to-shell,$(artifacts-dir))" \
   packaging-work-dir="$(call to-shell,$(packaging-work-dir))" \
+  $(if $($1.package-service-file-template),service-file-template="$(call non-relative-path,$($1.package-service-file-template))") \
 )
 
 #

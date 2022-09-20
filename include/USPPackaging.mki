@@ -99,3 +99,5 @@ override pkg-maintainer := $(if $(pkg-maintainer),$(pkg-maintainer),not specifie
 override pkg-revision := $(if $(pkg-revision),$(call checked-pkg-version-or-revision,pkg-revision),1)
 
 override prereq-packages := $(foreach pkg,$(prereq-packages),$(call checked-package-name,$(pkg)))
+
+override service-file-template := $(call checked-optional-service-file-template,$(service-file-template))

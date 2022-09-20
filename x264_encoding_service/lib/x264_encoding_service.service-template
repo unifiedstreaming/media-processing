@@ -1,0 +1,8 @@
+[Unit]
+Description=x264 encoding service (@BSS@)
+After=network.target
+
+[Service]
+ExecStart=/usr/bin/x264_encoding_service@BSS@ --config /etc/x264_encoding_service@BSS@.conf --pidfile=/tmp/x264_encoding_service@BSS@.pid
+Type=forking
+PIDFile=/tmp/x264_encoding_service@BSS@.pid
