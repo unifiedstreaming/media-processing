@@ -9,6 +9,14 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 #
 
+#
+# Based on Vincent Bernat's 'Pragmatic Debian packaging'
+#
+# https://vincent.bernat.ch/en/blog/2019-pragmatic-debian-packaging
+#
+# Thanks Vincent!
+#
+
 include include/USPPackaging.mki
 
 #
@@ -26,11 +34,11 @@ check-package-not-installed = $(strip \
 )
   
 #
-# $(call checked-deb-arch-output,<output>)
+# $(call checked-deb-architecture-output,<output>)
 #
 checked-dpkg-architecture-output = $(strip \
   $(if $(filter-out 1,$(words $1)), \
-    $(error dpkg failed to report architecture) \
+    $(error 'dpkg' failed to report architecture) \
   ) \
   $1 \
 )
@@ -43,122 +51,72 @@ get-deb-arch = $(call checked-dpkg-architecture-output, \
 )
 
 #
-# $(call is-elf-file-output,<output>)
+# $(call checked-which-make-output,<output>)
 #
-is-elf-file-output = $(strip \
-  $(if $(filter 0,$(words $1)), \
-    $(error 'file' command failure) \
-  ) \
-  $(if $(filter ELF,$1), \
-    yes \
-  ) \
-)
-
-#
-# $(call is-elf-file,<file>)
-#
-is-elf-file = $(call is-elf-file-output,$(shell file "$(call to-shell,$1)"))
-
-#
-# $(call find-elf-files,<directory>)
-# Returns directory-relative paths
-#
-find-elf-files = $(strip \
-  $(foreach f,$(call find-files,%,$1), \
-    $(if $(call is-elf-file,$f), \
-      $(patsubst $1/%,%,$f) \
-    ) \
-  ) \
-)
-
-#
-# $(call dpkg-shlibdeps-list,<remaining word>*,<buffered word>*)
-#
-dpkg-shlibdeps-list = $(strip \
-  $(if $(filter 0,$(words $1)), \
-    $(subst $(space),,$2) \
-  , $(if $(filter $(comma),$(firstword $1)), \
-      $(subst $(space),,$2) \
-      $(call dpkg-shlibdeps-list,$(wordlist 2,$(words $1),$1)) \
-    , \
-      $(call dpkg-shlibdeps-list,$(wordlist 2,$(words $1),$1), \
-        $2 $(firstword $1)) \
-    ) \
-  ) \
-)
-
-#
-# $(call checked-dpkg-shlibdeps-list,<word>*)
-#
-checked-dpkg-shlibdeps-list = $(strip \
-  $(if $(filter 0,$(words $1)), \
-    $(error dpkg-shlibdeps failure) \
+checked-which-make-output = $(strip \
+  $(if $(filter-out 1,$(words $1)), \
+    $(error 'which' failed to report path to $(MAKE)) \
   ) \
   $1 \
 )
 
 #
-# $(call system-shlibdeps-impl,<directory>,<elf file>+)
+# $(call get-make)
 #
-system-shlib-deps-impl = $(strip \
-  $(if $(firstword $2), \
-    $(call checked-dpkg-shlibdeps-list, \
-      $(call dpkg-shlibdeps-list, \
-        $(subst $(comma),$(space)$(comma)$(space), \
-          $(subst shlibs:Depends=,, \
-            $(shell \
-              cd "$(call to-shell,$1)" && \
-              dpkg-shlibdeps -O $(foreach f,$2,"$(call to-shell,$f)" \
-                2>/dev/null) \
-            ) \
-          ) \
-        ) \
-      ) \
-    ) \
-  ) \
+get-make = $(call checked-which-make-output, \
+  $(shell which $(MAKE)) \
 )
 
 #
-# $(call system-shlib-deps,<directory>)
+# $(call changelog-content,<package name>,<package version>)
 #
-system-shlib-deps = $(call system-shlib-deps-impl,$1,$(call find-elf-files,$1))
+define changelog-content =
+$1 ($2) UNRELEASED; urgency=medium
+
+  * Fake Entry
+
+ -- Joe Coder <joe@dev.null>  $(shell date -R)
+
+endef
 
 #
-# $(call prereq-deps,<prereq package>*,<version>)
+# $(call control-content,<package name>,<maintainer>,<description>,<package version>,<package revision>,<prereq package>*)
 #
-prereq-deps = $(strip \
-  $(foreach pre,$1, \
-    $(pre)$(open-paren)=$2$(close-paren) \
-  ) \
-)
-  
-#
-# $(call package-deps,<prereq-package>*,<version>,<package work dir>)
-#
-package-deps = $(strip \
-  $(call prereq-deps,$1,$2) \
-  $(call system-shlib-deps,$3) \
-)
+define control-content =
+Source: $1
+Build-Depends: debhelper (>= 11)
+Maintainer: $2
+
+Package: $1
+Architecture: $(call get-deb-arch)
+Description: $3
+Depends: $(foreach p,$6,$p (= $4-$5),) $${misc:Depends}, $${shlibs:Depends}
+Section: misc
+Priority: optional
+
+endef
 
 #
-# $(call depends-line-impl,<dep*>)
+# $(call rules-content,<package name>,<package version>,<package revision>,<deb work dir>,<artifacts-dir>,<artifact>*)
 #
-depends-line-impl = $(if $(strip $1),Depends: $(subst $(space),$(comma)$(space),$(strip $1))$(newline))
+define rules-content =
+#!$(call get-make) -f
 
-#
-# $(call depends-line,<prereq-package>*,<build-settings-suffix>,<version>,<deb-work-dir)
-#
-depends-line = $(call depends-line-impl,$(call package-deps,$(addsuffix $2,$1),$3,$4))
+%:
+	dh $$@
 
-#
-# $(call control-file-content,<package>,<build-settings-suffix>,<version>,<architecture>,<prereq-package>*,<work-dir>,<maintainer>,<description>)
-#
-define control-file-content =
-Package: $1$2
-Version: $3
-Architecture: $4
-$(call depends-line,$5,$2,$3,$6)Maintainer: $7
-Description: $8
+override_dh_auto_clean:
+override_dh_auto_test:
+override_dh_auto_build:
+override_dh_installchangelogs:
+override_dh_compress:
+override_dh_strip:
+override_dh_strip_nondeterminism:
+
+override_dh_auto_install:$(foreach d,$(call distro-dirs,$6),$(newline)$(tab)$(usp-mkdir-p) "$(call to-shell,$4/debian/$1/$d)")$(foreach a,$6,$(newline)$(tab)$(usp-cp) "$(call to-shell,$5/$a)" "$(call to-shell,$4/debian/$1/$(call distro-path,$a))")
+
+override_dh_gencontrol:
+	dh_gencontrol -- -v$2-$3
 
 endef
 
@@ -196,12 +154,6 @@ override deb-work-dir := $(packaging-work-dir)/deb/$(deb-package-basename)
 
 override artifacts := $(patsubst $(artifacts-dir)/$(package)/%,%,$(call find-files,%,$(artifacts-dir)/$(package)))
 
-override config-artifacts := $(call filter-config-artifacts,$(artifacts))
-
-override work-dir-artifacts := $(foreach a,$(artifacts),$(deb-work-dir)/$(call distro-path,$a))
-
-override work-dir-dirs := $(foreach d,$(call distro-dirs,$(artifacts)),$(deb-work-dir)/$d)
-
 #
 # Rules
 #
@@ -211,35 +163,40 @@ all: deb-package
 .PHONY: deb-package
 deb-package: $(pkgs-dir)/$(deb-package-basename).deb
 
-# Remove $(deb-work-dir)/debian first to prevent it from being packaged
-$(pkgs-dir)/$(deb-package-basename).deb: $(deb-work-dir)/DEBIAN/control $(if $(config-artifacts),$(deb-work-dir)/DEBIAN/conffiles) | $(pkgs-dir)
-	$(usp-rm-rf) "$(call to-shell,$(deb-work-dir)/debian)"
-	dpkg-deb --root-owner-group --build "$(call to-shell,$(deb-work-dir))" "$(call to-shell,$@)"
+$(pkgs-dir)/$(deb-package-basename).deb: \
+  $(packaging-work-dir)/deb/$(deb-package-basename).deb \
+  | $(pkgs-dir)
+	$(usp-cp) "$(call to-shell,$<)" "$(call to-shell,$@)"
 
-$(pkgs-dir):
+$(packaging-work-dir)/deb/$(deb-package-basename).deb: \
+  $(deb-work-dir)/debian/changelog \
+  $(deb-work-dir)/debian/compat \
+  $(deb-work-dir)/debian/control \
+  $(deb-work-dir)/debian/rules \
+  | $(packaging-work-dir)/deb
+	unset MAKEFLAGS && cd "$(call to-shell,$(deb-work-dir))" && dpkg-buildpackage -us -uc -b 
+
+$(pkgs-dir) $(packaging-work-dir)/deb:
 	$(usp-mkdir-p) "$(call to-shell,$@)"
 
-$(deb-work-dir)/DEBIAN/control: $(deb-work-dir)/debian/control $(deb-work-dir)/DEBIAN $(work-dir-artifacts)
-	$(file >$@,$(call control-file-content,$(package),$(build-settings-suffix),$(pkg-version)-$(pkg-revision),$(deb-arch),$(prereq-packages),$(deb-work-dir),$(pkg-maintainer),$(pkg-description)))
-	@echo generated $@
-
-$(deb-work-dir)/DEBIAN/conffiles: $(deb-work-dir)/DEBIAN $(work-dir-artifacts)
-	$(file >$@,$(call conffiles-content,$(config-artifacts)))
-	@echo generated $@
+$(deb-work-dir)/debian/changelog: $(deb-work-dir)/debian
+	$(file >$@,$(call changelog-content,$(package)$(build-settings-suffix),$(pkg-version)))
+	$(info generated $@)
 	
-# empty file required by dpkg-shlibdeps
+$(deb-work-dir)/debian/compat: $(deb-work-dir)/debian
+	$(file >$@,11)
+	$(info generated $@)
+
 $(deb-work-dir)/debian/control: $(deb-work-dir)/debian
-	$(file >$@,)
-	@echo generated $@
+	$(file >$@,$(call control-content,$(package)$(build-settings-suffix),$(pkg-maintainer),$(pkg-description),$(pkg-version),$(pkg-revision),$(foreach p,$(prereq-packages),$p$(build-settings-suffix))))
+	$(info generated $@)
 
-$(deb-work-dir)/debian $(deb-work-dir)/DEBIAN: clean-deb-work-dir
-	$(usp-mkdir-p) "$(call to-shell,$@)"
+$(deb-work-dir)/debian/rules: $(deb-work-dir)/debian
+	$(file >$@,$(call rules-content,$(package)$(build-settings-suffix),$(pkg-version),$(pkg-revision),$(deb-work-dir),$(artifacts-dir)/$(package),$(artifacts)))
+	$(info generated $@)
+	chmod +x "$(call to-shell,$@)"
 
-$(work-dir-artifacts): $(work-dir-dirs)
-
-$(foreach a,$(artifacts),$(call expand,$(call copy-to-distro-root-rule,$(deb-work-dir),$(artifacts-dir)/$(package),$a)))
-
-$(work-dir-dirs): clean-deb-work-dir
+$(deb-work-dir)/debian: clean-deb-work-dir
 	$(usp-mkdir-p) "$(call to-shell,$@)"
 
 .PHONY: clean-deb-work-dir
