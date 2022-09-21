@@ -97,7 +97,12 @@ Priority: optional
 endef
 
 #
-# $(call rules-content,<package name>,<package version>,<package revision>,<deb work dir>,<artifacts-dir>,<artifact>*)
+# $(call service-name,<service file template>)
+#
+service-name = $(basename $(notdir $1))$(build-settings-suffix)
+
+#
+# $(call rules-content,<package name>,<package version>,<package revision>,<deb work dir>,<artifacts-dir>,<artifact>*,<service-file-template>?)
 #
 define rules-content =
 #!$(call get-make) -f
@@ -113,7 +118,7 @@ override_dh_compress:
 override_dh_strip:
 override_dh_strip_nondeterminism:
 
-override_dh_auto_install:$(foreach d,$(call distro-dirs,$6),$(newline)$(tab)$(usp-mkdir-p) "$(call to-shell,$4/debian/$1/$d)")$(foreach a,$6,$(newline)$(tab)$(usp-cp) "$(call to-shell,$5/$a)" "$(call to-shell,$4/debian/$1/$(call distro-path,$a))")
+override_dh_auto_install:$(foreach d,$(call distro-dirs,$6),$(newline)$(tab)$(usp-mkdir-p) "$(call to-shell,$4/debian/$1/$d)")$(foreach a,$6,$(newline)$(tab)$(usp-cp) "$(call to-shell,$5/$a)" "$(call to-shell,$4/debian/$1/$(call distro-path,$a))")$(if $7,$(newline)$(tab)$(usp-mkdir-p) "$(call to-shell,$4/debian/$1/lib/systemd/system)"$(newline)$(tab)$(usp-sed) -e 's/@BSS@/$(build-settings-suffix)/g' "$(call to-shell,$7)" >"$(call to-shell,$4/debian/$1/lib/systemd/system/$(call service-name,$7).service)")
 
 override_dh_gencontrol:
 	dh_gencontrol -- -v$2-$3
@@ -124,15 +129,6 @@ endef
 # $(call conffiles-content,<conf-artifact>*)
 #
 conffiles-content = $(foreach a,$1,/$(call distro-path,$a)$(newline))
-
-#
-# $(call copy-to-distro-root-rule,<distro root>,<artifacts dir>,<artifact>)
-#
-define copy-to-distro-root-rule =
-$1/$(call distro-path,$3): $2/$3
-	$(usp-cp) "$(call to-shell,$$<)" "$(call to-shell,$$@)"
-
-endef
 
 #
 # Get system-provided settings
@@ -192,7 +188,7 @@ $(deb-work-dir)/debian/control: $(deb-work-dir)/debian
 	$(info generated $@)
 
 $(deb-work-dir)/debian/rules: $(deb-work-dir)/debian
-	$(file >$@,$(call rules-content,$(package)$(build-settings-suffix),$(pkg-version),$(pkg-revision),$(deb-work-dir),$(artifacts-dir)/$(package),$(artifacts)))
+	$(file >$@,$(call rules-content,$(package)$(build-settings-suffix),$(pkg-version),$(pkg-revision),$(deb-work-dir),$(artifacts-dir)/$(package),$(artifacts),$(service-file-template)))
 	$(info generated $@)
 	chmod +x "$(call to-shell,$@)"
 

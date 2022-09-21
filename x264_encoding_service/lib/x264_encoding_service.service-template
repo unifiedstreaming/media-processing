@@ -6,3 +6,6 @@ After=network.target
 ExecStart=/usr/bin/x264_encoding_service@BSS@ --config /etc/x264_encoding_service@BSS@.conf --pidfile=/tmp/x264_encoding_service@BSS@.pid
 Type=forking
 PIDFile=/tmp/x264_encoding_service@BSS@.pid
+
+[Install]
+WantedBy=multi-user.target
