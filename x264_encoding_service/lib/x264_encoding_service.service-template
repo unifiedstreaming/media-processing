@@ -1,5 +1,5 @@
 [Unit]
-Description=x264 encoding service (@BSS@)
+Description=x264_encoding_service@BSS@
 After=network.target
 
 [Service]

@@ -722,12 +722,3 @@ check-duplicate-notdir-prefix = $(strip \
   ) \
   $2 \
 )
-
-#
-# $(call checked-optional-service-file-template,<path>)
-#
-checked-optional-service-file-template = $(strip \
-  $(if $(strip $1), \
-    $(call strip-mandatory-suffix,.service-template,$1).service-template \
-  ) \
-)

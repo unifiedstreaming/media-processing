@@ -72,7 +72,7 @@ $(call package, \
     x264_encoding_service/COPYING \
   conf-file-templates: \
     x264_encoding_service/etc/x264_encoding_service.conf-template \
-  service-file-template : \
+  service-file-templates : \
     x264_encoding_service/lib/x264_encoding_service.service-template \
 )
 

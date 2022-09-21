@@ -84,7 +84,7 @@ endef
 #
 define control-content =
 Source: $1
-Build-Depends: debhelper (>= 11)
+Build-Depends: debhelper (>= $(debhelper-version))
 Maintainer: $2
 
 Package: $1
@@ -102,7 +102,27 @@ endef
 service-name = $(basename $(notdir $1))$(build-settings-suffix)
 
 #
-# $(call rules-content,<package name>,<package version>,<package revision>,<deb work dir>,<artifacts-dir>,<artifact>*,<service-file-template>?)
+# $(call make-artifact-dirs,<package>,<deb-work-dir>,<artifact>*)
+#
+make-artifact-dirs = $(foreach d,$(call distro-dirs,$3),$(newline)$(tab)$(usp-mkdir-p) "$(call to-shell,$2/debian/$1/$d)")
+
+#
+# $(call install-artifacts,<package>,<deb-work-dir>,<artifacts-dir>,<artifact>*)
+#
+install-artifacts = $(foreach a,$4,$(newline)$(tab)$(usp-cp) "$(call to-shell,$3/$a)" "$(call to-shell,$2/debian/$1/$(call distro-path,$a))")
+
+#
+# $(call make-service-dir,<package>,<deb-work-dir>,<service-file-template>*)
+#
+make-service-dir = $(if $(strip $3),$(newline)$(tab)$(usp-mkdir-p) "$(call to-shell,$2/debian/$1/lib/systemd/system)")
+
+#
+# $(call install-services,<package>,<deb-work-dir>,<service-file-template>*)
+#
+install-services = $(foreach t,$3,$(newline)$(tab)$(usp-sed) 's/@BSS@/$(build-settings-suffix)/g' "$(call to-shell,$t)" >"$(call to-shell,$2/debian/$1/lib/systemd/system/$(call service-name,$t).service)")
+
+#
+# $(call rules-content,<package name>,<package version>,<package revision>,<deb work dir>,<artifacts-dir>,<artifact>*,<service-file-template>*)
 #
 define rules-content =
 #!$(call get-make) -f
@@ -118,7 +138,7 @@ override_dh_compress:
 override_dh_strip:
 override_dh_strip_nondeterminism:
 
-override_dh_auto_install:$(foreach d,$(call distro-dirs,$6),$(newline)$(tab)$(usp-mkdir-p) "$(call to-shell,$4/debian/$1/$d)")$(foreach a,$6,$(newline)$(tab)$(usp-cp) "$(call to-shell,$5/$a)" "$(call to-shell,$4/debian/$1/$(call distro-path,$a))")$(if $7,$(newline)$(tab)$(usp-mkdir-p) "$(call to-shell,$4/debian/$1/lib/systemd/system)"$(newline)$(tab)$(usp-sed) -e 's/@BSS@/$(build-settings-suffix)/g' "$(call to-shell,$7)" >"$(call to-shell,$4/debian/$1/lib/systemd/system/$(call service-name,$7).service)")
+override_dh_auto_install: $(call make-artifact-dirs,$1,$4,$6)$(call install-artifacts,$1,$4,$5,$6)$(call make-service-dir,$1,$4,$7)$(call install-services,$1,$4,$7)
 
 override_dh_gencontrol:
 	dh_gencontrol -- -v$2-$3
@@ -129,6 +149,11 @@ endef
 # $(call conffiles-content,<conf-artifact>*)
 #
 conffiles-content = $(foreach a,$1,/$(call distro-path,$a)$(newline))
+
+#
+# Set required debhelper version
+#
+override debhelper-version := 11
 
 #
 # Get system-provided settings
@@ -180,7 +205,7 @@ $(deb-work-dir)/debian/changelog: $(deb-work-dir)/debian
 	$(info generated $@)
 	
 $(deb-work-dir)/debian/compat: $(deb-work-dir)/debian
-	$(file >$@,11)
+	$(file >$@,$(debhelper-version))
 	$(info generated $@)
 
 $(deb-work-dir)/debian/control: $(deb-work-dir)/debian
@@ -188,7 +213,7 @@ $(deb-work-dir)/debian/control: $(deb-work-dir)/debian
 	$(info generated $@)
 
 $(deb-work-dir)/debian/rules: $(deb-work-dir)/debian
-	$(file >$@,$(call rules-content,$(package)$(build-settings-suffix),$(pkg-version),$(pkg-revision),$(deb-work-dir),$(artifacts-dir)/$(package),$(artifacts),$(service-file-template)))
+	$(file >$@,$(call rules-content,$(package)$(build-settings-suffix),$(pkg-version),$(pkg-revision),$(deb-work-dir),$(artifacts-dir)/$(package),$(artifacts),$(service-file-templates)))
 	$(info generated $@)
 	chmod +x "$(call to-shell,$@)"
 
