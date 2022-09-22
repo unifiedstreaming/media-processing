@@ -80,9 +80,9 @@ override artifacts := $(patsubst $(artifacts-dir)/$(package)/%,%,$(call find-fil
 #
 # $(call spec-file-content,<package>,<version>,<revision>,<description>,<license>,<prereq-package>*,<source artifact dir>,<source artifact>*,<service file template>*)
 #
-# Please note that, in contrast to the way Debian handles things, the default
-# rpm systemd postinstall hook does not enable or any service; it only
-# does a preset.
+# Please note that, in contrast to the way Debian handles things, the
+# default rpm systemd postinstall hook does not enable or start any
+# service; it only does a preset.
 #
 # See https://fedoraproject.org/wiki/Packaging:Systemd and
 # https://docs.fedoraproject.org/en-US/packaging-guidelines/Scriptlets/#Systemd
