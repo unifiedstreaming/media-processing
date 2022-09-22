@@ -75,6 +75,11 @@ distro-dirs = $(strip \
 )
 
 #
+# $(call service-name,<service file template>)
+#
+service-name = $(basename $(notdir $1))$(build-settings-suffix)
+
+#
 # Get required settings
 #
 override artifacts-dir := $(call to-make,$(call required-value,artifacts-dir))

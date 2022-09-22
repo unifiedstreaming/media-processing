@@ -78,7 +78,14 @@ override rpm-work-dir := $(packaging-work-dir)/rpm/$(rpm-package-basename)
 override artifacts := $(patsubst $(artifacts-dir)/$(package)/%,%,$(call find-files,%,$(artifacts-dir)/$(package)))
 
 #
-# $(call spec-file-content,<package>,<version>,<revision>,<description>,<license>,<prereq-package>*,<source artifact dir>,<source artifact>*)
+# $(call spec-file-content,<package>,<version>,<revision>,<description>,<license>,<prereq-package>*,<source artifact dir>,<source artifact>*,<service file template>*)
+#
+# Please note that, in contrast to the way Debian handles things, the default
+# rpm systemd postinstall hook does not enable or any service; it only
+# does a preset.
+#
+# See https://fedoraproject.org/wiki/Packaging:Systemd and
+# https://docs.fedoraproject.org/en-US/packaging-guidelines/Scriptlets/#Systemd
 #
 define spec-file-content =
 %define _build_id_links none
@@ -90,6 +97,7 @@ Version: $2
 Release: $3
 Summary: $4
 License: $5
+$(if $(strip $9),BuildRequires: systemd$(comma) systemd-rpm-macros)
 $(call requires-line,$6)
 Provides: %{name} = %{version}
 
@@ -103,9 +111,20 @@ $4
 %install
 $(foreach d,$(call distro-dirs,$8),$(newline)$(usp-mkdir-p) "%{buildroot}/$(call to-shell,$d)")
 $(foreach a,$8,$(newline)$(usp-cp) "$(call to-shell,$7/$a)" "%{buildroot}/$(call to-shell,$(call distro-path,$a))")
+$(if $(strip $9),$(newline)$(usp-mkdir-p) "%{buildroot}%{_unitdir}")
+$(foreach t,$9,$(newline)$(usp-sed) 's/@BSS@/$(build-settings-suffix)/g' "$(call to-shell,$t)" >"%{buildroot}%{_unitdir}/$(call to-shell,$(call service-name,$t).service)")
+
+%post
+$(foreach t,$(service-file-templates),$(newline)%systemd_post $(call service-name,$t).service)
+
+%preun
+$(foreach t,$(service-file-templates),$(newline)%systemd_preun $(call service-name,$t).service)
+
+%postun
+$(foreach t,$(service-file-templates),$(newline)%systemd_postun_with_restart $(call service-name,$t).service)
 
 %files
-$(foreach a,$8,$(newline)$(if $(call filter-config-artifacts,$a),%config(noreplace) )/$(call distro-path,$a))
+$(foreach a,$8,$(newline)$(if $(call filter-config-artifacts,$a),%config(noreplace) )/$(call distro-path,$a))$(foreach t,$9,$(newline)%{_unitdir}/$(call service-name,$t).service)
 
 endef
 
@@ -125,7 +144,7 @@ $(rpm-work-dir)/RPMS/$(rpm-arch)/$(rpm-package-basename).rpm: $(rpm-work-dir)/SP
 	rpmbuild -bb --define '_topdir $(rpm-work-dir)' $<
 
 $(rpm-work-dir)/SPECS/$(package)$(build-settings-suffix).spec: $(rpm-work-dir)/SPECS
-	$(file >$@,$(call spec-file-content,$(package)$(build-settings-suffix),$(pkg-version),$(pkg-revision),$(pkg-description),$(license),$(addsuffix $(build-settings-suffix),$(prereq-packages)),$(artifacts-dir)/$(package),$(artifacts)))
+	$(file >$@,$(call spec-file-content,$(package)$(build-settings-suffix),$(pkg-version),$(pkg-revision),$(pkg-description),$(license),$(addsuffix $(build-settings-suffix),$(prereq-packages)),$(artifacts-dir)/$(package),$(artifacts),$(service-file-templates)))
 	$(info generated $@)
 
 $(rpm-work-dir)/SPECS: clean-rpm-work-dir

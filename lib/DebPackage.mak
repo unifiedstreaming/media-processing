@@ -97,11 +97,6 @@ Priority: optional
 endef
 
 #
-# $(call service-name,<service file template>)
-#
-service-name = $(basename $(notdir $1))$(build-settings-suffix)
-
-#
 # $(call make-artifact-dirs,<package>,<deb-work-dir>,<artifact>*)
 #
 make-artifact-dirs = $(foreach d,$(call distro-dirs,$3),$(newline)$(tab)$(usp-mkdir-p) "$(call to-shell,$2/debian/$1/$d)")
