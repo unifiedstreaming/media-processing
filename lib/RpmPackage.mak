@@ -58,6 +58,45 @@ requires-line-cont = $(if $(firstword $1),$(comma) $(call requires-line-elt,$(fi
 requires-line = $(if $(firstword $1),Requires: $(call requires-line-elt,$(firstword $1))$(call requires-line-cont,$(wordlist 2,$(words $1),$1)),# No explicit Requires: line)
 
 #
+# $(call service-post,<service name>)
+# (stolen form systemd-rpm-macros package which is not available on Centos7)
+#
+define service-post =
+
+if [ $$1 -eq 1 ] ; then
+  # Initial installation
+  systemctl --no-reload preset $1.service &>/dev/null || :
+fi
+
+endef
+
+#
+# $(call service-preun,<service name>
+# (stolen form systemd-rpm-macros package which is not available on Centos7)
+#
+define service-preun =
+
+if [ $$1 -eq 0 ] ; then 
+  # Package removal, not upgrade 
+  systemctl --no-reload disable --now $1.service &>/dev/null || : 
+fi
+
+endef
+
+#
+# $(call service-postun,<service name>
+# (stolen form systemd-rpm-macros package which is not available on Centos7)
+#
+define service-postun =
+
+if [ $$1 -ge 1 ] ; then 
+  # Package upgrade, not uninstall 
+  systemctl try-restart $1.service &>/dev/null || : 
+fi
+
+endef
+
+#
 # Get system-provided settings
 #
 override rpm-arch := $(call get-rpm-arch)
@@ -97,7 +136,7 @@ Version: $2
 Release: $3
 Summary: $4
 License: $5
-$(if $(strip $9),BuildRequires: systemd$(comma) systemd-rpm-macros)
+$(if $(strip $9),BuildRequires: systemd$(newline)%{?systemd_requires})
 $(call requires-line,$6)
 Provides: %{name} = %{version}
 
@@ -115,13 +154,13 @@ $(if $(strip $9),$(newline)$(usp-mkdir-p) "%{buildroot}%{_unitdir}")
 $(foreach t,$9,$(newline)$(usp-sed) 's/@BSS@/$(build-settings-suffix)/g' "$(call to-shell,$t)" >"%{buildroot}%{_unitdir}/$(call to-shell,$(call service-name,$t).service)")
 
 %post
-$(foreach t,$(service-file-templates),$(newline)%systemd_post $(call service-name,$t).service)
+$(foreach t,$(service-file-templates),$(call service-post,$(call service-name,$t)))
 
 %preun
-$(foreach t,$(service-file-templates),$(newline)%systemd_preun $(call service-name,$t).service)
+$(foreach t,$(service-file-templates),$(call service-preun,$(call service-name,$t)))
 
 %postun
-$(foreach t,$(service-file-templates),$(newline)%systemd_postun_with_restart $(call service-name,$t).service)
+$(foreach t,$(service-file-templates),$(call service-postun,$(call service-name,$t)))
 
 %files
 $(foreach a,$8,$(newline)$(if $(call filter-config-artifacts,$a),%config(noreplace) )/$(call distro-path,$a))$(foreach t,$9,$(newline)%{_unitdir}/$(call service-name,$t).service)
