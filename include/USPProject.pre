@@ -580,7 +580,7 @@ bjam-test-project = $(call expand,$(call call-stripped, \
 ))
 
 #
-# $(call package-impl,<package name>,<license>,<doc file>*,<conf file template>*,<service file template>*)
+# $(call package-impl,<package name>,<license>,<doc file>*,<conf file template>*,<service file template>*,<openrc file template*>)
 #
 define package-impl =
 #
@@ -593,6 +593,7 @@ $1.package-license := $2
 $1.package-doc-files := $3
 $1.package-conf-file-templates := $4
 $1.package-service-file-templates := $5
+$1.package-openrc-file-templates := $6
 
 endef
 
@@ -604,17 +605,25 @@ endef
 # license                 package license
 # doc-files*              package-specific documentation files
 # conf-file-templates*    package-specific config file templates
-# service-file-templates* package-specific systemd service file template
+# service-file-templates* package-specific systemd service file templates
+# openrc-file-templates*  package-specific openrc file template
 #
 package-keys := \
-  name license doc-files conf-file-templates service-file-templates
+  name \
+  license \
+  doc-files \
+  conf-file-templates \
+  service-file-templates \
+  openrc-file-templates
+  
 package = $(call expand,$(call call-stripped, \
   package-impl, \
   $(call get-value,name,$1,$(package-keys)), \
   $(call get-value,license,$1,$(package-keys)), \
   $(call check-duplicate-notdir,$(call find-values,doc-files,$1,$(package-keys))), \
   $(call check-duplicate-notdir-prefix,.conf-template,$(call find-values,conf-file-templates,$1,$(package-keys))), \
-  $(call check-duplicate-notdir-prefix,.service-template,$(call find-value,service-file-templates,$1,$(package-keys))) \
+  $(call check-duplicate-notdir-prefix,.service-template,$(call find-value,service-file-templates,$1,$(package-keys))), \
+  $(call check-duplicate-notdir-prefix,.openrc-template,$(call find-value,openrc-file-templates,$1,$(package-keys))) \
 ))
 
 #

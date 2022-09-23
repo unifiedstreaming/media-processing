@@ -257,6 +257,7 @@ native-packager-settings = $(strip \
   artifacts-dir="$(call to-shell,$(artifacts-dir))" \
   packaging-work-dir="$(call to-shell,$(packaging-work-dir))" \
   service-file-templates="$(foreach t,$($1.package-service-file-templates),$(call non-relative-path,$t))" \
+  openrc-file-templates="$(foreach t,$($1.package-openrc-file-templates),$(call non-relative-path,$t))" \
 )
 
 #
