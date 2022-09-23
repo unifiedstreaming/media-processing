@@ -67,7 +67,7 @@ exit 0
 endef
 
 #
-# $(call apkbuild-content,<package>,<build settings suffix>,<version>,<revision>,<description>,<maintainer>,<prereq package>*,<license>,<artifacts-dir>,<artifact>*)
+# $(call apkbuild-content,<package>,<build settings suffix>,<version>,<revision>,<description>,<maintainer>,<prereq package>*,<license>,<artifacts-dir>,<artifact>*,<openrc file template>*)
 #
 define apkbuild-content =
 pkgname="$1$2"
@@ -98,6 +98,10 @@ check() {
 package() {
   $(foreach d,$(call distro-dirs,$(10)),$(usp-mkdir-p) "$$pkgdir/$(call to-shell,$d)"$(newline)$(space))
   $(foreach a,$(10),$(usp-cp) "$(call to-shell,$9/$a)" "$$pkgdir/$(call to-shell,$(call distro-path,$a))"$(newline)$(space))
+  $(if $(strip $(11)),$(usp-mkdir-p) "$$pkgdir/etc/init.d"$(newline))
+  $(foreach t,$(11),$(usp-sed) 's/@BSS@/$2/g' "$(call to-shell,$t)" >"$$pkgdir/etc/init.d/$(call to-shell,$(call service-name,$t))"$(newline)$(space))
+  $(foreach t,$(11),chmod +x "$(call to-shell,$t)" "$$pkgdir/etc/init.d/$(call to-shell,$(call service-name,$t))"$(newline)$(space))
+
   return 0
 }
 
@@ -118,7 +122,7 @@ apk-package: $(apk-work-dir)/APKBUILD $(apk-work-dir)/fake-git/git \
 	cd "$(call to-shell,$(apk-work-dir))" && abuild -m -d -P "$(call to-shell,$(pkgs-dir))"
 
 $(apk-work-dir)/APKBUILD: clean-apk-work-dir
-	$(file >$@,$(call apkbuild-content,$(package),$(build-settings-suffix),$(pkg-version),$(pkg-revision),$(pkg-description),$(pkg-maintainer),$(prereq-packages),$(license),$(artifacts-dir)/$(package),$(artifacts)))
+	$(file >$@,$(call apkbuild-content,$(package),$(build-settings-suffix),$(pkg-version),$(pkg-revision),$(pkg-description),$(pkg-maintainer),$(prereq-packages),$(license),$(artifacts-dir)/$(package),$(artifacts),$(openrc-file-templates)))
 	$(info generated $@)
 	
 #
@@ -128,7 +132,7 @@ $(apk-work-dir)/APKBUILD: clean-apk-work-dir
 $(apk-work-dir)/fake-git/git: $(apk-work-dir)/fake-git
 	$(file >$@,$(fake-git-content))
 	$(info generated fake $@)
-	chmod 755 "$(call to-shell,$@)"
+	chmod +x "$(call to-shell,$@)"
 	
 $(apk-work-dir)/fake-git: clean-apk-work-dir
 	$(usp-mkdir-p) "$(call to-shell,$@)"	
