@@ -74,8 +74,8 @@ endef
 #
 define post-install-content =
 #!/bin/sh
+$(foreach s,$1,$(newline)rc-update add $s default)
 
-$(foreach s,$1,rc-update add $1 default$(newline))
 exit 0
 
 endef
@@ -85,9 +85,9 @@ endef
 #
 define pre-deinstall-content =
 #!/bin/sh
+$(foreach s,$(call reverse,$1),$(newline)rc-service --ifstarted $s stop)
+$(foreach s,$(call reverse,$1),$(newline)rc-update delete $s default)
 
-$(foreach s,$(call reverse,$1),rc-service --ifstarted $1 stop$(newline))
-$(foreach s,$(call reverse,$1),rc-update delete $1 default$(newline))
 exit 0
 
 endef
@@ -97,8 +97,8 @@ endef
 #
 define post-upgrade-content =
 #!/bin/sh
+$(foreach s,$1,$(newline)rc-service --ifstarted $s restart)
 
-$(foreach s,$1,rc-service --ifstarted $1 restart$(newline))
 exit 0
 
 endef
