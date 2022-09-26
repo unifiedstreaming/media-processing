@@ -60,8 +60,45 @@ override apk-work-dir := $(packaging-work-dir)/apk/$(apk-package-basename)
 
 override artifacts := $(patsubst $(artifacts-dir)/$(package)/%,%,$(call find-files,%,$(artifacts-dir)/$(package)))
 
+#
+# $ (call fake-git-content)
+#
 define fake-git-content :=
 #! /bin/sh
+exit 0
+
+endef
+
+#
+# $(call post-install-content,<service name>*)
+#
+define post-install-content =
+#!/bin/sh
+
+$(foreach s,$1,rc-update add $1 default$(newline))
+exit 0
+
+endef
+
+#
+# $(call pre-deinstall-content,<service name>*)
+#
+define pre-deinstall-content =
+#!/bin/sh
+
+$(foreach s,$(call reverse,$1),rc-service --ifstarted $1 stop$(newline))
+$(foreach s,$(call reverse,$1),rc-update delete $1 default$(newline))
+exit 0
+
+endef
+
+#
+# $(call post-upgrade-content,<service name>*)
+#
+define post-upgrade-content =
+#!/bin/sh
+
+$(foreach s,$1,rc-service --ifstarted $1 restart$(newline))
 exit 0
 
 endef
@@ -82,6 +119,7 @@ depends="$(foreach p,$7,$p$2=$3-r$4)"
 subpackages=""
 source=""
 options="!fhs !strip"
+$(if $(strip $(11)),install="$1$2.post-install $1$2.pre-deinstall $1$2.post-upgrade")
 
 prepare() {
   default_prepare
@@ -116,7 +154,9 @@ export PATH := $(apk-work-dir)/fake-git:$(PATH)
 all: apk-package
 
 .PHONY: apk-package
-apk-package: $(apk-work-dir)/APKBUILD $(apk-work-dir)/fake-git/git \
+apk-package: $(apk-work-dir)/APKBUILD \
+  $(apk-work-dir)/fake-git/git \
+  $(if $(strip $(openrc-file-templates)),$(addprefix $(apk-work-dir)/$(package)$(build-settings-suffix),.post-install .pre-deinstall .post-upgrade)) \
   | $(pkgs-dir)/apk/$(apk-arch)
 	cd "$(call to-shell,$(apk-work-dir))" && abuild -m -P "$(call to-shell,$(pkgs-dir))" cleanpkg
 	cd "$(call to-shell,$(apk-work-dir))" && abuild -m -d -P "$(call to-shell,$(pkgs-dir))"
@@ -135,7 +175,22 @@ $(apk-work-dir)/fake-git/git: $(apk-work-dir)/fake-git
 	chmod +x "$(call to-shell,$@)"
 	
 $(apk-work-dir)/fake-git: clean-apk-work-dir
-	$(usp-mkdir-p) "$(call to-shell,$@)"	
+	$(usp-mkdir-p) "$(call to-shell,$@)"
+
+$(apk-work-dir)/$(package)$(build-settings-suffix).post-install: clean-apk-work-dir
+	$(file >$@,$(call post-install-content,$(foreach t,$(service-file-templates),$(call service-name,$t))))
+	$(info generated $@)
+	chmod +x "$(call to-shell,$@)"
+	
+$(apk-work-dir)/$(package)$(build-settings-suffix).pre-deinstall: clean-apk-work-dir
+	$(file >$@,$(call pre-deinstall-content,$(foreach t,$(service-file-templates),$(call service-name,$t))))
+	$(info generated $@)
+	chmod +x "$(call to-shell,$@)"
+	
+$(apk-work-dir)/$(package)$(build-settings-suffix).post-upgrade: clean-apk-work-dir
+	$(file >$@,$(call post-upgrade-content,$(foreach t,$(service-file-templates),$(call service-name,$t))))
+	$(info generated $@)
+	chmod +x "$(call to-shell,$@)"
 	
 $(pkgs-dir)/apk/$(apk-arch):
 	$(usp-mkdir-p) "$(call to-shell,$@)"	
@@ -144,4 +199,3 @@ $(pkgs-dir)/apk/$(apk-arch):
 clean-apk-work-dir:
 	$(usp-rm-rf) "$(call to-shell,$(apk-work-dir))"
 	$(usp-mkdir-p) "$(call to-shell,$(apk-work-dir))"
-
