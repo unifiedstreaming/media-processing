@@ -107,17 +107,17 @@ make-artifact-dirs = $(foreach d,$(call distro-dirs,$3),$(newline)$(tab)$(usp-mk
 install-artifacts = $(foreach a,$4,$(newline)$(tab)$(usp-cp) "$(call to-shell,$3/$a)" "$(call to-shell,$2/debian/$1/$(call distro-path,$a))")
 
 #
-# $(call make-service-dir,<package>,<deb-work-dir>,<service-file-template>*)
+# $(call make-service-dir,<package>,<deb-work-dir>,<service-file>*)
 #
 make-service-dir = $(if $(strip $3),$(newline)$(tab)$(usp-mkdir-p) "$(call to-shell,$2/debian/$1/lib/systemd/system)")
 
 #
-# $(call install-services,<package>,<deb-work-dir>,<service-file-template>*)
+# $(call install-services,<package>,<deb-work-dir>,<service-file>*)
 #
-install-services = $(foreach t,$3,$(newline)$(tab)$(usp-sed) 's/@BSS@/$(build-settings-suffix)/g' "$(call to-shell,$t)" >"$(call to-shell,$2/debian/$1/lib/systemd/system/$(call service-name,$t).service)")
+install-services = $(foreach f,$3,$(newline)$(tab)$(call subst-or-copy,$f,$2/debian/$1/lib/systemd/system/$(call service-name,$f)$(call service-suffix,$f)))
 
 #
-# $(call rules-content,<package name>,<package version>,<package revision>,<deb work dir>,<artifacts-dir>,<artifact>*,<service-file-template>*)
+# $(call rules-content,<package name>,<package version>,<package revision>,<deb work dir>,<artifacts-dir>,<artifact>*,<service-file>*)
 #
 define rules-content =
 #!$(call get-make) -f
@@ -208,7 +208,7 @@ $(deb-work-dir)/debian/control: $(deb-work-dir)/debian
 	$(info generated $@)
 
 $(deb-work-dir)/debian/rules: $(deb-work-dir)/debian
-	$(file >$@,$(call rules-content,$(package)$(build-settings-suffix),$(pkg-version),$(pkg-revision),$(deb-work-dir),$(artifacts-dir)/$(package),$(artifacts),$(service-file-templates)))
+	$(file >$@,$(call rules-content,$(package)$(build-settings-suffix),$(pkg-version),$(pkg-revision),$(deb-work-dir),$(artifacts-dir)/$(package),$(artifacts),$(service-files)))
 	$(info generated $@)
 	chmod +x "$(call to-shell,$@)"
 

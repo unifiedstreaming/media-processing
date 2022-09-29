@@ -591,9 +591,9 @@ all-packages := $$(call add-package,$$(all-packages),$(call checked-package-name
 
 $1.package-license := $2
 $1.package-doc-files := $3
-$1.package-conf-file-templates := $4
-$1.package-service-file-templates := $5
-$1.package-openrc-file-templates := $6
+$1.package-conf-files := $4
+$1.package-service-files := $5
+$1.package-openrc-files := $6
 
 endef
 
@@ -601,29 +601,29 @@ endef
 # $(call package,<properties>)
 #
 # properties are:
-# name                    package name
-# license                 package license
-# doc-files*              package-specific documentation files
-# conf-file-templates*    package-specific config file templates
-# service-file-templates* package-specific systemd service file templates
-# openrc-file-templates*  package-specific openrc file template
+# name            package name
+# license         package license
+# doc-files*      package-specific documentation files/templates
+# conf-files*     package-specific config files/templates
+# service-files*  package-specific systemd service files/templates
+# openrc-files*   package-specific openrc init files/templates
 #
 package-keys := \
   name \
   license \
   doc-files \
-  conf-file-templates \
-  service-file-templates \
-  openrc-file-templates
+  conf-files \
+  service-files \
+  openrc-files
   
 package = $(call expand,$(call call-stripped, \
   package-impl, \
   $(call get-value,name,$1,$(package-keys)), \
   $(call get-value,license,$1,$(package-keys)), \
-  $(call check-duplicate-notdir,$(call find-values,doc-files,$1,$(package-keys))), \
-  $(call check-duplicate-notdir-prefix,.conf-template,$(call find-values,conf-file-templates,$1,$(package-keys))), \
-  $(call check-duplicate-notdir-prefix,.service-template,$(call find-value,service-file-templates,$1,$(package-keys))), \
-  $(call check-duplicate-notdir-prefix,.openrc-template,$(call find-value,openrc-file-templates,$1,$(package-keys))) \
+  $(call check-duplicate-basenames,$(call find-values,doc-files,$1,$(package-keys))), \
+  $(call check-duplicate-basenames,$(call find-values,conf-files,$1,$(package-keys))), \
+  $(call check-duplicate-basenames,$(call find-values,service-files,$1,$(package-keys))), \
+  $(call check-duplicate-basenames,$(call find-values,openrc-files,$1,$(package-keys))) \
 ))
 
 #

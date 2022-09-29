@@ -117,7 +117,7 @@ override rpm-work-dir := $(packaging-work-dir)/rpm/$(rpm-package-basename)
 override artifacts := $(patsubst $(artifacts-dir)/$(package)/%,%,$(call find-files,%,$(artifacts-dir)/$(package)))
 
 #
-# $(call spec-file-content,<package>,<version>,<revision>,<description>,<license>,<prereq-package>*,<source artifact dir>,<source artifact>*,<service file template>*)
+# $(call spec-file-content,<package>,<version>,<revision>,<description>,<license>,<prereq-package>*,<source artifact dir>,<source artifact>*,<service file>*)
 #
 # Please note that, in contrast to the way Debian handles things, the
 # default rpm systemd postinstall hook does not enable or start any
@@ -151,19 +151,19 @@ $4
 $(foreach d,$(call distro-dirs,$8),$(newline)$(usp-mkdir-p) "%{buildroot}/$(call to-shell,$d)")
 $(foreach a,$8,$(newline)$(usp-cp) "$(call to-shell,$7/$a)" "%{buildroot}/$(call to-shell,$(call distro-path,$a))")
 $(if $(strip $9),$(newline)$(usp-mkdir-p) "%{buildroot}%{_unitdir}")
-$(foreach t,$9,$(newline)$(usp-sed) 's/@BSS@/$(build-settings-suffix)/g' "$(call to-shell,$t)" >"%{buildroot}%{_unitdir}/$(call to-shell,$(call service-name,$t).service)")
+$(foreach f,$9,$(newline)$(call subst-or-copy,$f,%{buildroot}%{_unitdir}/$(call service-name,$f)$(call service-suffix,$f)))
 
 %post
-$(foreach t,$(service-file-templates),$(call service-post,$(call service-name,$t)))
+$(foreach f,$9,$(call service-post,$(call service-name,$f)))
 
 %preun
-$(foreach t,$(service-file-templates),$(call service-preun,$(call service-name,$t)))
+$(foreach f,$9,$(call service-preun,$(call service-name,$f)))
 
 %postun
-$(foreach t,$(service-file-templates),$(call service-postun,$(call service-name,$t)))
+$(foreach f,$9,$(call service-postun,$(call service-name,$f)))
 
 %files
-$(foreach a,$8,$(newline)$(if $(call filter-config-artifacts,$a),%config(noreplace) )/$(call distro-path,$a))$(foreach t,$9,$(newline)%{_unitdir}/$(call service-name,$t).service)
+$(foreach a,$8,$(newline)$(if $(call filter-config-artifacts,$a),%config(noreplace) )/$(call distro-path,$a))$(foreach f,$9,$(newline)%{_unitdir}/$(call service-name,$f)$(call service-suffix,$f))
 
 endef
 
@@ -183,7 +183,7 @@ $(rpm-work-dir)/RPMS/$(rpm-arch)/$(rpm-package-basename).rpm: $(rpm-work-dir)/SP
 	rpmbuild -bb --define '_topdir $(rpm-work-dir)' $<
 
 $(rpm-work-dir)/SPECS/$(package)$(build-settings-suffix).spec: $(rpm-work-dir)/SPECS
-	$(file >$@,$(call spec-file-content,$(package)$(build-settings-suffix),$(pkg-version),$(pkg-revision),$(pkg-description),$(license),$(addsuffix $(build-settings-suffix),$(prereq-packages)),$(artifacts-dir)/$(package),$(artifacts),$(service-file-templates)))
+	$(file >$@,$(call spec-file-content,$(package)$(build-settings-suffix),$(pkg-version),$(pkg-revision),$(pkg-description),$(license),$(addsuffix $(build-settings-suffix),$(prereq-packages)),$(artifacts-dir)/$(package),$(artifacts),$(service-files)))
 	$(info generated $@)
 
 $(rpm-work-dir)/SPECS: clean-rpm-work-dir

@@ -104,7 +104,7 @@ exit 0
 endef
 
 #
-# $(call apkbuild-content,<package>,<build settings suffix>,<version>,<revision>,<description>,<maintainer>,<prereq package>*,<license>,<artifacts-dir>,<artifact>*,<openrc file template>*)
+# $(call apkbuild-content,<package>,<build settings suffix>,<version>,<revision>,<description>,<maintainer>,<prereq package>*,<license>,<artifacts-dir>,<artifact>*,<openrc file>*)
 #
 define apkbuild-content =
 pkgname="$1$2"
@@ -137,8 +137,8 @@ package() {
   $(foreach d,$(call distro-dirs,$(10)),$(usp-mkdir-p) "$$pkgdir/$(call to-shell,$d)"$(newline)$(space))
   $(foreach a,$(10),$(usp-cp) "$(call to-shell,$9/$a)" "$$pkgdir/$(call to-shell,$(call distro-path,$a))"$(newline)$(space))
   $(if $(strip $(11)),$(usp-mkdir-p) "$$pkgdir/etc/init.d"$(newline))
-  $(foreach t,$(11),$(usp-sed) 's/@BSS@/$2/g' "$(call to-shell,$t)" >"$$pkgdir/etc/init.d/$(call to-shell,$(call service-name,$t))"$(newline)$(space))
-  $(foreach t,$(11),chmod +x "$(call to-shell,$t)" "$$pkgdir/etc/init.d/$(call to-shell,$(call service-name,$t))"$(newline)$(space))
+  $(foreach f,$(11),$(call subst-or-copy,$f,$$pkgdir/etc/init.d/$(call service-name,$f)$(call service-suffix,$f)))
+  $(foreach f,$(11),chmod +x "$(call to-shell,$$pkgdir/etc/init.d/$(call service-name,$f)$(call service-suffix,$f))")
 
   return 0
 }
@@ -156,13 +156,13 @@ all: apk-package
 .PHONY: apk-package
 apk-package: $(apk-work-dir)/APKBUILD \
   $(apk-work-dir)/fake-git/git \
-  $(if $(strip $(openrc-file-templates)),$(addprefix $(apk-work-dir)/$(package)$(build-settings-suffix),.post-install .pre-deinstall .post-upgrade)) \
+  $(if $(strip $(openrc-files)),$(addprefix $(apk-work-dir)/$(package)$(build-settings-suffix),.post-install .pre-deinstall .post-upgrade)) \
   | $(pkgs-dir)/apk/$(apk-arch)
 	cd "$(call to-shell,$(apk-work-dir))" && abuild -m -P "$(call to-shell,$(pkgs-dir))" cleanpkg
 	cd "$(call to-shell,$(apk-work-dir))" && abuild -m -d -P "$(call to-shell,$(pkgs-dir))"
 
 $(apk-work-dir)/APKBUILD: clean-apk-work-dir
-	$(file >$@,$(call apkbuild-content,$(package),$(build-settings-suffix),$(pkg-version),$(pkg-revision),$(pkg-description),$(pkg-maintainer),$(prereq-packages),$(license),$(artifacts-dir)/$(package),$(artifacts),$(openrc-file-templates)))
+	$(file >$@,$(call apkbuild-content,$(package),$(build-settings-suffix),$(pkg-version),$(pkg-revision),$(pkg-description),$(pkg-maintainer),$(prereq-packages),$(license),$(artifacts-dir)/$(package),$(artifacts),$(openrc-files)))
 	$(info generated $@)
 	
 #
@@ -178,17 +178,17 @@ $(apk-work-dir)/fake-git: clean-apk-work-dir
 	$(usp-mkdir-p) "$(call to-shell,$@)"
 
 $(apk-work-dir)/$(package)$(build-settings-suffix).post-install: clean-apk-work-dir
-	$(file >$@,$(call post-install-content,$(foreach t,$(service-file-templates),$(call service-name,$t))))
+	$(file >$@,$(call post-install-content,$(foreach f,$(openrc-files),$(call service-name,$f))))
 	$(info generated $@)
 	chmod +x "$(call to-shell,$@)"
 	
 $(apk-work-dir)/$(package)$(build-settings-suffix).pre-deinstall: clean-apk-work-dir
-	$(file >$@,$(call pre-deinstall-content,$(foreach t,$(service-file-templates),$(call service-name,$t))))
+	$(file >$@,$(call pre-deinstall-content,$(foreach f,$(openrc-files),$(call service-name,$f))))
 	$(info generated $@)
 	chmod +x "$(call to-shell,$@)"
 	
 $(apk-work-dir)/$(package)$(build-settings-suffix).post-upgrade: clean-apk-work-dir
-	$(file >$@,$(call post-upgrade-content,$(foreach t,$(service-file-templates),$(call service-name,$t))))
+	$(file >$@,$(call post-upgrade-content,$(foreach f,$(openrc-files),$(call service-name,$f))))
 	$(info generated $@)
 	chmod +x "$(call to-shell,$@)"
 	

@@ -674,51 +674,83 @@ checked-package-name = $(strip \
 )
 
 #
-# $(call find-duplicate-notdir,<filename>*)
+# $(call notdir-basename-impl,<output>,<input>)
 #
-find-duplicate-notdir = $(strip \
+notdir-basename-impl = $(strip \
+  $(if $(strip $1), \
+    $1 \
+  , \
+    $(error no basename in '$2') \
+  ) \
+)
+
+#
+# $(call notdir-basename,<path>*)
+#
+notdir-basename = $(strip \
+  $(foreach p,$1, \
+    $(call notdir-basename-impl,$(basename $(notdir $p)),$p) \
+  ) \
+)
+
+#
+# $(call has-template-suffix,<path>)
+#
+has-template-suffix = $(strip \
+  $(call REM,notdir-basename forces error on missing basename) \
+  $(if $(call notdir-basename,$1), \
+    $(if $(filter %.template,$1), \
+      yes \
+    ) \
+  ) \
+)
+
+#
+# $(call drop-template-suffix,<path>*)
+#
+drop-template-suffix = $(strip \
+  $(foreach p,$1, \
+    $(call REM,notdir-basename forces error on missing basename) \
+    $(if $(call notdir-basename,$p), \
+      $(patsubst %.template,%,$p) \
+    ) \
+  ) \
+)
+
+#
+# $(call check-duplicate-basenames,<path>*,<prev basename>*)
+# Please note: uses drop-template-suffix before checking
+#
+check-duplicate-basenames = $(strip \
   $(if $(firstword $1), \
-    $(if $(filter $(notdir $(firstword $1)),$(notdir $(wordlist 2,$(words $1),$1))), \
-      $(notdir $(firstword $1)) \
-    ) \
-    $(call find-duplicate-notdir,$(wordlist 2,$(words $1),$1)) \
-  ) \
-)
-
-#
-# $(call check-duplicate-notdir,<filename>*)
-#
-check-duplicate-notdir = $(strip \
-  $(if $(call find-duplicate-notdir,$1), \
-    $(error duplicate file name '$(call find-duplicate-notdir,$1)') \
-  ) \
-  $1 \
-)
-
-#
-# $(call strip-mandatory-suffix,<suffix>,<filename>*)
-#
-strip-mandatory-suffix = $(strip \
-  $(if $(firstword $2), \
-    $(if $(filter %$1,$(firstword $2)), \
-      $(if $(patsubst %$1,%,$(notdir $(firstword $2))), \
-        $(patsubst %$1,%,$(firstword $2)) \
-        $(call strip-mandatory-suffix,$1,$(wordlist 2,$(words $2),$2)) \
-      , \
-        $(error '$(firstword $2)' must have a non-empty name before '$1') \
-      ) \
+    $(if $(filter \
+      $(call notdir-basename,$(call drop-template-suffix,$(firstword $1))), \
+      $2), \
+      $(error duplicate basename in '$(firstword $1)') \
     , \
-      $(error '$(firstword $2)' must have suffix '$1') \
+      $(firstword $1) \
+      $(call check-duplicate-basenames, \
+        $(wordlist 2,$(words $1),$1), \
+        $2 \
+        $(call notdir-basename,$(call drop-template-suffix,$(firstword $1))) \
+      ) \
     ) \
   ) \
 )
-      
+
 #
-# $(call check-duplicate-notdir-prefix,<suffix>,<filename>*)
+# sed substitutions in template files
 #
-check-duplicate-notdir-prefix = $(strip \
-  $(if $(call find-duplicate-notdir,$(call strip-mandatory-suffix,$1,$2)), \
-    $(error duplicate file name prefix '$(call find-duplicate-notdir,$(call strip-mandatory-suffix,$1,$2))') \
+template-substitutions := -e 's/@BSS@/$(build-settings-suffix)/g'
+
+#
+# $(call subst-or-copy,<input file>,<output-file>)
+#
+subst-or-copy = $(strip \
+  $(if $(call has-template-suffix,$1), \
+    $(usp-sed) $(template-substitutions) \
+      "$(call to-shell,$1)" >"$(call to-shell,$2)" \
+  , \
+    $(usp-cp) "$(call to-shell,$1)" "$(call to-shell,$2)" \
   ) \
-  $2 \
 )

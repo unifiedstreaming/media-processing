@@ -70,12 +70,12 @@ $(call package, \
   doc-files: \
     x264_encoding_service/doc/copyright \
     x264_encoding_service/COPYING \
-  conf-file-templates: \
-    x264_encoding_service/etc/x264_encoding_service.conf-template \
-  service-file-templates : \
-    x264_encoding_service/lib/x264_encoding_service.service-template \
-  openrc-file-templates : \
-    x264_encoding_service/lib/x264_encoding_service.openrc-template \
+  conf-files: \
+    x264_encoding_service/etc/x264_encoding_service.conf.template \
+  service-files : \
+    x264_encoding_service/lib/x264_encoding_service.service.template \
+  openrc-files : \
+    x264_encoding_service/lib/x264_encoding_service.template \
 )
 
 $(call package, \

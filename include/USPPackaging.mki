@@ -75,9 +75,14 @@ distro-dirs = $(strip \
 )
 
 #
-# $(call service-name,<template file name>)
+# $(call service-name,<service source file>)
 #
-service-name = $(basename $(notdir $1))$(build-settings-suffix)
+service-name = $(call notdir-basename,$(call drop-template-suffix,$1))$(build-settings-suffix)
+
+#
+# $(call service-suffix,<service source file>)
+#
+service-suffix = $(suffix $(call drop-template-suffix,$1))
 
 #
 # Get required settings
@@ -105,6 +110,6 @@ override pkg-revision := $(if $(pkg-revision),$(call checked-pkg-version-or-revi
 
 override prereq-packages := $(foreach pkg,$(prereq-packages),$(call checked-package-name,$(pkg)))
 
-override service-file-templates := $(foreach t,$(service-file-templates),$(call non-relative-path,$t))
+override service-files := $(foreach f,$(service-files),$(call non-relative-path,$f))
 
-override openrc-file-templates := $(foreach t,$(openrc-file-templates),$(call non-relative-path,$t))
+override openrc-files := $(foreach f,$(openrc-files),$(call non-relative-path,$f))

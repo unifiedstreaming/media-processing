@@ -256,8 +256,8 @@ native-packager-settings = $(strip \
   prereq-packages="$(call prereq-packages,$1)" \
   artifacts-dir="$(call to-shell,$(artifacts-dir))" \
   packaging-work-dir="$(call to-shell,$(packaging-work-dir))" \
-  service-file-templates="$(foreach t,$($1.package-service-file-templates),$(call non-relative-path,$t))" \
-  openrc-file-templates="$(foreach t,$($1.package-openrc-file-templates),$(call non-relative-path,$t))" \
+  service-files="$(foreach f,$($1.package-service-files),$(call non-relative-path,$f))" \
+  openrc-files="$(foreach f,$($1.package-openrc-files),$(call non-relative-path,$f))" \
 )
 
 #
@@ -268,7 +268,7 @@ doc-artifacts-dir = $(artifacts-dir)/$1/doc/$1$(build-settings-suffix)
 #
 # $(call doc-artifact,<package>,<source file>)
 #
-doc-artifact = $(call doc-artifacts-dir,$1)/$(notdir $2)
+doc-artifact = $(call doc-artifacts-dir,$1)/$(notdir $(call drop-template-suffix,$2))
 
 #
 # $(call conf-artifacts-dir,<package>)
@@ -278,7 +278,7 @@ conf-artifacts-dir = $(artifacts-dir)/$1/etc
 #
 # $(call conf-artifact,<package>,<template file>)
 #
-conf-artifact = $(call conf-artifacts-dir,$1)/$(patsubst %.conf-template,%,$(notdir $2))$(build-settings-suffix).conf
+conf-artifact = $(call conf-artifacts-dir,$1)/$(call notdir-basename,$(call drop-template-suffix,$2))$(build-settings-suffix)$(suffix $(call drop-template-suffix,$2))
 
 #
 # $(call artifact-targets,<package>)
@@ -299,11 +299,11 @@ $(call conf-artifacts-dir,$1): | $(artifacts-dir)/$1
 $(foreach prj,$(call projects-in-package,$1),$(prj).project-artifacts: | $(artifacts-dir)/$1$(newline))
 
 .PHONY: $1.artifacts
-$1.artifacts: $(strip $(foreach pkg,$(call prereq-packages,$1),$(pkg).artifacts) $(foreach prj,$(call projects-in-package,$1),$(prj).project-artifacts) $(foreach df,$($1.package-doc-files),$(call doc-artifact,$1,$(df))) $(foreach cft,$($1.package-conf-file-templates),$(call conf-artifact,$1,$(cft))))
+$1.artifacts: $(strip $(foreach pkg,$(call prereq-packages,$1),$(pkg).artifacts) $(foreach prj,$(call projects-in-package,$1),$(prj).project-artifacts) $(foreach df,$($1.package-doc-files),$(call doc-artifact,$1,$(df))) $(foreach cf,$($1.package-conf-files),$(call conf-artifact,$1,$(cf))))
 
-$(foreach df,$($1.package-doc-files),$(call doc-artifact,$1,$(df)): $(df) | $(call doc-artifacts-dir,$1)$(newline)$(tab)$(usp-cp) "$$(call to-shell,$$<)" "$$(call to-shell,$$@)"$(newline)$(newline))
+$(foreach df,$($1.package-doc-files),$(call doc-artifact,$1,$(df)): $(df) | $(call doc-artifacts-dir,$1)$(newline)$(tab)$(call subst-or-copy,$(df),$(call doc-artifact,$1,$(df)))$(newline)$(newline))
 
-$(foreach cft,$($1.package-conf-file-templates),$(call conf-artifact,$1,$(cft)): $(cft) | $(call conf-artifacts-dir,$1)$(newline)$(tab)$(usp-sed) -e "s/@BSS@/$(build-settings-suffix)/g" "$$(call to-shell,$$<)" >"$$(call to-shell,$$@)"$(newline)$(newline))
+$(foreach cf,$($1.package-conf-files),$(call conf-artifact,$1,$(cf)): $(cf) | $(call conf-artifacts-dir,$1)$(newline)$(tab)$(call subst-or-copy,$(cf),$(call conf-artifact,$1,$(cf)))$(newline)$(newline))
 
 .PHONY: $1.deb-package
 $1.deb-package: $(strip $(foreach pkg,$(call prereq-packages,$1),$(pkg).deb-package) $1.artifacts)
