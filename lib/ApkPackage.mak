@@ -137,8 +137,8 @@ package() {
   $(foreach d,$(call distro-dirs,$(10)),$(usp-mkdir-p) "$$pkgdir/$(call to-shell,$d)"$(newline)$(space))
   $(foreach a,$(10),$(usp-cp) "$(call to-shell,$9/$a)" "$$pkgdir/$(call to-shell,$(call distro-path,$a))"$(newline)$(space))
   $(if $(strip $(11)),$(usp-mkdir-p) "$$pkgdir/etc/init.d"$(newline))
-  $(foreach f,$(11),$(call subst-or-copy,$f,$$pkgdir/etc/init.d/$(call service-name,$f)$(call service-suffix,$f)))
-  $(foreach f,$(11),chmod +x "$(call to-shell,$$pkgdir/etc/init.d/$(call service-name,$f)$(call service-suffix,$f))")
+  $(foreach f,$(11),$(call subst-or-copy,$f,$$pkgdir/etc/init.d/$(call service-name,$f)$(call service-suffix,$f))$(newline)$(space))
+  $(foreach f,$(11),chmod +x "$(call to-shell,$$pkgdir/etc/init.d/$(call service-name,$f)$(call service-suffix,$f))"$(newline)$(space))
 
   return 0
 }
