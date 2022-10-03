@@ -116,9 +116,9 @@ url="FIXME"
 arch="all"
 license="$8"
 depends="$(foreach p,$7,$p$2=$3-r$4)"
-subpackages=""
+subpackages="$(if $(with-symbol-pkg),$$pkgname-dbg)"
 source=""
-options="!fhs !strip"
+options="!fhs$(if $(with-symbol-pkg),, !dbg !strip)"
 $(if $(strip $(11)),install="$1$2.post-install $1$2.pre-deinstall $1$2.post-upgrade")
 
 prepare() {

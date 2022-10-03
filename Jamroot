@@ -21,6 +21,7 @@ path-constant stage-dir : [ os.environ stage-dir ] ;
 project oss
 : requirements
   <cxxstd>17
+  <debug-symbols>on
   <toolset>msvc:<cxxflags>/wd4251 # class needs to have dll-interface 
   <toolset>msvc:<cxxflags>/wd4275 # non dll-interface class used as base
   <toolset>msvc:<cxxflags>/wd4910 # dllexport on extern template
@@ -32,7 +33,6 @@ project oss
 : default-build
 # <variant>release
   <address-model>64
-  <debug-symbols>on
 ;
 
 rule dist-dll-location ( properties * )

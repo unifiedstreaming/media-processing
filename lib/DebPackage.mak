@@ -130,7 +130,7 @@ override_dh_auto_test:
 override_dh_auto_build:
 override_dh_installchangelogs:
 override_dh_compress:
-override_dh_strip:
+$(if $(with-symbol-pkg),,override_dh_strip:)
 override_dh_strip_nondeterminism:
 
 override_dh_auto_install: $(call make-artifact-dirs,$1,$4,$6)$(call install-artifacts,$1,$4,$5,$6)$(call make-service-dir,$1,$4,$7)$(call install-services,$1,$4,$7)
@@ -166,6 +166,8 @@ $(call check-package-not-installed,$(package)$(build-settings-suffix))
 #
 override deb-package-basename := $(package)$(build-settings-suffix)_$(pkg-version)-$(pkg-revision)_$(deb-arch)
 
+override deb-symbol-package-basename := $(package)$(build-settings-suffix)-dbgsym_$(pkg-version)-$(pkg-revision)_$(deb-arch)
+
 override deb-work-dir := $(packaging-work-dir)/deb/$(deb-package-basename)
 
 override artifacts := $(patsubst $(artifacts-dir)/$(package)/%,%,$(call find-files,%,$(artifacts-dir)/$(package)))
@@ -177,10 +179,15 @@ override artifacts := $(patsubst $(artifacts-dir)/$(package)/%,%,$(call find-fil
 all: deb-package
 
 .PHONY: deb-package
-deb-package: $(pkgs-dir)/$(deb-package-basename).deb
+deb-package: $(pkgs-dir)/$(deb-package-basename).deb $(if $(with-symbol-pkg),$(pkgs-dir)/$(deb-symbol-package-basename).ddeb)
 
 $(pkgs-dir)/$(deb-package-basename).deb: \
   $(packaging-work-dir)/deb/$(deb-package-basename).deb \
+  | $(pkgs-dir)
+	$(usp-cp) "$(call to-shell,$<)" "$(call to-shell,$@)"
+
+$(pkgs-dir)/$(deb-symbol-package-basename).ddeb: \
+  $(packaging-work-dir)/deb/$(deb-symbol-package-basename).ddeb \
   | $(pkgs-dir)
 	$(usp-cp) "$(call to-shell,$<)" "$(call to-shell,$@)"
 
@@ -191,6 +198,8 @@ $(packaging-work-dir)/deb/$(deb-package-basename).deb: \
   $(deb-work-dir)/debian/rules \
   | $(packaging-work-dir)/deb
 	unset MAKEFLAGS && cd "$(call to-shell,$(deb-work-dir))" && dpkg-buildpackage -us -uc -b 
+
+$(packaging-work-dir)/deb/$(deb-symbol-package-basename).ddeb: $(packaging-work-dir)/deb/$(deb-package-basename).deb
 
 $(pkgs-dir) $(packaging-work-dir)/deb:
 	$(usp-mkdir-p) "$(call to-shell,$@)"

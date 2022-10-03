@@ -112,6 +112,8 @@ $(call check-package-not-installed,$(package)$(build-settings-suffix))
 #
 override rpm-package-basename := $(package)$(build-settings-suffix)-$(pkg-version)-$(pkg-revision).$(rpm-arch)
 
+override rpm-symbol-package-basename := $(package)$(build-settings-suffix)-debuginfo-$(pkg-version)-$(pkg-revision).$(rpm-arch)
+
 override rpm-work-dir := $(packaging-work-dir)/rpm/$(rpm-package-basename)
 
 override artifacts := $(patsubst $(artifacts-dir)/$(package)/%,%,$(call find-files,%,$(artifacts-dir)/$(package)))
@@ -127,9 +129,12 @@ override artifacts := $(patsubst $(artifacts-dir)/$(package)/%,%,$(call find-fil
 # https://docs.fedoraproject.org/en-US/packaging-guidelines/Scriptlets/#Systemd
 #
 define spec-file-content =
-%define _build_id_links none
-%global debug_package %{nil}
-%global __os_install_post %{nil}
+
+$(if $(with-symbol-pkg),,%define _build_id_links none)
+$(if $(with-symbol-pkg),,%global debug_package %{nil})
+$(if $(with-symbol-pkg),,%global __os_install_post %{nil})
+
+$(if $(with-symbol-pkg),%define _debugsource_template %{nil})
 
 Name: $1
 Version: $2
@@ -142,6 +147,8 @@ Provides: %{name} = %{version}
 
 %description
 $4
+
+$(if $(with-symbol-pkg),%debug_package)
 
 %prep
 
@@ -171,9 +178,12 @@ endef
 all: rpm-package
 
 .PHONY: rpm-package
-rpm-package: $(pkgs-dir)/$(rpm-package-basename).rpm
+rpm-package: $(pkgs-dir)/$(rpm-package-basename).rpm $(if $(with-symbol-pkg),$(pkgs-dir)/$(rpm-symbol-package-basename).rpm)
 
 $(pkgs-dir)/$(rpm-package-basename).rpm: $(rpm-work-dir)/RPMS/$(rpm-arch)/$(rpm-package-basename).rpm | $(pkgs-dir)
+	$(usp-cp) "$(call to-shell,$<)" "$(call to-shell,$@)"
+
+$(pkgs-dir)/$(rpm-symbol-package-basename).rpm: $(rpm-work-dir)/RPMS/$(rpm-arch)/$(rpm-symbol-package-basename).rpm | $(pkgs-dir)
 	$(usp-cp) "$(call to-shell,$<)" "$(call to-shell,$@)"
 
 $(pkgs-dir) :
@@ -181,6 +191,8 @@ $(pkgs-dir) :
 
 $(rpm-work-dir)/RPMS/$(rpm-arch)/$(rpm-package-basename).rpm: $(rpm-work-dir)/SPECS/$(package)$(build-settings-suffix).spec
 	rpmbuild -bb --define '_topdir $(rpm-work-dir)' $<
+
+$(rpm-work-dir)/RPMS/$(rpm-arch)/$(rpm-symbol-package-basename).rpm: $(rpm-work-dir)/RPMS/$(rpm-arch)/$(rpm-package-basename).rpm
 
 $(rpm-work-dir)/SPECS/$(package)$(build-settings-suffix).spec: $(rpm-work-dir)/SPECS
 	$(file >$@,$(call spec-file-content,$(package)$(build-settings-suffix),$(pkg-version),$(pkg-revision),$(pkg-description),$(license),$(addsuffix $(build-settings-suffix),$(prereq-packages)),$(artifacts-dir)/$(package),$(artifacts),$(service-files)))
