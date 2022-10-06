@@ -13,7 +13,7 @@
 # Common stuff for packaging backends
 #
 
-include include/USPCommon.mki
+include USPCommon.mki
 
 #
 # $(call checked-pkg-version-or-revision,<variable name>)

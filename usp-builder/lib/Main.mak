@@ -9,9 +9,7 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 #
 
-.NOTPARALLEL:
-
-.PHONY: all $(MAKECMDGOALS)
-all $(MAKECMDGOALS):
-	$(MAKE) -I usp-builder/include -f usp-builder/lib/Main.mak "$@"
-
+include USPProject.pre
+include USPProjectDefs.mki
+include USPProject.post
+include USPTargets.mki

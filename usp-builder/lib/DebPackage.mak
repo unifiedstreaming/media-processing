@@ -17,7 +17,7 @@
 # Thanks Vincent!
 #
 
-include include/USPPackaging.mki
+include USPPackaging.mki
 
 #
 # $(call is-installed,<package>)

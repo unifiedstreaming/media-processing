@@ -10,16 +10,11 @@
 #
 
 #
-# Determine usp-builder's lib dir
-#
-override usp-builder-lib-dir := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))
-
-#
 # Avoid confusing messages from zip when run in parallel
 #
 .NOTPARALLEL:
 
-include include/USPPackaging.mki
+include USPPackaging.mki
 
 #
 # Set some derived variables
