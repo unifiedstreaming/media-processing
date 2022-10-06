@@ -160,7 +160,6 @@ project-artifacts-dir = $(strip \
 # (to be evaluated very lazily, as part of a recipe)
 #
 gmake-options = $(strip \
-  -I "$(abspath include)" \
   work-dir="$(call project-work-dir,$1)" \
   stage-dir="$(stage-dir)" \
   $(call required-versions,$1) \
