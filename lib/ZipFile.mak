@@ -10,6 +10,11 @@
 #
 
 #
+# Determine usp-builder's lib dir
+#
+override usp-builder-lib-dir := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))
+
+#
 # Avoid confusing messages from zip when run in parallel
 #
 .NOTPARALLEL:
@@ -28,7 +33,7 @@ override artifacts := $(patsubst $(artifacts-dir)/$(package)/%,%,$(call find-fil
 override main-artifacts := $(if $(with-symbol-pkg),$(filter-out %.pdb,$(artifacts)),$(artifacts))
 override pdb-artifacts := $(if $(with-symbol-pkg),$(filter %.pdb,$(artifacts)),)
 
-override no-files-workaround := . --include .
+override empty-zip-file := $(usp-builder-lib-dir)/empty.zip
 
 #
 # Rules
@@ -42,11 +47,11 @@ zip-file: $(pkgs-dir)/$(main-zip-filename) \
 
 $(pkgs-dir)/$(main-zip-filename): force | $(pkgs-dir)
 	$(usp-rm-rf) "$(call to-shell,$@)"
-	cd "$(call to-shell,$(artifacts-dir)/$(package))" && $(usp-zip) -X "$(call to-shell,$@)" $(if $(main-artifacts),$(foreach a,$(main-artifacts),"$(call to-shell,$a)"),$(no-files-workaround))
+	$(if $(main-artifacts),cd "$(call to-shell,$(artifacts-dir)/$(package))" && $(usp-zip) -X "$(call to-shell,$@)" $(foreach a,$(main-artifacts),"$(call to-shell,$a)"),$(usp-cp) "$(call to-shell,$(empty-zip-file))" "$(call to-shell,$@)")
 	
 $(pkgs-dir)/$(pdb-zip-filename): force | $(pkgs-dir)
 	$(usp-rm-rf) "$(call to-shell,$@)"
-	cd "$(call to-shell,$(artifacts-dir)/$(package))" && $(usp-zip) -X "$(call to-shell,$@)" $(if $(pdb-artifacts),$(foreach a,$(pdb-artifacts),"$(call to-shell,$a)"),$(no-files-workaround))
+	$(if $(pbd-artifacts),cd "$(call to-shell,$(artifacts-dir)/$(package))" && $(usp-zip) -X "$(call to-shell,$@)" $(foreach a,$(pdb-artifacts),"$(call to-shell,$a)"),$(usp-cp) "$(call to-shell,$(empty-zip-file))" "$(call to-shell,$@)")
 
 $(pkgs-dir):
 	$(usp-mkdir-p) "$(call to-shell,$@)"
