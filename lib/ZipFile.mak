@@ -51,7 +51,7 @@ $(pkgs-dir)/$(main-zip-filename): force | $(pkgs-dir)
 	
 $(pkgs-dir)/$(pdb-zip-filename): force | $(pkgs-dir)
 	$(usp-rm-rf) "$(call to-shell,$@)"
-	$(if $(pbd-artifacts),cd "$(call to-shell,$(artifacts-dir)/$(package))" && $(usp-zip) -X "$(call to-shell,$@)" $(foreach a,$(pdb-artifacts),"$(call to-shell,$a)"),$(usp-cp) "$(call to-shell,$(empty-zip-file))" "$(call to-shell,$@)")
+	$(if $(pdb-artifacts),cd "$(call to-shell,$(artifacts-dir)/$(package))" && $(usp-zip) -X "$(call to-shell,$@)" $(foreach a,$(pdb-artifacts),"$(call to-shell,$a)"),$(usp-cp) "$(call to-shell,$(empty-zip-file))" "$(call to-shell,$@)")
 
 $(pkgs-dir):
 	$(usp-mkdir-p) "$(call to-shell,$@)"
