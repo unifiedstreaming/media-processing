@@ -12,7 +12,7 @@
 #
 # Determine usp-builder's lib and include dirs
 #
-override usp-builder-include-dir := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))
+override usp-builder-include-dir := $(abspath $(dir $(lastword $(MAKEFILE_LIST)))/..)
 override usp-builder-lib-dir := $(abspath $(usp-builder-include-dir)/../lib)
 
 #

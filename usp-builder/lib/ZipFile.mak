@@ -14,7 +14,7 @@
 #
 .NOTPARALLEL:
 
-include USPPackaging.mki
+include usp-builder/USPPackaging.mki
 
 #
 # Set some derived variables

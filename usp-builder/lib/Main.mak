@@ -9,7 +9,7 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 #
 
-include USPProject.pre
+include usp-builder/USPProject.pre
 include USPProjectDefs.mki
-include USPProject.post
+include usp-builder/USPProject.post
 include USPTargets.mki

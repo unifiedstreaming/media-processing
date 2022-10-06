@@ -11,7 +11,7 @@
 
 x264-src-dir := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))
 
-include USPCommon.mki
+include usp-builder/USPCommon.mki
 
 $(if $(work-dir),,$(error work-dir must be set))
 $(call check-out-of-tree,$(work-dir),$(x264-src-dir))

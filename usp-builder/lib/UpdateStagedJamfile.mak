@@ -13,7 +13,7 @@
 # This makefile updates a jamfile in the stage directory
 #
 
-include USPCommon.mki
+include usp-builder/USPCommon.mki
 
 jamfile := $(call required-value,jamfile)
 jamfile-dir := $(patsubst %/,%,$(dir $(jamfile)))

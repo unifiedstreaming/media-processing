@@ -9,7 +9,7 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 #
 
-include USPCommon.mki
+include usp-builder/USPCommon.mki
 
 #
 # Recursive Make Considered Harmful: prevent concurrent captains on

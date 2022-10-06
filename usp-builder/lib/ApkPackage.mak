@@ -9,7 +9,7 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 #
 
-include USPPackaging.mki
+include usp-builder/USPPackaging.mki
 
 #
 # $(call is-installed,<package>)
