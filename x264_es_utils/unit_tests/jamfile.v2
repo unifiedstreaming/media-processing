@@ -30,3 +30,5 @@ unit-test service_test
 : service_test.cpp
 ;
 
+explicit uspb-all ;
+alias uspb-all : . ;

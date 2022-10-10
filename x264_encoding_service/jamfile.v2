@@ -36,9 +36,11 @@ exe $(X264_ENCODING_SERVICE)
   $(stage-dir)/lib/jamfiles/cuti//cuti
 ;
 
-explicit dist ;
+explicit uspb-all ;
+alias uspb-all : x264_encoding_service ;
 
-install dist
+explicit uspb-dist ;
+install uspb-dist
 :
   x264_encoding_service
 :

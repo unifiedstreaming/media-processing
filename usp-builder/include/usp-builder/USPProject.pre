@@ -19,8 +19,8 @@ include usp-builder/USPCommon.mki
 # the staging directory or make dist's $(dest-dir).
 #
 # Please note that sub-makes will still run parallel jobs if -j<X> is
-# passed to this Makefile, and that bjam defaults to some level of
-# parallel builds by default.
+# passed to this Makefile, and that bjam uses parallel builds by
+# default.
 #
 .NOTPARALLEL:
 
@@ -304,7 +304,7 @@ $1: $1.all
 
 .PHONY: $1.all
 $1.all: build-dir-skeleton $(addsuffix .stage,$4)
-	$(usp-bjam) $$(call bjam-options,$1) $(build-settings) $3
+	$(usp-bjam) $$(call bjam-options,$1) $(build-settings) $3//uspb-all
 
 # Legacy bjam project: no staging; consumers can only be other
 # jamfiles referring to this project's jamfile
@@ -313,11 +313,11 @@ $1.stage: $1.all
 
 .PHONY: $1.dist
 $1.dist: $1.all $(addsuffix .dist,$4)
-$(if $5,$(tab)$(usp-bjam) $$(call bjam-dist-options,$1) $(build-settings) $3//dist)
+$(if $5,$(tab)$(usp-bjam) $$(call bjam-dist-options,$1) $(build-settings) $3//uspb-dist)
 
 $(if $5,.PHONY: $1.project-artifacts)
 $(if $5,$1.project-artifacts: $1.all)
-$(if $5,$(tab)$(usp-bjam) $$(call bjam-package-options,$1) $(build-settings) $3//dist)
+$(if $5,$(tab)$(usp-bjam) $$(call bjam-package-options,$1) $(build-settings) $3//uspb-dist)
 
 .PHONY: $1.clean
 $1.clean:
@@ -366,7 +366,7 @@ $1: $1.all
 
 .PHONY: $1.all
 $1.all: build-dir-skeleton $(addsuffix .stage,$5)
-	$(usp-bjam) $$(call bjam-options,$1) $(build-settings) $3
+	$(usp-bjam) $$(call bjam-options,$1) $(build-settings) $3//uspb-all
 
 # We deliberately abuse recursive make here to avoid touching the
 # jamfile in the stage dir when bjam-stage did nothing.  (The .dist
@@ -378,11 +378,11 @@ $1.stage: $1.bjam-stage
 
 .PHONY: $1.dist
 $1.dist: $1.all $(addsuffix .dist,$5)
-	$(usp-bjam) $$(call bjam-dist-options,$1) $(build-settings) $3//dist
+	$(usp-bjam) $$(call bjam-dist-options,$1) $(build-settings) $3//uspb-dist
 
 PHONY: $1.project-artifacts
 $1.project-artifacts: $1.all
-	$(usp-bjam) $$(call bjam-package-options,$1) $(build-settings) $3//dist
+	$(usp-bjam) $$(call bjam-package-options,$1) $(build-settings) $3//uspb-dist
 
 .PHONY: $1.clean
 $1.clean:
@@ -390,7 +390,7 @@ $1.clean:
 
 .PHONY: $1.bjam-stage
 $1.bjam-stage: $1.all
-	$(usp-bjam) $$(call bjam-options,$1) $(build-settings) $3//stage
+	$(usp-bjam) $$(call bjam-options,$1) $(build-settings) $3//uspb-stage
 
 endef
 
@@ -435,7 +435,7 @@ $1: $1.all
 
 .PHONY: $1.all
 $1.all: build-dir-skeleton $(addsuffix .stage,$4)
-	$(usp-bjam) $$(call bjam-options,$1) $(build-settings) $2
+	$(usp-bjam) $$(call bjam-options,$1) $(build-settings) $2//uspb-all
 
 # We deliberately abuse recursive make here to avoid touching the
 # jamfile in the stage dir when bjam-stage did nothing.  (The .dist
@@ -455,7 +455,7 @@ $1.clean:
 
 .PHONY: $1.bjam-stage
 $1.bjam-stage: $1.all
-	$(usp-bjam) $$(call bjam-options,$1) $(build-settings) $2//stage
+	$(usp-bjam) $$(call bjam-options,$1) $(build-settings) $2//uspb-stage
 
 endef
 
@@ -496,15 +496,15 @@ $1: $1.all
 
 .PHONY: $1.all
 $1.all: build-dir-skeleton $(addsuffix .stage,$3)
-	$(usp-bjam) $$(call bjam-options,$1) $(build-settings) $2
+	$(usp-bjam) $$(call bjam-options,$1) $(build-settings) $2//uspb-all
 
 .PHONY: $1.dist
 $1.dist: $1.all $(addsuffix .dist,$3)
-	$(usp-bjam) $$(call bjam-dist-options,$1) $(build-settings) $2//dist
+	$(usp-bjam) $$(call bjam-dist-options,$1) $(build-settings) $2//uspb-dist
 
 PHONY: $1.project-artifacts
 $1.project-artifacts: $1.all
-	$(usp-bjam) $$(call bjam-package-options,$1) $(build-settings) $2//dist
+	$(usp-bjam) $$(call bjam-package-options,$1) $(build-settings) $2//uspb-dist
 
 .PHONY: $1.clean
 $1.clean:
@@ -548,7 +548,7 @@ $1.package :=
 $1: $1.all
 
 $1.all: build-dir-skeleton $(addsuffix .stage,$3)
-	$(usp-bjam) $$(call bjam-options,$1) $(build-settings) $2
+	$(usp-bjam) $$(call bjam-options,$1) $(build-settings) $2//uspb-all
 
 .PHONY: $1.clean
 $1.clean:

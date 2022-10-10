@@ -138,8 +138,11 @@ lib cuti$(BUILD_SETTINGS_SUFFIX)_$(CUTI_VERSION)
   <include>..
 ; 
 
-explicit stage ;
-install stage
+explicit uspb-all ;
+alias uspb-all : cuti ;
+
+explicit uspb-stage ;
+install uspb-stage
 :
   cuti
 :
@@ -147,8 +150,8 @@ install stage
   <location>$(stage-dir)/lib
 ;
 
-explicit dist ;
-install dist
+explicit uspb-dist ;
+install uspb-dist
 :
   cuti
 :

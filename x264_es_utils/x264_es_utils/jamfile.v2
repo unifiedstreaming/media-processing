@@ -33,8 +33,11 @@ lib x264_es_utils
   <include>..
 ;
 
-explicit stage ;
-install stage
+explicit usbp-all ;
+alias uspb-all : x264_es_utils ;
+
+explicit upsb-stage ;
+install uspb-stage
 :
   x264_es_utils
 :

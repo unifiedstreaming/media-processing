@@ -45,8 +45,11 @@ lib x264_proto$(BUILD_SETTINGS_SUFFIX)_$(X264_PROTO_VERSION)
   <include>..
 ;
 
-explicit stage ;
-install stage
+explicit uspb-all ;
+alias uspb-all : x264_proto ;
+
+explicit uspb-stage ;
+install uspb-stage
 :
   x264_proto
 :
@@ -54,8 +57,8 @@ install stage
   <location>$(stage-dir)/lib
 ;
 
-explicit dist ;
-install dist
+explicit uspb-dist ;
+install uspb-dist
 :
   x264_proto
 :
