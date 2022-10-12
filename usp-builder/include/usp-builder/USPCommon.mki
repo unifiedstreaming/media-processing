@@ -252,7 +252,13 @@ validate-build-setting = $(strip \
 #
 # Determine bjam-like build settings
 #
-override default-address-model := 64
+override default-address-model := $(strip \
+  $(if $(filter 32,$(shell getconf LONG_BIT 2>$(dev-null))), \
+    32 \
+  , \
+    64 \
+  ) \
+)
 override default-toolset := $(strip \
   $(if $(windows), \
     msvc \
