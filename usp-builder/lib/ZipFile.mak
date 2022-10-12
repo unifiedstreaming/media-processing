@@ -20,8 +20,8 @@ include usp-builder/USPPackaging.mki
 # Set some derived variables
 #
 
-override main-zip-filename := $(package)$(build-settings-suffix)_$(pkg-version)-$(pkg-revision).zip
-override pdb-zip-filename := $(package)$(build-settings-suffix)-pdb_$(pkg-version)-$(pkg-revision).zip
+override main-zip-filename := $(package)_$(pkg-version)-$(pkg-revision).zip
+override pdb-zip-filename := $(package)-pdb_$(pkg-version)-$(pkg-revision).zip
 
 override artifacts := $(patsubst $(artifacts-dir)/$(package)/%,%,$(call find-files,%,$(artifacts-dir)/$(package)))
 

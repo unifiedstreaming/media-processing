@@ -77,7 +77,7 @@ distro-dirs = $(strip \
 #
 # $(call service-name,<service source file>)
 #
-service-name = $(call notdir-basename,$(call drop-template-suffix,$1))$(build-settings-suffix)
+service-name = $(call notdir-basename,$(call drop-template-suffix,$1))
 
 #
 # $(call service-suffix,<service source file>)

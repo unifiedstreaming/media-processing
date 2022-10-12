@@ -159,14 +159,14 @@ override deb-arch := $(call get-deb-arch)
 # Check that the package is not installed, as that may interfere with
 # automatic shared library dependency detection from depending packages
 #
-$(call check-package-not-installed,$(package)$(build-settings-suffix))
+$(call check-package-not-installed,$(package))
 
 #
 # Set some derived variables
 #
-override deb-package-basename := $(package)$(build-settings-suffix)_$(pkg-version)-$(pkg-revision)_$(deb-arch)
+override deb-package-basename := $(package)_$(pkg-version)-$(pkg-revision)_$(deb-arch)
 
-override deb-symbol-package-basename := $(package)$(build-settings-suffix)-dbgsym_$(pkg-version)-$(pkg-revision)_$(deb-arch)
+override deb-symbol-package-basename := $(package)-dbgsym_$(pkg-version)-$(pkg-revision)_$(deb-arch)
 
 override deb-work-dir := $(packaging-work-dir)/deb/$(deb-package-basename)
 
@@ -205,7 +205,7 @@ $(pkgs-dir) $(packaging-work-dir)/deb:
 	$(usp-mkdir-p) "$(call to-shell,$@)"
 
 $(deb-work-dir)/debian/changelog: $(deb-work-dir)/debian
-	$(file >$@,$(call changelog-content,$(package)$(build-settings-suffix),$(pkg-version)))
+	$(file >$@,$(call changelog-content,$(package),$(pkg-version)))
 	$(info generated $@)
 	
 $(deb-work-dir)/debian/compat: $(deb-work-dir)/debian
@@ -213,11 +213,11 @@ $(deb-work-dir)/debian/compat: $(deb-work-dir)/debian
 	$(info generated $@)
 
 $(deb-work-dir)/debian/control: $(deb-work-dir)/debian
-	$(file >$@,$(call control-content,$(package)$(build-settings-suffix),$(pkg-maintainer),$(pkg-description),$(pkg-version),$(pkg-revision),$(foreach p,$(prereq-packages),$p$(build-settings-suffix))))
+	$(file >$@,$(call control-content,$(package),$(pkg-maintainer),$(pkg-description),$(pkg-version),$(pkg-revision),$(foreach p,$(prereq-packages),$p)))
 	$(info generated $@)
 
 $(deb-work-dir)/debian/rules: $(deb-work-dir)/debian
-	$(file >$@,$(call rules-content,$(package)$(build-settings-suffix),$(pkg-version),$(pkg-revision),$(deb-work-dir),$(artifacts-dir)/$(package),$(artifacts),$(service-files)))
+	$(file >$@,$(call rules-content,$(package),$(pkg-version),$(pkg-revision),$(deb-work-dir),$(artifacts-dir)/$(package),$(artifacts),$(service-files)))
 	$(info generated $@)
 	chmod +x "$(call to-shell,$@)"
 

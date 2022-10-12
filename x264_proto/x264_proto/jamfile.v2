@@ -22,17 +22,15 @@
 import os ;
 import errors ;
 
-constant BUILD_SETTINGS_SUFFIX : [ os.environ build-settings-suffix ] ;
-
 if [ os.environ x264_proto.version ] = ""
 {
   errors.error x264_proto.version must be set ;
 }
 constant X264_PROTO_VERSION : [ os.environ x264_proto.version ] ;
 
-alias x264_proto : x264_proto$(BUILD_SETTINGS_SUFFIX)_$(X264_PROTO_VERSION) ;
+alias x264_proto : x264_proto_$(X264_PROTO_VERSION) ;
 
-lib x264_proto$(BUILD_SETTINGS_SUFFIX)_$(X264_PROTO_VERSION)
+lib x264_proto_$(X264_PROTO_VERSION)
 :
   client.cpp
   $(stage-dir)/lib/jamfiles/cuti//cuti

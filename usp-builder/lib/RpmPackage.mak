@@ -105,14 +105,14 @@ override rpm-arch := $(call get-rpm-arch)
 # Check that the package is not installed, as that may interfere with
 # automatic shared library dependency detection from depending packages
 #
-$(call check-package-not-installed,$(package)$(build-settings-suffix))
+$(call check-package-not-installed,$(package))
 
 #
 # Set some derived variables
 #
-override rpm-package-basename := $(package)$(build-settings-suffix)-$(pkg-version)-$(pkg-revision).$(rpm-arch)
+override rpm-package-basename := $(package)-$(pkg-version)-$(pkg-revision).$(rpm-arch)
 
-override rpm-symbol-package-basename := $(package)$(build-settings-suffix)-debuginfo-$(pkg-version)-$(pkg-revision).$(rpm-arch)
+override rpm-symbol-package-basename := $(package)-debuginfo-$(pkg-version)-$(pkg-revision).$(rpm-arch)
 
 override rpm-work-dir := $(packaging-work-dir)/rpm/$(rpm-package-basename)
 
@@ -189,13 +189,13 @@ $(pkgs-dir)/$(rpm-symbol-package-basename).rpm: $(rpm-work-dir)/RPMS/$(rpm-arch)
 $(pkgs-dir) :
 	$(usp-mkdir-p) "$(call to-shell,$@)"
 
-$(rpm-work-dir)/RPMS/$(rpm-arch)/$(rpm-package-basename).rpm: $(rpm-work-dir)/SPECS/$(package)$(build-settings-suffix).spec
+$(rpm-work-dir)/RPMS/$(rpm-arch)/$(rpm-package-basename).rpm: $(rpm-work-dir)/SPECS/$(package).spec
 	rpmbuild -bb --define '_topdir $(rpm-work-dir)' $<
 
 $(rpm-work-dir)/RPMS/$(rpm-arch)/$(rpm-symbol-package-basename).rpm: $(rpm-work-dir)/RPMS/$(rpm-arch)/$(rpm-package-basename).rpm
 
-$(rpm-work-dir)/SPECS/$(package)$(build-settings-suffix).spec: $(rpm-work-dir)/SPECS
-	$(file >$@,$(call spec-file-content,$(package)$(build-settings-suffix),$(pkg-version),$(pkg-revision),$(pkg-description),$(license),$(addsuffix $(build-settings-suffix),$(prereq-packages)),$(artifacts-dir)/$(package),$(artifacts),$(service-files)))
+$(rpm-work-dir)/SPECS/$(package).spec: $(rpm-work-dir)/SPECS
+	$(file >$@,$(call spec-file-content,$(package),$(pkg-version),$(pkg-revision),$(pkg-description),$(license),$(addsuffix ,$(prereq-packages)),$(artifacts-dir)/$(package),$(artifacts),$(service-files)))
 	$(info generated $@)
 
 $(rpm-work-dir)/SPECS: clean-rpm-work-dir

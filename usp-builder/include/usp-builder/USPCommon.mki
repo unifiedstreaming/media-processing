@@ -295,19 +295,6 @@ override build-settings := $(strip \
 )
 
 #
-# Determine the build settings suffix for package names
-#
-override toolset-suffix := $(addprefix -, \
-  $(filter-out $(default-toolset),$(toolset)))
-override variant-suffix := $(addprefix -, \
-  $(filter-out release,$(variant)))
-override asan-suffix := $(addprefix -asan-,$(address-sanitizer))
-override tsan-suffix := $(addprefix -tsan-,$(thread-sanitizer))
-override ubsan-suffix := $(addprefix -ubsan-,$(undefined-sanitizer))
-
-override build-settings-suffix := $(toolset-suffix)$(variant-suffix)$(asan-suffix)$(tsan-suffix)$(ubsan-suffix)
-
-#
 # Determine sanitizer flags for compiler command lines
 #
 sanitizer-keys := address thread undefined
@@ -349,7 +336,7 @@ endef
 #
 # $(call bjam-implib-filename,<library name>,<version>)
 #
-bjam-implib-filename = $(if $(windows),,lib)$1$(build-settings-suffix)_$2$(if $(windows),.lib,$(if $(darwin),.dylib,.so))
+bjam-implib-filename = $(if $(windows),,lib)$1_$2$(if $(windows),.lib,$(if $(darwin),.dylib,.so))
 
 #
 # $(call bjam-statlib-filename,<library name>)
@@ -753,7 +740,7 @@ check-duplicate-basenames = $(strip \
 #
 # sed substitutions in template files
 #
-template-substitutions := -e 's/@BSS@/$(build-settings-suffix)/g'
+template-substitutions := -e 's/@BSS@//g'
 
 #
 # $(call subst-or-copy,<input file>,<output-file>)

@@ -263,7 +263,7 @@ native-packager-settings = $(strip \
 #
 # $(call doc-artifacts-dir,<package>)
 #
-doc-artifacts-dir = $(artifacts-dir)/$1/doc/$1$(build-settings-suffix)
+doc-artifacts-dir = $(artifacts-dir)/$1/doc/$1
 
 #
 # $(call doc-artifact,<package>,<source file>)
@@ -278,7 +278,7 @@ conf-artifacts-dir = $(artifacts-dir)/$1/etc
 #
 # $(call conf-artifact,<package>,<template file>)
 #
-conf-artifact = $(call conf-artifacts-dir,$1)/$(call notdir-basename,$(call drop-template-suffix,$2))$(build-settings-suffix)$(suffix $(call drop-template-suffix,$2))
+conf-artifact = $(call conf-artifacts-dir,$1)/$(call notdir-basename,$(call drop-template-suffix,$2))$(suffix $(call drop-template-suffix,$2))
 
 #
 # $(call artifact-targets,<package>)

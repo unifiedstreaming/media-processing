@@ -17,20 +17,7 @@
 # <http://www.gnu.org/licenses/>.
 #
 
-import os ;
-
-if [ os.environ build-settings-suffix ] = ""
-{
-  constant X264_ENCODING_SERVICE : x264_encoding_service ;
-}
-else
-{
-  constant BUILD_SETTINGS_SUFFIX : [ os.environ build-settings-suffix ] ;
-  constant X264_ENCODING_SERVICE : x264_encoding_service$(BUILD_SETTINGS_SUFFIX) ;
-  alias x264_encoding_service : $(X264_ENCODING_SERVICE) ;
-}
-
-exe $(X264_ENCODING_SERVICE)
+exe x264_encoding_service
 : main.cpp
   $(stage-dir)/lib/jamfiles/x264_es_utils//x264_es_utils
   $(stage-dir)/lib/jamfiles/cuti//cuti

@@ -50,12 +50,12 @@ override apk-arch := $(call get-apk-arch)
 # Check that the package is not installed, as that may interfere with
 # automatic shared library dependency detection from depending packages
 #
-$(call check-package-not-installed,$(package)$(build-settings-suffix))
+$(call check-package-not-installed,$(package))
 
 #
 # Set some derived variables
 #
-override apk-package-basename := $(package)$(build-settings-suffix)-$(pkg-version)-r$(pkg-revision)
+override apk-package-basename := $(package)-$(pkg-version)-r$(pkg-revision)
 override apk-work-dir := $(packaging-work-dir)/apk/$(apk-package-basename)
 
 override artifacts := $(patsubst $(artifacts-dir)/$(package)/%,%,$(call find-files,%,$(artifacts-dir)/$(package)))
@@ -156,13 +156,13 @@ all: apk-package
 .PHONY: apk-package
 apk-package: $(apk-work-dir)/APKBUILD \
   $(apk-work-dir)/fake-git/git \
-  $(if $(strip $(openrc-files)),$(addprefix $(apk-work-dir)/$(package)$(build-settings-suffix),.post-install .pre-deinstall .post-upgrade)) \
+  $(if $(strip $(openrc-files)),$(addprefix $(apk-work-dir)/$(package),.post-install .pre-deinstall .post-upgrade)) \
   | $(pkgs-dir)/apk/$(apk-arch)
 	cd "$(call to-shell,$(apk-work-dir))" && abuild -m -P "$(call to-shell,$(pkgs-dir))" cleanpkg
 	cd "$(call to-shell,$(apk-work-dir))" && abuild -m -d -P "$(call to-shell,$(pkgs-dir))"
 
 $(apk-work-dir)/APKBUILD: clean-apk-work-dir
-	$(file >$@,$(call apkbuild-content,$(package),$(build-settings-suffix),$(pkg-version),$(pkg-revision),$(pkg-description),$(pkg-maintainer),$(prereq-packages),$(license),$(artifacts-dir)/$(package),$(artifacts),$(openrc-files)))
+	$(file >$@,$(call apkbuild-content,$(package),,$(pkg-version),$(pkg-revision),$(pkg-description),$(pkg-maintainer),$(prereq-packages),$(license),$(artifacts-dir)/$(package),$(artifacts),$(openrc-files)))
 	$(info generated $@)
 	
 #
@@ -177,17 +177,17 @@ $(apk-work-dir)/fake-git/git: $(apk-work-dir)/fake-git
 $(apk-work-dir)/fake-git: clean-apk-work-dir
 	$(usp-mkdir-p) "$(call to-shell,$@)"
 
-$(apk-work-dir)/$(package)$(build-settings-suffix).post-install: clean-apk-work-dir
+$(apk-work-dir)/$(package).post-install: clean-apk-work-dir
 	$(file >$@,$(call post-install-content,$(foreach f,$(openrc-files),$(call service-name,$f))))
 	$(info generated $@)
 	chmod +x "$(call to-shell,$@)"
 	
-$(apk-work-dir)/$(package)$(build-settings-suffix).pre-deinstall: clean-apk-work-dir
+$(apk-work-dir)/$(package).pre-deinstall: clean-apk-work-dir
 	$(file >$@,$(call pre-deinstall-content,$(foreach f,$(openrc-files),$(call service-name,$f))))
 	$(info generated $@)
 	chmod +x "$(call to-shell,$@)"
 	
-$(apk-work-dir)/$(package)$(build-settings-suffix).post-upgrade: clean-apk-work-dir
+$(apk-work-dir)/$(package).post-upgrade: clean-apk-work-dir
 	$(file >$@,$(call post-upgrade-content,$(foreach f,$(openrc-files),$(call service-name,$f))))
 	$(info generated $@)
 	chmod +x "$(call to-shell,$@)"
