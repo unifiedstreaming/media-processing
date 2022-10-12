@@ -85,6 +85,25 @@ service-name = $(call notdir-basename,$(call drop-template-suffix,$1))$(build-se
 service-suffix = $(suffix $(call drop-template-suffix,$1))
 
 #
+# $(call check-packaging-build-setting,<name>,<required value>)
+#
+check-packaging-build-setting = $(strip \
+  $(if $(filter-out $2,$($1)), \
+    $(error $1 must be $(if $2,'$2',empty) for packaging) \
+  ) \
+)
+
+#
+# Check build settings
+#
+$(call check-packaging-build-setting,address-model,$(default-address-model))
+$(call check-packaging-build-setting,address-sanitizer,)
+$(call check-packaging-build-setting,thread-sanitizer,)
+$(call check-packaging-build-setting,toolset,$(default-toolset))
+$(call check-packaging-build-setting,undefined-sanitizer,)
+$(call check-packaging-build-setting,variant,release)
+
+#
 # Get required settings
 #
 override artifacts-dir := $(call to-make,$(call required-value,artifacts-dir))
