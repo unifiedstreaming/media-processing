@@ -45,6 +45,11 @@ build-mode-dir := $(build-dir)/other/$(subst $(space),/,$(subst =,-,$(build-sett
 stage-dir := $(build-mode-dir)/stage
 
 #
+# Determine the (build setting-specific) unit test output directory
+#
+unit-test-out-dir := $(build-mode-dir)/unit-test-out
+
+#
 # Determine the (build setting-specific) directory for distributable
 # artifacts (one subdir per package)
 #
@@ -68,7 +73,8 @@ skeleton-build-dirs := \
   $(stage-dir) \
   $(stage-dir)/include \
   $(stage-dir)/lib \
-  $(stage-dir)/lib/jamfiles
+  $(stage-dir)/lib/jamfiles \
+  $(unit-test-out-dir)
   
 .PHONY: build-dir-skeleton
 build-dir-skeleton: $(stage-dir)/lib/jamfiles/Jamroot | $(skeleton-build-dirs)
@@ -81,6 +87,7 @@ $(stage-dir): | $(build-mode-dir)
 $(stage-dir)/include: | $(stage-dir)
 $(stage-dir)/lib: | $(stage-dir)
 $(stage-dir)/lib/jamfiles: | $(stage-dir)/lib
+$(unit-test-out-dir): | $(build-mode-dir)
 
 $(skeleton-build-dirs):
 	$(usp-mkdir-p) "$(call to-shell,$@)"
@@ -252,6 +259,7 @@ bjam-options = $(strip \
  $(if $(verbose),-d+2) \
  --build-dir="$(call to-native,$(bjam-build-dir))" \
  -sstage-dir="$(call to-native,$(stage-dir))" \
+ -sunit-test-out-dir="$(call to-native,$(unit-test-out-dir))" \
  $(addprefix -s,$(call required-versions,$1)) \
 )
 
