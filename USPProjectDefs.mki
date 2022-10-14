@@ -71,11 +71,11 @@ $(call package, \
     x264_encoding_service/doc/copyright \
     x264_encoding_service/COPYING \
   conf-files: \
-    x264_encoding_service/etc/x264_encoding_service.conf.template \
+    x264_encoding_service/etc/x264_encoding_service.conf \
   service-files : \
-    x264_encoding_service/lib/x264_encoding_service.service.template \
+    x264_encoding_service/lib/x264_encoding_service.service \
   openrc-files : \
-    x264_encoding_service/lib/x264_encoding_service.template \
+    x264_encoding_service/lib/x264_encoding_service \
 )
 
 $(call package, \

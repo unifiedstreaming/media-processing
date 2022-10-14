@@ -693,37 +693,12 @@ notdir-basename = $(strip \
 )
 
 #
-# $(call has-template-suffix,<path>)
-#
-has-template-suffix = $(strip \
-  $(call REM,notdir-basename forces error on missing basename) \
-  $(if $(call notdir-basename,$1), \
-    $(if $(filter %.template,$1), \
-      yes \
-    ) \
-  ) \
-)
-
-#
-# $(call drop-template-suffix,<path>*)
-#
-drop-template-suffix = $(strip \
-  $(foreach p,$1, \
-    $(call REM,notdir-basename forces error on missing basename) \
-    $(if $(call notdir-basename,$p), \
-      $(patsubst %.template,%,$p) \
-    ) \
-  ) \
-)
-
-#
 # $(call check-duplicate-basenames,<path>*,<prev basename>*)
-# Please note: uses drop-template-suffix before checking
 #
 check-duplicate-basenames = $(strip \
   $(if $(firstword $1), \
     $(if $(filter \
-      $(call notdir-basename,$(call drop-template-suffix,$(firstword $1))), \
+      $(call notdir-basename,$(firstword $1)), \
       $2), \
       $(error duplicate basename in '$(firstword $1)') \
     , \
@@ -731,25 +706,8 @@ check-duplicate-basenames = $(strip \
       $(call check-duplicate-basenames, \
         $(wordlist 2,$(words $1),$1), \
         $2 \
-        $(call notdir-basename,$(call drop-template-suffix,$(firstword $1))) \
+        $(call notdir-basename,$(firstword $1)) \
       ) \
     ) \
-  ) \
-)
-
-#
-# sed substitutions in template files
-#
-template-substitutions := -e 's/@BSS@//g'
-
-#
-# $(call subst-or-copy,<input file>,<output-file>)
-#
-subst-or-copy = $(strip \
-  $(if $(call has-template-suffix,$1), \
-    $(usp-sed) $(template-substitutions) \
-      "$(call to-shell,$1)" >"$(call to-shell,$2)" \
-  , \
-    $(usp-cp) "$(call to-shell,$1)" "$(call to-shell,$2)" \
   ) \
 )

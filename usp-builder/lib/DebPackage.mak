@@ -114,7 +114,7 @@ make-service-dir = $(if $(strip $3),$(newline)$(tab)$(usp-mkdir-p) "$(call to-sh
 #
 # $(call install-services,<package>,<deb-work-dir>,<service-file>*)
 #
-install-services = $(foreach f,$3,$(newline)$(tab)$(call subst-or-copy,$f,$2/debian/$1/lib/systemd/system/$(call service-name,$f)$(call service-suffix,$f)))
+install-services = $(foreach f,$3,$(newline)$(tab)$(usp-cp) "$(call to-shell,$f)" "$(call to-shell,$2/debian/$1/lib/systemd/system/$(call service-name,$f)$(call service-suffix,$f))")
 
 #
 # $(call rules-content,<package name>,<package version>,<package revision>,<deb work dir>,<artifacts-dir>,<artifact>*,<service-file>*)

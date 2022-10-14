@@ -1,0 +1,11 @@
+[Unit]
+Description=x264_encoding_service
+After=network.target
+
+[Service]
+ExecStart=/usr/bin/x264_encoding_service --config /etc/x264_encoding_service.conf --pidfile=/tmp/x264_encoding_service.pid
+Type=forking
+PIDFile=/tmp/x264_encoding_service.pid
+
+[Install]
+WantedBy=multi-user.target

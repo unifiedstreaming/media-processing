@@ -585,7 +585,7 @@ bjam-test-project = $(call expand,$(call call-stripped, \
 ))
 
 #
-# $(call package-impl,<package name>,<license>,<doc file>*,<conf file template>*,<service file template>*,<openrc file template*>)
+# $(call package-impl,<package name>,<license>,<doc file>*,<conf file>*,<service file>*,<openrc file>)
 #
 define package-impl =
 #
@@ -608,10 +608,10 @@ endef
 # properties are:
 # name            package name
 # license         package license
-# doc-files*      package-specific documentation files/templates
-# conf-files*     package-specific config files/templates
-# service-files*  package-specific systemd service files/templates
-# openrc-files*   package-specific openrc init files/templates
+# doc-files*      package-specific documentation files
+# conf-files*     package-specific config files
+# service-files*  package-specific systemd service files
+# openrc-files*   package-specific openrc init files
 #
 package-keys := \
   name \
