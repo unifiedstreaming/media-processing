@@ -59,7 +59,7 @@ ifdef with-devel
   override libfiles := $(notdir $(wildcard $(libs-dir)/$(if $(windows),*.lib,*.a)))
 else
   override headers :=
-  override libflles := 
+  override libflles :=
 endif
 
 override installed-headers := $(addprefix $(dest-dir)/include/,$(headers))
@@ -68,7 +68,7 @@ override installed-libfiles := $(addprefix $(dest-dir)/lib/,$(libfiles))
 
 ifdef windows
   override sofiles :=
-  override dylibfiles := 
+  override dylibfiles :=
   override dllfiles := $(notdir $(wildcard $(libs-dir)/*.dll))
   override pdbfiles := $(notdir $(wildcard $(libs-dir)/*.pdb))
 else ifdef darwin
@@ -78,7 +78,7 @@ else ifdef darwin
   override pdbfiles :=
 else
   override sofiles := $(notdir $(shell find "$(call to-shell,$(libs-dir))" -maxdepth 1 -type f '(' -name "*.so" -o -name "*.so.*" ')'))
-  override dylibfiles := 
+  override dylibfiles :=
   override dllfiles :=
   override pdbfiles :=
 endif
@@ -111,7 +111,7 @@ $(installed-libfiles): $(dest-dir)/lib/%: $(libs-dir)/%
 	  libfile="$@" \
 	  libname="$(call get-libfile-libname,$<)" \
 	  incdir="$(dest-dir)/include"
-	
+
 $(installed-sofiles): | $(dest-dir)/lib
 
 $(installed-sofiles): $(dest-dir)/lib/%: $(libs-dir)/%
@@ -143,7 +143,7 @@ ifdef with-devel
 	  libname="$(call get-libfile-libname,$<)" \
 	  incdir="$(dest-dir)/include"
 endif
-	
+
 $(installed-dllfiles): | $(dest-dir)/bin
 
 $(installed-dllfiles): $(dest-dir)/bin/%: $(libs-dir)/%
