@@ -68,20 +68,33 @@ override installed-libfiles := $(addprefix $(dest-dir)/lib/,$(libfiles))
 
 ifdef windows
   override sofiles :=
+  override dylibfiles := 
   override dllfiles := $(notdir $(wildcard $(libs-dir)/*.dll))
   override pdbfiles := $(notdir $(wildcard $(libs-dir)/*.pdb))
+else ifdef darwin
+  override sofiles :=
+  override dylibfiles := $(notdir $(wildcard $(libs-dir)/*.dylib))
+  override dllfiles :=
+  override pdbfiles :=
 else
   override sofiles := $(notdir $(shell find "$(call to-shell,$(libs-dir))" -maxdepth 1 -type f '(' -name "*.so" -o -name "*.so.*" ')'))
+  override dylibfiles := 
   override dllfiles :=
   override pdbfiles :=
 endif
 
 override installed-sofiles := $(addprefix $(dest-dir)/lib/,$(sofiles))
+override installed-dylibfiles := $(addprefix $(dest-dir)/lib/,$(dylibfiles))
 override installed-dllfiles := $(addprefix $(dest-dir)/bin/,$(dllfiles))
 override installed-pdbfiles := $(addprefix $(dest-dir)/bin/,$(pdbfiles))
 
 .PHONY: all
-all: $(installed-headers)  $(installed-libfiles) $(installed-sofiles) $(installed-dllfiles) $(installed-pdbfiles)
+all: $(installed-headers) \
+  $(installed-libfiles) \
+  $(installed-sofiles) \
+  $(installed-dylibfiles) \
+  $(installed-dllfiles) \
+  $(installed-pdbfiles)
 
 $(installed-headers): | $(installed-header-dirs)
 
@@ -118,6 +131,19 @@ ifdef with-devel
 	  incdir="$(dest-dir)/include"
 endif
 
+$(installed-dylibfiles): | $(dest-dir)/lib
+
+$(installed-dylibfiles): $(dest-dir)/lib/%: $(libs-dir)/%
+	$(usp-cp) "$(call to-shell,$<)" "$(call to-shell,$@)"
+ifdef with-devel
+	$(MAKE) -I "$(usp-builder-include-dir)" \
+	  -f "$(usp-builder-lib-dir)/UpdateStagedJamfile.mak" \
+	  jamfile="$(dest-dir)/lib/jamfiles/$(call get-libfile-libname,$<)/jamfile" \
+	  libfile="$@" \
+	  libname="$(call get-libfile-libname,$<)" \
+	  incdir="$(dest-dir)/include"
+endif
+	
 $(installed-dllfiles): | $(dest-dir)/bin
 
 $(installed-dllfiles): $(dest-dir)/bin/%: $(libs-dir)/%
