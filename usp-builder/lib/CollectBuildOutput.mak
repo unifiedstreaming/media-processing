@@ -17,9 +17,9 @@ include usp-builder/USPCommon.mki
 get-soname = $(shell objdump -p "$(call to-shell,$1)" 2>/dev/null | awk '/^ *SONAME +/ { print $$2 }')
 
 #
-# $(call required-runtime-link,<sofile>)
+# $(call runtime-link,<sofile>)
 #
-required-runtime-link = $(filter-out $(notdir $1),$(call get-soname,$1))
+runtime-link = $(filter-out $(notdir $1),$(call get-soname,$1))
 
 #
 # $(call get-develname,<sofile>)
@@ -35,9 +35,9 @@ get-develname = $(strip \
 )
 
 #
-# $(call required-devel-link,<sofile>)
+# $(call devel-link,<sofile>)
 #
-required-devel-link = $(filter-out $(notdir $1),$(call get-develname,$1))
+devel-link = $(filter-out $(notdir $1),$(call get-develname,$1))
       
 #
 # $(call get-sofile-libname,<sofile>)
@@ -54,55 +54,38 @@ override with-devel := $(if $(filter yes,$(with-devel)),yes,)
 override dest-dir := $(call required-value,dest-dir)
 override libs-dir := $(call required-value,libs-dir)
 
-override headers := $(if $(with-devel),$(patsubst $(headers-dir)/%,%,$(call find-files,%,$(call required-value,headers-dir))))
+ifdef with-devel
+  override headers := $(patsubst $(headers-dir)/%,%,$(call find-files,%,$(call required-value,headers-dir)))
+  override libfiles := $(notdir $(wildcard $(libs-dir)/$(if $(windows),*.lib,*.a)))
+else
+  override headers :=
+  override libflles := 
+endif
+
 override installed-headers := $(addprefix $(dest-dir)/include/,$(headers))
 override installed-header-dirs := $(call dedup,$(patsubst %/,%,$(dir $(installed-headers))))
-
-override sofiles := $(if $(windows),,$(notdir $(shell find "$(libs-dir)" -maxdepth 1 -type f '(' -name "*.so" -o -name "*.so.*" ')')))
-override installed-sofiles := $(addprefix $(dest-dir)/lib/,$(sofiles))
-
-override dllfiles := $(if $(windows),$(notdir $(wildcard $(libs-dir)/*.dll)))
-override installed-dllfiles := $(addprefix $(dest-dir)/bin/,$(dllfiles))
-
-override pdbfiles := $(if $(windows),$(notdir $(wildcard $(libs-dir)/*.pdb)))
-override installed-pdbfiles := $(addprefix $(dest-dir)/bin/,$(pdbfiles))
-
-override libfiles := $(if $(with-devel),$(notdir $(wildcard $(libs-dir)/$(if $(windows),*.lib,*.a))))
 override installed-libfiles := $(addprefix $(dest-dir)/lib/,$(libfiles))
 
+ifdef windows
+  override sofiles :=
+  override dllfiles := $(notdir $(wildcard $(libs-dir)/*.dll))
+  override pdbfiles := $(notdir $(wildcard $(libs-dir)/*.pdb))
+else
+  override sofiles := $(notdir $(shell find "$(call to-shell,$(libs-dir))" -maxdepth 1 -type f '(' -name "*.so" -o -name "*.so.*" ')'))
+  override dllfiles :=
+  override pdbfiles :=
+endif
+
+override installed-sofiles := $(addprefix $(dest-dir)/lib/,$(sofiles))
+override installed-dllfiles := $(addprefix $(dest-dir)/bin/,$(dllfiles))
+override installed-pdbfiles := $(addprefix $(dest-dir)/bin/,$(pdbfiles))
+
 .PHONY: all
-all: $(installed-headers) $(installed-sofiles) $(installed-dllfiles) $(installed-pdbfiles) $(installed-libfiles)
+all: $(installed-headers)  $(installed-libfiles) $(installed-sofiles) $(installed-dllfiles) $(installed-pdbfiles)
 
 $(installed-headers): | $(installed-header-dirs)
 
 $(installed-headers): $(dest-dir)/include/%: $(headers-dir)/%
-	$(usp-cp) "$(call to-shell,$<)" "$(call to-shell,$@)"
-
-$(installed-sofiles): | $(dest-dir)/lib
-
-$(installed-sofiles): $(dest-dir)/lib/%: $(libs-dir)/%
-	$(usp-cp) "$(call to-shell,$<)" "$(call to-shell,$@)"
-	$(if $(call required-runtime-link,$<),ln -sf \
-		"$(call to-shell,$(notdir $@))" \
-		"$(call to-shell,$(dir $@)$(call required-runtime-link,$<))")
-	$(if $(and $(with-devel),$(call required-devel-link,$<)),ln -sf \
-		"$(call to-shell,$(notdir $@))" \
-		"$(call to-shell,$(dir $@)$(call required-devel-link,$<))")
-	$(if $(with-devel),$(MAKE) -I "$(usp-builder-include-dir)" \
-	  -f "$(usp-builder-lib-dir)/UpdateStagedJamfile.mak" \
-	  jamfile="$(dest-dir)/lib/jamfiles/$(call get-sofile-libname,$<)/jamfile" \
-	  libfile="$(dest-dir)/lib/$(call get-develname,$<)" \
-	  libname="$(call get-sofile-libname,$<)" \
-	  incdir="$(dest-dir)/include")
-
-$(installed-dllfiles): | $(dest-dir)/bin
-
-$(installed-dllfiles): $(dest-dir)/bin/%: $(libs-dir)/%
-	$(usp-cp) "$(call to-shell,$<)" "$(call to-shell,$@)"
-
-$(installed-pdbfiles): | $(dest-dir)/bin
-
-$(installed-pdbfiles): $(dest-dir)/bin/%: $(libs-dir)/%
 	$(usp-cp) "$(call to-shell,$<)" "$(call to-shell,$@)"
 
 $(installed-libfiles): | $(dest-dir)/lib
@@ -116,5 +99,34 @@ $(installed-libfiles): $(dest-dir)/lib/%: $(libs-dir)/%
 	  libname="$(call get-libfile-libname,$<)" \
 	  incdir="$(dest-dir)/include"
 	
+$(installed-sofiles): | $(dest-dir)/lib
+
+$(installed-sofiles): $(dest-dir)/lib/%: $(libs-dir)/%
+	$(usp-cp) "$(call to-shell,$<)" "$(call to-shell,$@)"
+	$(if $(call runtime-link,$<),ln -sf \
+	  "$(call to-shell,$(notdir $@))" \
+	  "$(call to-shell,$(dir $@)$(call runtime-link,$<))")
+ifdef with-devel
+	$(if $(call devel-link,$<),ln -sf \
+	  "$(call to-shell,$(notdir $@))" \
+	  "$(call to-shell,$(dir $@)$(call devel-link,$<))")
+	$(MAKE) -I "$(usp-builder-include-dir)" \
+	  -f "$(usp-builder-lib-dir)/UpdateStagedJamfile.mak" \
+	  jamfile="$(dest-dir)/lib/jamfiles/$(call get-sofile-libname,$<)/jamfile" \
+	  libfile="$(dest-dir)/lib/$(call get-develname,$<)" \
+	  libname="$(call get-sofile-libname,$<)" \
+	  incdir="$(dest-dir)/include"
+endif
+
+$(installed-dllfiles): | $(dest-dir)/bin
+
+$(installed-dllfiles): $(dest-dir)/bin/%: $(libs-dir)/%
+	$(usp-cp) "$(call to-shell,$<)" "$(call to-shell,$@)"
+
+$(installed-pdbfiles): | $(dest-dir)/bin
+
+$(installed-pdbfiles): $(dest-dir)/bin/%: $(libs-dir)/%
+	$(usp-cp) "$(call to-shell,$<)" "$(call to-shell,$@)"
+
 $(installed-header-dirs) $(dest-dir)/bin $(dest-dir)/lib:
 	$(usp-mkdir-p) "$(call to-shell,$@)"
