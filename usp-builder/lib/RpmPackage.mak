@@ -156,7 +156,7 @@ $(if $(with-symbol-pkg),%debug_package)
 
 %install
 $(foreach d,$(call distro-dirs,$8),$(newline)$(usp-mkdir-p) "%{buildroot}/$(call to-shell,$d)")
-$(foreach a,$8,$(newline)$(usp-cp) "$(call to-shell,$7/$a)" "%{buildroot}/$(call to-shell,$(call distro-path,$a))")
+$(foreach a,$8,$(newline)$(if $(call read-link,$7/$a),ln -sf "$(call to-shell,$(call read-link,$7/$a))" "%{buildroot}/$(call to-shell,$(call distro-path,$a))",$(usp-cp) "$(call to-shell,$7/$a)" "%{buildroot}/$(call to-shell,$(call distro-path,$a))"))
 $(if $(strip $9),$(newline)$(usp-mkdir-p) "%{buildroot}%{_unitdir}")
 $(foreach f,$9,$(newline)$(usp-cp) "$(call to-shell,$f)" "%{buildroot}%{_unitdir}/$(call to-shell,$(call service-name,$f)$(call service-suffix,$f))")
 
