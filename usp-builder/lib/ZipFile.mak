@@ -30,6 +30,8 @@ override pdb-artifacts := $(if $(with-symbol-pkg),$(filter %.pdb,$(artifacts)),)
 
 override empty-zip-file := $(usp-builder-lib-dir)/empty.zip
 
+override zip-options := -X $(if $(windows),,--symlinks)
+
 #
 # Rules
 #
@@ -42,11 +44,11 @@ zip-file: $(pkgs-dir)/$(main-zip-filename) \
 
 $(pkgs-dir)/$(main-zip-filename): force | $(pkgs-dir)
 	$(usp-rm-rf) "$(call to-shell,$@)"
-	$(if $(main-artifacts),cd "$(call to-shell,$(artifacts-dir)/$(package))" && $(usp-zip) -X "$(call to-shell,$@)" $(foreach a,$(main-artifacts),"$(call to-shell,$a)"),$(usp-cp) "$(call to-shell,$(empty-zip-file))" "$(call to-shell,$@)")
+	$(if $(main-artifacts),cd "$(call to-shell,$(artifacts-dir)/$(package))" && $(usp-zip) $(zip-options) "$(call to-shell,$@)" $(foreach a,$(main-artifacts),"$(call to-shell,$a)"),$(usp-cp) "$(call to-shell,$(empty-zip-file))" "$(call to-shell,$@)")
 	
 $(pkgs-dir)/$(pdb-zip-filename): force | $(pkgs-dir)
 	$(usp-rm-rf) "$(call to-shell,$@)"
-	$(if $(pdb-artifacts),cd "$(call to-shell,$(artifacts-dir)/$(package))" && $(usp-zip) -X "$(call to-shell,$@)" $(foreach a,$(pdb-artifacts),"$(call to-shell,$a)"),$(usp-cp) "$(call to-shell,$(empty-zip-file))" "$(call to-shell,$@)")
+	$(if $(pdb-artifacts),cd "$(call to-shell,$(artifacts-dir)/$(package))" && $(usp-zip) $(zip-options) "$(call to-shell,$@)" $(foreach a,$(pdb-artifacts),"$(call to-shell,$a)"),$(usp-cp) "$(call to-shell,$(empty-zip-file))" "$(call to-shell,$@)")
 
 $(pkgs-dir):
 	$(usp-mkdir-p) "$(call to-shell,$@)"
