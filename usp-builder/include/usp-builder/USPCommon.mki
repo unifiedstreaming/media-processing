@@ -250,6 +250,23 @@ validate-build-setting = $(strip \
 )
     
 #
+# $(call checked-major-gcc-version,<version>)
+#
+checked-major-gcc-version = $(strip \
+  $(if $(strip $1), \
+    $1 \
+  , \
+    $(error could not determine major gcc version) \
+  ) \
+)
+
+#
+# $(call major-gcc-version)
+#
+major-gcc-version = $(call checked-major-gcc-version,$(shell gcc -v 2>&1 \
+  | $(usp-sed) -n 's/^gcc version[[:space:]]\+\([[:digit:]]\+\).*/\1/p'))
+
+#
 # Determine bjam-like build settings
 #
 override default-address-model := $(strip \
@@ -266,7 +283,12 @@ override default-toolset := $(strip \
     $(if $(or $(darwin),$(freebsd)), \
       clang \
     , \
-      gcc \
+      $(if $(filter 0 1 2 3 4 5 6 7,$(call major-gcc-version)), \
+        $(call REM,force gcc-8 for proper C++17 support) \
+        gcc-8 \
+      , \
+        gcc \
+      ) \
     ) \
   ) \
 )
