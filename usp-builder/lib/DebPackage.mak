@@ -135,6 +135,9 @@ override_dh_strip_nondeterminism:
 
 override_dh_auto_install: $(call make-artifact-dirs,$1,$4,$6)$(call install-artifacts,$1,$4,$5,$6)$(call make-service-dir,$1,$4,$7)$(call install-services,$1,$4,$7)
 
+override_dh_shlibdeps:
+	dh_shlibdeps --dpkg-shlibdeps-params=--ignore-missing-info
+
 override_dh_gencontrol:
 	dh_gencontrol -- -v$2-$3
 
