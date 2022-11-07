@@ -203,6 +203,7 @@ $(packaging-work-dir)/deb/$(deb-package-basename).deb: \
 	unset MAKEFLAGS && cd "$(call to-shell,$(deb-work-dir))" && dpkg-buildpackage -us -uc -b 
 
 $(packaging-work-dir)/deb/$(deb-symbol-package-basename).ddeb: $(packaging-work-dir)/deb/$(deb-package-basename).deb
+	touch "$(call to-shell,$@)"
 
 $(pkgs-dir) $(packaging-work-dir)/deb:
 	$(usp-mkdir-p) "$(call to-shell,$@)"

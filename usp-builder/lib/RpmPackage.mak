@@ -193,6 +193,7 @@ $(rpm-work-dir)/RPMS/$(rpm-arch)/$(rpm-package-basename).rpm: $(rpm-work-dir)/SP
 	rpmbuild -bb --define '_topdir $(rpm-work-dir)' $<
 
 $(rpm-work-dir)/RPMS/$(rpm-arch)/$(rpm-symbol-package-basename).rpm: $(rpm-work-dir)/RPMS/$(rpm-arch)/$(rpm-package-basename).rpm
+	touch "$(call to-shell,$@)"
 
 $(rpm-work-dir)/SPECS/$(package).spec: $(rpm-work-dir)/SPECS
 	$(file >$@,$(call spec-file-content,$(package),$(pkg-version),$(pkg-revision),$(pkg-description),$(license),$(addsuffix ,$(prereq-packages)),$(artifacts-dir)/$(package),$(artifacts),$(service-files)))
