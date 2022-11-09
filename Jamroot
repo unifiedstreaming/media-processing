@@ -30,6 +30,7 @@ project oss
   <threading>multi
   <target-os>linux:<linkflags>-Wl,--enable-new-dtags
   <target-os>linux:<linkflags>-Wl,-rpath,\\$ORIGIN/../lib
+  <visibility>hidden
 : default-build
 # <variant>release
   <address-model>64

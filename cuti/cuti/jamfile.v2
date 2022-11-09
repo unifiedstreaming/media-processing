@@ -128,7 +128,6 @@ lib cuti_$(CUTI_VERSION)
 :
   <define>BUILDING_CUTI
   <link>shared
-  <visibility>hidden
   <target-os>windows:<find-shared-library>advapi32
   <target-os>windows:<find-shared-library>ws2_32
 :

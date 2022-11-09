@@ -37,7 +37,6 @@ lib x264_proto_$(X264_PROTO_VERSION)
 :
   <define>BUILDING_X264_PROTO
   <link>shared
-  <visibility>hidden
 :
 :
   <include>..

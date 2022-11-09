@@ -27,7 +27,6 @@ lib x264_es_utils
   $(stage-dir)/lib/jamfiles/x264
 :
   <link>static
-  <visibility>hidden
 :
 :
   <include>..
