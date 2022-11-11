@@ -20,17 +20,26 @@ include usp-builder/USPPackaging.mki
 # Set some derived variables
 #
 
-override main-zip-filename := $(package)_$(pkg-version)-$(pkg-revision).zip
-override pdb-zip-filename := $(package)-pdb_$(pkg-version)-$(pkg-revision).zip
+override main-zip-basename := $(package)_$(pkg-version)-$(pkg-revision)
+override pdb-zip-basename := $(package)-pdb_$(pkg-version)-$(pkg-revision)
+
+override main-zip-filename := $(main-zip-basename).zip
+override pdb-zip-filename := $(pdb-zip-basename).zip
 
 override artifacts := $(patsubst $(artifacts-dir)/%,%,$(call find-files,%,$(artifacts-dir)))
 
 override main-artifacts := $(if $(with-symbol-pkg),$(filter-out %.pdb,$(artifacts)),$(artifacts))
+override main-artifact-dirs := $(call dedup,$(patsubst %/,%,$(dir $(main-artifacts))))
+
 override pdb-artifacts := $(if $(with-symbol-pkg),$(filter %.pdb,$(artifacts)),)
+override pdb-artifact-dirs := $(call dedup,$(patsubst %/,%,$(dir $(pdb-artifacts))))
 
 override empty-zip-file := $(usp-builder-lib-dir)/empty.zip
 
 override zip-options := -X $(if $(windows),,--symlinks)
+
+override main-work-dir := $(packaging-work-dir)/$(main-zip-basename)
+override pdb-work-dir := $(packaging-work-dir)/$(pdb-zip-basename)
 
 #
 # Rules
@@ -39,19 +48,29 @@ override zip-options := -X $(if $(windows),,--symlinks)
 all: zip-file
 
 .PHONY: zip-file
-zip-file: $(pkgs-dir)/$(main-zip-filename) \
-  $(if $(with-symbol-pkg),$(pkgs-dir)/$(pdb-zip-filename))
+zip-file: $(pkgs-dir)/$(main-zip-filename) $(if $(with-symbol-pkg),$(pkgs-dir)/$(pdb-zip-filename))
 
-$(pkgs-dir)/$(main-zip-filename): force | $(pkgs-dir)
+$(pkgs-dir)/$(main-zip-filename): clean-main-work-dir | $(pkgs-dir)
 	$(usp-rm-rf) "$(call to-shell,$@)"
-	$(if $(main-artifacts),cd "$(call to-shell,$(artifacts-dir))" && $(usp-zip) $(zip-options) "$(call to-shell,$@)" $(foreach a,$(main-artifacts),"$(call to-shell,$a)"),$(usp-cp) "$(call to-shell,$(empty-zip-file))" "$(call to-shell,$@)")
-	
-$(pkgs-dir)/$(pdb-zip-filename): force | $(pkgs-dir)
+	$(foreach d,$(main-artifact-dirs),$(usp-mkdir-p) "$(call to-shell,$(main-work-dir)/$d)"$(newline)$(tab))
+	$(foreach a,$(main-artifacts),$(if $(call read-link,$(artifacts-dir)/$a),ln -sf "$(call read-link,$(artifacts-dir)/$a)" "$(call to-shell,$(main-work-dir)/$a)",$(usp-cp) "$(call to-shell,$(artifacts-dir)/$a)" "$(call to-shell,$(main-work-dir)/$a)")$(newline)$(tab))
+	$(if $(strip $(main-artifacts)),( cd "$(call to-shell,$(main-work-dir))" && $(usp-zip) $(zip-options) -r "$(call to-shell,$@)" . ),$(usp-cp) "$(call to-shell,$(empty-zip-file))" "$(call to-shell,$@)")
+
+.PHONY: clean-main-work-dir
+clean-main-work-dir:
+	$(usp-rm-rf) "$(call to-shell,$(main-work-dir))"
+	$(usp-mkdir-p) "$(call to-shell,$(main-work-dir))"
+
+$(pkgs-dir)/$(pdb-zip-filename): clean-pdb-work-dir | $(pkgs-dir)
 	$(usp-rm-rf) "$(call to-shell,$@)"
-	$(if $(pdb-artifacts),cd "$(call to-shell,$(artifacts-dir))" && $(usp-zip) $(zip-options) "$(call to-shell,$@)" $(foreach a,$(pdb-artifacts),"$(call to-shell,$a)"),$(usp-cp) "$(call to-shell,$(empty-zip-file))" "$(call to-shell,$@)")
+	$(foreach d,$(pdb-artifact-dirs),$(usp-mkdir-p) "$(call to-shell,$(pdb-work-dir)/$d)"$(newline)$(tab))
+	$(foreach a,$(pdb-artifacts),$(if $(call read-link,$(artifacts-dir)/$a),ln -sf "$(call read-link,$(artifacts-dir)/$a)" "$(call to-shell,$(pdb-work-dir)/$a)",$(usp-cp) "$(call to-shell,$(artifacts-dir)/$a)" "$(call to-shell,$(pdb-work-dir)/$a)")$(newline)$(tab))
+	$(if $(strip $(pdb-artifacts)),( cd "$(call to-shell,$(pdb-work-dir))" && $(usp-zip) $(zip-options) -r "$(call to-shell,$@)" . ),$(usp-cp) "$(call to-shell,$(empty-zip-file))" "$(call to-shell,$@)")
+
+.PHONY: clean-pdb-work-dir
+clean-pdb-work-dir:
+	$(usp-rm-rf) "$(call to-shell,$(pdb-work-dir))"
+	$(usp-mkdir-p) "$(call to-shell,$(pdb-work-dir))"
 
 $(pkgs-dir):
 	$(usp-mkdir-p) "$(call to-shell,$@)"
-
-.PHONY: force
-force:
