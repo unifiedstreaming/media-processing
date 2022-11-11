@@ -247,15 +247,15 @@ prereq-packages = $(strip \
 )
 
 #
-# $(call native-packager-settings,<project>)
+# $(call native-packager-settings,<package>,<flavor>)
 #
 native-packager-settings = $(strip \
   $(build-settings) \
   package=$1 \
   license="$($1.package-license)" \
   prereq-packages="$(call prereq-packages,$1)" \
-  artifacts-dir="$(call to-shell,$(artifacts-dir))" \
-  packaging-work-dir="$(call to-shell,$(packaging-work-dir))" \
+  artifacts-dir="$(call to-shell,$(artifacts-dir)/$1)" \
+  packaging-work-dir="$(call to-shell,$(packaging-work-dir)/$2)" \
   service-files="$(foreach f,$($1.package-service-files),$(call non-relative-path,$f))" \
   openrc-files="$(foreach f,$($1.package-openrc-files),$(call non-relative-path,$f))" \
 )
@@ -307,19 +307,19 @@ $(foreach cf,$($1.package-conf-files),$(call conf-artifact,$1,$(cf)): $(cf) | $(
 
 .PHONY: $1.deb-package
 $1.deb-package: $(strip $(foreach pkg,$(call prereq-packages,$1),$(pkg).deb-package) $1.artifacts)
-	$$(MAKE) -I $(usp-builder-include-dir) -f $(usp-builder-lib-dir)/DebPackage.mak $(call native-packager-settings,$1) deb-package
+	$$(MAKE) -I $(usp-builder-include-dir) -f $(usp-builder-lib-dir)/DebPackage.mak $(call native-packager-settings,$1,deb) deb-package
 
 .PHONY: $1.rpm-package
 $1.rpm-package: $(strip $(foreach pkg,$(call prereq-packages,$1),$(pkg).rpm-package) $1.artifacts)
-	$$(MAKE) -I $(usp-builder-include-dir) -f $(usp-builder-lib-dir)/RpmPackage.mak $(call native-packager-settings,$1) rpm-package
+	$$(MAKE) -I $(usp-builder-include-dir) -f $(usp-builder-lib-dir)/RpmPackage.mak $(call native-packager-settings,$1,rpm) rpm-package
 
 .PHONY: $1.apk-package
 $1.apk-package: $(strip $(foreach pkg,$(call prereq-packages,$1),$(pkg).apk-package) $1.artifacts)
-	$$(MAKE) -I $(usp-builder-include-dir) -f $(usp-builder-lib-dir)/ApkPackage.mak $(call native-packager-settings,$1) apk-package
+	$$(MAKE) -I $(usp-builder-include-dir) -f $(usp-builder-lib-dir)/ApkPackage.mak $(call native-packager-settings,$1,apk) apk-package
 
 .PHONY: $1.zip-file
 $1.zip-file: $(strip $(foreach pkg,$(call prereq-packages,$1),$(pkg).zip-file) $1.artifacts)
-	$$(MAKE) -I $(usp-builder-include-dir) -f $(usp-builder-lib-dir)/ZipFile.mak $(call native-packager-settings,$1) zip-file
+	$$(MAKE) -I $(usp-builder-include-dir) -f $(usp-builder-lib-dir)/ZipFile.mak $(call native-packager-settings,$1,zip) zip-file
 
 .PHONY: $1.clean-artifacts
 $1.clean-artifacts:

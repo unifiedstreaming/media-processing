@@ -56,9 +56,9 @@ $(call check-package-not-installed,$(package))
 # Set some derived variables
 #
 override apk-package-basename := $(package)-$(pkg-version)-r$(pkg-revision)
-override apk-work-dir := $(packaging-work-dir)/apk/$(apk-package-basename)
+override apk-work-dir := $(packaging-work-dir)/$(apk-package-basename)
 
-override artifacts := $(patsubst $(artifacts-dir)/$(package)/%,%,$(call find-files,%,$(artifacts-dir)/$(package)))
+override artifacts := $(patsubst $(artifacts-dir)/%,%,$(call find-files,%,$(artifacts-dir)))
 
 #
 # $ (call fake-git-content)
@@ -162,7 +162,7 @@ apk-package: $(apk-work-dir)/APKBUILD \
 	cd "$(call to-shell,$(apk-work-dir))" && abuild -m -d -P "$(call to-shell,$(pkgs-dir))"
 
 $(apk-work-dir)/APKBUILD: clean-apk-work-dir
-	$(file >$@,$(call apkbuild-content,$(package),,$(pkg-version),$(pkg-revision),$(pkg-description),$(pkg-maintainer),$(prereq-packages),$(license),$(artifacts-dir)/$(package),$(artifacts),$(openrc-files)))
+	$(file >$@,$(call apkbuild-content,$(package),,$(pkg-version),$(pkg-revision),$(pkg-description),$(pkg-maintainer),$(prereq-packages),$(license),$(artifacts-dir),$(artifacts),$(openrc-files)))
 	$(info generated $@)
 	
 #

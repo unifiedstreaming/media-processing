@@ -114,9 +114,9 @@ override rpm-package-basename := $(package)-$(pkg-version)-$(pkg-revision).$(rpm
 
 override rpm-symbol-package-basename := $(package)-debuginfo-$(pkg-version)-$(pkg-revision).$(rpm-arch)
 
-override rpm-work-dir := $(packaging-work-dir)/rpm/$(rpm-package-basename)
+override rpm-work-dir := $(packaging-work-dir)/$(rpm-package-basename)
 
-override artifacts := $(patsubst $(artifacts-dir)/$(package)/%,%,$(call find-files,%,$(artifacts-dir)/$(package)))
+override artifacts := $(patsubst $(artifacts-dir)/%,%,$(call find-files,%,$(artifacts-dir)))
 
 #
 # $(call spec-file-content,<package>,<version>,<revision>,<description>,<license>,<prereq-package>*,<source artifact dir>,<source artifact>*,<service file>*)
@@ -196,7 +196,7 @@ $(rpm-work-dir)/RPMS/$(rpm-arch)/$(rpm-symbol-package-basename).rpm: $(rpm-work-
 	touch "$(call to-shell,$@)"
 
 $(rpm-work-dir)/SPECS/$(package).spec: $(rpm-work-dir)/SPECS
-	$(file >$@,$(call spec-file-content,$(package),$(pkg-version),$(pkg-revision),$(pkg-description),$(license),$(addsuffix ,$(prereq-packages)),$(artifacts-dir)/$(package),$(artifacts),$(service-files)))
+	$(file >$@,$(call spec-file-content,$(package),$(pkg-version),$(pkg-revision),$(pkg-description),$(license),$(addsuffix ,$(prereq-packages)),$(artifacts-dir),$(artifacts),$(service-files)))
 	$(info generated $@)
 
 $(rpm-work-dir)/SPECS: clean-rpm-work-dir

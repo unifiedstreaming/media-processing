@@ -23,7 +23,7 @@ include usp-builder/USPPackaging.mki
 override main-zip-filename := $(package)_$(pkg-version)-$(pkg-revision).zip
 override pdb-zip-filename := $(package)-pdb_$(pkg-version)-$(pkg-revision).zip
 
-override artifacts := $(patsubst $(artifacts-dir)/$(package)/%,%,$(call find-files,%,$(artifacts-dir)/$(package)))
+override artifacts := $(patsubst $(artifacts-dir)/%,%,$(call find-files,%,$(artifacts-dir)))
 
 override main-artifacts := $(if $(with-symbol-pkg),$(filter-out %.pdb,$(artifacts)),$(artifacts))
 override pdb-artifacts := $(if $(with-symbol-pkg),$(filter %.pdb,$(artifacts)),)
@@ -44,11 +44,11 @@ zip-file: $(pkgs-dir)/$(main-zip-filename) \
 
 $(pkgs-dir)/$(main-zip-filename): force | $(pkgs-dir)
 	$(usp-rm-rf) "$(call to-shell,$@)"
-	$(if $(main-artifacts),cd "$(call to-shell,$(artifacts-dir)/$(package))" && $(usp-zip) $(zip-options) "$(call to-shell,$@)" $(foreach a,$(main-artifacts),"$(call to-shell,$a)"),$(usp-cp) "$(call to-shell,$(empty-zip-file))" "$(call to-shell,$@)")
+	$(if $(main-artifacts),cd "$(call to-shell,$(artifacts-dir))" && $(usp-zip) $(zip-options) "$(call to-shell,$@)" $(foreach a,$(main-artifacts),"$(call to-shell,$a)"),$(usp-cp) "$(call to-shell,$(empty-zip-file))" "$(call to-shell,$@)")
 	
 $(pkgs-dir)/$(pdb-zip-filename): force | $(pkgs-dir)
 	$(usp-rm-rf) "$(call to-shell,$@)"
-	$(if $(pdb-artifacts),cd "$(call to-shell,$(artifacts-dir)/$(package))" && $(usp-zip) $(zip-options) "$(call to-shell,$@)" $(foreach a,$(pdb-artifacts),"$(call to-shell,$a)"),$(usp-cp) "$(call to-shell,$(empty-zip-file))" "$(call to-shell,$@)")
+	$(if $(pdb-artifacts),cd "$(call to-shell,$(artifacts-dir))" && $(usp-zip) $(zip-options) "$(call to-shell,$@)" $(foreach a,$(pdb-artifacts),"$(call to-shell,$a)"),$(usp-cp) "$(call to-shell,$(empty-zip-file))" "$(call to-shell,$@)")
 
 $(pkgs-dir):
 	$(usp-mkdir-p) "$(call to-shell,$@)"

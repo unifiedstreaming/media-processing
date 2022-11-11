@@ -171,9 +171,9 @@ override deb-package-basename := $(package)_$(pkg-version)-$(pkg-revision)_$(deb
 
 override deb-symbol-package-basename := $(package)-dbgsym_$(pkg-version)-$(pkg-revision)_$(deb-arch)
 
-override deb-work-dir := $(packaging-work-dir)/deb/$(deb-package-basename)
+override deb-work-dir := $(packaging-work-dir)/$(deb-package-basename)
 
-override artifacts := $(patsubst $(artifacts-dir)/$(package)/%,%,$(call find-files,%,$(artifacts-dir)/$(package)))
+override artifacts := $(patsubst $(artifacts-dir)/%,%,$(call find-files,%,$(artifacts-dir)))
 
 #
 # Rules
@@ -185,27 +185,27 @@ all: deb-package
 deb-package: $(pkgs-dir)/$(deb-package-basename).deb $(if $(with-symbol-pkg),$(pkgs-dir)/$(deb-symbol-package-basename).ddeb)
 
 $(pkgs-dir)/$(deb-package-basename).deb: \
-  $(packaging-work-dir)/deb/$(deb-package-basename).deb \
+  $(packaging-work-dir)/$(deb-package-basename).deb \
   | $(pkgs-dir)
 	$(usp-cp) "$(call to-shell,$<)" "$(call to-shell,$@)"
 
 $(pkgs-dir)/$(deb-symbol-package-basename).ddeb: \
-  $(packaging-work-dir)/deb/$(deb-symbol-package-basename).ddeb \
+  $(packaging-work-dir)/$(deb-symbol-package-basename).ddeb \
   | $(pkgs-dir)
 	$(usp-cp) "$(call to-shell,$<)" "$(call to-shell,$@)"
 
-$(packaging-work-dir)/deb/$(deb-package-basename).deb: \
+$(packaging-work-dir)/$(deb-package-basename).deb: \
   $(deb-work-dir)/debian/changelog \
   $(deb-work-dir)/debian/compat \
   $(deb-work-dir)/debian/control \
   $(deb-work-dir)/debian/rules \
-  | $(packaging-work-dir)/deb
+  | $(packaging-work-dir)
 	unset MAKEFLAGS && cd "$(call to-shell,$(deb-work-dir))" && dpkg-buildpackage -us -uc -b 
 
-$(packaging-work-dir)/deb/$(deb-symbol-package-basename).ddeb: $(packaging-work-dir)/deb/$(deb-package-basename).deb
+$(packaging-work-dir)/$(deb-symbol-package-basename).ddeb: $(packaging-work-dir)/$(deb-package-basename).deb
 	touch "$(call to-shell,$@)"
 
-$(pkgs-dir) $(packaging-work-dir)/deb:
+$(pkgs-dir) $(packaging-work-dir):
 	$(usp-mkdir-p) "$(call to-shell,$@)"
 
 $(deb-work-dir)/debian/changelog: $(deb-work-dir)/debian
@@ -221,7 +221,7 @@ $(deb-work-dir)/debian/control: $(deb-work-dir)/debian
 	$(info generated $@)
 
 $(deb-work-dir)/debian/rules: $(deb-work-dir)/debian
-	$(file >$@,$(call rules-content,$(package),$(pkg-version),$(pkg-revision),$(deb-work-dir),$(artifacts-dir)/$(package),$(artifacts),$(service-files)))
+	$(file >$@,$(call rules-content,$(package),$(pkg-version),$(pkg-revision),$(deb-work-dir),$(artifacts-dir),$(artifacts),$(service-files)))
 	$(info generated $@)
 	chmod +x "$(call to-shell,$@)"
 
