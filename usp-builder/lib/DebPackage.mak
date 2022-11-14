@@ -107,6 +107,26 @@ make-artifact-dirs = $(foreach d,$(call distro-dirs,$3),$(newline)$(tab)$(usp-mk
 install-artifacts = $(foreach a,$4,$(newline)$(tab)$(if $(call read-link,$3/$a),ln -sf "$(call read-link,$3/$a)" "$(call to-shell,$2/debian/$1/$(call distro-path,$a))",$(usp-cp) "$(call to-shell,$3/$a)" "$(call to-shell,$2/debian/$1/$(call distro-path,$a))"))
 
 #
+# $(call make-conf-dir,<package>,<deb-work-dir>,<conf-file>*)
+#
+make-conf-dir = $(if $(strip $3),$(newline)$(tab)$(usp-mkdir-p) "$(call to-shell,$2/debian/$1/etc)")
+
+#
+# $(call install-conf-files,<package>,<deb-work-dir>,<conf-file>*)
+#
+install-conf-files = $(foreach f,$3,$(newline)$(tab)$(usp-cp) "$(call to-shell,$f)" "$(call to-shell,$2/debian/$1/etc/$(notdir $f))")
+
+#
+# $(call make-doc-dir,<package>,<deb-work-dir>,<doc-file>*)
+#
+make-doc-dir = $(if $(strip $3),$(newline)$(tab)$(usp-mkdir-p) "$(call to-shell,$2/debian/$1/usr/share/doc/$1)")
+
+#
+# $(call install-doc-files,<package>,<deb-work-dir>,doc-file>*)
+#
+install-doc-files = $(foreach f,$3,$(newline)$(tab)$(usp-cp) "$(call to-shell,$f)" "$(call to-shell,$2/debian/$1/usr/share/doc/$1/$(notdir $f))")
+
+#
 # $(call make-service-dir,<package>,<deb-work-dir>,<service-file>*)
 #
 make-service-dir = $(if $(strip $3),$(newline)$(tab)$(usp-mkdir-p) "$(call to-shell,$2/debian/$1/lib/systemd/system)")
@@ -117,7 +137,7 @@ make-service-dir = $(if $(strip $3),$(newline)$(tab)$(usp-mkdir-p) "$(call to-sh
 install-services = $(foreach f,$3,$(newline)$(tab)$(usp-cp) "$(call to-shell,$f)" "$(call to-shell,$2/debian/$1/lib/systemd/system/$(call service-name,$f)$(call service-suffix,$f))")
 
 #
-# $(call rules-content,<package name>,<package version>,<package revision>,<deb work dir>,<artifacts-dir>,<artifact>*,<service-file>*)
+# $(call rules-content,<package name>,<package version>,<package revision>,<deb work dir>,<artifacts-dir>,<artifact>*,<conf-file>*,<doc-file>*,<service-file>*)
 #
 define rules-content =
 #!$(call get-make) -f
@@ -133,7 +153,7 @@ override_dh_compress:
 $(if $(with-symbol-pkg),,override_dh_strip:)
 override_dh_strip_nondeterminism:
 
-override_dh_auto_install: $(call make-artifact-dirs,$1,$4,$6)$(call install-artifacts,$1,$4,$5,$6)$(call make-service-dir,$1,$4,$7)$(call install-services,$1,$4,$7)
+override_dh_auto_install: $(call make-artifact-dirs,$1,$4,$6)$(call install-artifacts,$1,$4,$5,$6)$(call make-conf-dir,$1,$4,$7)$(call install-conf-files,$1,$4,$7)$(call make-doc-dir,$1,$4,$8)$(call install-doc-files,$1,$4,$8)$(call make-service-dir,$1,$4,$9)$(call install-services,$1,$4,$9)
 
 override_dh_shlibdeps:
 	dh_shlibdeps --dpkg-shlibdeps-params=--ignore-missing-info
@@ -221,7 +241,7 @@ $(deb-work-dir)/debian/control: $(deb-work-dir)/debian
 	$(info generated $@)
 
 $(deb-work-dir)/debian/rules: $(deb-work-dir)/debian
-	$(file >$@,$(call rules-content,$(package),$(pkg-version),$(pkg-revision),$(deb-work-dir),$(artifacts-dir),$(artifacts),$(service-files)))
+	$(file >$@,$(call rules-content,$(package),$(pkg-version),$(pkg-revision),$(deb-work-dir),$(artifacts-dir),$(artifacts),$(conf-files),$(doc-files),$(service-files)))
 	$(info generated $@)
 	chmod +x "$(call to-shell,$@)"
 

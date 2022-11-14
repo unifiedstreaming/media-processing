@@ -29,36 +29,11 @@ checked-pkg-version-or-revision = $(strip \
 )
 
 #
-# Subdirectories for 'special' files in the artifacts dir
-
-config-artifacts-dir := etc
-doc-artifacts-dir := doc
-
-#
-# $(call filter-config-artifacts,<relative path in artifacts dir>*)
-#
-filter-config-artifacts = $(filter $(config-artifacts-dir)/%,$1)
-
-#
-# $(call filter-doc-artifacts,<relative path in artifacts dir>*)
-#
-filter-doc-artifacts = $(filter $(doc-artifacts-dir)/%,$1)
-
 #
 # $(call distro-path,<relative path in artifacts dir>)
 #
-distro-path = $(strip \
-  $(if $(filter $(config-artifacts-dir)/%,$1), \
-    $(patsubst $(config-artifacts-dir)/%,etc/%,$1) \
-  , \
-    $(if $(filter $(doc-artifacts-dir)/%,$1), \
-      $(patsubst $(doc-artifacts-dir)/%,usr/share/doc/%,$1) \
-    , \
-      usr/$1 \
-    ) \
-  ) \
-)
-      
+distro-path = usr/$1
+
 #
 # $(call distro-dirs,<relative path in artifact dir>*)
 #
@@ -136,6 +111,11 @@ override pkg-revision := $(if $(pkg-revision),$(call checked-pkg-version-or-revi
 
 override prereq-packages := $(foreach pkg,$(prereq-packages),$(call checked-package-name,$(pkg)))
 
-override service-files := $(foreach f,$(service-files),$(call non-relative-path,$f))
+override conf-files := $(foreach f,$(conf-files),$(call non-relative-path,$f))
+
+override doc-files := $(foreach f,$(doc-files),$(call non-relative-path,$f))
 
 override openrc-files := $(foreach f,$(openrc-files),$(call non-relative-path,$f))
+
+override service-files := $(foreach f,$(service-files),$(call non-relative-path,$f))
+

@@ -119,7 +119,7 @@ override rpm-work-dir := $(packaging-work-dir)/$(rpm-package-basename)
 override artifacts := $(patsubst $(artifacts-dir)/%,%,$(call find-files,%,$(artifacts-dir)))
 
 #
-# $(call spec-file-content,<package>,<version>,<revision>,<description>,<license>,<prereq-package>*,<source artifact dir>,<source artifact>*,<service file>*)
+# $(call spec-file-content,<package>,<version>,<revision>,<description>,<license>,<prereq-package>*,<source artifact dir>,<source artifact>*,<conf file>,<doc file>*,<service file>*)
 #
 # Please note that, in contrast to the way Debian handles things, the
 # default rpm systemd postinstall hook does not enable or start any
@@ -141,7 +141,7 @@ Version: $2
 Release: $3
 Summary: $4
 License: $5
-$(if $(strip $9),BuildRequires: systemd$(newline)%{?systemd_requires})
+$(if $(strip $(11)),BuildRequires: systemd$(newline)%{?systemd_requires})
 $(call requires-line,$6)
 Provides: %{name} = %{version}
 
@@ -155,22 +155,34 @@ $(if $(with-symbol-pkg),%debug_package)
 %build
 
 %install
+
+# Binaries
 $(foreach d,$(call distro-dirs,$8),$(newline)$(usp-mkdir-p) "%{buildroot}/$(call to-shell,$d)")
 $(foreach a,$8,$(newline)$(if $(call read-link,$7/$a),ln -sf "$(call to-shell,$(call read-link,$7/$a))" "%{buildroot}/$(call to-shell,$(call distro-path,$a))",$(usp-cp) "$(call to-shell,$7/$a)" "%{buildroot}/$(call to-shell,$(call distro-path,$a))"))
-$(if $(strip $9),$(newline)$(usp-mkdir-p) "%{buildroot}%{_unitdir}")
-$(foreach f,$9,$(newline)$(usp-cp) "$(call to-shell,$f)" "%{buildroot}%{_unitdir}/$(call to-shell,$(call service-name,$f)$(call service-suffix,$f))")
+
+# Config files
+$(if $(strip $9),$(newline)$(usp-mkdir-p) "%{buildroot}$(call to-shell,/etc)")
+$(foreach f,$9,$(newline)$(usp-cp) "$(call to-shell,$f)" "%{buildroot}$(call to-shell,/etc/$(notdir $f))")
+
+# Documentation files
+$(if $(strip $(10)),$(newline)$(usp-mkdir-p) "%{buildroot}$(call to-shell,/usr/share/doc/$1)")
+$(foreach f,$(10),$(newline)$(usp-cp) "$(call to-shell,$f)" "%{buildroot}$(call to-shell,/usr/share/doc/$1/$(notdir $f))")
+
+# Unit files
+$(if $(strip $(11)),$(newline)$(usp-mkdir-p) "%{buildroot}%{_unitdir}")
+$(foreach f,$(11),$(newline)$(usp-cp) "$(call to-shell,$f)" "%{buildroot}%{_unitdir}/$(call to-shell,$(call service-name,$f)$(call service-suffix,$f))")
 
 %post
-$(foreach f,$9,$(call service-post,$(call service-name,$f)))
+$(foreach f,$(11),$(call service-post,$(call service-name,$f)))
 
 %preun
-$(foreach f,$9,$(call service-preun,$(call service-name,$f)))
+$(foreach f,$(11),$(call service-preun,$(call service-name,$f)))
 
 %postun
-$(foreach f,$9,$(call service-postun,$(call service-name,$f)))
+$(foreach f,$(11),$(call service-postun,$(call service-name,$f)))
 
 %files
-$(foreach a,$8,$(newline)$(if $(call filter-config-artifacts,$a),%config(noreplace) )/$(call distro-path,$a))$(foreach f,$9,$(newline)%{_unitdir}/$(call service-name,$f)$(call service-suffix,$f))
+$(foreach f,$8,$(newline)/$(call distro-path,$f))$(foreach f,$9,$(newline)%config(noreplace) /etc/$(notdir $f))$(foreach f,$(10),$(newline)/usr/share/doc/$1/$(notdir $f))$(foreach f,$(11),$(newline)%{_unitdir}/$(call service-name,$f)$(call service-suffix,$f))
 
 endef
 
@@ -196,7 +208,7 @@ $(rpm-work-dir)/RPMS/$(rpm-arch)/$(rpm-symbol-package-basename).rpm: $(rpm-work-
 	touch "$(call to-shell,$@)"
 
 $(rpm-work-dir)/SPECS/$(package).spec: $(rpm-work-dir)/SPECS
-	$(file >$@,$(call spec-file-content,$(package),$(pkg-version),$(pkg-revision),$(pkg-description),$(license),$(addsuffix ,$(prereq-packages)),$(artifacts-dir),$(artifacts),$(service-files)))
+	$(file >$@,$(call spec-file-content,$(package),$(pkg-version),$(pkg-revision),$(pkg-description),$(license),$(addsuffix ,$(prereq-packages)),$(artifacts-dir),$(artifacts),$(conf-files),$(doc-files),$(service-files)))
 	$(info generated $@)
 
 $(rpm-work-dir)/SPECS: clean-rpm-work-dir

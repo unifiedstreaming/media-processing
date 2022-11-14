@@ -104,22 +104,22 @@ exit 0
 endef
 
 #
-# $(call apkbuild-content,<package>,<build settings suffix>,<version>,<revision>,<description>,<maintainer>,<prereq package>*,<license>,<artifacts-dir>,<artifact>*,<openrc file>*)
+# $(call apkbuild-content,<package>,<version>,<revision>,<description>,<maintainer>,<prereq package>*,<license>,<artifacts-dir>,<artifact>*,<conf file>*,<doc file>*,<openrc file>*)
 #
 define apkbuild-content =
-pkgname="$1$2"
-pkgver="$3"
-pkgrel="$4"
-pkgdesc="$5"
-# maintainer="$6" (abuild requires a valid RFC822 address)
+pkgname="$1"
+pkgver="$2"
+pkgrel="$3"
+pkgdesc="$4"
+# maintainer="$5" (abuild requires a valid RFC822 address)
 url="FIXME"
 arch="all"
-license="$8"
-depends="$(foreach p,$7,$p$2=$3-r$4)"
+license="$7"
+depends="$(foreach p,$6,$p=$2-r$3)"
 subpackages="$(if $(with-symbol-pkg),$$pkgname-dbg)"
 source=""
 options="!fhs$(if $(with-symbol-pkg),, !dbg !strip)"
-$(if $(strip $(11)),install="$1$2.post-install $1$2.pre-deinstall $1$2.post-upgrade")
+$(if $(strip $(12)),install="$1.post-install $1.pre-deinstall $1.post-upgrade")
 
 prepare() {
   default_prepare
@@ -134,11 +134,27 @@ check() {
 }
 
 package() {
-  $(foreach d,$(call distro-dirs,$(10)),$(usp-mkdir-p) "$$pkgdir/$(call to-shell,$d)"$(newline)$(space))
-  $(foreach a,$(10),$(if $(call read-link,$9/$a),ln -sf "$(call to-shell,$(call read-link,$9/$a))" "$$pkgdir/$(call to-shell,$(call distro-path,$a))",$(usp-cp) "$(call to-shell,$9/$a)" "$$pkgdir/$(call to-shell,$(call distro-path,$a))")$(newline)$(space))
-  $(if $(strip $(11)),$(usp-mkdir-p) "$$pkgdir/etc/init.d"$(newline))
-  $(foreach f,$(11),$(usp-cp) "$(call to-shell,$f)" "$(call to-shell,$$pkgdir/etc/init.d/$(call service-name,$f)$(call service-suffix,$f))"$(newline)$(space))
-  $(foreach f,$(11),chmod +x "$(call to-shell,$$pkgdir/etc/init.d/$(call service-name,$f)$(call service-suffix,$f))"$(newline)$(space))
+  #
+  # Binaries
+  #
+  $(foreach d,$(call distro-dirs,$9),$(usp-mkdir-p) "$$pkgdir/$(call to-shell,$d)"$(newline)$(space))
+  $(foreach a,$9,$(if $(call read-link,$8/$a),ln -sf "$(call to-shell,$(call read-link,$8/$a))" "$$pkgdir/$(call to-shell,$(call distro-path,$a))",$(usp-cp) "$(call to-shell,$8/$a)" "$$pkgdir/$(call to-shell,$(call distro-path,$a))")$(newline)$(space))
+  #
+  # Config files
+  #
+  $(if $(strip $(10)),$(usp-mkdir-p) "$(call to-shell,$$pkgdir/etc)"$(newline))
+  $(foreach f,$(10),$(usp-cp) "$(call to-shell,$f)" "$(call to-shell,$$pkgdir/etc/$(notdir $f))"$(newline)$(space))
+  #
+  # Documentation files
+  #
+  $(if $(strip $(11)),$(usp-mkdir-p) "$(call to-shell,$$pkgdir/usr/share/doc/$1)"$(newline))
+  $(foreach f,$(11),$(usp-cp) "$(call to-shell,$f)" "$(call to-shell,$$pkgdir/usr/share/doc/$1/$(notdir $f))"$(newline)$(space))
+  #
+  # Openrc files
+  #
+  $(if $(strip $(12)),$(usp-mkdir-p) "$(call to-shell,$$pkgdir/etc/init.d)"$(newline))
+  $(foreach f,$(12),$(usp-cp) "$(call to-shell,$f)" "$(call to-shell,$$pkgdir/etc/init.d/$(call service-name,$f)$(call service-suffix,$f))"$(newline)$(space))
+  $(foreach f,$(12),chmod +x "$(call to-shell,$$pkgdir/etc/init.d/$(call service-name,$f)$(call service-suffix,$f))"$(newline)$(space))
 
   return 0
 }
@@ -162,7 +178,7 @@ apk-package: $(apk-work-dir)/APKBUILD \
 	cd "$(call to-shell,$(apk-work-dir))" && abuild -m -d -P "$(call to-shell,$(pkgs-dir))"
 
 $(apk-work-dir)/APKBUILD: clean-apk-work-dir
-	$(file >$@,$(call apkbuild-content,$(package),,$(pkg-version),$(pkg-revision),$(pkg-description),$(pkg-maintainer),$(prereq-packages),$(license),$(artifacts-dir),$(artifacts),$(openrc-files)))
+	$(file >$@,$(call apkbuild-content,$(package),$(pkg-version),$(pkg-revision),$(pkg-description),$(pkg-maintainer),$(prereq-packages),$(license),$(artifacts-dir),$(artifacts),$(conf-files),$(doc-files),$(openrc-files)))
 	$(info generated $@)
 	
 #

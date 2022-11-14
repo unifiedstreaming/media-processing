@@ -256,29 +256,12 @@ native-packager-settings = $(strip \
   prereq-packages="$(call prereq-packages,$1)" \
   artifacts-dir="$(call to-shell,$(artifacts-dir)/$1)" \
   packaging-work-dir="$(call to-shell,$(packaging-work-dir)/$2)" \
+  conf-files="$(foreach f,$($1.package-conf-files),$(call non-relative-path,$f))" \
+  doc-files="$(foreach f,$($1.package-doc-files),$(call non-relative-path,$f))" \
+  openrc-files="$(foreach f,$($1.package-openrc-files),$(call non-relative-path,$f))" \
   service-files="$(foreach f,$($1.package-service-files),$(call non-relative-path,$f))" \
   openrc-files="$(foreach f,$($1.package-openrc-files),$(call non-relative-path,$f))" \
 )
-
-#
-# $(call doc-artifacts-dir,<package>)
-#
-doc-artifacts-dir = $(artifacts-dir)/$1/doc/$1
-
-#
-# $(call doc-artifact,<package>,<source file>)
-#
-doc-artifact = $(call doc-artifacts-dir,$1)/$(call notdir-basename,$2)$(suffix $2)
-
-#
-# $(call conf-artifacts-dir,<package>)
-#
-conf-artifacts-dir = $(artifacts-dir)/$1/etc
-
-#
-# $(call conf-artifact,<package>,<source file>)
-#
-conf-artifact = $(call conf-artifacts-dir,$1)/$(call notdir-basename,$2)$(suffix $2)
 
 #
 # $(call artifact-targets,<package>)
@@ -290,20 +273,10 @@ define artifact-targets =
 $(artifacts-dir)/$1: | $(artifacts-dir)
 	$(usp-mkdir-p) "$$(call to-shell,$$@)"
 
-$(call doc-artifacts-dir,$1): | $(artifacts-dir)/$1
-	$(usp-mkdir-p) "$$(call to-shell,$$@)"
-	
-$(call conf-artifacts-dir,$1): | $(artifacts-dir)/$1
-	$(usp-mkdir-p) "$$(call to-shell,$$@)"
-	
 $(foreach prj,$(call projects-in-package,$1),$(prj).project-artifacts: | $(artifacts-dir)/$1$(newline))
 
 .PHONY: $1.artifacts
-$1.artifacts: $(strip $(foreach pkg,$(call prereq-packages,$1),$(pkg).artifacts) $(foreach prj,$(call projects-in-package,$1),$(prj).project-artifacts) $(foreach df,$($1.package-doc-files),$(call doc-artifact,$1,$(df))) $(foreach cf,$($1.package-conf-files),$(call conf-artifact,$1,$(cf))))
-
-$(foreach df,$($1.package-doc-files),$(call doc-artifact,$1,$(df)): $(df) | $(call doc-artifacts-dir,$1)$(newline)$(tab)$(usp-cp) "$(call to-shell,$(df))" "$(call to-shell,$(call doc-artifact,$1,$(df)))"$(newline)$(newline))
-
-$(foreach cf,$($1.package-conf-files),$(call conf-artifact,$1,$(cf)): $(cf) | $(call conf-artifacts-dir,$1)$(newline)$(tab)$(usp-cp) "$(call to-shell,$(cf))" "$(call to-shell,$(call conf-artifact,$1,$(cf)))"$(newline)$(newline))
+$1.artifacts: $(strip $(foreach pkg,$(call prereq-packages,$1),$(pkg).artifacts) $(foreach prj,$(call projects-in-package,$1),$(prj).project-artifacts))
 
 .PHONY: $1.deb-package
 $1.deb-package: $(strip $(foreach pkg,$(call prereq-packages,$1),$(pkg).deb-package) $1.artifacts)

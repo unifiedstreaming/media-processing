@@ -54,7 +54,11 @@ $(pkgs-dir)/$(main-zip-filename): clean-main-work-dir | $(pkgs-dir)
 	$(usp-rm-rf) "$(call to-shell,$@)"
 	$(foreach d,$(main-artifact-dirs),$(usp-mkdir-p) "$(call to-shell,$(main-work-dir)/$d)"$(newline)$(tab))
 	$(foreach a,$(main-artifacts),$(if $(call read-link,$(artifacts-dir)/$a),ln -sf "$(call read-link,$(artifacts-dir)/$a)" "$(call to-shell,$(main-work-dir)/$a)",$(usp-cp) "$(call to-shell,$(artifacts-dir)/$a)" "$(call to-shell,$(main-work-dir)/$a)")$(newline)$(tab))
-	$(if $(strip $(main-artifacts)),( cd "$(call to-shell,$(main-work-dir))" && $(usp-zip) $(zip-options) -r "$(call to-shell,$@)" . ),$(usp-cp) "$(call to-shell,$(empty-zip-file))" "$(call to-shell,$@)")
+	$(if $(strip $(conf-files)),$(usp-mkdir-p) "$(call to-shell,$(main-work-dir)/etc)"$(newline)$(tab))
+	$(foreach f,$(conf-files),$(usp-cp) "$(call to-shell,$f)" "$(call to-shell,$(main-work-dir)/etc/$(notdir $f))"$(newline)$(tab))
+	$(if $(strip $(doc-files)),$(usp-mkdir-p) "$(call to-shell,$(main-work-dir)/doc/$(package))"$(newline)$(tab))
+	$(foreach f,$(doc-files),$(usp-cp) "$(call to-shell,$f)" "$(call to-shell,$(main-work-dir)/doc/$(package)/$(notdir $f))"$(newline)$(tab))
+	$(if $(strip $(main-artifacts) $(conf-files) $(doc_files)),( cd "$(call to-shell,$(main-work-dir))" && $(usp-zip) $(zip-options) -r "$(call to-shell,$@)" . ),$(usp-cp) "$(call to-shell,$(empty-zip-file))" "$(call to-shell,$@)")
 
 .PHONY: clean-main-work-dir
 clean-main-work-dir:
