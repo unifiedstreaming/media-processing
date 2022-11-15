@@ -80,6 +80,13 @@ $1 ($2) UNRELEASED; urgency=medium
 endef
 
 #
+# $(call checked-deb-package-name,<name>)
+#
+checked-deb-package-name = $(call checked-package-name,$1)
+
+override package := $(call checked-deb-package-name,$(package))
+
+#
 # $(call control-content,<package name>,<maintainer>,<description>,<package version>,<package revision>,<prereq package>*)
 #
 define control-content =
