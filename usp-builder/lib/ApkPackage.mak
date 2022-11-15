@@ -155,7 +155,7 @@ url="FIXME"
 arch="all"
 license="$7"
 depends="$(foreach p,$6,$p=$2-r$3)"
-subpackages="$(if $(with-symbol-pkg),$$pkgname-dbg)"
+subpackages="$(foreach s,$(if $(with-symbol-pkg),$$pkgname-dbg) $(if $(11),$$pkgname-doc),$s)"
 source=""
 options="!fhs$(if $(with-symbol-pkg),, !dbg !strip)"
 $(if $(strip $(12)),install="$1.post-install $1.pre-deinstall $1.post-upgrade")
