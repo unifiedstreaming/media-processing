@@ -42,6 +42,45 @@ checked-apk-arch = $(strip \
 get-apk-arch = $(call checked-apk-arch,$(shell arch))
 
 #
+# $(call checked-apk-package-name-impl,<package name>,<char>*)
+#
+# https://wiki.alpinelinux.org/wiki/Package_policies
+# we allow for underscore and minus
+# 
+checked-apk-package-name-impl = $(strip \
+  $(if $(filter-out $(lowers) $(digits),$(firstword $2)), \
+    $(error $(strip \
+      package name '$1' must start with a lower case letter or digit \
+    )) \
+  ) \
+  $(if $(filter 0 1,$(words $2)), \
+    $(error $(strip \
+      package name '$1' must have at least two characters \
+    )) \
+  ) \
+  $(if $(filter-out $(lowers) $(digits) - _,$(wordlist 2,$(words $2),$2)), \
+    $(error $(strip \
+      package name '$1' may only contain lower case letters, digits, \
+        '-' and '_' \
+    )) \
+  ) \
+  $1 \
+)
+
+#
+# $(call checked-apk-package-name,<package name>)
+#
+checked-apk-package-name = $(strip \
+  $(if $(filter-out 1,$(words $1)), \
+    $(error package name '$1' must have exactly one word) \
+  ) \
+  $(call checked-apk-package-name-impl,$(strip $1), \
+    $(call split-word,$(strip $1))) \
+)
+
+override package := $(call checked-apk-package-name,$(package))
+
+#
 # Get system-provided settings
 #
 override apk-arch := $(call get-apk-arch)
