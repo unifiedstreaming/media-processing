@@ -14,7 +14,7 @@ include usp-builder/USPCommon.mki
 #
 # $(call get-soname,<sofile>)
 #
-get-soname = $(shell objdump -p "$(call to-shell,$1)" 2>/dev/null | awk '/^ *SONAME +/ { print $$2 }')
+get-soname = $(shell objdump -p "$(call to-shell,$1)" 2>/dev/null | $(usp-sed) -n 's/^[[:space:]]*SONAME[[:space:]]\+\([^[:space:]]\+\).*/\1/p')
 
 #
 # $(call runtime-link,<sofile>)
