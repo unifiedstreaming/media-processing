@@ -97,6 +97,45 @@ fi
 endef
 
 #
+# $(call checked-rpm-package-name-impl,<package name>,<char>*)
+#
+# https://docs.fedoraproject.org/en-US/packaging-guidelines/Naming/
+# we allow for underscore (httpd mod_xyz) and uppercase (python modules)
+# 
+checked-rpm-package-name-impl = $(strip \
+  $(if $(filter-out $(alphas) $(digits),$(firstword $2)), \
+    $(error $(strip \
+      package name '$1' must start with a letter or digit \
+    )) \
+  ) \
+  $(if $(filter 0 1,$(words $2)), \
+    $(error $(strip \
+      package name '$1' must have at least two characters \
+    )) \
+  ) \
+  $(if $(filter-out $(alphas) $(digits) - _,$(wordlist 2,$(words $2),$2)), \
+    $(error $(strip \
+      package name '$1' may only contain letters, digits, \
+        '-' and '_' \
+    )) \
+  ) \
+  $1 \
+)
+
+#
+# $(call checked-rpm-package-name,<package name>)
+#
+checked-rpm-package-name = $(strip \
+  $(if $(filter-out 1,$(words $1)), \
+    $(error package name '$1' must have exactly one word) \
+  ) \
+  $(call checked-rpm-package-name-impl,$(strip $1), \
+    $(call split-word,$(strip $1))) \
+)
+
+override package := $(call checked-rpm-package-name,$(package))
+
+#
 # Get system-provided settings
 #
 override rpm-arch := $(call get-rpm-arch)
