@@ -92,7 +92,7 @@ override pkg-version := $(if $(pkg-version),$(call checked-pkg-version-or-revisi
 
 override pkgs-dir := $(call to-make,$(call non-relative-path,$(call required-value,pkgs-dir)))
 
-override package := $(call checked-package-name,$(call required-value,package))
+override package := $(call required-value,package)
 
 override license := $(call required-value,license)
 

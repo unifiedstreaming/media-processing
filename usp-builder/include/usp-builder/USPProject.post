@@ -251,16 +251,15 @@ prereq-packages = $(strip \
 #
 native-packager-settings = $(strip \
   $(build-settings) \
-  package=$1 \
+  package=$($1.package-$2-name) \
   license="$($1.package-license)" \
-  prereq-packages="$(call prereq-packages,$1)" \
+  prereq-packages="$(foreach p,$(call prereq-packages,$1),$($p.package-$2-name))" \
   artifacts-dir="$(call to-shell,$(artifacts-dir)/$1)" \
   packaging-work-dir="$(call to-shell,$(packaging-work-dir)/$2)" \
   conf-files="$(foreach f,$($1.package-conf-files),$(call non-relative-path,$f))" \
   doc-files="$(foreach f,$($1.package-doc-files),$(call non-relative-path,$f))" \
   openrc-files="$(foreach f,$($1.package-openrc-files),$(call non-relative-path,$f))" \
   service-files="$(foreach f,$($1.package-service-files),$(call non-relative-path,$f))" \
-  openrc-files="$(foreach f,$($1.package-openrc-files),$(call non-relative-path,$f))" \
 )
 
 #
