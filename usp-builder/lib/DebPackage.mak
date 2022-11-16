@@ -171,11 +171,6 @@ override_dh_gencontrol:
 endef
 
 #
-# $(call conffiles-content,<conf-artifact>*)
-#
-conffiles-content = $(foreach a,$1,/$(call distro-path,$a)$(newline))
-
-#
 # Set required debhelper version
 #
 override debhelper-version := 11
