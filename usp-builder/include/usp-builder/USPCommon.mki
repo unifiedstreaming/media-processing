@@ -437,11 +437,11 @@ call-stripped = $(call $(strip $1),$(strip $2),$(strip $3),$(strip $4),$(strip $
 #
 # $(call tokenize-proplist,<property list>)
 #
-# Returns a tokenized property list by making sure every ':' ends up
+# Returns a tokenized property list by making sure every '=' ends up
 # in a separate word.
 #
 tokenize-proplist = $(strip \
-  $(subst :,$(space):$(space),$1) \
+  $(subst =,$(space)=$(space),$1) \
 )
 
 #
@@ -452,8 +452,8 @@ tokenize-proplist = $(strip \
 # start after the key and the following ':' token.
 #
 at-prop-key = $(strip \
-  $(if $(filter :,$(word 2,$1)), \
-    $(filter-out :,$(word 1,$1)) \
+  $(if $(filter =,$(word 2,$1)), \
+    $(filter-out =,$(word 1,$1)) \
   ) \
 )
 
@@ -466,7 +466,7 @@ at-prop-key = $(strip \
 at-prop-value = $(strip \
   $(if $(call at-prop-key,$1), \
   , \
-    $(filter-out :,$(word 1,$1)) \
+    $(filter-out =,$(word 1,$1)) \
   ) \
 )
 

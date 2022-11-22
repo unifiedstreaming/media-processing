@@ -13,83 +13,83 @@
 # Project definitions
 #
 $(call bjam-exe-project, \
-  name: x264_encoding_service \
-  source-dir: x264_encoding_service \
-  prereqs: x264_es_utils cuti \
-  package: x264-encoding-service \
+  name = x264_encoding_service \
+  source-dir = x264_encoding_service \
+  prereqs = x264_es_utils cuti \
+  package = x264-encoding-service \
 )
 
 $(call bjam-statlib-project, \
-  name: x264_es_utils \
-  source-dir: x264_es_utils/x264_es_utils \
-  include-dir: x264_es_utils \
-  prereqs: x264_proto cuti x264 \
+  name = x264_es_utils \
+  source-dir = x264_es_utils/x264_es_utils \
+  include-dir = x264_es_utils \
+  prereqs = x264_proto cuti x264 \
 )
 
 $(call bjam-test-project, \
-  name: x264_es_utils_unit_tests \
-  source-dir: x264_es_utils/unit_tests \
-  prereqs: x264_es_utils \
+  name = x264_es_utils_unit_tests \
+  source-dir = x264_es_utils/unit_tests \
+  prereqs = x264_es_utils \
 )
 
 $(call bjam-dll-project, \
-  name: x264_proto \
-  version: 0_0_0 \
-  source-dir: x264_proto/x264_proto \
-  include-dir: x264_proto \
-  prereqs: cuti \
-  package: libx264-proto \
+  name = x264_proto \
+  version = 0_0_0 \
+  source-dir = x264_proto/x264_proto \
+  include-dir = x264_proto \
+  prereqs = cuti \
+  package = libx264-proto \
 )
 
 $(call bjam-dll-project, \
-  name: cuti \
-  version: 0_0_0 \
-  source-dir: cuti/cuti \
-  include-dir: cuti \
-  package: libcuti \
+  name = cuti \
+  version = 0_0_0 \
+  source-dir = cuti/cuti \
+  include-dir = cuti \
+  package = libcuti \
 )
 
 $(call bjam-test-project, \
-  name: cuti_unit_tests \
-  source-dir: cuti/unit_tests \
-  prereqs: cuti \
+  name = cuti_unit_tests \
+  source-dir = cuti/unit_tests \
+  prereqs = cuti \
 )
 
 $(call gmake-project, \
-  name: x264 \
-  makefile: x264/USPMakefile \
-  distributable: no \
+  name = x264 \
+  makefile = x264/USPMakefile \
+  distributable = no \
 )
 
 #
 # Package definitions
 #
 $(call package, \
-  name: x264-encoding-service \
-  license: GPLv2 \
-  doc-files: \
+  name = x264-encoding-service \
+  license = GPLv2 \
+  doc-files = \
     x264_encoding_service/doc/copyright \
     x264_encoding_service/COPYING \
-  conf-files: \
+  conf-files = \
     x264_encoding_service/etc/x264_encoding_service.conf \
-  service-files : \
+  service-files  = \
     x264_encoding_service/lib/x264_encoding_service.service \
-  openrc-files : \
+  openrc-files  = \
     x264_encoding_service/lib/x264_encoding_service \
 )
 
 $(call package, \
-  name: libx264-proto \
-  license: LGPLv2.1 \
-  doc-files: \
+  name = libx264-proto \
+  license = LGPLv2.1 \
+  doc-files = \
     x264_proto/doc/copyright \
     x264_proto/COPYING.LIB \
 )
 
 $(call package, \
-  name: libcuti \
-  license: LGPLv2.1 \
-  doc-files: \
+  name = libcuti \
+  license = LGPLv2.1 \
+  doc-files = \
     cuti/doc/copyright \
     cuti/COPYING.LIB \
 )
