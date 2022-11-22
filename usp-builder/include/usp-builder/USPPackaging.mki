@@ -29,7 +29,6 @@ checked-pkg-version-or-revision = $(strip \
 )
 
 #
-#
 # $(call distro-path,<relative path in artifacts dir>)
 #
 distro-path = usr/$1

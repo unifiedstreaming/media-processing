@@ -20,6 +20,19 @@
 include usp-builder/USPPackaging.mki
 
 #
+# override distro-path for .deb packaging
+#
+# $(call distro-path,<relative path in artifacts dir>)
+#
+distro-path = $(strip \
+  $(if $(filter apache2/%,$1), \
+    $(patsubst apache2/%,lib/apache2/modules/%,$1) \
+  , \
+    usr/$1 \
+  ) \
+)
+
+#
 # $(call is-installed,<package>)
 #
 is-installed = $(shell dpkg -s "$1" >/dev/null 2>&1 && echo yes)
