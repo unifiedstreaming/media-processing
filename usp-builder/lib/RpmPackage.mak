@@ -17,19 +17,6 @@ include usp-builder/USPPackaging.mki
 is-installed = $(shell rpm -q "$1" >/dev/null 2>&1 && echo yes)
 
 #
-# override distro-path for .rpm packaging
-#
-# $(call distro-path,<relative path in artifacts dir>)
-#
-distro-path = $(strip \
-  $(if $(filter apache2/%,$1), \
-    $(patsubst apache2/%,usr/lib64/httpd/modules/%,$1) \
-  , \
-    usr/$1 \
-  ) \
-)
-
-#
 # $(call check-package-not-installed,<package>)
 #
 check-package-not-installed = $(strip \

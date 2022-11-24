@@ -29,9 +29,31 @@ checked-pkg-version-or-revision = $(strip \
 )
 
 #
+# $(call checked-apache-modules-dir,<apxs output>)
+#
+checked-apache-modules-dir = $(strip \
+  $(if $(strip $1), \
+    $1 \
+  , \
+    $(error 'apxs -q LIBEXECDIR' failed) \
+  ) \
+)
+
+#
+# $(call get-apache-modules-dir)
+#
+get-apache-modules-dir = $(call checked-apache-modules-dir,$(shell apxs -q LIBEXECDIR))
+
+#
 # $(call distro-path,<relative path in artifacts dir>)
 #
-distro-path = usr/$1
+distro-path = $(strip \
+  $(if $(filter apache2/%,$1), \
+    $(patsubst apache2/%,$(patsubst /%,%,$(call get-apache-modules-dir))/%,$1) \
+  , \
+    usr/$1 \
+  ) \
+)
 
 #
 # $(call distro-dirs,<relative path in artifact dir>*)

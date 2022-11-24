@@ -12,19 +12,6 @@
 include usp-builder/USPPackaging.mki
 
 #
-# override distro-path for .apk packaging
-#
-# $(call distro-path,<relative path in artifacts dir>)
-#
-distro-path = $(strip \
-  $(if $(filter apache2/%,$1), \
-    $(patsubst apache2/%,usr/lib/apache2/%,$1) \
-  , \
-    usr/$1 \
-  ) \
-)
-
-#
 # $(call is-installed,<package>)
 #
 is-installed = $(shell apk -e info "$1" >/dev/null 2>&1 && echo yes)
