@@ -585,7 +585,7 @@ bjam-test-project = $(call expand,$(call call-stripped, \
 ))
 
 #
-# $(call package-impl,<package name>,<apk-name>?,<deb-name>?,<rpm-name>?,<zip-name>?,<license>,<doc file>*,<conf file>*,<service file>*,<openrc file>)
+# $(call package-impl,<package name>,<apk-name>?,<deb-name>?,<rpm-name>?,<zip-name>?,<license>,<doc file>*,<conf file>*,<service file>*,<openrc file>*,<apache conf-file>*,<apache-load-file>*)
 #
 define package-impl =
 #
@@ -611,6 +611,8 @@ $1.package-doc-files := $7
 $1.package-conf-files := $8
 $1.package-service-files := $9
 $1.package-openrc-files := $(10)
+$1.package-apache-conf-files := $(11)
+$1.package-apache-load-files := $(12)
 
 endef
 
@@ -618,17 +620,18 @@ endef
 # $(call package,<properties>)
 #
 # properties are:
-# name            package name
-# apk-name?       apk-specific package name override
-# deb-name?       deb-specific package name override
-# rpm-name?       rpm-specific package name override
-# zip-name?       zip-specific package name override
-# license         package license
-# doc-files*      package-specific documentation files
-# conf-files*     package-specific config files
-# service-files*  package-specific systemd service files
-# openrc-files*   package-specific openrc init files
-#
+# name                package name
+# apk-name?           apk-specific package name override
+# deb-name?           deb-specific package name override
+# rpm-name?           rpm-specific package name override
+# zip-name?           zip-specific package name override
+# license             package license
+# doc-files*          package-specific documentation files
+# conf-files*         package-specific config files
+# service-files*      package-specific systemd service files
+# openrc-files*       package-specific openrc init files
+# apache-conf-files*  package-specific apache .conf file templates
+# apache-load-files*  package-specific apache .load file templates
 package-keys := \
   name \
   apk-name \
@@ -639,7 +642,9 @@ package-keys := \
   doc-files \
   conf-files \
   service-files \
-  openrc-files
+  openrc-files \
+  apache-conf-files \
+  apache-load-files
   
 package = $(call expand,$(call call-stripped, \
   package-impl, \
@@ -652,7 +657,9 @@ package = $(call expand,$(call call-stripped, \
   $(call check-duplicate-basenames,$(call find-values,doc-files,$1,$(package-keys))), \
   $(call check-duplicate-basenames,$(call find-values,conf-files,$1,$(package-keys))), \
   $(call check-duplicate-basenames,$(call find-values,service-files,$1,$(package-keys))), \
-  $(call check-duplicate-basenames,$(call find-values,openrc-files,$1,$(package-keys))) \
+  $(call check-duplicate-basenames,$(call find-values,openrc-files,$1,$(package-keys))), \
+  $(call check-duplicate-basenames,$(call find-values,apache-conf-files,$1,$(package-keys))), \
+  $(call check-duplicate-basenames,$(call find-values,apache-load-files,$1,$(package-keys))) \
 ))
 
 #

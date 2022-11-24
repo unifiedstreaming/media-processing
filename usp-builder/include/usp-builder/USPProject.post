@@ -260,6 +260,8 @@ native-packager-settings = $(strip \
   doc-files="$(foreach f,$($1.package-doc-files),$(call non-relative-path,$f))" \
   openrc-files="$(foreach f,$($1.package-openrc-files),$(call non-relative-path,$f))" \
   service-files="$(foreach f,$($1.package-service-files),$(call non-relative-path,$f))" \
+  apache-conf-files="$(foreach f,$($1.package-apache-conf-files),$(call non-relative-path,$f))" \
+  apache-load-files="$(foreach f,$($1.package-apache-load-files),$(call non-relative-path,$f))" \
 )
 
 #

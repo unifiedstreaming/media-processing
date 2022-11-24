@@ -425,9 +425,9 @@ keep-last-instance-impl = $(if $(firstword $1), \
 keep-last-instance = $(strip $(call keep-last-instance-impl,$1))
 
 #
-# $(call call-stripped,<function>[,<arg1>[,<arg2>,[<arg3>[,<arg4>[,<arg5>[,<arg6>[,<arg7>[,<arg8>[,<arg9>[,<arg10>]]]]]]]]]])
+# $(call call-stripped,<function>[,<arg1>[,<arg2>,[<arg3>[,<arg4>[,<arg5>[,<arg6>[,<arg7>[,<arg8>[,<arg9>[,<arg10>][,<arg11>][,<arg12>][,<arg13>][,<arg14>][,<arg15>][,<arg16>][,<arg17>][,<arg18>][,<arg19>][,<arg20>]]]]]]]]]]]]]]]]]]]])
 #
-call-stripped = $(call $(strip $1),$(strip $2),$(strip $3),$(strip $4),$(strip $5),$(strip $6),$(strip $7),$(strip $8),$(strip $9),$(strip $(10)),$(strip $(11)))
+call-stripped = $(call $(strip $1),$(strip $2),$(strip $3),$(strip $4),$(strip $5),$(strip $6),$(strip $7),$(strip $8),$(strip $9),$(strip $(10)),$(strip $(11)),$(strip $(12)),$(strip $(13)),$(strip $(14)),$(strip $(15)),$(strip $(16)),$(strip $(17)),$(strip $(18)),$(strip $(19)),$(strip $(20)),$(strip $(21)))
 
 #
 # Utilities for property list parsing.  Users should call one of
