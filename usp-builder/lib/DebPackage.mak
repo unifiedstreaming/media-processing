@@ -129,7 +129,7 @@ install-conf-files = $(foreach f,$3,$(newline)$(tab)$(usp-cp) "$(call to-shell,$
 make-doc-dir = $(if $(strip $3),$(newline)$(tab)$(usp-mkdir-p) "$(call to-shell,$2/debian/$1/usr/share/doc/$1)")
 
 #
-# $(call install-doc-files,<package>,<deb-work-dir>,doc-file>*)
+# $(call install-doc-files,<package>,<deb-work-dir>,<doc-file>*)
 #
 install-doc-files = $(foreach f,$3,$(newline)$(tab)$(usp-cp) "$(call to-shell,$f)" "$(call to-shell,$2/debian/$1/usr/share/doc/$1/$(notdir $f))")
 
@@ -144,7 +144,17 @@ make-service-dir = $(if $(strip $3),$(newline)$(tab)$(usp-mkdir-p) "$(call to-sh
 install-services = $(foreach f,$3,$(newline)$(tab)$(usp-cp) "$(call to-shell,$f)" "$(call to-shell,$2/debian/$1/lib/systemd/system/$(call service-name,$f)$(call service-suffix,$f))")
 
 #
-# $(call rules-content,<package name>,<package version>,<package revision>,<deb work dir>,<artifacts-dir>,<artifact>*,<conf-file>*,<doc-file>*,<service-file>*)
+# $(call make-apache-conf-dir,<package>,<deb-work-dir>,<apache-conf-file>*)
+#
+make-apache-conf-dir = $(if $(strip $3),$(newline)$(tab)$(usp-mkdir-p) "$(call to-shell,$2/debian/$1/$(patsubst /%,%,$(apache-conf-dir))/mods-available)")
+
+#
+# $(call install-apache-conf-files,<package>,<deb-work-dir>,<apache-conf-file>*)
+#
+install-apache-conf-files = $(foreach f,$3,$(newline)$(tab)$(call subst-or-copy-apache-conf,$f,$2/debian/$1/$(patsubst /%,%,$(apache-conf-dir))/mods-available))
+
+#
+# $(call rules-content,<package name>,<package version>,<package revision>,<deb work dir>,<artifacts-dir>,<artifact>*,<conf-file>*,<doc-file>*,<service-file>*,<apache-conf-or-load-file>*)
 #
 define rules-content =
 #!$(call get-make) -f
@@ -160,7 +170,7 @@ override_dh_compress:
 $(if $(with-symbol-pkg),,override_dh_strip:)
 override_dh_strip_nondeterminism:
 
-override_dh_auto_install: $(call make-artifact-dirs,$1,$4,$6)$(call install-artifacts,$1,$4,$5,$6)$(call make-conf-dir,$1,$4,$7)$(call install-conf-files,$1,$4,$7)$(call make-doc-dir,$1,$4,$8)$(call install-doc-files,$1,$4,$8)$(call make-service-dir,$1,$4,$9)$(call install-services,$1,$4,$9)
+override_dh_auto_install: $(call make-artifact-dirs,$1,$4,$6)$(call install-artifacts,$1,$4,$5,$6)$(call make-conf-dir,$1,$4,$7)$(call install-conf-files,$1,$4,$7)$(call make-doc-dir,$1,$4,$8)$(call install-doc-files,$1,$4,$8)$(call make-service-dir,$1,$4,$9)$(call install-services,$1,$4,$9)$(call make-apache-conf-dir,$1,$4,$(10))$(call install-apache-conf-files,$1,$4,$(10))
 
 override_dh_shlibdeps:
 	dh_shlibdeps --dpkg-shlibdeps-params=--ignore-missing-info
@@ -243,7 +253,7 @@ $(deb-work-dir)/debian/control: $(deb-work-dir)/debian
 	$(info generated $@)
 
 $(deb-work-dir)/debian/rules: $(deb-work-dir)/debian
-	$(file >$@,$(call rules-content,$(package),$(pkg-version),$(pkg-revision),$(deb-work-dir),$(artifacts-dir),$(artifacts),$(conf-files),$(doc-files),$(service-files)))
+	$(file >$@,$(call rules-content,$(package),$(pkg-version),$(pkg-revision),$(deb-work-dir),$(artifacts-dir),$(artifacts),$(conf-files),$(doc-files),$(service-files),$(apache-conf-files) $(apache-load-files)))
 	$(info generated $@)
 	chmod +x "$(call to-shell,$@)"
 
