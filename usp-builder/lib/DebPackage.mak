@@ -199,9 +199,17 @@ $(call check-package-not-installed,$(package))
 #
 # Set some derived variables
 #
+override ubuntu := $(strip \
+  $(if $(filter %ubuntu,$(shell . /etc/os-release && echo $$ID)), \
+    yes \
+  ) \
+)
+
 override deb-package-basename := $(package)_$(pkg-version)-$(pkg-revision)_$(deb-arch)
 
-override deb-symbol-package-basename := $(package)-dbgsym_$(pkg-version)-$(pkg-revision)_$(deb-arch)
+override deb-package-filename := $(deb-package-basename).deb
+
+override ddeb-package-filename := $(package)-dbgsym_$(pkg-version)-$(pkg-revision)_$(deb-arch)$(if $(ubuntu),.ddeb,.deb)
 
 override deb-work-dir := $(packaging-work-dir)/$(deb-package-basename)
 
@@ -214,28 +222,23 @@ override artifacts := $(patsubst $(artifacts-dir)/%,%,$(call find-files,%,$(arti
 all: deb-package
 
 .PHONY: deb-package
-deb-package: $(pkgs-dir)/$(deb-package-basename).deb $(if $(with-symbol-pkg),$(pkgs-dir)/$(deb-symbol-package-basename).ddeb)
+deb-package: $(pkgs-dir)/$(deb-package-filename)
 
-$(pkgs-dir)/$(deb-package-basename).deb: \
-  $(packaging-work-dir)/$(deb-package-basename).deb \
+$(pkgs-dir)/$(deb-package-filename): \
+  $(packaging-work-dir)/$(deb-package-filename) \
   | $(pkgs-dir)
-	$(usp-cp) "$(call to-shell,$<)" "$(call to-shell,$@)"
+ifdef with-symbol-pkg
+	$(usp-cp) "$(call to-shell,$(packaging-work-dir)/$(ddeb-package-filename))" "$(call to-shell,$(pkgs-dir)/$(ddeb-package-filename))"
+endif
+	$(usp-cp) "$(call to-shell,$(packaging-work-dir)/$(deb-package-filename))" "$(call to-shell,$(pkgs-dir)/$(deb-package-filename))"
 
-$(pkgs-dir)/$(deb-symbol-package-basename).ddeb: \
-  $(packaging-work-dir)/$(deb-symbol-package-basename).ddeb \
-  | $(pkgs-dir)
-	$(usp-cp) "$(call to-shell,$<)" "$(call to-shell,$@)"
-
-$(packaging-work-dir)/$(deb-package-basename).deb: \
+$(packaging-work-dir)/$(deb-package-filename): \
   $(deb-work-dir)/debian/changelog \
   $(deb-work-dir)/debian/compat \
   $(deb-work-dir)/debian/control \
   $(deb-work-dir)/debian/rules \
   | $(packaging-work-dir)
 	unset MAKEFLAGS && cd "$(call to-shell,$(deb-work-dir))" && dpkg-buildpackage -us -uc -b 
-
-$(packaging-work-dir)/$(deb-symbol-package-basename).ddeb: $(packaging-work-dir)/$(deb-package-basename).deb
-	touch "$(call to-shell,$@)"
 
 $(pkgs-dir) $(packaging-work-dir):
 	$(usp-mkdir-p) "$(call to-shell,$@)"
