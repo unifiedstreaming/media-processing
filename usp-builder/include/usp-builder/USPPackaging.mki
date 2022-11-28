@@ -173,7 +173,7 @@ override license := $(call required-value,license)
 
 override packaging-work-dir := $(call to-make,$(call required-value,packaging-work-dir))
 
-override with-symbol-pkg := $(if $(filter-out debug,$(variant)),yes)
+override with-symbol-pkg := $(if $(call find-files,%,$(artifacts-dir)),yes)
 
 #
 # Get optional settings

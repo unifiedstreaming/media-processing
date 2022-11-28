@@ -174,10 +174,14 @@ check() {
 
 package() {
   #
+  # Ensure $$pkgdir exists (even when empty)
+  #
+  $(usp-mkdir-p) "$(call to-shell,$$pkgdir)"
+  #
   # Binaries
   #
-  $(foreach d,$(call distro-dirs,$9),$(usp-mkdir-p) "$$pkgdir/$(call to-shell,$d)"$(newline)$(space))
-  $(foreach a,$9,$(if $(call read-link,$8/$a),ln -sf "$(call to-shell,$(call read-link,$8/$a))" "$$pkgdir/$(call to-shell,$(call distro-path,$a))",$(usp-cp) "$(call to-shell,$8/$a)" "$$pkgdir/$(call to-shell,$(call distro-path,$a))")$(newline)$(space))
+  $(foreach d,$(call distro-dirs,$9),$(usp-mkdir-p) "$(call to-shell,$$pkgdir/$d)"$(newline)$(space))
+  $(foreach a,$9,$(if $(call read-link,$8/$a),ln -sf "$(call to-shell,$(call read-link,$8/$a))" "$(call to-shell,$$pkgdir/$(call distro-path,$a))",$(usp-cp) "$(call to-shell,$8/$a)" "$(call to-shell,$$pkgdir/$(call distro-path,$a))")$(newline)$(space))
   #
   # Config files
   #
