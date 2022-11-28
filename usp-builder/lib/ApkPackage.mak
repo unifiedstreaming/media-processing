@@ -143,7 +143,7 @@ exit 0
 endef
 
 #
-# $(call apkbuild-content,<package>,<version>,<revision>,<description>,<maintainer>,<prereq package>*,<license>,<artifacts-dir>,<artifact>*,<conf file>*,<doc file>*,<openrc file>*)
+# $(call apkbuild-content,<package>,<version>,<revision>,<description>,<maintainer>,<prereq package>*,<license>,<artifacts-dir>,<artifact>*,<conf file>*,<doc file>*,<openrc file>*,<apache conf file>*)
 #
 define apkbuild-content =
 pkgname="$1"
@@ -194,6 +194,11 @@ package() {
   $(if $(strip $(12)),$(usp-mkdir-p) "$(call to-shell,$$pkgdir/etc/init.d)"$(newline))
   $(foreach f,$(12),$(usp-cp) "$(call to-shell,$f)" "$(call to-shell,$$pkgdir/etc/init.d/$(call service-name,$f)$(call service-suffix,$f))"$(newline)$(space))
   $(foreach f,$(12),chmod +x "$(call to-shell,$$pkgdir/etc/init.d/$(call service-name,$f)$(call service-suffix,$f))"$(newline)$(space))
+  #
+  # Apache config files
+  #
+  $(if $(strip $(13)),$(usp-mkdir-p) "$(call to-shell,$$pkgdir/$(patsubst /%,%,$(apache-conf-dir))/conf.d)"$(newline))
+  $(foreach f,$(13),$(call subst-or-copy-apache-conf,$f,$$pkgdir/$(patsubst /%,%,$(apache-conf-dir))/conf.d)$(newline)$(space))
 
   return 0
 }
@@ -217,7 +222,7 @@ apk-package: $(apk-work-dir)/APKBUILD \
 	cd "$(call to-shell,$(apk-work-dir))" && abuild -m -d -P "$(call to-shell,$(pkgs-dir))"
 
 $(apk-work-dir)/APKBUILD: clean-apk-work-dir
-	$(file >$@,$(call apkbuild-content,$(package),$(pkg-version),$(pkg-revision),$(pkg-description),$(pkg-maintainer),$(prereq-packages),$(license),$(artifacts-dir),$(artifacts),$(conf-files),$(doc-files),$(openrc-files)))
+	$(file >$@,$(call apkbuild-content,$(package),$(pkg-version),$(pkg-revision),$(pkg-description),$(pkg-maintainer),$(prereq-packages),$(license),$(artifacts-dir),$(artifacts),$(conf-files),$(doc-files),$(openrc-files),$(apache-conf-files)))
 	$(info generated $@)
 	
 #
