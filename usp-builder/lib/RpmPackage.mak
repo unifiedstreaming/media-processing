@@ -158,7 +158,7 @@ override rpm-work-dir := $(packaging-work-dir)/$(rpm-package-basename)
 override artifacts := $(patsubst $(artifacts-dir)/%,%,$(call find-files,%,$(artifacts-dir)))
 
 #
-# $(call spec-file-content,<package>,<version>,<revision>,<description>,<license>,<prereq-package>*,<source artifact dir>,<source artifact>*,<conf file>,<doc file>*,<service file>*)
+# $(call spec-file-content,<package>,<version>,<revision>,<description>,<license>,<prereq-package>*,<source artifact dir>,<source artifact>*,<conf file>,<doc file>*,<service file>*,<apache conf file>*)
 #
 # Please note that, in contrast to the way Debian handles things, the
 # default rpm systemd postinstall hook does not enable or start any
@@ -211,6 +211,10 @@ $(foreach f,$(10),$(newline)$(usp-cp) "$(call to-shell,$f)" "%{buildroot}$(call 
 $(if $(strip $(11)),$(newline)$(usp-mkdir-p) "%{buildroot}%{_unitdir}")
 $(foreach f,$(11),$(newline)$(usp-cp) "$(call to-shell,$f)" "%{buildroot}%{_unitdir}/$(call to-shell,$(call service-name,$f)$(call service-suffix,$f))")
 
+# Apache conf files
+$(if $(strip $(12)),$(newline)$(usp-mkdir-p) "%{buildroot}%{_httpd_confdir}")
+$(foreach f,$(12),$(newline)$(call subst-or-copy-apache-conf,$f,%{buildroot}%{_httpd_confdir},15-))
+
 %post
 $(foreach f,$(11),$(call service-post,$(call service-name,$f)))
 
@@ -221,7 +225,7 @@ $(foreach f,$(11),$(call service-preun,$(call service-name,$f)))
 $(foreach f,$(11),$(call service-postun,$(call service-name,$f)))
 
 %files
-$(foreach f,$8,$(newline)/$(call distro-path,$f))$(foreach f,$9,$(newline)%config(noreplace) /etc/$(notdir $f))$(foreach f,$(10),$(newline)/usr/share/doc/$1/$(notdir $f))$(foreach f,$(11),$(newline)%{_unitdir}/$(call service-name,$f)$(call service-suffix,$f))
+$(foreach f,$8,$(newline)/$(call distro-path,$f))$(foreach f,$9,$(newline)%config(noreplace) /etc/$(notdir $f))$(foreach f,$(10),$(newline)/usr/share/doc/$1/$(notdir $f))$(foreach f,$(11),$(newline)%{_unitdir}/$(call service-name,$f)$(call service-suffix,$f))$(foreach f,$(12),$(newline)%config(noreplace) %{_httpd_confdir}/$(call installed-apache-conf-file-name,$f,15-))
 
 endef
 
@@ -247,7 +251,7 @@ $(rpm-work-dir)/RPMS/$(rpm-arch)/$(rpm-symbol-package-basename).rpm: $(rpm-work-
 	touch "$(call to-shell,$@)"
 
 $(rpm-work-dir)/SPECS/$(package).spec: $(rpm-work-dir)/SPECS
-	$(file >$@,$(call spec-file-content,$(package),$(pkg-version),$(pkg-revision),$(pkg-description),$(license),$(addsuffix ,$(prereq-packages)),$(artifacts-dir),$(artifacts),$(conf-files),$(doc-files),$(service-files)))
+	$(file >$@,$(call spec-file-content,$(package),$(pkg-version),$(pkg-revision),$(pkg-description),$(license),$(addsuffix ,$(prereq-packages)),$(artifacts-dir),$(artifacts),$(conf-files),$(doc-files),$(service-files),$(apache-conf-files)))
 	$(info generated $@)
 
 $(rpm-work-dir)/SPECS: clean-rpm-work-dir

@@ -79,17 +79,22 @@ apache-conf-dir = $(strip \
 )
 
 #
-# $(call subst-or-copy-apache-conf,<source file>,<target dir>)
+# $(call installed-apache-conf-file-name,<source file>,<prefix>*)
+#
+installed-apache-conf-file-name = $2$(patsubst %.in,%,$(notdir $1))
+
+#
+# $(call subst-or-copy-apache-conf,<source file>,<target dir>,<prefix>*)
 #
 subst-or-copy-apache-conf = $(strip \
   $(if $(filter %.in,$1), \
     $(usp-sed) 's|@AP_LIBEXECDIR@|$(apache-modules-dir)|g' \
       "$(call to-shell,$1)" \
-      >"$(call to-shell,$2/$(patsubst %.in,%,$(notdir $1)))" \
+      >"$(call to-shell,$2/$(call installed-apache-conf-file-name,$1,$3))" \
   , \
     $(usp-cp) \
       "$(call to-shell,$1)" \
-      "$(call to-shell,$2/$(notdir $1))" \
+      "$(call to-shell,$2/$(call installed-apache-conf-file-name,$1,$3))" \
   ) \
 )
       
