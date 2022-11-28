@@ -151,7 +151,9 @@ $(call check-package-not-installed,$(package))
 #
 override rpm-package-basename := $(package)-$(pkg-version)-$(pkg-revision).$(rpm-arch)
 
-override rpm-symbol-package-basename := $(package)-debuginfo-$(pkg-version)-$(pkg-revision).$(rpm-arch)
+override rpm-package-filename := $(rpm-package-basename).rpm
+
+override rpm-debug-package-filename := $(package)-debuginfo-$(pkg-version)-$(pkg-revision).$(rpm-arch).rpm
 
 override rpm-work-dir := $(packaging-work-dir)/$(rpm-package-basename)
 
@@ -233,22 +235,19 @@ endef
 all: rpm-package
 
 .PHONY: rpm-package
-rpm-package: $(pkgs-dir)/$(rpm-package-basename).rpm $(if $(with-symbol-pkg),$(pkgs-dir)/$(rpm-symbol-package-basename).rpm)
+rpm-package: $(pkgs-dir)/$(rpm-package-filename)
 
-$(pkgs-dir)/$(rpm-package-basename).rpm: $(rpm-work-dir)/RPMS/$(rpm-arch)/$(rpm-package-basename).rpm | $(pkgs-dir)
-	$(usp-cp) "$(call to-shell,$<)" "$(call to-shell,$@)"
-
-$(pkgs-dir)/$(rpm-symbol-package-basename).rpm: $(rpm-work-dir)/RPMS/$(rpm-arch)/$(rpm-symbol-package-basename).rpm | $(pkgs-dir)
-	$(usp-cp) "$(call to-shell,$<)" "$(call to-shell,$@)"
+$(pkgs-dir)/$(rpm-package-filename): $(rpm-work-dir)/RPMS/$(rpm-arch)/$(rpm-package-filename) | $(pkgs-dir)
+ifdef with-symbol-pkg
+	$(usp-cp) "$(call to-shell,$(rpm-work-dir)/RPMS/$(rpm-arch)/$(rpm-debug-package-filename))" "$(call to-shell,$(pkgs-dir)/$(rpm-debug-package-filename))"
+endif
+	$(usp-cp) "$(call to-shell,$(rpm-work-dir)/RPMS/$(rpm-arch)/$(rpm-package-filename))" "$(call to-shell,$(pkgs-dir)/$(rpm-package-filename))"
 
 $(pkgs-dir) :
 	$(usp-mkdir-p) "$(call to-shell,$@)"
 
-$(rpm-work-dir)/RPMS/$(rpm-arch)/$(rpm-package-basename).rpm: $(rpm-work-dir)/SPECS/$(package).spec
+$(rpm-work-dir)/RPMS/$(rpm-arch)/$(rpm-package-filename): $(rpm-work-dir)/SPECS/$(package).spec
 	rpmbuild -bb --define '_topdir $(rpm-work-dir)' $<
-
-$(rpm-work-dir)/RPMS/$(rpm-arch)/$(rpm-symbol-package-basename).rpm: $(rpm-work-dir)/RPMS/$(rpm-arch)/$(rpm-package-basename).rpm
-	touch "$(call to-shell,$@)"
 
 $(rpm-work-dir)/SPECS/$(package).spec: $(rpm-work-dir)/SPECS
 	$(file >$@,$(call spec-file-content,$(package),$(pkg-version),$(pkg-revision),$(pkg-description),$(license),$(addsuffix ,$(prereq-packages)),$(artifacts-dir),$(artifacts),$(conf-files),$(doc-files),$(service-files),$(apache-conf-files)))
