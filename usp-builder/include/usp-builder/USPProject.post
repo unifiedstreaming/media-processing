@@ -252,16 +252,19 @@ prereq-packages = $(strip \
 native-packager-settings = $(strip \
   $(build-settings) \
   package=$($1.package-$2-name) \
+  pkg-version="$(pkg-version)" \
+  pkg-revision="$(pkg-revision)" \
+  pkgs-dir="$(if $(strip $(pkgs-dir)),$(call to-shell,$(call non-relative-path,$(pkgs-dir))))" \
   license="$($1.package-license)" \
   prereq-packages="$(foreach p,$(call prereq-packages,$1),$($p.package-$2-name))" \
   artifacts-dir="$(call to-shell,$(artifacts-dir)/$1)" \
   packaging-work-dir="$(call to-shell,$(packaging-work-dir)/$2)" \
-  conf-files="$(foreach f,$($1.package-conf-files),$(call non-relative-path,$f))" \
-  doc-files="$(foreach f,$($1.package-doc-files),$(call non-relative-path,$f))" \
-  openrc-files="$(foreach f,$($1.package-openrc-files),$(call non-relative-path,$f))" \
-  service-files="$(foreach f,$($1.package-service-files),$(call non-relative-path,$f))" \
-  apache-conf-files="$(foreach f,$($1.package-apache-conf-files),$(call non-relative-path,$f))" \
-  apache-load-files="$(foreach f,$($1.package-apache-load-files),$(call non-relative-path,$f))" \
+  conf-files="$(foreach f,$($1.package-conf-files),$(call to-shell,$(call non-relative-path,$f)))" \
+  doc-files="$(foreach f,$($1.package-doc-files),$(call to-shell,$(call non-relative-path,$f)))" \
+  openrc-files="$(foreach f,$($1.package-openrc-files),$(call to-shell,$(call non-relative-path,$f)))" \
+  service-files="$(foreach f,$($1.package-service-files),$(call to-shell,$(call non-relative-path,$f)))" \
+  apache-conf-files="$(foreach f,$($1.package-apache-conf-files),$(call to-shell,$(call non-relative-path,$f)))" \
+  apache-load-files="$(foreach f,$($1.package-apache-load-files),$(call to-shell,$(call non-relative-path,$f)))" \
 )
 
 #
