@@ -30,8 +30,8 @@ pdb-base = $1-pdb_$2-$3
 # $(call main-meta-content,<package>,<version>,<revision>,<prereq package>*)
 #
 define main-meta-content =
-package: $(call main-base,$1,$2,$3).zip
-requires: $(foreach p,$4,$(call main-base,$p,$2,$3).zip)
+package: $(call main-base,$1,$2,$3)
+requires: $(foreach p,$4,$(call main-base,$p,$2,$3))
 
 endef
 
@@ -39,8 +39,8 @@ endef
 # $(call pdb-meta-content,<package>,<version>,<revision>)
 #
 define pdb-meta-content =
-package: $(call pdb-base,$1,$2,$3).zip
-requires: $(call main-base,$1,$2,$3).zip
+package: $(call pdb-base,$1,$2,$3)
+requires: $(call main-base,$1,$2,$3)
 
 endef
 
@@ -76,7 +76,7 @@ all: zip-file
 zip-file: $(pkgs-dir)/$(main-zip-filename) $(if $(with-symbol-pkg),$(pkgs-dir)/$(pdb-zip-filename))
 
 $(pkgs-dir)/$(main-zip-filename): \
-  $(main-work-dir)/usp-meta/$(main-zip-basename).zip.meta \
+  $(main-work-dir)/usp-meta/$(main-zip-basename).meta \
   clean-main-work-dir \
   | $(pkgs-dir)
 	$(usp-rm-rf) "$(call to-shell,$@)"
@@ -88,7 +88,7 @@ $(pkgs-dir)/$(main-zip-filename): \
 	$(foreach f,$(doc-files),$(usp-cp) "$(call to-shell,$f)" "$(call to-shell,$(main-work-dir)/doc/$(package)/$(notdir $f))"$(newline)$(tab))
 	( cd "$(call to-shell,$(main-work-dir))" && $(usp-zip) $(zip-options) -r "$(call to-shell,$@)" . )
 
-$(main-work-dir)/usp-meta/$(main-zip-basename).zip.meta: \
+$(main-work-dir)/usp-meta/$(main-zip-basename).meta: \
   $(main-work-dir)/usp-meta
 	$(file >$@,$(call main-meta-content,$(package),$(pkg-version),$(pkg-revision),$(prereq-packages)))
 	$(info generated $@)
@@ -102,7 +102,7 @@ clean-main-work-dir:
 	$(usp-mkdir-p) "$(call to-shell,$(main-work-dir))"
 
 $(pkgs-dir)/$(pdb-zip-filename): \
-  $(pdb-work-dir)/usp-meta/$(pdb-zip-basename).zip.meta \
+  $(pdb-work-dir)/usp-meta/$(pdb-zip-basename).meta \
   clean-pdb-work-dir \
   | $(pkgs-dir)
 	$(usp-rm-rf) "$(call to-shell,$@)"
@@ -110,7 +110,7 @@ $(pkgs-dir)/$(pdb-zip-filename): \
 	$(foreach a,$(pdb-artifacts),$(if $(call read-link,$(artifacts-dir)/$a),ln -sf "$(call read-link,$(artifacts-dir)/$a)" "$(call to-shell,$(pdb-work-dir)/$a)",$(usp-cp) "$(call to-shell,$(artifacts-dir)/$a)" "$(call to-shell,$(pdb-work-dir)/$a)")$(newline)$(tab))
 	( cd "$(call to-shell,$(pdb-work-dir))" && $(usp-zip) $(zip-options) -r "$(call to-shell,$@)" . )
 
-$(pdb-work-dir)/usp-meta/$(pdb-zip-basename).zip.meta: \
+$(pdb-work-dir)/usp-meta/$(pdb-zip-basename).meta: \
   $(pdb-work-dir)/usp-meta
 	$(file >$@,$(call pdb-meta-content,$(package),$(pkg-version),$(pkg-revision)))
 	$(info generated $@)
