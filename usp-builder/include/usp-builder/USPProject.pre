@@ -330,6 +330,11 @@ $(if $5,$(tab)$(usp-bjam) $$(call bjam-package-options,$1) $(build-settings) $3/
 $1.clean:
 	$(usp-bjam) --clean $$(call bjam-options,$1) $(build-settings) $3
 
+# Pattern rule for running a specific bjam target (unit test)
+.PHONY: $1.%
+$1.%: build-dir-skeleton $(addsuffix .stage,$4)
+	$(usp-bjam) $$(call bjam-options,$1) $(build-settings) $3//$$*
+
 endef
 
 #
