@@ -763,3 +763,8 @@ check-duplicate-basenames = $(strip \
     ) \
   ) \
 )
+
+#
+# $(call read-link,<path>)
+#
+read-link = $(if $(windows),,$(shell readlink "$(call to-shell,$1)"))

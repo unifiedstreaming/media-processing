@@ -135,11 +135,6 @@ service-name = $(call notdir-basename,$1)
 service-suffix = $(suffix $1)
 
 #
-# $(call read-link,<path>)
-#
-read-link = $(if $(windows),,$(shell readlink "$(call to-shell,$1)"))
-
-#
 # $(call check-packaging-build-setting,<name>,<required value>)
 #
 check-packaging-build-setting = $(strip \
