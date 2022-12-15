@@ -101,6 +101,9 @@ libfile-libname = $(strip \
   $(if $(filter %.a %.dylib %.lib %.so,$1), \
     $(patsubst lib%,%,$(notdir $(basename $1))) \
   , \
+    $(if $(filter $(basename $1),$1), \
+      $(error libfile-libname: no expected extension found) \
+    ) \
     $(call libfile-libname,$(basename $1)) \
   ) \
 )
@@ -114,7 +117,6 @@ override with-devel := $(if $(filter yes,$(with-devel)),yes,)
 
 override dest-dir := $(call required-value,dest-dir)
 override libs-dir := $(call required-value,libs-dir)
-
 ifdef with-devel
   override hdrfiles := $(call find-files,%,$(call required-value,headers-dir))
   override libfiles := $(wildcard $(libs-dir)/$(if $(windows),*.lib,*.a))
@@ -140,22 +142,37 @@ else
   override pdbfiles :=
 endif
 
+#
+# Get regular files and development links from sopaths
+#
 override sofiles := $(call filter-files,$(sopaths))
 override devlinks := $(call filter-devlinks,$(sopaths))
 
+#
+# Determine target files
+#
 override dst-hdrfiles := $(addprefix $(dest-dir)/include/, \
   $(patsubst $(headers-dir)/%,%,$(hdrfiles)))
-override dst-hdrdirs := \
-  $(call dedup,$(patsubst %/,%,$(dir $(dst-hdrfiles))))
+override dst-libfiles := $(addprefix $(dest-dir)/lib/, \
+  $(patsubst $(libs-dir)/%,%,$(libfiles)))
+override dst-sofiles := $(addprefix $(dest-dir)/lib/, \
+  $(patsubst $(libs-dir)/%,%,$(sofiles)))
+override dst-dylibfiles := $(addprefix $(dest-dir)/lib/, \
+  $(patsubst $(libs-dir)/%,%,$(dylibfiles)))
+override dst-dllfiles := $(addprefix $(dest-dir)/bin/, \
+  $(patsubst $(libs-dir)/%,%,$(dllfiles)))
+override dst-pdbfiles := $(addprefix $(dest-dir)/bin/, \
+  $(patsubst $(libs-dir)/%,%,$(pdbfiles)))
 
-override dst-libfiles := $(addprefix $(dest-dir)/lib/,$(notdir $(libfiles)))
-override dst-sofiles := $(addprefix $(dest-dir)/lib/,$(notdir $(sofiles)))
-override dst-dylibfiles := $(addprefix $(dest-dir)/lib/,$(notdir $(dylibfiles)))
-override dst-dllfiles := $(addprefix $(dest-dir)/bin/,$(notdir $(dllfiles)))
-override dst-pdbfiles := $(addprefix $(dest-dir)/bin/,$(notdir $(pdbfiles)))
+#
+# Determine target dirs
+#
+override dst-dirs := $(call dedup,$(patsubst %/,%,$(dir \
+  $(dst-hdrfiles) $(dst-libfiles) $(dst-sofiles) \
+  $(dst-dylibfiles) $(dst-dllfiles) $(dst-pdbfiles) \
+)))
 
-override dest-hdrdirs := \
-  $(call dedup,$(patsubst %/,%,$(dir $(dest-hdrfiles))))
+override jam-dir := $(dest-dir)/lib/jamfiles
 
 .PHONY: all
 all: \
@@ -166,23 +183,23 @@ all: \
   $(dst-dllfiles) \
   $(dst-pdbfiles)
 
-$(dst-hdrfiles): | $(dst-hdrdirs)
+$(dst-hdrfiles): | $(dst-dirs)
 
 $(dst-hdrfiles): $(dest-dir)/include/%: $(headers-dir)/%
 	$(usp-cp) "$(call to-shell,$<)" "$(call to-shell,$@)"
 
-$(dst-libfiles): | $(dest-dir)/lib
+$(dst-libfiles): | $(dst-dirs)
 
 $(dst-libfiles): $(dest-dir)/lib/%: $(libs-dir)/%
 	$(usp-cp) "$(call to-shell,$<)" "$(call to-shell,$@)"
 	$(MAKE) -I "$(usp-builder-include-dir)" \
 	  -f "$(usp-builder-lib-dir)/UpdateStagedJamfile.mak" \
-	  jamfile="$(dir $@)jamfiles/$(call libfile-libname,$<)/jamfile" \
+	  jamfile="$(jam-dir)/$(call libfile-libname,$<)/jamfile" \
 	  libfile="$@" \
 	  libname="$(call libfile-libname,$<)" \
 	  incdir="$(dest-dir)/include"
 
-$(dst-sofiles): | $(dest-dir)/lib
+$(dst-sofiles): | $(dst-dirs)
 
 $(dst-sofiles): $(dest-dir)/lib/%: $(libs-dir)/%
 	$(usp-cp) "$(call to-shell,$<)" "$(call to-shell,$@)"
@@ -195,34 +212,34 @@ ifdef with-devel
 	  "$(call to-shell,$(dir $@)$(call devel-link,$<,$(devlinks)))")
 	$(MAKE) -I "$(usp-builder-include-dir)" \
 	  -f "$(usp-builder-lib-dir)/UpdateStagedJamfile.mak" \
-	  jamfile="$(dir $@)jamfiles/$(call sofile-libname,$<,$(devlinks))/jamfile" \
+	  jamfile="$(jam-dir)/$(call sofile-libname,$<,$(devlinks))/jamfile" \
 	  libfile="$(dir $@)$(call sofile-libfilename,$<,$(devlinks))" \
 	  libname="$(call sofile-libname,$<,$(devlinks))" \
 	  incdir="$(dest-dir)/include"
 endif
 
-$(dst-dylibfiles): | $(dest-dir)/lib
+$(dst-dylibfiles): | $(dst-dirs)
 
 $(dst-dylibfiles): $(dest-dir)/lib/%: $(libs-dir)/%
 	$(usp-cp) "$(call to-shell,$<)" "$(call to-shell,$@)"
 ifdef with-devel
 	$(MAKE) -I "$(usp-builder-include-dir)" \
 	  -f "$(usp-builder-lib-dir)/UpdateStagedJamfile.mak" \
-	  jamfile="$(dir $@)jamfiles/$(call libfile-libname,$<)/jamfile" \
+	  jamfile="$(jam-dir)/jamfiles/$(call libfile-libname,$<)/jamfile" \
 	  libfile="$@" \
 	  libname="$(call libfile-libname,$<)" \
 	  incdir="$(dest-dir)/include"
 endif
 
-$(dst-dllfiles): | $(dest-dir)/bin
+$(dst-dllfiles): | $(dst-dirs)
 
 $(dst-dllfiles): $(dest-dir)/bin/%: $(libs-dir)/%
 	$(usp-cp) "$(call to-shell,$<)" "$(call to-shell,$@)"
 
-$(dst-pdbfiles): | $(dest-dir)/bin
+$(dst-pdbfiles): | $(dst-dirs)
 
 $(dst-pdbfiles): $(dest-dir)/bin/%: $(libs-dir)/%
 	$(usp-cp) "$(call to-shell,$<)" "$(call to-shell,$@)"
 
-$(dst-hdrdirs) $(dest-dir)/bin $(dest-dir)/lib:
+$(dst-dirs):
 	$(usp-mkdir-p) "$(call to-shell,$@)"
