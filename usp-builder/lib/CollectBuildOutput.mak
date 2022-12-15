@@ -38,7 +38,7 @@ filter-files = $(strip \
 #
 runtime-link-impl = $(strip \
   $(if $(filter-out $(notdir $1),$2), \
-    $(call REM,runtime link for somename required) \
+    $(call REM,sofile requires runtime link) \
     $2 \
   ) \
 )
@@ -56,7 +56,7 @@ filter-devlinks = $(strip \
   $(foreach p,$1, \
     $(if $(call read-link,$p), \
       $(if $(call runtime-link,$p), \
-        $(call REM,not a runtime link) \
+        $(call REM,sopath is not a runtime link) \
         $p \
       ) \
     ) \
@@ -64,16 +64,16 @@ filter-devlinks = $(strip \
 )
         
 #
-# $(call devel-link-impl,<soname>,<candidate link>*)
+# $(call devel-link-from-soname,<soname>,<candidate link>*)
 #
-devel-link-impl = $(strip \
+devel-link-from-soname = $(strip \
   $(if $(firstword $2), \
     $(if $(filter $1,$(call soname,$(firstword $2))), \
-      $(call REM,soname of target and link match) \
+      $(call REM,soname of target and candidate link match) \
       $(notdir $(firstword $2)) \
     , \
       $(call REM,try next link) \
-      $(call devel-link-impl,$1,$(wordlist 2,$(words $2),$2)) \
+      $(call devel-link-from-soname,$1,$(wordlist 2,$(words $2),$2)) \
     ) \
   ) \
 )
@@ -82,29 +82,49 @@ devel-link-impl = $(strip \
 # $(call devel-link,<sofile>,<candidate link>*)
 # Returns the name (if any) of a sofile's development link
 #
-devel-link = $(call devel-link-impl,$(call soname,$1),$2)
+devel-link = $(call devel-link-from-soname,$(call soname,$1),$2)
 
 #
-# $(call sofile-libfilename-impl,<sofile>,<link>?)
+# $(call pick-sofile-libfilename,<sofile>,<soname>?,<devel link name>?)
 #
-sofile-libfilename-impl = $(notdir $(if $2,$2,$1))
+pick-sofile-libfilename = $(strip \
+  $(if $(strip $3), \
+    $(call REM,use devel link name) \
+    $3 \
+  , $(if $(strip $2), \
+      $(call REM,fall back to soname) \
+      $2 \
+    , \
+      $(call REM,fall back to filename) \
+      $(notdir $1) \
+    ) \
+  ) \
+)
 
+#
+# $(call sofile-libfilename-impl,<sofile>,<soname>?,<candidate link>*)
+#
+sofile-libfilename-impl = $(strip \
+  $(call pick-sofile-libfilename,$1,$2,$(call devel-link-from-soname,$2,$3)) \
+)
+     
 #
 # $(call sofile-libfilename,<sofile>,<candidate link>*)
 #
-sofile-libfilename = $(call sofile-libfilename-impl,$1,$(call devel-link,$1,$2))
+sofile-libfilename = $(call sofile-libfilename-impl,$1,$(call soname,$1),$2)
 
 #
 # $(call libfile-libname,<libfile>)
 #
 libfile-libname = $(strip \
-  $(if $(filter %.a %.dylib %.lib %.so,$1), \
+  $(if $(filter .a .dylib .lib .so,$(suffix $1)), \
     $(patsubst lib%,%,$(notdir $(basename $1))) \
   , \
-    $(if $(filter $(basename $1),$1), \
-      $(error libfile-libname: no expected extension found) \
+    $(if $(suffix $1), \
+      $(call libfile-libname,$(basename $1)) \
+    , \
+      $(error libfile-libname: no expected suffix found) \
     ) \
-    $(call libfile-libname,$(basename $1)) \
   ) \
 )
 
