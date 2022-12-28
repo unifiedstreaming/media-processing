@@ -20,7 +20,7 @@ check-project-prereqs = $(strip \
     $(if $(filter $2 $1,$(pre)), \
       $(error $(strip \
         project prereq cycle in project chain \
-	$(foreach prj,$2 $1,'$(prj)' ->') '$(pre)' \
+        $(foreach prj,$2 $1,'$(prj)' ->') '$(pre)' \
       )) \
     ) \
     $(call check-project-prereqs,$(pre),$2 $1) \
@@ -38,10 +38,82 @@ check-package-prereqs = $(strip \
     $(if $(filter $2 $1,$(pre)), \
       $(error $(strip \
         package prereq cycle in package chain \
-	$(foreach pkg,$2 $1,'$(pkg)' ->') '$(pre)' \
+        $(foreach pkg,$2 $1,'$(pkg)' ->') '$(pre)' \
       )) \
     ) \
     $(call check-package-prereqs,$(pre),$2 $1) \
+  ) \
+)
+
+#
+# $(call find-all-packages,<project>)
+#
+find-all-packages = $(strip \
+  $(foreach pkg,$(all-packages), \
+    $(if $(filter $1,$($(pkg).package-projects)), \
+      $(pkg) \
+    ) \
+  ) \
+)
+
+#
+# $(call find-package-impl,<project>,<package>*)
+#
+find-package-impl = $(strip \
+  $(if $(filter 0,$(words $2)), \
+    $(call REM,found no package) \
+  , \
+    $(if $(filter 1,$(words $2)), \
+      $(call REM,found single package) \
+      $(firstword $2) \
+    , \
+      $(error $(strip \
+        multiple packages found for project '$1': \
+        $(foreach pkg,$2,'$(pkg)') \
+      )) \
+    ) \
+  ) \
+)
+
+#
+# $(call find-package,<project>)
+#
+find-package = $(strip \
+  $(if $($1.distributable), \
+    $(call find-package-impl,$1,$(call find-all-packages,$1)) \
+  ) \
+)
+
+#
+# $(call check-packaged-projects,<package>)
+#
+check-packaged-projects = $(strip \
+  $(foreach prj,$($1.package-projects), \
+    \
+    $(call REM,check project name) \
+    $(if $(filter-out $(all-projects),$(prj)), \
+      $(error package '$1': project '$(prj)' not found) \
+    ) \
+    \
+    $(call REM,check project is distributable) \
+    $(if $($(prj).distributable), \
+      $(call REM,ok) \
+    , \
+      $(error package '$1': project '$(prj)' is not distributable) \
+    ) \
+    \
+    $(call REM,prevent project in multiple packages) \
+    $(filter-out %,$(call find-package,$(prj))) \
+    \
+    $(call REM,check prereq packages required by project) \
+    $(foreach pre,$($(prj).prereqs), \
+      $(if $(filter-out $1 $($1.package-prereqs),$(call find-package,$(pre))), \
+        $(error $(strip \
+          package '$1': missing prereq package '$(call find-package,$(pre))' \
+          required by prereq project '$(pre)' of project '$(prj)' \
+        )) \
+      ) \
+    ) \
   ) \
 )
 
@@ -345,6 +417,11 @@ endef
 #
 $(foreach prj,$(all-projects),$(call check-project-prereqs,$(prj)))
 $(foreach pkg,$(all-packages),$(call check-package-prereqs,$(pkg)))
+
+#
+# Check if the package and project DAGs match
+#
+$(foreach pkg,$(all-packages),$(call check-packaged-projects,$(pkg)))
 
 #
 # Check the prerequisites for all projects, so we know they form
