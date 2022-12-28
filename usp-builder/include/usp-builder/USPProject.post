@@ -10,6 +10,42 @@
 #
 
 #
+# $(call check-project-prereqs,<project>,<depending project>*)
+#
+check-project-prereqs = $(strip \
+  $(foreach pre,$($1.prereqs), \
+    $(if $(filter-out $(all-projects),$(pre)), \
+      $(error project '$1': prereq project '$(pre)' not found) \
+    ) \
+    $(if $(filter $2 $1,$(pre)), \
+      $(error $(strip \
+        project prereq cycle in project chain \
+	$(foreach prj,$2 $1,'$(prj)' ->') '$(pre)' \
+      )) \
+    ) \
+    $(call check-project-prereqs,$(pre),$2 $1) \
+  ) \
+)
+
+#
+# $(call check-package-prereqs,<package>,<depending package>*)
+#
+check-package-prereqs = $(strip \
+  $(foreach pre,$($1.package-prereqs), \
+    $(if $(filter-out $(all-packages),$(pre)), \
+      $(error package '$1': prereq package '$(pre)' not found) \
+    ) \
+    $(if $(filter $2 $1,$(pre)), \
+      $(error $(strip \
+        package prereq cycle in package chain \
+	$(foreach pkg,$2 $1,'$(pkg)' ->') '$(pre)' \
+      )) \
+    ) \
+    $(call check-package-prereqs,$(pre),$2 $1) \
+  ) \
+)
+
+#
 # $(call check-prereqs,<project>,<depending project*>)
 #
 # Checks the prerequisites of a project.
@@ -303,6 +339,12 @@ $1.clean-artifacts:
 	$(usp-rm-rf) "$$(call to-shell,$(artifacts-dir)/$1)"
 
 endef
+
+#
+# Check the project and package DAGs
+#
+$(foreach prj,$(all-projects),$(call check-project-prereqs,$(prj)))
+$(foreach pkg,$(all-packages),$(call check-package-prereqs,$(pkg)))
 
 #
 # Check the prerequisites for all projects, so we know they form
