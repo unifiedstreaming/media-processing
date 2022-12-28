@@ -611,13 +611,15 @@ all-rpm-packages := $$(call add-package,$$(all-rpm-packages),$$($1.package-rpm-n
 $1.package-zip-name := $(if $5,$5,$1)
 all-zip-packages := $$(call add-package,$$(all-zip-packages),$$($1.package-zip-name))
 
-$1.package-license := $6
-$1.package-doc-files := $7
-$1.package-conf-files := $8
-$1.package-service-files := $9
-$1.package-openrc-files := $(10)
-$1.package-apache-conf-files := $(11)
-$1.package-apache-load-files := $(12)
+$1.package-projects := $6
+$1.package-prereqs := $7
+$1.package-license := $8
+$1.package-doc-files := $9
+$1.package-conf-files := $(10)
+$1.package-service-files := $(11)
+$1.package-openrc-files := $(12)
+$1.package-apache-conf-files := $(13)
+$1.package-apache-load-files := $(14)
 
 endef
 
@@ -626,6 +628,8 @@ endef
 #
 # properties are:
 # name                package name
+# projects*           packaged projects
+# prereq-packages*    prerequisite packages
 # apk-name?           apk-specific package name override
 # deb-name?           deb-specific package name override
 # rpm-name?           rpm-specific package name override
@@ -639,6 +643,8 @@ endef
 # apache-load-files*  package-specific apache .load file templates
 package-keys := \
   name \
+  projects \
+  prereq-packages \
   apk-name \
   deb-name \
   rpm-name \
@@ -658,6 +664,8 @@ package = $(call expand,$(call call-stripped, \
   $(call find-value,deb-name,$1,$(package-keys)), \
   $(call find-value,rpm-name,$1,$(package-keys)), \
   $(call find-value,zip-name,$1,$(package-keys)), \
+  $(call find-values,projects,$1,$(package-keys)), \
+  $(call find-values,prereq-packages,$1,$(package-keys)), \
   $(call get-value,license,$1,$(package-keys)), \
   $(call check-duplicate-basenames,$(call find-values,doc-files,$1,$(package-keys))), \
   $(call check-duplicate-basenames,$(call find-values,conf-files,$1,$(package-keys))), \

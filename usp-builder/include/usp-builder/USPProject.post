@@ -89,7 +89,7 @@ contains-prereq = $(strip \
 )
 
 #
-# $(call remove-depending,<project *>,<on project>)
+# $(call remove-depending,<project>*,<on project>)
 #
 # Returns a new list of projects with projects depending on some
 # specific project removed
@@ -106,7 +106,7 @@ remove-depending = $(strip \
 )
 
 #
-# $(call add-packager,<packager *>,<new packager>)
+# $(call add-packager,<packager>*,<new packager>)
 #
 # Adds a packager to a set of potential packagers for a project,
 # returning the new set.
