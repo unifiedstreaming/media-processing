@@ -66,6 +66,8 @@ $(call gmake-project, \
 #
 $(call package, \
   name = x264-encoding-service \
+  projects = x264_encoding_service \
+  prereq-packages = libx264-proto libcuti \
   license = GPLv2 \
   doc-files = \
     x264_encoding_service/doc/copyright \
@@ -80,6 +82,8 @@ $(call package, \
 
 $(call package, \
   name = libx264-proto \
+  projects = x264_proto \
+  prereq-packages = libcuti \
   license = LGPLv2.1 \
   doc-files = \
     x264_proto/doc/copyright \
@@ -88,6 +92,7 @@ $(call package, \
 
 $(call package, \
   name = libcuti \
+  projects = cuti \
   license = LGPLv2.1 \
   doc-files = \
     cuti/doc/copyright \
