@@ -590,13 +590,12 @@ bjam-test-project = $(call expand,$(call call-stripped, \
 ))
 
 #
-# $(call package-impl,<package name>,<apk-name>?,<deb-name>?,<rpm-name>?,<zip-name>?,<license>,<doc file>*,<conf file>*,<service file>*,<openrc file>*,<apache conf-file>*,<apache-load-file>*)
+# $(call package-impl,<package name>,<apk-name>?,<deb-name>?,<rpm-name>?,<zip-name>?,<project>*,<prereq-package>*,<license>,<doc file>*,<conf file>*,<service file>*,<openrc file>*,<apache conf-file>*,<apache-load-file>*)
 #
 define package-impl =
 #
 # Attributes for package '$1'
 #
-
 all-packages := $$(call add-package,$$(all-packages),$(call checked-package-name,$1))
 
 $1.package-apk-name := $(if $2,$2,$1)

@@ -364,7 +364,7 @@ native-packager-settings = $(strip \
   pkg-revision="$(pkg-revision)" \
   pkgs-dir="$(if $(strip $(pkgs-dir)),$(call to-shell,$(call non-relative-path,$(pkgs-dir))))" \
   license="$($1.package-license)" \
-  prereq-packages="$(foreach p,$(call prereq-packages,$1),$($p.package-$2-name))" \
+  prereq-packages="$(foreach p,$($1.package-prereqs),$($p.package-$2-name))" \
   artifacts-dir="$(call to-shell,$(artifacts-dir)/$1)" \
   packaging-work-dir="$(call to-shell,$(packaging-work-dir)/$2)" \
   conf-files="$(foreach f,$($1.package-conf-files),$(call to-shell,$(call non-relative-path,$f)))" \
@@ -380,30 +380,30 @@ native-packager-settings = $(strip \
 #
 define artifact-targets =
 #
-# distributable artifact targets for package $1
+# Distributable artifact targets for package $1
 #
 $(artifacts-dir)/$1: | $(artifacts-dir)
 	$(usp-mkdir-p) "$$(call to-shell,$$@)"
 
-$(foreach prj,$(call projects-in-package,$1),$(prj).project-artifacts: | $(artifacts-dir)/$1$(newline))
+$(foreach prj,$($1.package-projects),$(prj).project-artifacts: | $(artifacts-dir)/$1$(newline))
 
 .PHONY: $1.artifacts
-$1.artifacts: $(strip $(foreach pkg,$(call prereq-packages,$1),$(pkg).artifacts) $(foreach prj,$(call projects-in-package,$1),$(prj).project-artifacts))
+$1.artifacts: $(strip $(foreach pkg,$($1.package-prereqs),$(pkg).artifacts) $(foreach prj,$($1.package-projects),$(prj).project-artifacts))
 
 .PHONY: $1.deb-package
-$1.deb-package: $(strip $(foreach pkg,$(call prereq-packages,$1),$(pkg).deb-package) $1.artifacts)
+$1.deb-package: $(strip $(foreach pkg,$($1.package-prereqs),$(pkg).deb-package) $1.artifacts)
 	$$(MAKE) -I $(usp-builder-include-dir) -f $(usp-builder-lib-dir)/DebPackage.mak $(call native-packager-settings,$1,deb) deb-package
 
 .PHONY: $1.rpm-package
-$1.rpm-package: $(strip $(foreach pkg,$(call prereq-packages,$1),$(pkg).rpm-package) $1.artifacts)
+$1.rpm-package: $(strip $(foreach pkg,$($1.package-prereqs),$(pkg).rpm-package) $1.artifacts)
 	$$(MAKE) -I $(usp-builder-include-dir) -f $(usp-builder-lib-dir)/RpmPackage.mak $(call native-packager-settings,$1,rpm) rpm-package
 
 .PHONY: $1.apk-package
-$1.apk-package: $(strip $(foreach pkg,$(call prereq-packages,$1),$(pkg).apk-package) $1.artifacts)
+$1.apk-package: $(strip $(foreach pkg,$($1.package-prereqs),$(pkg).apk-package) $1.artifacts)
 	$$(MAKE) -I $(usp-builder-include-dir) -f $(usp-builder-lib-dir)/ApkPackage.mak $(call native-packager-settings,$1,apk) apk-package
 
 .PHONY: $1.zip-file
-$1.zip-file: $(strip $(foreach pkg,$(call prereq-packages,$1),$(pkg).zip-file) $1.artifacts)
+$1.zip-file: $(strip $(foreach pkg,$($1.package-prereqs),$(pkg).zip-file) $1.artifacts)
 	$$(MAKE) -I $(usp-builder-include-dir) -f $(usp-builder-lib-dir)/ZipFile.mak $(call native-packager-settings,$1,zip) zip-file
 
 .PHONY: $1.clean-artifacts
