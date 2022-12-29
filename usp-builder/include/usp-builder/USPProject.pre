@@ -567,7 +567,7 @@ endef
 # source-dir  source directory
 # prereqs*    prerequisite projects
 #
-bjam-exe-keys := name source-dir prereqs package
+bjam-exe-keys := name source-dir prereqs
 bjam-exe-project = $(call expand,$(call call-stripped, \
   bjam-exe-project-impl, \
   $(call get-value,name,$1,$(bjam-exe-keys)), \
