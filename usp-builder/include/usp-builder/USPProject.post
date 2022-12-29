@@ -46,45 +46,6 @@ check-package-prereqs = $(strip \
 )
 
 #
-# $(call find-all-packages,<project>)
-#
-find-all-packages = $(strip \
-  $(foreach pkg,$(all-packages), \
-    $(if $(filter $1,$($(pkg).package-projects)), \
-      $(pkg) \
-    ) \
-  ) \
-)
-
-#
-# $(call find-package-impl,<project>,<package>*)
-#
-find-package-impl = $(strip \
-  $(if $(filter 0,$(words $2)), \
-    $(call REM,found no package) \
-  , \
-    $(if $(filter 1,$(words $2)), \
-      $(call REM,found single package) \
-      $(firstword $2) \
-    , \
-      $(error $(strip \
-        multiple packages found for project '$1': \
-        $(foreach pkg,$2,'$(pkg)') \
-      )) \
-    ) \
-  ) \
-)
-
-#
-# $(call find-package,<project>)
-#
-find-package = $(strip \
-  $(if $($1.distributable), \
-    $(call find-package-impl,$1,$(call find-all-packages,$1)) \
-  ) \
-)
-
-#
 # $(call check-packaged-projects,<package>)
 #
 check-packaged-projects = $(strip \

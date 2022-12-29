@@ -151,15 +151,61 @@ add-package = $(strip \
 )
 
 #
+# $(call find-all-packages,<project>)
+#
+find-all-packages = $(strip \
+  $(foreach pkg,$(all-packages), \
+    $(if $(filter $1,$($(pkg).package-projects)), \
+      $(pkg) \
+    ) \
+  ) \
+)
+
+#
+# $(call find-package-impl,<project>,<package>*)
+#
+find-package-impl = $(strip \
+  $(if $(filter 0,$(words $2)), \
+    $(call REM,found no package) \
+  , \
+    $(if $(filter 1,$(words $2)), \
+      $(call REM,found single package) \
+      $(firstword $2) \
+    , \
+      $(error $(strip \
+        multiple packages found for project '$1': \
+        $(foreach pkg,$2,'$(pkg)') \
+      )) \
+    ) \
+  ) \
+)
+
+#
+# $(call find-package,<project>)
+#
+find-package = $(strip \
+  $(if $($1.distributable), \
+    $(call find-package-impl,$1,$(call find-all-packages,$1)) \
+  ) \
+)
+
+#
+# $(call project-artifacts-dir-impl,<project>,<package>?)
+#
+project-artifacts-dir-impl = $(strip \
+  $(if $(strip $2), \
+    $(artifacts-dir)/$(strip $2) \
+  , \
+    $(error project '$1' is not included in any package) \
+  ) \
+)
+    
+#
 # $(call project-artifacts-dir,<project>)
 # (to be evaluated very lazily, as part of a recipe)
 #
 project-artifacts-dir = $(strip \
-  $(if $($1.package), \
-    $(artifacts-dir)/$($1.package) \
-  , \
-    $(error project '$1' is not included in any package) \
-  ) \
+  $(call project-artifacts-dir-impl,$1,$(call find-package,$1)) \
 )
       
 #
@@ -191,7 +237,7 @@ gmake-package-options = $(strip \
 )
 
 #
-# $(call gmake-project-impl,<name>,<version>?,<makefile>,<prereq name>*,<distributable>?,<package>?)
+# $(call gmake-project-impl,<name>,<version>?,<makefile>,<prereq name>*,<distributable>?)
 #
 define gmake-project-impl =
 #
@@ -202,7 +248,6 @@ all-projects := $$(call add-project,$$(all-projects),$1)
 $1.version := $2
 $1.prereqs := $4
 $1.distributable := $5
-$1.package := $6
 
 .PHONY: $1
 $1: $1.all
@@ -238,17 +283,15 @@ endef
 # makefile      path to makefile
 # prereqs*      prerequisite projects
 # distributable either 'yes' or 'no' 
-# package?      package name for distributed artifacts
 #
-gmake-keys := name version makefile prereqs distributable package
+gmake-keys := name version makefile prereqs distributable
 gmake-project = $(call expand,$(call call-stripped, \
   gmake-project-impl, \
   $(call get-value,name,$1,$(gmake-keys)), \
   $(call find-value,version,$1,$(gmake-keys)), \
   $(call get-value,makefile,$1,$(gmake-keys)), \
   $(call find-values,prereqs,$1,$(gmake-keys)), \
-  $(call get-boolean-value,distributable,$1,$(gmake-keys)), \
-  $(call find-value,package,$1,$(gmake-keys)) \
+  $(call get-boolean-value,distributable,$1,$(gmake-keys)) \
 ))
 
 #
@@ -293,7 +336,7 @@ update-staged-jamfile-args = $(strip \
 )
 
 #
-# $(call bjam-legacy-project-impl,<name>,<version>?,<source dir>,<prereq name>*,<distributable>?,<package>?)
+# $(call bjam-legacy-project-impl,<name>,<version>?,<source dir>,<prereq name>*,<distributable>?)
 #
 define bjam-legacy-project-impl =
 #
@@ -304,7 +347,6 @@ all-projects := $$(call add-project,$$(all-projects),$1)
 $1.version := $2
 $1.prereqs := $4
 $1.distributable := $5
-$1.package := $6
 
 .PHONY: $1
 $1: $1.all
@@ -346,21 +388,19 @@ endef
 # source-dir    source directory
 # prereqs*      prerequisite projects
 # distributable either 'yes' or 'no' 
-# package?      package name for distributed artifacts
 #
-bjam-legacy-keys := name version source-dir prereqs distributable package
+bjam-legacy-keys := name version source-dir prereqs distributable
 bjam-legacy-project = $(call expand,$(call call-stripped, \
   bjam-legacy-project-impl, \
   $(call get-value,name,$1,$(bjam-legacy-keys)), \
   $(call find-value,version,$1,$(bjam-legacy-keys)), \
   $(call get-value,source-dir,$1,$(bjam-legacy-keys)), \
   $(call find-values,prereqs,$1,$(bjam-legacy-keys)), \
-  $(call get-boolean-value,distributable,$1,$(bjam-legacy-keys)), \
-  $(call find-value,package,$1,$(bjam-legacy-keys)) \
+  $(call get-boolean-value,distributable,$1,$(bjam-legacy-keys)) \
 ))
 
 #
-# $(call bjam-dll-project-impl,<name>,<version>,<source dir>,<include dir>,<prereq name>*,<package>?)
+# $(call bjam-dll-project-impl,<name>,<version>,<source dir>,<include dir>,<prereq name>*)
 #
 define bjam-dll-project-impl =
 #
@@ -371,7 +411,6 @@ all-projects := $$(call add-project,$$(all-projects),$1)
 $1.version := $2
 $1.prereqs := $5
 $1.distributable := yes
-$1.package := $6
 
 .PHONY: $1
 $1: $1.all
@@ -415,17 +454,15 @@ endef
 # source-dir  source directory
 # include-dir include directory
 # prereqs*    prerequisite projects
-# package?    package name for distributed artifacts
 #
-bjam-dll-keys := name version source-dir include-dir prereqs package
+bjam-dll-keys := name version source-dir include-dir prereqs
 bjam-dll-project = $(call expand,$(call call-stripped, \
   bjam-dll-project-impl, \
   $(call get-value,name,$1,$(bjam-dll-keys)), \
   $(call get-value,version,$1,$(bjam-dll-keys)), \
   $(call get-value,source-dir,$1,$(bjam-dll-keys)), \
   $(call get-value,include-dir,$1,$(bjam-dll-keys)), \
-  $(call find-values,prereqs,$1,$(bjam-dll-keys)), \
-  $(call find-value,package,$1,$(bjam-dll-keys)) \
+  $(call find-values,prereqs,$1,$(bjam-dll-keys)) \
 ))
 
 #
@@ -440,7 +477,6 @@ all-projects := $$(call add-project,$$(all-projects),$1)
 $1.version :=
 $1.prereqs := $4
 $1.distributable :=
-$1.package :=
 
 .PHONY: $1
 $1: $1.all
@@ -490,7 +526,7 @@ bjam-statlib-project = $(call expand,$(call call-stripped, \
 ))
 
 #
-# $(call bjam-exe-project-impl,<name>,<source dir>,<prereq name>*,<package>?)
+# $(call bjam-exe-project-impl,<name>,<source dir>,<prereq name>*)
 #
 define bjam-exe-project-impl =
 #
@@ -501,7 +537,6 @@ all-projects := $$(call add-project,$$(all-projects),$1)
 $1.version := 
 $1.prereqs := $3
 $1.distributable := yes
-$1.package := $4
 
 .PHONY: $1
 $1: $1.all
@@ -531,15 +566,13 @@ endef
 # name        project name
 # source-dir  source directory
 # prereqs*    prerequisite projects
-# package?    package name for distributed artifacts
 #
 bjam-exe-keys := name source-dir prereqs package
 bjam-exe-project = $(call expand,$(call call-stripped, \
   bjam-exe-project-impl, \
   $(call get-value,name,$1,$(bjam-exe-keys)), \
   $(call get-value,source-dir,$1,$(bjam-exe-keys)), \
-  $(call find-values,prereqs,$1,$(bjam-exe-keys)), \
-  $(call find-value,package,$1,$(bjam-exe-keys)) \
+  $(call find-values,prereqs,$1,$(bjam-exe-keys)) \
 ))
 
 #
@@ -554,7 +587,6 @@ all-projects := $$(call add-project,$$(all-projects),$1)
 $1.version :=
 $1.prereqs := $3
 $1.distributable :=
-$1.package :=
 
 .PHONY: $1
 $1: $1.all
