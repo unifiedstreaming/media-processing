@@ -46,6 +46,34 @@ check-package-prereqs = $(strip \
 )
 
 #
+# $(call check-packaged-project-prereq-impl,<package>,<project>,<prereq project>,<prereq-package>?)
+#
+check-packaged-project-prereq-impl = $(strip \
+  $(if $($3.distributable), \
+    $(if $4, \
+      $(if $(filter-out $1 $($1.package-prereqs),$4), \
+        $(error $(strip \
+          package '$1': missing prereq package '$4' \
+          required by prereq project '$3' of project '$2' \
+        )) \
+      ) \
+    , \
+      $(error $(strip \
+        package '$1': no package found \
+        for prereq project '$3' of project '$2' \
+      )) \
+    ) \
+  ) \
+)
+
+#
+# $(call check-packaged-project-prereq,<package>,<project>,<prereq project>)
+#
+check-packaged-project-prereq = $(strip \
+  $(call check-packaged-project-prereq-impl,$1,$2,$3,$(call find-package,$3)) \
+)
+
+#
 # $(call check-packaged-projects,<package>)
 #
 check-packaged-projects = $(strip \
@@ -68,12 +96,7 @@ check-packaged-projects = $(strip \
     \
     $(call REM,check prereq packages required by project) \
     $(foreach pre,$($(prj).prereqs), \
-      $(if $(filter-out $1 $($1.package-prereqs),$(call find-package,$(pre))), \
-        $(error $(strip \
-          package '$1': missing prereq package '$(call find-package,$(pre))' \
-          required by prereq project '$(pre)' of project '$(prj)' \
-        )) \
-      ) \
+      $(call check-packaged-project-prereq,$1,$(prj),$(pre)) \
     ) \
   ) \
 )
