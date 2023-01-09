@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022 CodeShop B.V.
+ * Copyright (C) 2022-2023 CodeShop B.V.
  *
  * This file is part of the x264 service protocol library.
  *

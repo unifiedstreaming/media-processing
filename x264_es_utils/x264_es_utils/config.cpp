@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2021-2022 CodeShop B.V.
+ * Copyright (C) 2021-2023 CodeShop B.V.
  *
  * This file is part of the x264_es_utils library.
  *
@@ -45,7 +45,7 @@ default_endpoints()
 char const* copyright_notice()
 {
   return
-R"(Copyright (C) 2021-2022 CodeShop B.V.
+R"(Copyright (C) 2021-2023 CodeShop B.V.
 
 This program is free software. It comes with ABSOLUTELY NO WARRANTY
 and is licensed to you under the terms of version 2 of the GNU General
