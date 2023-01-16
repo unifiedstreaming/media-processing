@@ -54,14 +54,29 @@ check-package-prereqs = $(strip \
 )
 
 #
+# $(call pkg-provides-pkg,<providing package>*,<searched package>)
+#
+pkg-provides-pkg = $(strip \
+  $(if $(strip $1), \
+    $(if $(filter $2,$1), \
+      yes \
+    , \
+      $(call pkg-provides-pkg,$(foreach pre,$1,$($(pre).package-prereqs)),$2) \
+    ) \
+  ) \
+)
+
+#
 # $(call check-packaged-project-prereq-impl,<package>,<project>,<prereq project>,<prereq-package>?)
 #
 check-packaged-project-prereq-impl = $(strip \
   $(if $($3.distributable), \
-    $(if $4, \
-      $(if $(filter-out $1 $($1.package-prereqs),$4), \
+    $(if $(strip $4), \
+      $(if $(call pkg-provides-pkg,$1,$4), \
+        $(call REM,ok) \
+      , \
         $(error $(strip \
-          package '$1': missing prereq package '$4' \
+          package '$1': missing (direct or indirect) prereq package '$4' \
           required by prereq project '$3' of project '$2' \
         )) \
       ) \
