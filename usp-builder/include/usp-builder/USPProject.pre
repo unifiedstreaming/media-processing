@@ -35,7 +35,7 @@ include usp-builder/USPCommon.mki
 #
 # Determine the build directory
 #
-override build-dir := $(abspath $(if $(build-dir),$(call to-make,$(build-dir)),build))
+override build-dir := $(abspath $(if $(build-dir),$(call to-make,$(build-dir)),usp-build))
 
 #
 # Determine the bjam-specific build directory
