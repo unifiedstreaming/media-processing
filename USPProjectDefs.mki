@@ -39,6 +39,12 @@ $(call bjam-dll-project, \
   prereqs = cuti \
 )
 
+$(call bjam-test-project, \
+  name = x264_proto_unit_tests \
+  source-dir = x264_proto/unit_tests \
+  prereqs = x264_proto \
+)
+
 $(call bjam-dll-project, \
   name = cuti \
   version = 0_0_0 \
