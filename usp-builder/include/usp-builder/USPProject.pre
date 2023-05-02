@@ -110,9 +110,9 @@ $(stage-dir)/lib/jamfiles/Jamroot: | $(stage-dir)/lib/jamfiles
 	@echo updated $@
 
 #
-# Windows: unit tests must find DLLs in $(stage-dir)/bin
+# Windows: unit tests must find DLLs in $(stage-dir)/lib
 #
-PATH := $(if $(windows),$(stage-dir)/bin:)$(PATH)
+PATH := $(if $(windows),$(stage-dir)/lib:)$(PATH)
 export PATH
 
 #
