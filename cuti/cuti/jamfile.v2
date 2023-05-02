@@ -139,12 +139,27 @@ explicit uspb-all ;
 alias uspb-all : cuti ;
 
 explicit uspb-stage ;
-install uspb-stage
+alias uspb-stage : uspb-stage-implib uspb-stage-dll ;
+
+explicit uspb-stage-implib ;
+install uspb-stage-implib
 :
   cuti
 :
   <install-dependencies>off
+  <install-type>IMPORT_LIB
   <location>$(stage-dir)/lib
+;
+
+explicit uspb-stage-dll ;
+install uspb-stage-dll
+:
+  cuti
+:
+  <install-dependencies>off
+  <install-type>SHARED_LIB
+  <install-type>PDB
+  <conditional>@stage-dll-location
 ;
 
 explicit uspb-dist ;

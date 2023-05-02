@@ -79,6 +79,7 @@ skeleton-build-dirs := \
   $(artifacts-dir) \
   $(packaging-work-dir) \
   $(stage-dir) \
+  $(stage-dir)/bin \
   $(stage-dir)/include \
   $(stage-dir)/lib \
   $(stage-dir)/lib/jamfiles \
@@ -92,6 +93,7 @@ $(build-mode-dir): | $(build-dir)
 $(artifacts-dir): | $(build-mode-dir)
 $(packaging-work-dir): | $(build-mode-dir)
 $(stage-dir): | $(build-mode-dir)
+$(stage-dir)/bin: | $(stage-dir)
 $(stage-dir)/include: | $(stage-dir)
 $(stage-dir)/lib: | $(stage-dir)
 $(stage-dir)/lib/jamfiles: | $(stage-dir)/lib
@@ -110,9 +112,9 @@ $(stage-dir)/lib/jamfiles/Jamroot: | $(stage-dir)/lib/jamfiles
 	@echo updated $@
 
 #
-# Windows: unit tests must find DLLs in $(stage-dir)/lib
+# Windows: unit tests must find DLLs in $(stage-dir)/bin
 #
-PATH := $(if $(windows),$(stage-dir)/lib:)$(PATH)
+PATH := $(if $(windows),$(stage-dir)/bin:)$(PATH)
 export PATH
 
 #
