@@ -211,7 +211,8 @@ non-relative-path = $(strip \
 find-files = $(strip \
   $(foreach name,$(wildcard $2), \
     $(if $(wildcard $(name)/.), \
-      $(call find-files,$1,$(patsubst %/,%,$(name))/*), \
+      $(call find-files,$1,$(patsubst %/,%,$(name))/*) \
+    , \
       $(filter $1,$(patsubst ./%,%,$(name))) \
     ) \
   ) \
@@ -250,9 +251,11 @@ check-out-of-tree = $(if $(call is-in-tree,$1,$2),$(error '$1' is in tree '$2'))
 validate-build-setting = $(strip \
   $(if $($1), \
     $(if $(or $(word 2,$($1)),$(filter-out $2,$($1))), \
-      $(error bad value '$($1)' for $1), \
+      $(error bad value '$($1)' for $1) \
+    , \
       $($1) \
-    ), \
+    ) \
+  , \
     $3 \
   ) \
 )
