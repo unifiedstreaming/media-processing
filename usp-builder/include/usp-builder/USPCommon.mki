@@ -202,18 +202,43 @@ non-relative-path = $(strip \
 )
 
 #
+# $(call is-dir,<path>)
+#
+is-dir = $(strip \
+  $(if $(wildcard $(patsubst %/,%,$1)/.), \
+    yes \
+  ) \
+)
+
+#
 # $(call find-files,<pattern>*,<root>*)
 #
 # Recursively lists all non-directories matching any <pattern>,
-# starting from the <root> names.  Spaces in directory or file names
-# mess things up.
+# starting from the <root> wildcards.  Spaces in directory or file
+# names mess things up.
 #
 find-files = $(strip \
   $(foreach name,$(wildcard $2), \
-    $(if $(wildcard $(name)/.), \
+    $(if $(call is-dir,$(name)), \
       $(call find-files,$1,$(patsubst %/,%,$(name))/*) \
     , \
       $(filter $1,$(patsubst ./%,%,$(name))) \
+    ) \
+  ) \
+)
+
+#
+# $(call find-dirs,<pattern>*,<root>*)
+#
+# Recursively lists all directories matching any <pattern>, starting
+# from the <root> wildcards.  Spaces in directory or file names mess
+# things up.
+#
+find-dirs = $(strip \
+  $(foreach name,$(wildcard $2), \
+    $(if $(call is-dir,$(name)), \
+      $(filter $1,$(patsubst ./%,%,$(name))) \
+      $(call find-dirs,$1,$(patsubst %/,%,$(name))/*) \
     ) \
   ) \
 )
