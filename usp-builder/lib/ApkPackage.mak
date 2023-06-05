@@ -20,6 +20,13 @@
 include usp-builder/USPPackaging.mki
 
 #
+# work around abuild bug: ensure the "verbose" variable is NOT exported to the
+# environment of recipe commands, since abuild will then attempt to run the
+# value as a command.
+#
+unexport verbose
+
+#
 # $(call is-installed,<package>)
 #
 is-installed = $(shell apk -e info "$1" >/dev/null 2>&1 && echo yes)
