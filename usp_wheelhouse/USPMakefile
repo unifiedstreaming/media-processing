@@ -1,0 +1,69 @@
+#
+# "THE BEER-WARE LICENSE" (Revision CS-42):
+#
+# This file was written by the CodeShop developers.  As long as you
+# retain this notice you can do whatever you want with it.
+# If we meet some day, and you think this file is worth it, you can
+# buy us a beer in return.  Even if you do that, this file still
+# comes WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+#
+
+#
+# This makefile creates, in its stage target, a one-stop shop for
+# fixed versions of third-party binary python libraries (wheel files)
+# downloaded from PyPI in $(stage-dir)/lib/wheelhouse.
+#
+# The wheelhouse is expected to supply a set of compatible library
+# versions (as specified in this project's requirements.txt file) for
+# downstream python projects to depend on without specifying
+# any library version numbers.
+#
+# Any versioning issues should be addressed here; downstream projects
+# must not download from PyPI and use the '--no-index' and
+# '--find-links $(stage-dir)/lib/wheelhouse' pip options instead.
+#
+# Downstream projects must rebuild when
+# $(stage-dir)/lib/wheelhouse/download-stamp has been touched.
+#
+
+usp-wheelhouse-src-dir := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))
+
+include usp-builder/USPCommon.mki
+
+$(if $(work-dir),,$(error work-dir must be set))
+$(call check-out-of-tree,$(work-dir),$(usp-wheelhouse-src-dir))
+
+$(if $(stage-dir),,$(error stage-dir must be set))
+$(call check-out-of-tree,$(stage-dir),$(usp-wheelhouse-src-dir))
+
+$(if $(PYTHON),,$(error PYTHON must be set))
+
+venv-dir := $(work-dir)/venv
+venv-pip := $(venv-dir)/$(if $(windows),Scripts,bin)/python -m pip
+requirements-file := $(usp-wheelhouse-src-dir)/requirements.txt
+
+.PHONY: all
+all:
+
+.PHONY: stage
+stage: $(stage-dir)/lib/wheelhouse/download-stamp
+
+$(stage-dir)/lib/wheelhouse/download-stamp: \
+   $(requirements-file) $(work-dir)/venv-stamp
+	$(usp-rm-rf) "$(call to-shell,$(stage-dir)/lib/wheelhouse)"
+	$(usp-mkdir-p) "$(call to-shell,$(stage-dir)/lib/wheelhouse)"
+	$(venv-pip) download --no-cache --only-binary :all: --no-deps \
+	  --dest "$(call to-native,$(stage-dir)/lib/wheelhouse)" \
+	  --requirement "$(call to-native,$(requirements-file))"
+	echo timestamp >"$(call to-shell,$@)"
+
+$(work-dir)/venv-stamp: | $(work-dir)
+	$(usp-rm-rf) "$(call to-shell,$(venv-dir))"
+	$(PYTHON) -m venv "$(call to-native,$(venv-dir))"
+	$(venv-pip) install --no-cache --upgrade pip
+	$(venv-pip) uninstall --yes setuptools
+	echo timestamp >"$(call to-shell,$@)"
+
+$(work-dir):
+	$(usp-mkdir-p) "$(call to-shell,$@)"
