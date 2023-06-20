@@ -11,7 +11,7 @@
 
 #
 # This makefile creates, in its stage target, a one-stop shop for
-# fixed versions of third-party binary python libraries (wheel files)
+# pinned versions of third-party binary python libraries (wheel files)
 # downloaded from PyPI in $(stage-dir)/lib/wheelhouse.
 #
 # The wheelhouse is expected to supply a set of compatible library
