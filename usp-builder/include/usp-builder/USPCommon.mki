@@ -142,6 +142,17 @@ get-command = $(strip \
 )
 
 #
+# determine the default python interpreter
+#
+default-usp-python := $(strip \
+  $(if $(strip $(shell python3 --version 2>$(dev-null))), \
+    python3 \
+  , \
+    python \
+  ) \
+)
+    
+#
 # pick up system commands for the shell
 #
 usp-cp := $(call get-command,usp-cp,cp,copy /Y)
@@ -149,6 +160,7 @@ usp-mkdir-p := $(call get-command,usp-mkdir-p,mkdir -p,mkdir)
 usp-mv-f := $(call get-command,usp-mv-f,mv -f,move)
 usp-rm-rf := $(call get-command,usp-rm-rf,rm -rf,-rmdir /S /Q)
 usp-sed := $(call get-command,usp-sed,sed,sed)
+usp-python := $(call get-command,usp-python,$(default-usp-python),$(default-usp-python))
 usp-zip := $(call get-command,usp-zip,zip,zip)
 
 #

@@ -37,8 +37,6 @@ $(call check-out-of-tree,$(work-dir),$(usp-wheelhouse-src-dir))
 $(if $(stage-dir),,$(error stage-dir must be set))
 $(call check-out-of-tree,$(stage-dir),$(usp-wheelhouse-src-dir))
 
-$(if $(PYTHON),,$(error PYTHON must be set))
-
 venv-dir := $(work-dir)/venv
 venv-pip := $(call to-shell,$(venv-dir)/$(if $(windows),Scripts,bin)/python) -m pip $(if $(verbose),--verbose)
 requirements-file := $(usp-wheelhouse-src-dir)/requirements.txt
@@ -61,7 +59,7 @@ $(stage-dir)/lib/wheelhouse/download-stamp: \
 
 $(work-dir)/venv-stamp: | $(work-dir)
 	$(usp-rm-rf) "$(call to-shell,$(venv-dir))"
-	$(PYTHON) -m venv "$(call to-native,$(venv-dir))"
+	$(usp-python) -m venv "$(call to-native,$(venv-dir))"
 	cd "$(call to-shell,$(work-dir))" && \
 	  $(venv-pip) install --no-cache --progress-bar off \
 	  --upgrade \
