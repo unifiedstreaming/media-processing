@@ -40,7 +40,7 @@ $(call check-out-of-tree,$(stage-dir),$(usp-wheelhouse-src-dir))
 $(if $(PYTHON),,$(error PYTHON must be set))
 
 venv-dir := $(work-dir)/venv
-venv-pip := $(call to-shell,$(venv-dir)/$(if $(windows),Scripts,bin)/python) -m pip
+venv-pip := $(call to-shell,$(venv-dir)/$(if $(windows),Scripts,bin)/python) -m pip $(if $(verbose),--verbose)
 requirements-file := $(usp-wheelhouse-src-dir)/requirements.txt
 
 .PHONY: all
@@ -53,17 +53,19 @@ $(stage-dir)/lib/wheelhouse/download-stamp: \
    $(requirements-file) $(work-dir)/venv-stamp
 	$(usp-rm-rf) "$(call to-shell,$(stage-dir)/lib/wheelhouse)"
 	$(usp-mkdir-p) "$(call to-shell,$(stage-dir)/lib/wheelhouse)"
-	$(venv-pip) download --no-cache --only-binary :all: --no-deps \
-	  --progress-bar off \
-	  --dest "$(call to-native,$(stage-dir)/lib/wheelhouse)" \
+	cd "$(call to-shell,$(work-dir))" && \
+	  $(venv-pip) wheel --no-cache --no-deps --progress-bar off \
+	  --wheel-dir "$(call to-native,$(stage-dir)/lib/wheelhouse)" \
 	  --requirement "$(call to-native,$(requirements-file))"
 	echo timestamp >"$(call to-shell,$@)"
 
 $(work-dir)/venv-stamp: | $(work-dir)
 	$(usp-rm-rf) "$(call to-shell,$(venv-dir))"
 	$(PYTHON) -m venv "$(call to-native,$(venv-dir))"
-	$(venv-pip) install --no-cache --progress-bar off --upgrade pip
-	$(venv-pip) uninstall --yes setuptools
+	cd "$(call to-shell,$(work-dir))" && \
+	  $(venv-pip) install --no-cache --progress-bar off \
+	  --upgrade \
+	  pip setuptools wheel
 	echo timestamp >"$(call to-shell,$@)"
 
 $(work-dir):
