@@ -140,7 +140,7 @@ namespace cuti
 {
 
 syslog_backend_t::syslog_backend_t(std::string const& source_name)
-: impl_(new impl_t(source_name))
+: impl_(std::make_unique<impl_t>(source_name))
 { }
 
 void syslog_backend_t::report(loglevel_t level,
