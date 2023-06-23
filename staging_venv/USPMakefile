@@ -21,12 +21,9 @@
 # $(stage-dir)/timestamps/staging_venv has been touched.
 #
 
-include usp-builder/USPCommon.mki
+include usp-builder/USPVenv.mki
 
 $(if $(work-dir),,$(error work-dir must be set))
-$(if $(stage-dir),,$(error stage-dir must be set))
-
-venv-pip := $(call to-shell,$(stage-dir)/venv/$(if $(windows),Scripts,bin)/python) -m pip $(if $(verbose),--verbose)
 
 .PHONY: all
 all:
@@ -34,18 +31,13 @@ all:
 .PHONY: stage
 stage: $(stage-dir)/timestamps/staging_venv
 
-$(stage-dir)/timestamps/staging_venv: \
-  $(work-dir)/stage-stamp | $(stage-dir)/timestamps
-	echo timestamp >"$(call to-shell,$@)"
-
-$(work-dir)/stage-stamp: | $(work-dir)
-	$(usp-rm-rf) "$(call to-shell,$(stage-dir)/venv)"
-	$(usp-python) -m venv "$(call to-native,$(stage-dir)/venv)"
-	cd "$(call to-shell,$(work-dir))" && \
-	  $(venv-pip) install --no-cache --progress-bar off \
-	  --upgrade \
+$(stage-dir)/timestamps/staging_venv: | $(work-dir)
+	$(usp-rm-rf) "$(call to-shell,$(venv-dir))"
+	$(usp-system-python) -m venv "$(call to-native,$(venv-dir))"
+	cd "$(call to-shell,$(work-dir))" && $(venv-pip) \
+	  install --no-cache --progress-bar off --upgrade \
 	  pip setuptools wheel
 	echo timestamp >"$(call to-shell,$@)"
 
-$(work-dir) $(stage-dir)/timestamps:
+$(work-dir):
 	$(usp-mkdir-p) "$(call to-shell,$@)"
