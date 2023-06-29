@@ -26,14 +26,14 @@ exe x264_encoding_service
 explicit uspb-all ;
 alias uspb-all : x264_encoding_service ;
 
-explicit uspb-dist ;
-install uspb-dist
+explicit uspb-deploy ;
+install uspb-deploy
 :
   x264_encoding_service
 :
   <install-dependencies>off
   <install-type>EXE
   <install-type>PDB
-  <conditional>@dist-exe-location
+  <conditional>@deploy-exe-location
 ;
 

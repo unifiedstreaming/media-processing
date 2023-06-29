@@ -58,13 +58,13 @@ rule stage-dll-location ( properties * )
   return [ dll-subdir-location $(stage-dir) ] ;
 }
 
-rule dist-dll-location ( properties * )
+rule deploy-dll-location ( properties * )
 {
   local dest-dir = [ require-from-environ dest-dir ] ;
   return [ dll-subdir-location $(dest-dir) ] ;
 }
 
-rule dist-exe-location ( properties * )
+rule deploy-exe-location ( properties * )
 {
   local dest-dir = [ require-from-environ dest-dir ] ;
   return <location>$(dest-dir)/bin ;

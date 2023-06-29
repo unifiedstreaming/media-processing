@@ -162,14 +162,14 @@ install uspb-stage-dll
   <conditional>@stage-dll-location
 ;
 
-explicit uspb-dist ;
-install uspb-dist
+explicit uspb-deploy ;
+install uspb-deploy
 :
   cuti
 :
   <install-dependencies>off
   <install-type>SHARED_LIB
   <install-type>PDB
-  <conditional>@dist-dll-location
+  <conditional>@deploy-dll-location
 ;
 
