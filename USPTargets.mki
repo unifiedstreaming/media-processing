@@ -19,4 +19,4 @@ all: x264_encoding_service
 unit_tests: cuti_unit_tests x264_es_utils_unit_tests x264_proto_unit_tests
 
 .PHONY: deploy
-dist: x264_encoding_service.deploy
+deploy: x264_encoding_service.deploy
