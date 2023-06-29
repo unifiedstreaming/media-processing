@@ -26,10 +26,10 @@
 
 #
 # Downstream projects must rebuild when
-# $(stage-dir)/timestamps/staging_venv has been touched.
+# $(stage-dir)/timestamps/stage_venv has been touched.
 #
 
-include usp-builder/USPVenv.mki
+include usp-builder/USPStageVenv.mki
 
 $(if $(work-dir),,$(error work-dir must be set))
 
@@ -37,12 +37,12 @@ $(if $(work-dir),,$(error work-dir must be set))
 all:
 
 .PHONY: stage
-stage: $(stage-dir)/timestamps/staging_venv
+stage: $(stage-dir)/timestamps/stage_venv
 
-$(stage-dir)/timestamps/staging_venv: | $(work-dir)
-	$(usp-rm-rf) "$(call to-shell,$(venv-dir))"
-	$(usp-system-python) -m venv "$(call to-native,$(venv-dir))"
-	cd "$(call to-shell,$(work-dir))" && $(venv-pip) \
+$(stage-dir)/timestamps/stage_venv: | $(work-dir)
+	$(usp-rm-rf) "$(call to-shell,$(stage-venv-dir))"
+	$(usp-system-python) -m venv "$(call to-native,$(stage-venv-dir))"
+	cd "$(call to-shell,$(work-dir))" && $(stage-venv-pip) \
 	  install --no-cache --progress-bar off --upgrade \
 	  pip setuptools wheel
 	echo timestamp >"$(call to-shell,$@)"

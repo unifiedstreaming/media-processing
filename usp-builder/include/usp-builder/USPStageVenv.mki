@@ -24,8 +24,8 @@ include usp-builder/USPCommon.mki
 #
 
 override stage-dir := $(call required-value,stage-dir)
-venv-dir := $(stage-dir)/venv
-venv-bin-dir := $(venv-dir)/$(if $(windows),Scripts,bin)
-venv-python := $(venv-bin-dir)/python
-venv-pip := $(venv-python) -m pip $(if $(verbose),--verbose)
+stage-venv-dir := $(stage-dir)/venv
+stage-venv-bin-dir := $(stage-venv-dir)/$(if $(windows),Scripts,bin)
+stage-venv-python := $(stage-venv-bin-dir)/python
+stage-venv-pip := $(stage-venv-python) -m pip $(if $(verbose),--verbose)
 
