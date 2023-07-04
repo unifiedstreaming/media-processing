@@ -11,6 +11,7 @@
 
 import os ;
 import errors ;
+import regex ;
 
 rule require-from-environ ( name )
 {
@@ -68,4 +69,59 @@ rule deploy-exe-location ( properties * )
 {
   local dest-dir = [ require-from-environ dest-dir ] ;
   return <location>$(dest-dir)/bin ;
+}
+
+rule version-suffix ( version ? )
+{
+  local result = "" ;
+  if $(version) != ""
+  {
+    version = [ regex.replace $(version) \\. _ ] ;
+    result = _$(version) ;
+  }
+  return $(result) ;
+}
+
+rule dll-artifact-name ( name : version ? : type ? : properties * )
+{
+  local osname = [ os.name ] ; 
+
+  local prefix = "" ;
+  local extension = "" ;
+
+  if $(osname) = NT
+  {
+    if $(type) = SHARED_LIB
+    {
+      extension = ".dll" ;
+    }
+    else if $(type) = PDB
+    {
+      extension = ".pdb" ;
+    }
+  }
+  else if $(osname) = MACOSX
+  {
+    if $(type) = SHARED_LIB
+    {
+      extension = ".dylib" ;
+    }
+  }
+  else
+  {
+    if $(type) = SHARED_LIB
+    {
+      prefix = "lib" ;
+      extension = ".so" ;
+    }
+  }
+
+  local result = "" ;
+  if $(extension) != "" 
+  {
+    local vsuffix = [ version-suffix $(version) ] ;
+    result = $(prefix)$(name)$(vsuffix)$(extension) ;
+  }
+
+  return $(result) ;
 }

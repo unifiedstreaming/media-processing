@@ -17,18 +17,13 @@
 # <http://www.gnu.org/licenses/>.
 #
 
-import os ;
-import errors ;
-
-if [ os.environ cuti.version ] = ""
+rule cuti-artifact-name ( name : type ? : properties * ) 
 {
-  errors.error cuti.version must be set ;
+  local version = [ require-from-environ cuti.version ] ;
+  return [ dll-artifact-name $(name) : $(version) : $(type) : $(properties) ] ;
 }
-constant CUTI_VERSION : [ os.environ cuti.version ] ;
 
-alias cuti : cuti_$(CUTI_VERSION) ;
-
-lib cuti_$(CUTI_VERSION)
+lib cuti
 :
   add_handler.cpp
   args_reader.cpp
@@ -130,6 +125,7 @@ lib cuti_$(CUTI_VERSION)
   <link>shared
   <target-os>windows:<find-shared-library>advapi32
   <target-os>windows:<find-shared-library>ws2_32
+  <tag>@cuti-artifact-name
 :
 :
   <include>..

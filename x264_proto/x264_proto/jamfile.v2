@@ -19,24 +19,20 @@
 # library.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-import os ;
-import errors ;
-
-if [ os.environ x264_proto.version ] = ""
+rule x264_proto-artifact-name ( name : type ? : properties )
 {
-  errors.error x264_proto.version must be set ;
+  local version = [ require-from-environ x264_proto.version ] ;
+  return [ dll-artifact-name $(name) : $(version) : $(type) : $(properties) ] ;
 }
-constant X264_PROTO_VERSION : [ os.environ x264_proto.version ] ;
 
-alias x264_proto : x264_proto_$(X264_PROTO_VERSION) ;
-
-lib x264_proto_$(X264_PROTO_VERSION)
+lib x264_proto
 :
   client.cpp
   $(stage-dir)/lib/jamfiles/cuti//cuti
 :
   <define>BUILDING_X264_PROTO
   <link>shared
+  <tag>@x264_proto-artifact-name
 :
 :
   <include>..

@@ -434,9 +434,14 @@ lib $1
 endef
 
 #
-# $(call bjam-implib-filename,<library name>,<version>)
+# $(call version-suffix,<version>?)
 #
-bjam-implib-filename = $(if $(windows),,lib)$1_$2$(if $(windows),.lib,$(if $(darwin),.dylib,.so))
+version-suffix = $(if $(strip $1),_$(subst .,_,$(strip $1)))
+
+#
+# $(call bjam-implib-filename,<library name>,<version>?)
+#
+bjam-implib-filename = $(if $(windows),,lib)$1$(if $(windows),.lib,$(call version-suffix,$2)$(if $(darwin),.dylib,.so))
 
 #
 # $(call bjam-statlib-filename,<library name>)

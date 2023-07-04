@@ -33,7 +33,7 @@ $(call bjam-test-project, \
 
 $(call bjam-dll-project, \
   name = x264_proto \
-  version = 0_0_0 \
+  version = 0.0.0 \
   source-dir = x264_proto/x264_proto \
   include-dir = x264_proto \
   prereqs = cuti \
@@ -47,7 +47,7 @@ $(call bjam-test-project, \
 
 $(call bjam-dll-project, \
   name = cuti \
-  version = 0_0_0 \
+  version = 0.0.0 \
   source-dir = cuti/cuti \
   include-dir = cuti \
 )
