@@ -207,7 +207,7 @@ $(if $(with-symbol-pkg),%debug_package)
 
 # Binaries
 $(foreach d,$(call distro-dirs,$8),$(newline)$(usp-mkdir-p) "%{buildroot}/$(call to-shell,$d)")
-$(foreach a,$8,$(newline)$(if $(call read-link,$7/$a),ln -sf "$(call to-shell,$(call read-link,$7/$a))" "%{buildroot}/$(call to-shell,$(call distro-path,$a))",$(usp-cp) "$(call to-shell,$7/$a)" "%{buildroot}/$(call to-shell,$(call distro-path,$a))"))
+$(foreach a,$8,$(newline)$(if $(call read-link,$7/$a),$(usp-ln-sf) "$(call to-shell,$(call read-link,$7/$a))" "%{buildroot}/$(call to-shell,$(call distro-path,$a))",$(usp-cp) "$(call to-shell,$7/$a)" "%{buildroot}/$(call to-shell,$(call distro-path,$a))"))
 
 # Config files
 $(if $(strip $9),$(newline)$(usp-mkdir-p) "%{buildroot}$(call to-shell,/etc)")

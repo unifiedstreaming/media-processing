@@ -231,11 +231,11 @@ $(dst-sofiles): | $(dst-dirs)
 
 $(dst-sofiles): $(dest-dir)/lib/%: $(libs-dir)/%
 	$(usp-cp) "$(call to-shell,$<)" "$(call to-shell,$@)"
-	$(if $(call runtime-link,$<),ln -sf \
+	$(if $(call runtime-link,$<),$(usp-ln-sf) \
 	  "$(call to-shell,$(notdir $@))" \
 	  "$(call to-shell,$(dir $@)$(call runtime-link,$<))")
 ifdef with-devel
-	$(if $(call devel-link,$<,$(devlinks)),ln -sf \
+	$(if $(call devel-link,$<,$(devlinks)),$(usp-ln-sf) \
 	  "$(call to-shell,$(notdir $@))" \
 	  "$(call to-shell,$(dir $@)$(call devel-link,$<,$(devlinks)))")
 	$(MAKE) -I "$(usp-builder-include-dir)" \

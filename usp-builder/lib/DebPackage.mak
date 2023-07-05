@@ -119,7 +119,7 @@ make-artifact-dirs = $(foreach d,$(call distro-dirs,$3),$(newline)$(tab)$(usp-mk
 #
 # $(call install-artifacts,<package>,<deb-work-dir>,<artifacts-dir>,<artifact>*)
 #
-install-artifacts = $(foreach a,$4,$(newline)$(tab)$(if $(call read-link,$3/$a),ln -sf "$(call read-link,$3/$a)" "$(call to-shell,$2/debian/$1/$(call distro-path,$a))",$(usp-cp) "$(call to-shell,$3/$a)" "$(call to-shell,$2/debian/$1/$(call distro-path,$a))"))
+install-artifacts = $(foreach a,$4,$(newline)$(tab)$(if $(call read-link,$3/$a),$(usp-ln-sf) "$(call read-link,$3/$a)" "$(call to-shell,$2/debian/$1/$(call distro-path,$a))",$(usp-cp) "$(call to-shell,$3/$a)" "$(call to-shell,$2/debian/$1/$(call distro-path,$a))"))
 
 #
 # $(call make-conf-dir,<package>,<deb-work-dir>,<conf-file>*)

@@ -156,6 +156,7 @@ default-usp-system-python := $(strip \
 # pick up system commands for the shell
 #
 usp-cp := $(call get-command,usp-cp,cp,copy /Y)
+usp-ln-sf := $(call get-command,usp-ln-sf,ln -sf,symlinks-not-supported)
 usp-mkdir-p := $(call get-command,usp-mkdir-p,mkdir -p,mkdir)
 usp-mv-f := $(call get-command,usp-mv-f,mv -f,move)
 usp-rm-rf := $(call get-command,usp-rm-rf,rm -rf,-rmdir /S /Q)
@@ -439,9 +440,14 @@ endef
 version-suffix = $(if $(strip $1),_$(subst .,_,$(strip $1)))
 
 #
-# $(call bjam-implib-filename,<library name>,<version>?)
+# $(call bjam-dll-filename,<library name>,<version>?)
 #
-bjam-implib-filename = $(if $(windows),,lib)$1$(if $(windows),.lib,$(call version-suffix,$2)$(if $(darwin),.dylib,.so))
+bjam-dll-filename = $(if $(windows),,lib)$1$(if $(windows),.lib,$(call version-suffix,$2)$(if $(darwin),.dylib,.so))
+
+#
+# $(call bjam-implib-filename,<library name>)
+#
+bjam-implib-filename = $(if $(windows),,lib)$1$(if $(windows),.lib,$(if $(darwin),.dylib,.so))
 
 #
 # $(call bjam-statlib-filename,<library name>)

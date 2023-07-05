@@ -89,7 +89,7 @@ $(pkgs-dir)/$(main-zip-filename): \
   | $(pkgs-dir)
 	$(usp-rm-rf) "$(call to-shell,$@)"
 	$(foreach d,$(main-artifact-dirs),$(usp-mkdir-p) "$(call to-shell,$(main-work-dir)/$d)"$(newline)$(tab))
-	$(foreach a,$(main-artifacts),$(if $(call read-link,$(artifacts-dir)/$a),ln -sf "$(call read-link,$(artifacts-dir)/$a)" "$(call to-shell,$(main-work-dir)/$a)",$(usp-cp) "$(call to-shell,$(artifacts-dir)/$a)" "$(call to-shell,$(main-work-dir)/$a)")$(newline)$(tab))
+	$(foreach a,$(main-artifacts),$(if $(call read-link,$(artifacts-dir)/$a),$(usp-ln-sf) "$(call read-link,$(artifacts-dir)/$a)" "$(call to-shell,$(main-work-dir)/$a)",$(usp-cp) "$(call to-shell,$(artifacts-dir)/$a)" "$(call to-shell,$(main-work-dir)/$a)")$(newline)$(tab))
 	$(if $(strip $(conf-files)),$(usp-mkdir-p) "$(call to-shell,$(main-work-dir)/etc)"$(newline)$(tab))
 	$(foreach f,$(conf-files),$(usp-cp) "$(call to-shell,$f)" "$(call to-shell,$(main-work-dir)/etc/$(notdir $f))"$(newline)$(tab))
 	$(if $(strip $(doc-files)),$(usp-mkdir-p) "$(call to-shell,$(main-work-dir)/doc/$(package))"$(newline)$(tab))
@@ -115,7 +115,7 @@ $(pkgs-dir)/$(pdb-zip-filename): \
   | $(pkgs-dir)
 	$(usp-rm-rf) "$(call to-shell,$@)"
 	$(foreach d,$(pdb-artifact-dirs),$(usp-mkdir-p) "$(call to-shell,$(pdb-work-dir)/$d)"$(newline)$(tab))
-	$(foreach a,$(pdb-artifacts),$(if $(call read-link,$(artifacts-dir)/$a),ln -sf "$(call read-link,$(artifacts-dir)/$a)" "$(call to-shell,$(pdb-work-dir)/$a)",$(usp-cp) "$(call to-shell,$(artifacts-dir)/$a)" "$(call to-shell,$(pdb-work-dir)/$a)")$(newline)$(tab))
+	$(foreach a,$(pdb-artifacts),$(if $(call read-link,$(artifacts-dir)/$a),$(usp-ln-sf) "$(call read-link,$(artifacts-dir)/$a)" "$(call to-shell,$(pdb-work-dir)/$a)",$(usp-cp) "$(call to-shell,$(artifacts-dir)/$a)" "$(call to-shell,$(pdb-work-dir)/$a)")$(newline)$(tab))
 	( cd "$(call to-shell,$(pdb-work-dir))" && $(usp-zip) $(zip-options) -r "$(call to-shell,$@)" . )
 
 $(pdb-work-dir)/usp-meta/$(pdb-zip-basename).meta: \
