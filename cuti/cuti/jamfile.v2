@@ -144,7 +144,7 @@ install uspb-stage-implib
 :
   <install-dependencies>off
   <install-type>IMPORT_LIB
-  <location>$(stage-dir)/lib
+  <conditional>@stage-implib-location
 ;
 
 explicit uspb-stage-dll ;

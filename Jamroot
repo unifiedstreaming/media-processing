@@ -59,6 +59,11 @@ rule stage-dll-location ( properties * )
   return [ dll-subdir-location $(stage-dir) ] ;
 }
 
+rule stage-implib-location ( properties * )
+{
+  return <location>$(stage-dir)/lib ;
+}
+
 rule deploy-dll-location ( properties * )
 {
   local dest-dir = [ require-from-environ dest-dir ] ;
