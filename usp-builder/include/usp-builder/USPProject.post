@@ -23,7 +23,7 @@
 check-project-prereqs = $(strip \
   $(foreach pre,$($1.prereqs), \
     $(if $(filter-out $(all-projects),$(pre)), \
-      $(error project '$1': prereq project '$(pre)' not found) \
+      $(error project '$1': prereq project '$(pre)' not found or not enabled) \
     ) \
     $(if $(filter $2 $1,$(pre)), \
       $(error $(strip \
@@ -41,7 +41,7 @@ check-project-prereqs = $(strip \
 check-package-prereqs = $(strip \
   $(foreach pre,$($1.package-prereqs), \
     $(if $(filter-out $(all-packages),$(pre)), \
-      $(error package '$1': prereq package '$(pre)' not found) \
+      $(error package '$1': prereq package '$(pre)' not found or not enabled) \
     ) \
     $(if $(filter $2 $1,$(pre)), \
       $(error $(strip \
@@ -104,7 +104,7 @@ check-packaged-projects = $(strip \
     \
     $(call REM,check project name) \
     $(if $(filter-out $(all-projects),$(prj)), \
-      $(error package '$1': project '$(prj)' not found) \
+      $(error package '$1': project '$(prj)' not found or not enabled) \
     ) \
     \
     $(call REM,check project is distributable) \

@@ -603,7 +603,7 @@ require-prop-value = $(strip \
 )
   
 #
-# $(call to-boolean-value,<key>,<value>)
+# $(call to-boolean-value,<key>,<value>?,<default>?)
 #
 to-boolean-value = $(strip \
   $(if $(filter yes,$2), \
@@ -613,6 +613,8 @@ to-boolean-value = $(strip \
     , \
       $(if $(strip $2), \
         $(error value for property '$1' must be 'yes' or 'no') \
+      , \
+        $(filter yes,$3) \
       ) \
       \
     ) \
@@ -646,14 +648,17 @@ find-value = $(strip \
 )
 
 #
-# $(call find-boolean-value,<key>,<property list>,<recognized-key>*)
+# $(call find-boolean-value,<key>,<property list>,<recognized-key>*,<default>?)
 #
-# Returns either 'yes' if the value for <key> is specified as 'yes',
-# or nothing if <key> is not found or its value is specified as 'no'.
+# If a value for <key> is found, then 'yes' is returned if its value
+# its specified as 'yes', and nothing is returned if its value is
+# specified as 'no'.  Other values are treated as errors.
+# If no value for <key> is found, then yes is returned if <default> is
+# specified as 'yes', and nothing is returned otherwise.
 # Each property key in the list must be one of the recognized keys.
 #
 find-boolean-value = $(strip \
-  $(call to-boolean-value,$1,$(call find-value,$1,$2,$3)) \
+  $(call to-boolean-value,$1,$(call find-value,$1,$2,$3),$4) \
 )
 
 #
@@ -674,7 +679,7 @@ get-value = $(strip \
 # Each property key in the list must be one of the recognized keys.
 #
 get-boolean-value = $(strip \
-  $(call to-boolean-value,$1,$(call get-value,$1,$2,$3)) \
+  $(call to-boolean-value,$1,$(call get-value,$1,$2,$3),) \
 )
 
 #

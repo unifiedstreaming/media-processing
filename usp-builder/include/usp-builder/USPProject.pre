@@ -221,6 +221,11 @@ project-artifacts-dir = $(strip \
 )
       
 #
+# $(call is-enabled,<property list>,<recognized-key>*)
+#
+is-enabled = $(call find-boolean-value,enabled,$1,$2,yes)
+
+#
 # $(call gmake-options,<project name>)
 # (to be evaluated very lazily, as part of a recipe)
 #
@@ -296,16 +301,17 @@ endef
 # makefile      path to makefile
 # prereqs*      prerequisite projects
 # distributable either 'yes' or 'no' 
+# enabled?      either 'yes' or 'no', defaults to yes
 #
-gmake-keys := name version makefile prereqs distributable
-gmake-project = $(call expand,$(call call-stripped, \
+gmake-keys := name version makefile prereqs distributable enabled
+gmake-project = $(if $(call is-enabled,$1,$(gmake-keys)),$(call expand,$(call call-stripped, \
   gmake-project-impl, \
   $(call get-value,name,$1,$(gmake-keys)), \
   $(call find-value,version,$1,$(gmake-keys)), \
   $(call get-value,makefile,$1,$(gmake-keys)), \
   $(call find-values,prereqs,$1,$(gmake-keys)), \
   $(call get-boolean-value,distributable,$1,$(gmake-keys)) \
-))
+)))
 
 #
 # $(call bjam-options,<project name>)
@@ -401,16 +407,17 @@ endef
 # source-dir    source directory
 # prereqs*      prerequisite projects
 # distributable either 'yes' or 'no' 
+# enabled?      either 'yes' or 'no', defaults to yes
 #
-bjam-legacy-keys := name version source-dir prereqs distributable
-bjam-legacy-project = $(call expand,$(call call-stripped, \
+bjam-legacy-keys := name version source-dir prereqs distributable enabled
+bjam-legacy-project = $(if $(call is-enabled,$1,$(bjam-legacy-keys)),$(call expand,$(call call-stripped, \
   bjam-legacy-project-impl, \
   $(call get-value,name,$1,$(bjam-legacy-keys)), \
   $(call find-value,version,$1,$(bjam-legacy-keys)), \
   $(call get-value,source-dir,$1,$(bjam-legacy-keys)), \
   $(call find-values,prereqs,$1,$(bjam-legacy-keys)), \
   $(call get-boolean-value,distributable,$1,$(bjam-legacy-keys)) \
-))
+)))
 
 #
 # $(call bjam-dll-project-impl,<name>,<version>,<source dir>,<include dir>,<prereq name>*)
@@ -468,16 +475,17 @@ endef
 # source-dir  source directory
 # include-dir include directory
 # prereqs*    prerequisite projects
+# enabled?    either 'yes' or 'no', defaults to yes
 #
-bjam-dll-keys := name version source-dir include-dir prereqs
-bjam-dll-project = $(call expand,$(call call-stripped, \
+bjam-dll-keys := name version source-dir include-dir prereqs enabled
+bjam-dll-project = $(if $(call is-enabled,$1,$(bjam-dll-keys)),$(call expand,$(call call-stripped, \
   bjam-dll-project-impl, \
   $(call get-value,name,$1,$(bjam-dll-keys)), \
   $(call get-value,version,$1,$(bjam-dll-keys)), \
   $(call get-value,source-dir,$1,$(bjam-dll-keys)), \
   $(call get-value,include-dir,$1,$(bjam-dll-keys)), \
   $(call find-values,prereqs,$1,$(bjam-dll-keys)) \
-))
+)))
 
 #
 # $(call bjam-statlib-project-impl,<name>,<source dir>,<include dir>,<prereq name>*)
@@ -529,15 +537,16 @@ endef
 # source-dir  source directory
 # include-dir include directory
 # prereqs*    prerequisite projects
+# enabled?    either 'yes' or 'no', defaults to yes
 #
-bjam-statlib-keys := name source-dir include-dir prereqs
-bjam-statlib-project = $(call expand,$(call call-stripped, \
+bjam-statlib-keys := name source-dir include-dir prereqs enabled
+bjam-statlib-project = $(if $(call is-enabled,$1,$(bjam-statlib-keys)),$(call expand,$(call call-stripped, \
   bjam-statlib-project-impl, \
   $(call get-value,name,$1,$(bjam-statlib-keys)), \
   $(call get-value,source-dir,$1,$(bjam-statlib-keys)), \
   $(call get-value,include-dir,$1,$(bjam-statlib-keys)), \
   $(call find-values,prereqs,$1,$(bjam-statlib-keys)) \
-))
+)))
 
 #
 # $(call bjam-exe-project-impl,<name>,<source dir>,<prereq name>*)
@@ -580,14 +589,15 @@ endef
 # name        project name
 # source-dir  source directory
 # prereqs*    prerequisite projects
+# enabled?    either 'yes' or 'no', defaults to yes
 #
-bjam-exe-keys := name source-dir prereqs
-bjam-exe-project = $(call expand,$(call call-stripped, \
+bjam-exe-keys := name source-dir prereqs enabled
+bjam-exe-project = $(if $(call is-enabled,$1,$(bjam-exe-keys)),$(call expand,$(call call-stripped, \
   bjam-exe-project-impl, \
   $(call get-value,name,$1,$(bjam-exe-keys)), \
   $(call get-value,source-dir,$1,$(bjam-exe-keys)), \
   $(call find-values,prereqs,$1,$(bjam-exe-keys)) \
-))
+)))
 
 #
 # $(call bjam-test-project-impl,<name>,<source dir>,<prereq name>*)
@@ -626,14 +636,15 @@ endef
 # name        project name
 # source-dir  source directory
 # prereqs*    prerequisite projects
+# enabled?    either 'yes' or 'no', defaults to yes
 #
-bjam-test-keys := name source-dir prereqs
-bjam-test-project = $(call expand,$(call call-stripped, \
+bjam-test-keys := name source-dir prereqs enabled
+bjam-test-project = $(if $(call is-enabled,$1,$(bjam-test-keys)),$(call expand,$(call call-stripped, \
   bjam-test-project-impl, \
   $(call get-value,name,$1,$(bjam-test-keys)), \
   $(call get-value,source-dir,$1,$(bjam-test-keys)), \
   $(call find-values,prereqs,$1,$(bjam-test-keys)) \
-))
+)))
 
 #
 # $(call package-impl,<package name>,<apk-name>?,<deb-name>?,<rpm-name>?,<zip-name>?,<project>*,<prereq-package>*,<license>,<doc file>*,<conf file>*,<service file>*,<openrc file>*,<apache conf-file>*,<apache-load-file>*)
@@ -700,9 +711,10 @@ package-keys := \
   service-files \
   openrc-files \
   apache-conf-files \
-  apache-load-files
+  apache-load-files \
+  enabled
   
-package = $(call expand,$(call call-stripped, \
+package = $(if $(call is-enabled,$1,$(package-keys)),$(call expand,$(call call-stripped, \
   package-impl, \
   $(call get-value,name,$1,$(package-keys)), \
   $(call find-value,apk-name,$1,$(package-keys)), \
@@ -718,7 +730,7 @@ package = $(call expand,$(call call-stripped, \
   $(call check-duplicate-basenames,$(call find-values,openrc-files,$1,$(package-keys))), \
   $(call check-duplicate-basenames,$(call find-values,apache-conf-files,$1,$(package-keys))), \
   $(call check-duplicate-basenames,$(call find-values,apache-load-files,$1,$(package-keys))) \
-))
+)))
 
 #
 # Clear the lists of projects and packages just before reading the
