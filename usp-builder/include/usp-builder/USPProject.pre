@@ -344,7 +344,7 @@ bjam-package-options = $(strip \
 )
 
 #
-# $(call update-staged-jamfile-args,<jamfile>,<libname>,<libfile>,<incdir>,<prereq-lib>)
+# $(call update-staged-jamfile-args,<jamfile>,<libname>,<libfile>,<incdir>,<prereq-lib>*)
 #
 update-staged-jamfile-args = $(strip \
   jamfile=$1 \
@@ -485,6 +485,63 @@ bjam-dll-project = $(if $(call is-enabled,$1,$(bjam-dll-keys)),$(call expand,$(c
   $(call get-value,source-dir,$1,$(bjam-dll-keys)), \
   $(call get-value,include-dir,$1,$(bjam-dll-keys)), \
   $(call find-values,prereqs,$1,$(bjam-dll-keys)) \
+)))
+
+#
+# $(call bjam-plugin-project-impl,<name>,<version>,<source dir>,<prereq name>*)
+#
+define bjam-plugin-project-impl =
+#
+# $1 (bjam plugin project)
+#
+all-projects := $$(call add-project,$$(all-projects),$1)
+
+$1.version := $2
+$1.prereqs := $4
+$1.distributable := yes
+
+.PHONY: $1
+$1: $1.all
+
+.PHONY: $1.all
+$1.all: build-dir-skeleton $(addsuffix .stage,$4)
+	$(usp-bjam) $$(call bjam-options,$1) $(build-settings) $3//uspb-all
+
+.PHONY: $1.stage
+$1.stage: $1.all
+	$(usp-bjam) $$(call bjam-options,$1) $(build-settings) $3//uspb-stage
+
+.PHONY: $1.deploy
+$1.deploy: $1.all $(addsuffix .deploy,$5)
+	$(usp-bjam) $$(call bjam-deploy-options,$1) $(build-settings) $3//uspb-deploy
+
+PHONY: $1.project-artifacts
+$1.project-artifacts: $1.all
+	$(usp-bjam) $$(call bjam-package-options,$1) $(build-settings) $3//uspb-deploy
+
+.PHONY: $1.clean
+$1.clean:
+	$(usp-bjam) --clean $$(call bjam-options,$1) $(build-settings) $3
+
+endef
+
+#
+# $(call bjam-plugin-project,<properties>)
+#
+# properties are:
+# name        project name
+# version     version number
+# source-dir  source directory
+# prereqs*    prerequisite projects
+# enabled?    either 'yes' or 'no', defaults to yes
+#
+bjam-plugin-keys := name version source-dir prereqs enabled
+bjam-plugin-project = $(if $(call is-enabled,$1,$(bjam-plugin-keys)),$(call expand,$(call call-stripped, \
+  bjam-plugin-project-impl, \
+  $(call get-value,name,$1,$(bjam-plugin-keys)), \
+  $(call get-value,version,$1,$(bjam-plugin-keys)), \
+  $(call get-value,source-dir,$1,$(bjam-plugin-keys)), \
+  $(call find-values,prereqs,$1,$(bjam-plugin-keys)) \
 )))
 
 #
