@@ -22,7 +22,7 @@
 rule x264_proto-artifact-name ( name : type ? : properties * )
 {
   local version = [ require-from-environ x264_proto.version ] ;
-  return [ dll-artifact-name $(name) : $(version) : $(type) : $(properties) ] ;
+  return [ dll-artifact-name $(name) : $(version) : $(type) ] ;
 }
 
 lib x264_proto

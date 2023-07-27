@@ -20,7 +20,7 @@
 rule cuti-artifact-name ( name : type ? : properties * ) 
 {
   local version = [ require-from-environ cuti.version ] ;
-  return [ dll-artifact-name $(name) : $(version) : $(type) : $(properties) ] ;
+  return [ dll-artifact-name $(name) : $(version) : $(type) ] ;
 }
 
 lib cuti

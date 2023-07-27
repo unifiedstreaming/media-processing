@@ -43,37 +43,62 @@ project oss
   <address-model>64
 ;
 
-rule dll-subdir-location ( parent-dir )
+rule dll-subdir ( parent-dir )
 {
   local subdir = lib ;
   if [ os.name ] = NT
   {
     subdir = bin ;
   }
+  return $(parent-dir)/$(subdir) ;
+}
 
-  return <location>$(parent-dir)/$(subdir) ;
-} 
+rule stage-dll-dir ( )
+{
+  local stage-dir = [ require-from-environ stage-dir ] ;
+  return [ dll-subdir $(stage-dir) ] ;
+}
+
+rule stage-implib-dir ( )
+{
+  local stage-dir = [ require-from-environ stage-dir ] ;
+  return $(stage-dir)/lib ;
+}
+
+rule deploy-dll-dir ( )
+{
+  local dest-dir = [ require-from-environ dest-dir ] ;
+  return [ dll-subdir $(dest-dir) ] ;
+}
+
+rule deploy-exe-dir ( )
+{
+  local dest-dir = [ require-from-environ dest-dir ] ;
+  return $(dest-dir)/bin ;
+}
 
 rule stage-dll-location ( properties * )
 {
-  return [ dll-subdir-location $(stage-dir) ] ;
+  local dir = [ stage-dll-dir ] ;
+  return <location>$(dir) ;
 }
 
 rule stage-implib-location ( properties * )
 {
-  return <location>$(stage-dir)/lib ;
+  local dir = [ stage-implib-dir ] ;
+  return <location>$(dir) ;
 }
 
 rule deploy-dll-location ( properties * )
 {
-  local dest-dir = [ require-from-environ dest-dir ] ;
-  return [ dll-subdir-location $(dest-dir) ] ;
+  local dir = [ deploy-dll-dir ] ;
+  return <location>$(dir) ;
 }
 
 rule deploy-exe-location ( properties * )
 {
-  local dest-dir = [ require-from-environ dest-dir ] ;
-  return <location>$(dest-dir)/bin ;
+  local dir = [ deploy-exe-dir ] ;
+  return <location>$(dir) ;
 }
 
 rule version-suffix ( version ? )
@@ -87,7 +112,7 @@ rule version-suffix ( version ? )
   return $(result) ;
 }
 
-rule dll-artifact-name ( name : version ? : type ? : properties * )
+rule dll-artifact-name ( name : version ? : type ? )
 {
   local osname = [ os.name ] ; 
 
@@ -109,6 +134,7 @@ rule dll-artifact-name ( name : version ? : type ? : properties * )
   {
     if $(type) = SHARED_LIB
     {
+      prefix = "lib" ;
       extension = ".dylib" ;
     }
   }
@@ -130,3 +156,4 @@ rule dll-artifact-name ( name : version ? : type ? : properties * )
 
   return $(result) ;
 }
+
