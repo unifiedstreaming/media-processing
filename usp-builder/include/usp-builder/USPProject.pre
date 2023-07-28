@@ -320,6 +320,7 @@ gmake-project = $(if $(call is-enabled,$1,$(gmake-keys)),$(call expand,$(call ca
 bjam-options = $(strip \
  $(if $(verbose),-d+2) \
  --build-dir="$(call to-native,$(bjam-build-dir))" \
+ -sin-usp-build=yes \
  -sstage-dir="$(call to-native,$(stage-dir))" \
  -sunit-test-out-dir="$(call to-native,$(unit-test-out-dir))" \
  $(addprefix -s,$(call required-versions,$1)) \
