@@ -23,26 +23,6 @@ rule require-from-environ ( name )
   return $(value) ;
 }
 
-path-constant stage-dir : [ require-from-environ stage-dir ] ;
-
-project oss
-: requirements
-  <cxxstd>17
-  <debug-symbols>on
-  <toolset>msvc:<cxxflags>/wd4251 # class needs to have dll-interface
-  <toolset>msvc:<cxxflags>/wd4275 # non dll-interface class used as base
-  <toolset>msvc:<cxxflags>/wd4910 # dllexport on extern template
-  <target-os>windows:<define>NOMINMAX
-  <target-os>windows:<define>WIN32_LEAN_AND_MEAN
-  <threading>multi
-  <target-os>linux:<linkflags>-Wl,--enable-new-dtags
-  <target-os>linux:<linkflags>-Wl,-rpath,\\$ORIGIN/../lib
-  <local-visibility>hidden
-: default-build
-# <variant>release
-  <address-model>64
-;
-
 rule dll-subdir ( parent-dir )
 {
   local subdir = lib ;
@@ -156,4 +136,22 @@ rule dll-artifact-name ( name : version ? : type ? )
 
   return $(result) ;
 }
+
+project oss
+: requirements
+  <cxxstd>17
+  <debug-symbols>on
+  <toolset>msvc:<cxxflags>/wd4251 # class needs to have dll-interface
+  <toolset>msvc:<cxxflags>/wd4275 # non dll-interface class used as base
+  <toolset>msvc:<cxxflags>/wd4910 # dllexport on extern template
+  <target-os>windows:<define>NOMINMAX
+  <target-os>windows:<define>WIN32_LEAN_AND_MEAN
+  <threading>multi
+  <target-os>linux:<linkflags>-Wl,--enable-new-dtags
+  <target-os>linux:<linkflags>-Wl,-rpath,\\$ORIGIN/../lib
+  <local-visibility>hidden
+: default-build
+# <variant>release
+  <address-model>64
+;
 

@@ -17,14 +17,16 @@
 # <http://www.gnu.org/licenses/>.
 #
 
+lib-dir = [ stage-lib-dir ] ;
+
 lib x264_es_utils
 :
   config.cpp
   config_reader.cpp
   service.cpp
-  $(stage-dir)/lib/jamfiles/cuti//cuti
-  $(stage-dir)/lib/jamfiles/x264_proto//x264_proto
-  $(stage-dir)/lib/jamfiles/x264
+  $(lib-dir)/jamfiles/cuti//cuti
+  $(lib-dir)/jamfiles/x264_proto//x264_proto
+  $(lib-dir)/jamfiles/x264//x264
 :
   <link>static
 :
@@ -41,5 +43,5 @@ install uspb-stage
   x264_es_utils
 :
   <install-dependencies>off
-  <location>$(stage-dir)/lib
+  <conditional>@stage-lib-location
 ;

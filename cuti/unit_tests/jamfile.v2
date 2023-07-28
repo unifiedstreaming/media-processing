@@ -19,9 +19,11 @@
 
 import testing ;
 
+lib-dir = [ stage-lib-dir ] ;
+
 project
 : requirements
-  <library>$(stage-dir)/lib/jamfiles/cuti
+  <library>$(lib-dir)/jamfiles/cuti//cuti
 ;
 
 unit-test boolean_io_test

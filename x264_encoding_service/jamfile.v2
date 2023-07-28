@@ -17,10 +17,12 @@
 # <http://www.gnu.org/licenses/>.
 #
 
+lib-dir = [ stage-lib-dir ] ;
+
 exe x264_encoding_service
 : main.cpp
-  $(stage-dir)/lib/jamfiles/x264_es_utils//x264_es_utils
-  $(stage-dir)/lib/jamfiles/cuti//cuti
+  $(lib-dir)/jamfiles/x264_es_utils//x264_es_utils
+  $(lib-dir)/jamfiles/cuti//cuti
 ;
 
 explicit uspb-all ;

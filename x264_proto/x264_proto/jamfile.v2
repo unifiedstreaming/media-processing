@@ -25,10 +25,12 @@ rule x264_proto-artifact-name ( name : type ? : properties * )
   return [ dll-artifact-name $(name) : $(version) : $(type) ] ;
 }
 
+lib-dir = [ stage-lib-dir ] ;
+
 lib x264_proto
 :
   client.cpp
-  $(stage-dir)/lib/jamfiles/cuti//cuti
+  $(lib-dir)/jamfiles/cuti//cuti
 :
   <define>BUILDING_X264_PROTO
   <link>shared
