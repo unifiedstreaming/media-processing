@@ -59,7 +59,7 @@ rule stage-dll-dir ( )
   return [ dll-subdir $(stage-dir) ] ;
 }
 
-rule stage-implib-dir ( )
+rule stage-lib-dir ( )
 {
   local stage-dir = [ require-from-environ stage-dir ] ;
   return $(stage-dir)/lib ;
@@ -83,9 +83,9 @@ rule stage-dll-location ( properties * )
   return <location>$(dir) ;
 }
 
-rule stage-implib-location ( properties * )
+rule stage-lib-location ( properties * )
 {
-  local dir = [ stage-implib-dir ] ;
+  local dir = [ stage-lib-dir ] ;
   return <location>$(dir) ;
 }
 
