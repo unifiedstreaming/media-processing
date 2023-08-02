@@ -254,7 +254,7 @@ gmake-package-options = $(strip \
 )
 
 #
-# $(call gmake-project-impl,<name>,<version>?,<makefile>,<prereq name>*,<distributable>?)
+# $(call gmake-project-impl,<name>,<version>?,<makefile>,<prereq name>*,<distributable>?,<provided lib>*)
 #
 define gmake-project-impl =
 #
@@ -265,6 +265,7 @@ all-projects := $$(call add-project,$$(all-projects),$1)
 $1.version := $2
 $1.prereqs := $4
 $1.distributable := $5
+$1.provided-libs := $6
 
 .PHONY: $1
 $1: $1.all
@@ -296,21 +297,23 @@ endef
 # $(call gmake-project,<properties>)
 #
 # properties are:
-# name          project name
-# version?      version number
-# makefile      path to makefile
-# prereqs*      prerequisite projects
-# distributable either 'yes' or 'no' 
-# enabled?      either 'yes' or 'no', defaults to yes
+# name           project name
+# version?       version number
+# makefile       path to makefile
+# prereqs*       prerequisite projects
+# distributable  either 'yes' or 'no' 
+# enabled?       either 'yes' or 'no', defaults to yes
+# provided-libs* provided libraries
 #
-gmake-keys := name version makefile prereqs distributable enabled
+gmake-keys := name version makefile prereqs distributable enabled provided-libs
 gmake-project = $(if $(call is-enabled,$1,$(gmake-keys)),$(call expand,$(call call-stripped, \
   gmake-project-impl, \
   $(call get-value,name,$1,$(gmake-keys)), \
   $(call find-value,version,$1,$(gmake-keys)), \
   $(call get-value,makefile,$1,$(gmake-keys)), \
   $(call find-values,prereqs,$1,$(gmake-keys)), \
-  $(call get-boolean-value,distributable,$1,$(gmake-keys)) \
+  $(call get-boolean-value,distributable,$1,$(gmake-keys)), \
+  $(call find-values,provided-libs,$1,$(gmake-keys)) \
 )))
 
 #
@@ -367,6 +370,7 @@ all-projects := $$(call add-project,$$(all-projects),$1)
 $1.version := $2
 $1.prereqs := $4
 $1.distributable := $5
+$1.provided-libs :=
 
 .PHONY: $1
 $1: $1.all
@@ -432,6 +436,7 @@ all-projects := $$(call add-project,$$(all-projects),$1)
 $1.version := $2
 $1.prereqs := $5
 $1.distributable := yes
+$1.provided-libs := $1
 
 .PHONY: $1
 $1: $1.all
@@ -500,6 +505,7 @@ all-projects := $$(call add-project,$$(all-projects),$1)
 $1.version := $2
 $1.prereqs := $4
 $1.distributable := yes
+$1.provided-libs :=
 
 .PHONY: $1
 $1: $1.all
@@ -557,6 +563,7 @@ all-projects := $$(call add-project,$$(all-projects),$1)
 $1.version :=
 $1.prereqs := $4
 $1.distributable :=
+$1.provided-libs := $1
 
 .PHONY: $1
 $1: $1.all
@@ -618,6 +625,7 @@ all-projects := $$(call add-project,$$(all-projects),$1)
 $1.version := 
 $1.prereqs := $3
 $1.distributable := yes
+$1.provided-libs :=
 
 .PHONY: $1
 $1: $1.all
@@ -669,6 +677,7 @@ all-projects := $$(call add-project,$$(all-projects),$1)
 $1.version :=
 $1.prereqs := $3
 $1.distributable :=
+$1.provided-libs :=
 
 .PHONY: $1
 $1: $1.all
