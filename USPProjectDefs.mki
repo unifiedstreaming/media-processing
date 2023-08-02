@@ -62,7 +62,7 @@ $(call gmake-project, \
   name = x264 \
   makefile = x264/USPMakefile \
   distributable = no \
-  provided-libs = x264 \
+  staged-libs = x264 \
 )
 
 #
