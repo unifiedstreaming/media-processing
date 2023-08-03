@@ -43,7 +43,7 @@ check-staged-libs = $(strip \
     $(foreach other-prj,$(filter-out $1,$(all-projects)), \
       $(if $(filter $(lib),$($(other-prj).staged-libs)), \
         $(error $(strip \
-          project '$(other-prj)': library '$(lib)' is also provided \
+          project '$(other-prj)': library '$(lib)' is also staged \
           by project '$1' \
         )) \
       ) \

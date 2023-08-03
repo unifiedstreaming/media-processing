@@ -359,6 +359,17 @@ update-staged-jamfile-args = $(strip \
 )
 
 #
+# $(call staged-prereq-libs,<prereq project>*)
+#
+staged-prereq-libs = $(strip \
+  $(call dedup, \
+    $(foreach pre,$1, \
+      $($(pre).staged-libs) \
+    ) \
+  ) \
+)
+
+#
 # $(call bjam-legacy-project-impl,<name>,<version>?,<source dir>,<prereq name>*,<distributable>?)
 #
 define bjam-legacy-project-impl =
@@ -452,7 +463,7 @@ $1.all: build-dir-skeleton $(addsuffix .stage,$5)
 .PHONY: $1.stage
 $1.stage: $1.bjam-stage
 	$(if $(windows),,$$(MAKE) -I $(usp-builder-include-dir) -f $(usp-builder-lib-dir)/UpdateLibLink.mak stage-dir=$(stage-dir) work-dir=$(call project-work-dir,$1) target-name=$(call bjam-dll-filename,$1,$2) link-name=$(call bjam-implib-filename,$1))
-	$$(MAKE) -I $(usp-builder-include-dir) -f $(usp-builder-lib-dir)/UpdateStagedJamfile.mak $(call update-staged-jamfile-args,$(stage-dir)/lib/jamfiles/$1/jamfile,$1,$(stage-dir)/lib/$(call bjam-implib-filename,$1),$(abspath $4),$5)
+	$$(MAKE) -I $(usp-builder-include-dir) -f $(usp-builder-lib-dir)/UpdateStagedJamfile.mak $(call update-staged-jamfile-args,$(stage-dir)/lib/jamfiles/$1/jamfile,$1,$(stage-dir)/lib/$(call bjam-implib-filename,$1),$(abspath $4),$$(call staged-prereq-libs,$5))
 
 .PHONY: $1.deploy
 $1.deploy: $1.all $(addsuffix .deploy,$5)
@@ -578,7 +589,7 @@ $1.all: build-dir-skeleton $(addsuffix .stage,$4)
 # .deploy may be run as root).
 .PHONY: $1.stage
 $1.stage: $1.bjam-stage
-	$$(MAKE) -I $(usp-builder-include-dir) -f $(usp-builder-lib-dir)/UpdateStagedJamfile.mak $(call update-staged-jamfile-args,$(stage-dir)/lib/jamfiles/$1/jamfile,$1,$(stage-dir)/lib/$(call bjam-statlib-filename,$1),$(abspath $3),$4)
+	$$(MAKE) -I $(usp-builder-include-dir) -f $(usp-builder-lib-dir)/UpdateStagedJamfile.mak $(call update-staged-jamfile-args,$(stage-dir)/lib/jamfiles/$1/jamfile,$1,$(stage-dir)/lib/$(call bjam-statlib-filename,$1),$(abspath $3),$$(call staged-prereq-libs,$4))
 
 # Static library: nothing to do for deploying
 .PHONY: $1.deploy
