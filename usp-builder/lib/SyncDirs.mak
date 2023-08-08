@@ -19,6 +19,8 @@
 
 include usp-builder/USPCommon.mki
 
+MAKEFLAGS += --no-builtin-rules
+
 # Check required parameters
 override src-dir := $(call required-value,src-dir)
 override dst-dir := $(call required-value,dst-dir)
