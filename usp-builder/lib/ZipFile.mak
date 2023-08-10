@@ -87,7 +87,7 @@ $(pkgs-dir)/$(main-zip-filename): \
   $(main-work-dir)/usp-meta/$(main-zip-basename).meta \
   clean-main-work-dir \
   | $(pkgs-dir)
-	$(usp-rm-rf) "$(call to-shell,$@)"
+	$(usp-rm-file) "$(call to-shell,$@)"
 	$(foreach d,$(main-artifact-dirs),$(usp-mkdir-p) "$(call to-shell,$(main-work-dir)/$d)"$(newline)$(tab))
 	$(foreach a,$(main-artifacts),$(if $(call read-link,$(artifacts-dir)/$a),$(usp-ln-sf) "$(call read-link,$(artifacts-dir)/$a)" "$(call to-shell,$(main-work-dir)/$a)",$(usp-cp) "$(call to-shell,$(artifacts-dir)/$a)" "$(call to-shell,$(main-work-dir)/$a)")$(newline)$(tab))
 	$(if $(strip $(conf-files)),$(usp-mkdir-p) "$(call to-shell,$(main-work-dir)/etc)"$(newline)$(tab))
@@ -106,14 +106,14 @@ $(main-work-dir)/usp-meta: clean-main-work-dir
 	
 .PHONY: clean-main-work-dir
 clean-main-work-dir:
-	$(usp-rm-rf) "$(call to-shell,$(main-work-dir))"
+	$(usp-rm-dir) "$(call to-shell,$(main-work-dir))"
 	$(usp-mkdir-p) "$(call to-shell,$(main-work-dir))"
 
 $(pkgs-dir)/$(pdb-zip-filename): \
   $(pdb-work-dir)/usp-meta/$(pdb-zip-basename).meta \
   clean-pdb-work-dir \
   | $(pkgs-dir)
-	$(usp-rm-rf) "$(call to-shell,$@)"
+	$(usp-rm-file) "$(call to-shell,$@)"
 	$(foreach d,$(pdb-artifact-dirs),$(usp-mkdir-p) "$(call to-shell,$(pdb-work-dir)/$d)"$(newline)$(tab))
 	$(foreach a,$(pdb-artifacts),$(if $(call read-link,$(artifacts-dir)/$a),$(usp-ln-sf) "$(call read-link,$(artifacts-dir)/$a)" "$(call to-shell,$(pdb-work-dir)/$a)",$(usp-cp) "$(call to-shell,$(artifacts-dir)/$a)" "$(call to-shell,$(pdb-work-dir)/$a)")$(newline)$(tab))
 	( cd "$(call to-shell,$(pdb-work-dir))" && $(usp-zip) $(zip-options) -r "$(call to-shell,$@)" . )
@@ -128,7 +128,7 @@ $(pdb-work-dir)/usp-meta: clean-pdb-work-dir
 	
 .PHONY: clean-pdb-work-dir
 clean-pdb-work-dir:
-	$(usp-rm-rf) "$(call to-shell,$(pdb-work-dir))"
+	$(usp-rm-dir) "$(call to-shell,$(pdb-work-dir))"
 	$(usp-mkdir-p) "$(call to-shell,$(pdb-work-dir))"
 
 $(pkgs-dir):

@@ -52,14 +52,18 @@ dirs-in-dst := $(filter-out $(exclude), \
 # Determine which directory entries in $(dst-dir) to purge. Please note
 # that this includes directories that are files in $(src-dir) and
 # files that are directories in $(src-dir).
-purged-entries := $(addprefix $(dst-dir)/, \
-  $(filter-out $(files-in-src),$(files-in-dst)) \
-  $(filter-out $(dirs-in-src),$(dirs-in-dst)) \
-)
+purged-files := $(addprefix $(dst-dir)/, \
+  $(filter-out $(files-in-src),$(files-in-dst)))
+purged-dirs := $(addprefix $(dst-dir)/, \
+  $(filter-out $(dirs-in-src),$(dirs-in-dst)))
 
 .PHONY: all
-all: $(purged-entries)
+all: $(purged-files) $(purged-dirs)
 
-.PHONY: $(purged-entries)
-$(purged-entries):
-	$(usp-rm-rf) "$(call to-shell,$@)"
+.PHONY: $(purged-files)
+$(purged-files):
+	$(usp-rm-file) "$(call to-shell,$@)"
+
+.PHONY: $(purged-dirs)
+$(purged-dirs):
+	$(usp-rm-dir) "$(call to-shell,$@)"

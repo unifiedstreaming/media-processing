@@ -67,7 +67,7 @@ ifneq ($(build-x264),)
 
   .PHONY: clean
   clean:
-	$(usp-rm-rf) "$(call to-shell,$(work-dir))"
+	$(usp-rm-dir) "$(call to-shell,$(work-dir))"
 
   $(work-dir)/usp-build-stamp: $(work-dir)/config.mak $(sources)
 	$(file >$@.dep.next,$(call dependency-listing,$@,$(sources)))

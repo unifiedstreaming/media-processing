@@ -273,5 +273,5 @@ $(deb-work-dir)/debian: clean-deb-work-dir
 
 .PHONY: clean-deb-work-dir
 clean-deb-work-dir:
-	$(usp-rm-rf) "$(call to-shell,$(deb-work-dir))"
+	$(usp-rm-dir) "$(call to-shell,$(deb-work-dir))"
 	$(usp-mkdir-p) "$(call to-shell,$(deb-work-dir))"

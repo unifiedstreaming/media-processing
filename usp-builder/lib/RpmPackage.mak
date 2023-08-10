@@ -266,5 +266,5 @@ $(rpm-work-dir)/SPECS: clean-rpm-work-dir
 
 .PHONY: clean-rpm-work-dir
 clean-rpm-work-dir:
-	$(usp-rm-rf) "$(call to-shell,$(rpm-work-dir))"
+	$(usp-rm-dir) "$(call to-shell,$(rpm-work-dir))"
 	$(usp-mkdir-p) "$(call to-shell,$(rpm-work-dir))"

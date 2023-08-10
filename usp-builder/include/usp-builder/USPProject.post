@@ -194,7 +194,7 @@ $1.zip-file: $(strip $(foreach pkg,$($1.package-prereqs),$(pkg).zip-file) $1.art
 
 .PHONY: $1.clean-artifacts
 $1.clean-artifacts:
-	$(usp-rm-rf) "$$(call to-shell,$(artifacts-dir)/$1)"
+	$(usp-rm-dir) "$$(call to-shell,$(artifacts-dir)/$1)"
 
 endef
 
@@ -236,8 +236,8 @@ all.zip-file: $(foreach pkg,$(all-packages),$(pkg).zip-file)
 
 .PHONY: all.clean-artifacts
 all.clean-artifacts:
-	$(foreach f,$(wildcard $(artifacts-dir)/*),$(usp-rm-rf) "$(call to-shell,$f)"$(newline))
+	$(foreach f,$(wildcard $(artifacts-dir)/*),$(usp-rm-dir) "$(call to-shell,$f)"$(newline))
 
 PHONY: clean
 clean:
-	$(usp-rm-rf) "$(call to-shell,$(build-dir))"
+	$(usp-rm-dir) "$(call to-shell,$(build-dir))"

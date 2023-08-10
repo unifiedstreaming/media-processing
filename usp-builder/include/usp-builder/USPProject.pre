@@ -288,8 +288,8 @@ $(if $5,$(tab)$$(MAKE) -I $(usp-builder-include-dir) -C $(dir $3) -f $(notdir $3
 
 .PHONY: $1.clean
 $1.clean:
-	$(usp-rm-rf) "$(call to-shell,$(call project-work-dir,$1))"
-	$(usp-rm-rf) "$(call to-shell,$(stage-dir)/timestamps/$1)"
+	$(usp-rm-dir) "$(call to-shell,$(call project-work-dir,$1))"
+	$(usp-rm-file) "$(call to-shell,$(stage-dir)/timestamps/$1)"
 
 endef
 

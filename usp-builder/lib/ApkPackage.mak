@@ -276,5 +276,5 @@ $(pkgs-dir)/apk/$(apk-arch):
 	
 .PHONY: clean-apk-work-dir
 clean-apk-work-dir:
-	$(usp-rm-rf) "$(call to-shell,$(apk-work-dir))"
+	$(usp-rm-dir) "$(call to-shell,$(apk-work-dir))"
 	$(usp-mkdir-p) "$(call to-shell,$(apk-work-dir))"
