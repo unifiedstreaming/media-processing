@@ -34,6 +34,9 @@ MAKEFLAGS += --no-builtin-rules
 override src-dir := $(abspath $(call required-value,src-dir))
 override work-dir := $(abspath $(call required-value,work-dir))
 
+# Check $(src-dir) exists
+$(if $(wildcard $(src-dir)/.),,$(error directory '$(src-dir)' not found))
+
 # Forbid overlapping src and work dirs
 $(call check-out-of-tree,$(src-dir),$(work-dir))
 $(call check-out-of-tree,$(work-dir),$(src-dir))
@@ -78,7 +81,7 @@ override other-dirs :=  $(addprefix $(dst-dir)/, \
 all: $(removed-files) $(removed-dirs) \
   $(from-dir-files) $(from-file-dirs) \
   $(other-files) $(other-dirs) \
-  | $(work-dir)
+  | $(work-dir) $(dst-dir)
 	$(file >$(state-file),override prev-filenames := $(curr-filenames)$(newline)override prev-dirnames := $(curr-dirnames))
 	@echo updated $(state-file)
 
@@ -87,7 +90,7 @@ $(removed-files):
 	$(usp-rm-file) "$(call to-shell,$@)"
 
 .PHONY: $(removed-dirs)
-$(removed-dirs):
+$(removed-dirs): $(removed-files)
 	$(usp-rm-dir) "$(call to-shell,$@)"
 
 .PHONY: $(from-dir-files)
