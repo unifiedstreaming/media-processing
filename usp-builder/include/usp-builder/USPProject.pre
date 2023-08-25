@@ -418,12 +418,12 @@ endef
 # $(call bjam-legacy-project,<properties>)
 #
 # properties are:
-# name          project name
-# version?      version number
-# source-dir    source directory
-# prereqs*      prerequisite projects
-# distributable either 'yes' or 'no' 
-# enabled?      either 'yes' or 'no', defaults to yes
+# name           project name
+# version?       version number
+# source-dir     source directory
+# prereqs*       prerequisite projects
+# distributable  either 'yes' or 'no' 
+# enabled?       either 'yes' or 'no', defaults to yes
 #
 bjam-legacy-keys := name version source-dir prereqs distributable enabled
 bjam-legacy-project = $(if $(call is-enabled,$1,$(bjam-legacy-keys)),$(call expand,$(call call-stripped, \
@@ -436,7 +436,7 @@ bjam-legacy-project = $(if $(call is-enabled,$1,$(bjam-legacy-keys)),$(call expa
 )))
 
 #
-# $(call bjam-dll-project-impl,<name>,<version>,<source dir>,<include dir>,<prereq name>*)
+# $(call bjam-dll-project-impl,<name>,<version>,<source dir>,<include dir>,<prereq name>*,<distributable>?)
 #
 define bjam-dll-project-impl =
 #
@@ -446,7 +446,7 @@ all-projects := $$(call add-project,$$(all-projects),$1)
 
 $1.version := $2
 $1.prereqs := $5
-$1.distributable := yes
+$1.distributable := $6
 $1.staged-libs := $1
 
 .PHONY: $1
@@ -487,25 +487,27 @@ endef
 # $(call bjam-dll-project,<properties>)
 #
 # properties are:
-# name        project name
-# version     version number
-# source-dir  source directory
-# include-dir include directory
-# prereqs*    prerequisite projects
-# enabled?    either 'yes' or 'no', defaults to yes
+# name           project name
+# version        version number
+# source-dir     source directory
+# include-dir    include directory
+# prereqs*       prerequisite projects
+# distributable  either 'yes' or 'no'
+# enabled?       either 'yes' or 'no', defaults to yes
 #
-bjam-dll-keys := name version source-dir include-dir prereqs enabled
+bjam-dll-keys := name version source-dir include-dir prereqs distributable enabled
 bjam-dll-project = $(if $(call is-enabled,$1,$(bjam-dll-keys)),$(call expand,$(call call-stripped, \
   bjam-dll-project-impl, \
   $(call get-value,name,$1,$(bjam-dll-keys)), \
   $(call get-value,version,$1,$(bjam-dll-keys)), \
   $(call get-value,source-dir,$1,$(bjam-dll-keys)), \
   $(call get-value,include-dir,$1,$(bjam-dll-keys)), \
-  $(call find-values,prereqs,$1,$(bjam-dll-keys)) \
+  $(call find-values,prereqs,$1,$(bjam-dll-keys)), \
+  $(call get-boolean-value,distributable,$1,$(bjam-dll-keys)) \
 )))
 
 #
-# $(call bjam-plugin-project-impl,<name>,<version>,<source dir>,<prereq name>*)
+# $(call bjam-plugin-project-impl,<name>,<version>,<source dir>,<prereq name>*,<distributable>?)
 #
 define bjam-plugin-project-impl =
 #
@@ -515,7 +517,7 @@ all-projects := $$(call add-project,$$(all-projects),$1)
 
 $1.version := $2
 $1.prereqs := $4
-$1.distributable := yes
+$1.distributable := $5
 $1.staged-libs :=
 
 .PHONY: $1
@@ -547,19 +549,21 @@ endef
 # $(call bjam-plugin-project,<properties>)
 #
 # properties are:
-# name        project name
-# version     version number
-# source-dir  source directory
-# prereqs*    prerequisite projects
-# enabled?    either 'yes' or 'no', defaults to yes
+# name           project name
+# version        version number
+# source-dir     source directory
+# prereqs*       prerequisite projects
+# distributable  either 'yes' or 'no'
+# enabled?       either 'yes' or 'no', defaults to yes
 #
-bjam-plugin-keys := name version source-dir prereqs enabled
+bjam-plugin-keys := name version source-dir prereqs distributable enabled
 bjam-plugin-project = $(if $(call is-enabled,$1,$(bjam-plugin-keys)),$(call expand,$(call call-stripped, \
   bjam-plugin-project-impl, \
   $(call get-value,name,$1,$(bjam-plugin-keys)), \
   $(call get-value,version,$1,$(bjam-plugin-keys)), \
   $(call get-value,source-dir,$1,$(bjam-plugin-keys)), \
-  $(call find-values,prereqs,$1,$(bjam-plugin-keys)) \
+  $(call find-values,prereqs,$1,$(bjam-plugin-keys)), \
+  $(call get-boolean-value,distributable,$1,$(bjam-plugin-keys)) \
 )))
 
 #
@@ -609,11 +613,11 @@ endef
 # $(call bjam-statlib-project,<properties>)
 #
 # properties are:
-# name        project name
-# source-dir  source directory
-# include-dir include directory
-# prereqs*    prerequisite projects
-# enabled?    either 'yes' or 'no', defaults to yes
+# name         project name
+# source-dir   source directory
+# include-dir  include directory
+# prereqs*     prerequisite projects
+# enabled?     either 'yes' or 'no', defaults to yes
 #
 bjam-statlib-keys := name source-dir include-dir prereqs enabled
 bjam-statlib-project = $(if $(call is-enabled,$1,$(bjam-statlib-keys)),$(call expand,$(call call-stripped, \
@@ -625,7 +629,7 @@ bjam-statlib-project = $(if $(call is-enabled,$1,$(bjam-statlib-keys)),$(call ex
 )))
 
 #
-# $(call bjam-exe-project-impl,<name>,<source dir>,<prereq name>*)
+# $(call bjam-exe-project-impl,<name>,<source dir>,<prereq name>*,<distributable>?)
 #
 define bjam-exe-project-impl =
 #
@@ -635,7 +639,7 @@ all-projects := $$(call add-project,$$(all-projects),$1)
 
 $1.version := 
 $1.prereqs := $3
-$1.distributable := yes
+$1.distributable := $4
 $1.staged-libs :=
 
 .PHONY: $1
@@ -663,17 +667,19 @@ endef
 # $(call bjam-exe-project,<properties>)
 #
 # properties are:
-# name        project name
-# source-dir  source directory
-# prereqs*    prerequisite projects
-# enabled?    either 'yes' or 'no', defaults to yes
+# name           project name
+# source-dir     source directory
+# prereqs*       prerequisite projects
+# distributable  either 'yes' or 'no'
+# enabled?       either 'yes' or 'no', defaults to yes
 #
-bjam-exe-keys := name source-dir prereqs enabled
+bjam-exe-keys := name source-dir prereqs enabled distributable
 bjam-exe-project = $(if $(call is-enabled,$1,$(bjam-exe-keys)),$(call expand,$(call call-stripped, \
   bjam-exe-project-impl, \
   $(call get-value,name,$1,$(bjam-exe-keys)), \
   $(call get-value,source-dir,$1,$(bjam-exe-keys)), \
-  $(call find-values,prereqs,$1,$(bjam-exe-keys)) \
+  $(call find-values,prereqs,$1,$(bjam-exe-keys)), \
+  $(call get-boolean-value,distributable,$1,$(bjam-exe-keys)) \
 )))
 
 #

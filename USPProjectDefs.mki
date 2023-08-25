@@ -16,6 +16,7 @@ $(call bjam-exe-project, \
   name = x264_encoding_service \
   source-dir = x264_encoding_service \
   prereqs = x264_es_utils cuti \
+  distributable = yes \
 )
 
 $(call bjam-statlib-project, \
@@ -37,6 +38,7 @@ $(call bjam-dll-project, \
   source-dir = x264_proto/x264_proto \
   include-dir = x264_proto \
   prereqs = cuti \
+  distributable = yes \
 )
 
 $(call bjam-test-project, \
@@ -50,6 +52,7 @@ $(call bjam-dll-project, \
   version = 0.0.0 \
   source-dir = cuti/cuti \
   include-dir = cuti \
+  distributable = yes \
 )
 
 $(call bjam-test-project, \
