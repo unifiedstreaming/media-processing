@@ -280,11 +280,9 @@ $1.stage: $1.all
 
 .PHONY: $1.deploy
 $1.deploy: $1.all $(addsuffix .deploy,$4)
-$(if $5,$(tab)$$(MAKE) -I $(usp-builder-include-dir) -C $(dir $3) -f $(notdir $3) $$(call gmake-deploy-options,$1) $(build-settings) deploy)
+	$$(MAKE) -I $(usp-builder-include-dir) -C $(dir $3) -f $(notdir $3) $$(call gmake-deploy-options,$1) $(build-settings) deploy
 
-$(if $5,PHONY: $1.project-artifacts)
-$(if $5,$1.project-artifacts: $1.all)
-$(if $5,$(tab)$$(MAKE) -I $(usp-builder-include-dir) -C $(dir $3) -f $(notdir $3) $$(call gmake-package-options,$1) $(build-settings) deploy)
+$(if $5,.PHONY: $1.project-artifacts$(newline)$1.project-artifacts: $1.all$(newline)$(tab)$$(MAKE) -I $(usp-builder-include-dir) -C $(dir $3) -f $(notdir $3) $$(call gmake-package-options,$1) $(build-settings) deploy)
 
 .PHONY: $1.clean
 $1.clean:
@@ -397,11 +395,9 @@ $1.stage: $1.all
 
 .PHONY: $1.deploy
 $1.deploy: $1.all $(addsuffix .deploy,$4)
-$(if $5,$(tab)$(usp-bjam) $$(call bjam-deploy-options,$1) $(build-settings) $3//uspb-deploy)
+	$(usp-bjam) $$(call bjam-deploy-options,$1) $(build-settings) $3//uspb-deploy
 
-$(if $5,.PHONY: $1.project-artifacts)
-$(if $5,$1.project-artifacts: $1.all)
-$(if $5,$(tab)$(usp-bjam) $$(call bjam-package-options,$1) $(build-settings) $3//uspb-deploy)
+$(if $5,.PHONY: $1.project-artifacts$(newline)$1.project-artifacts: $1.all$(newline)$(tab)$(usp-bjam) $$(call bjam-package-options,$1) $(build-settings) $3//uspb-deploy)
 
 .PHONY: $1.clean
 $1.clean:
@@ -469,9 +465,7 @@ $1.stage: $1.bjam-stage
 $1.deploy: $1.all $(addsuffix .deploy,$5)
 	$(usp-bjam) $$(call bjam-deploy-options,$1) $(build-settings) $3//uspb-deploy
 
-PHONY: $1.project-artifacts
-$1.project-artifacts: $1.all
-	$(usp-bjam) $$(call bjam-package-options,$1) $(build-settings) $3//uspb-deploy
+$(if $6,.PHONY: $1.project-artifacts$(newline)$1.project-artifacts: $1.all$(newline)$(tab)$(usp-bjam) $$(call bjam-package-options,$1) $(build-settings) $3//uspb-deploy)
 
 .PHONY: $1.clean
 $1.clean:
@@ -532,12 +526,10 @@ $1.stage: $1.all
 	$(usp-bjam) $$(call bjam-options,$1) $(build-settings) $3//uspb-stage
 
 .PHONY: $1.deploy
-$1.deploy: $1.all $(addsuffix .deploy,$5)
+$1.deploy: $1.all $(addsuffix .deploy,$4)
 	$(usp-bjam) $$(call bjam-deploy-options,$1) $(build-settings) $3//uspb-deploy
 
-PHONY: $1.project-artifacts
-$1.project-artifacts: $1.all
-	$(usp-bjam) $$(call bjam-package-options,$1) $(build-settings) $3//uspb-deploy
+$(if $5,PHONY: $1.project-artifacts$(newline)$1.project-artifacts: $1.all$(newline)$(tab)$(usp-bjam) $$(call bjam-package-options,$1) $(build-settings) $3//uspb-deploy)
 
 .PHONY: $1.clean
 $1.clean:
@@ -653,9 +645,7 @@ $1.all: build-dir-skeleton $(addsuffix .stage,$3)
 $1.deploy: $1.all $(addsuffix .deploy,$3)
 	$(usp-bjam) $$(call bjam-deploy-options,$1) $(build-settings) $2//uspb-deploy
 
-PHONY: $1.project-artifacts
-$1.project-artifacts: $1.all
-	$(usp-bjam) $$(call bjam-package-options,$1) $(build-settings) $2//uspb-deploy
+$(if $4,.PHONY: $1.project-artifacts$(newline)$1.project-artifacts: $1.all$(newline)$(tab)$(usp-bjam) $$(call bjam-package-options,$1) $(build-settings) $2//uspb-deploy)
 
 .PHONY: $1.clean
 $1.clean:
@@ -705,6 +695,9 @@ $1.all: build-dir-skeleton $(addsuffix .stage,$3)
 .PHONY: $1.clean
 $1.clean:
 	$(usp-bjam) --clean $$(call bjam-options,$1) $(build-settings) $2
+
+.PHONY: $1.deploy
+$1.deploy:
 
 # Pattern rule for running a specific test
 .PHONY: $1.%

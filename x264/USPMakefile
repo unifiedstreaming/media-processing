@@ -124,6 +124,9 @@ else
 
 endif
 
+.PHONY: deploy
+deploy:
+
 $(stage-dir)/lib/jamfiles/x264/jamfile: \
   $(work-dir)/usp-stage-stamp | $(stage-dir)/lib/jamfiles/x264
 	$(file >$@,$(call staged-jamfile-content,x264,$(stage-dir)/lib/$(if $(filter msvc%,$(toolset)),libx264.lib,libx264.a),$(stage-dir)/include))

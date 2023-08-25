@@ -39,6 +39,9 @@ all:
 .PHONY: stage
 stage: $(stage-dir)/timestamps/stage_venv
 
+.PHONY: deploy
+deploy:
+
 $(stage-dir)/timestamps/stage_venv: | $(work-dir)
 	$(usp-rm-dir) "$(call to-shell,$(stage-venv-dir))"
 	$(usp-system-python) -m venv "$(call to-native,$(stage-venv-dir))"

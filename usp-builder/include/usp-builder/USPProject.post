@@ -219,6 +219,9 @@ $(strip \
   ) \
 )
 
+.PHONY: all.deploy
+all.deploy: $(foreach prj,$(all-projects),$(prj).deploy)
+
 .PHONY: all.artifacts
 all.artifacts: $(foreach pkg,$(all-packages),$(pkg).artifacts) 
 
