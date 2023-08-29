@@ -157,13 +157,18 @@ default-usp-system-python := $(strip \
 #
 usp-cp := $(call get-command,usp-cp,cp,copy /Y)
 usp-ln-sf := $(call get-command,usp-ln-sf,ln -sf,symlinks-not-supported)
-usp-mkdir-p := $(call get-command,usp-mkdir-p,mkdir -p,mkdir)
+usp-mkdir-p := $(call get-command,usp-mkdir-p,mkdir -p,-mkdir)
 usp-mv-f := $(call get-command,usp-mv-f,mv -f,move)
 usp-rm-dir := $(call get-command,usp-rm-dir,rm -rf,-rmdir /S /Q)
 usp-rm-file := $(call get-command,usp-rm-file,rm -f,-del /Q)
 usp-sed := $(call get-command,usp-sed,sed,sed)
 usp-system-python := $(call get-command,usp-system-python,$(default-usp-system-python),$(default-usp-system-python))
 usp-zip := $(call get-command,usp-zip,zip,zip)
+
+#
+# $(call unset,<environment variable>)
+#
+unset = $(if $(unix-like),unset $1,set $1=)
 
 #
 # $(call escape,<path>)
