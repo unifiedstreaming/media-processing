@@ -253,7 +253,7 @@ $(dst-dylibfiles): $(dest-dir)/lib/%: $(libs-dir)/%
 ifdef with-devel
 	$(MAKE) -I "$(usp-builder-include-dir)" \
 	  -f "$(usp-builder-lib-dir)/UpdateStagedJamfile.mak" \
-	  jamfile="$(jam-dir)/jamfiles/$(call libfile-libname,$<)/jamfile" \
+	  jamfile="$(jam-dir)/$(call libfile-libname,$<)/jamfile" \
 	  libfile="$@" \
 	  libname="$(call libfile-libname,$<)" \
 	  incdir="$(dest-dir)/include"
