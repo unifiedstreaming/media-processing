@@ -425,14 +425,17 @@ default-bjam := $(if $(shell b2 --version 2>$(dev-null)),b2,bjam)
 usp-bjam := $(call get-command,usp-bjam,$(default-bjam),$(default-bjam))
 
 #
-# $(call staged-jamfile-content,<library name>,<library file>,<include directory>,<prereq library>...)
+# $(call staged-jamfile-content,<library name>,<library file>?,<include directory>,<prereq library>...)
+#
 # Generates the content of a jamfile for consuming a library.
+# Please note that we use the 'alias' rule (instead of the 'lib' rule)
+# for the header-only case.  This avoids any default library search
+# algorithm based on the library's name.
 #
 define staged-jamfile-content =
-lib $1
+$(if $(strip $2),lib,alias) $1
 : 
-:
-  <file>"$(subst \,/,$(call to-native,$2))"
+:$(if $(strip $2),$(newline)  <file>"$(subst \,/,$(call to-native,$2))")
 :
 :
   <include>"$(subst \,/,$(call to-native,$3))"$(foreach prereq,$4,$(newline)  <library>../$(prereq)//$(prereq))

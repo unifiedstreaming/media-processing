@@ -145,12 +145,19 @@ override with-devel := $(if $(filter yes,$(with-devel)),yes,)
 
 override dest-dir := $(call required-value,dest-dir)
 override libs-dir := $(call required-value,libs-dir)
+
 ifdef with-devel
-  override hdrfiles := $(call find-files,%,$(call required-value,headers-dir))
+  override with-headers := yes
   override libfiles := $(wildcard $(libs-dir)/$(if $(windows),*.lib,*.a))
 else
-  override hdrfiles :=
+  override with-headers := $(if $(filter yes,$(with-headers)),yes,)
   override libfiles :=
+endif
+
+ifdef with-headers
+  override hdrfiles := $(call find-files,%,$(call required-value,headers-dir))
+else
+  override hdrfiles :=
 endif
 
 ifdef windows

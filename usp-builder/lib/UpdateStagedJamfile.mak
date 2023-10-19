@@ -27,7 +27,7 @@ jamfile := $(call required-value,jamfile)
 jamfile-dir := $(patsubst %/,%,$(dir $(jamfile)))
 
 libname := $(call required-value,libname)
-libfile := $(call required-value,libfile)
+libfile := $(strip $(libfile))
 incdir := $(call required-value,incdir)
 prereq-libs := $(strip $(prereq-libs))
 
