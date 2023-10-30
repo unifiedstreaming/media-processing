@@ -449,6 +449,11 @@ endef
 version-suffix = $(if $(strip $1),_$(subst .,_,$(strip $1)))
 
 #
+# $(call bjam-target,<source directory>,<subtarget>?)
+#
+bjam-target = $(if $(cygwin),$(shell cygpath --mixed "$(call to-shell,$1)"),$(call to-shell,$1))$(if $2,//$2)
+
+#
 # $(call bjam-dll-filename,<library name>,<version>?)
 #
 bjam-dll-filename = $(if $(windows),,lib)$1$(call version-suffix,$2)$(if $(windows),.dll,$(if $(darwin),.dylib,.so))

@@ -386,7 +386,7 @@ $1: $1.all
 
 .PHONY: $1.all
 $1.all: build-dir-skeleton $(addsuffix .stage,$4)
-	$(usp-bjam) $$(call bjam-options,$1) $(build-settings) $3//uspb-all
+	$(usp-bjam) $$(call bjam-options,$1) $(build-settings) "$$(call bjam-target,$3,uspb-all)"
 
 # Legacy bjam project: no staging; consumers can only be other
 # jamfiles referring to this project's jamfile
@@ -395,18 +395,18 @@ $1.stage: $1.all
 
 .PHONY: $1.deploy
 $1.deploy: $1.all $(addsuffix .deploy,$4)
-	$(usp-bjam) $$(call bjam-deploy-options,$1) $(build-settings) $3//uspb-deploy
+	$(usp-bjam) $$(call bjam-deploy-options,$1) $(build-settings) "$$(call bjam-target,$3,uspb-deploy)"
 
-$(if $5,.PHONY: $1.project-artifacts$(newline)$1.project-artifacts: $1.all$(newline)$(tab)$(usp-bjam) $$(call bjam-package-options,$1) $(build-settings) $3//uspb-deploy)
+$(if $5,.PHONY: $1.project-artifacts$(newline)$1.project-artifacts: $1.all$(newline)$(tab)$(usp-bjam) $$(call bjam-package-options,$1) $(build-settings) "$$(call bjam-target,$3,uspb-deploy)")
 
 .PHONY: $1.clean
 $1.clean:
-	$(usp-bjam) --clean $$(call bjam-options,$1) $(build-settings) $3
+	$(usp-bjam) --clean $$(call bjam-options,$1) $(build-settings) "$$(call bjam-target,$3)"
 
 # Pattern rule for running a specific bjam target (unit test)
 .PHONY: $1.%
 $1.%: build-dir-skeleton $(addsuffix .stage,$4)
-	$(usp-bjam) $$(call bjam-options,$1) $(build-settings) $3//$$*
+	$(usp-bjam) $$(call bjam-options,$1) $(build-settings) "$$(call bjam-target,$3,$$*)"
 
 endef
 
@@ -450,7 +450,7 @@ $1: $1.all
 
 .PHONY: $1.all
 $1.all: build-dir-skeleton $(addsuffix .stage,$5)
-	$(usp-bjam) $$(call bjam-options,$1) $(build-settings) $3//uspb-all
+	$(usp-bjam) $$(call bjam-options,$1) $(build-settings) "$$(call bjam-target,$3,uspb-all)"
 
 # We deliberately abuse recursive make here to avoid touching the
 # jamfile in the stage dir when bjam-stage did nothing.  (The .deploy
@@ -463,17 +463,17 @@ $1.stage: $1.bjam-stage
 
 .PHONY: $1.deploy
 $1.deploy: $1.all $(addsuffix .deploy,$5)
-	$(usp-bjam) $$(call bjam-deploy-options,$1) $(build-settings) $3//uspb-deploy
+	$(usp-bjam) $$(call bjam-deploy-options,$1) $(build-settings) "$$(call bjam-target,$3,uspb-deploy)"
 
-$(if $6,.PHONY: $1.project-artifacts$(newline)$1.project-artifacts: $1.all$(newline)$(tab)$(usp-bjam) $$(call bjam-package-options,$1) $(build-settings) $3//uspb-deploy)
+$(if $6,.PHONY: $1.project-artifacts$(newline)$1.project-artifacts: $1.all$(newline)$(tab)$(usp-bjam) $$(call bjam-package-options,$1) $(build-settings) "$$(call bjam-target,$3,uspb-deploy)")
 
 .PHONY: $1.clean
 $1.clean:
-	$(usp-bjam) --clean $$(call bjam-options,$1) $(build-settings) $3
+	$(usp-bjam) --clean $$(call bjam-options,$1) $(build-settings) "$$(call bjam-target,$3)"
 
 .PHONY: $1.bjam-stage
 $1.bjam-stage: $1.all
-	$(usp-bjam) $$(call bjam-options,$1) $(build-settings) $3//uspb-stage
+	$(usp-bjam) $$(call bjam-options,$1) $(build-settings) "$$(call bjam-target,$3,uspb-stage)"
 
 endef
 
@@ -519,21 +519,21 @@ $1: $1.all
 
 .PHONY: $1.all
 $1.all: build-dir-skeleton $(addsuffix .stage,$4)
-	$(usp-bjam) $$(call bjam-options,$1) $(build-settings) $3//uspb-all
+	$(usp-bjam) $$(call bjam-options,$1) $(build-settings) "$$(call bjam-target,$3,uspb-all)"
 
 .PHONY: $1.stage
 $1.stage: $1.all
-	$(usp-bjam) $$(call bjam-options,$1) $(build-settings) $3//uspb-stage
+	$(usp-bjam) $$(call bjam-options,$1) $(build-settings) "$$(call bjam-target,$3,uspb-stage)"
 
 .PHONY: $1.deploy
 $1.deploy: $1.all $(addsuffix .deploy,$4)
-	$(usp-bjam) $$(call bjam-deploy-options,$1) $(build-settings) $3//uspb-deploy
+	$(usp-bjam) $$(call bjam-deploy-options,$1) $(build-settings) "$$(call bjam-target,$3,uspb-deploy)"
 
-$(if $5,PHONY: $1.project-artifacts$(newline)$1.project-artifacts: $1.all$(newline)$(tab)$(usp-bjam) $$(call bjam-package-options,$1) $(build-settings) $3//uspb-deploy)
+$(if $5,PHONY: $1.project-artifacts$(newline)$1.project-artifacts: $1.all$(newline)$(tab)$(usp-bjam) $$(call bjam-package-options,$1) $(build-settings) "$$(call bjam-target,$3,uspb-deploy)")
 
 .PHONY: $1.clean
 $1.clean:
-	$(usp-bjam) --clean $$(call bjam-options,$1) $(build-settings) $3
+	$(usp-bjam) --clean $$(call bjam-options,$1) $(build-settings) "$$(call bjam-target,$3)"
 
 endef
 
@@ -577,7 +577,7 @@ $1: $1.all
 
 .PHONY: $1.all
 $1.all: build-dir-skeleton $(addsuffix .stage,$4)
-	$(usp-bjam) $$(call bjam-options,$1) $(build-settings) $2//uspb-all
+	$(usp-bjam) $$(call bjam-options,$1) $(build-settings) "$$(call bjam-target,$2,uspb-all)"
 
 # We deliberately abuse recursive make here to avoid touching the
 # jamfile in the stage dir when bjam-stage did nothing.  (The .deploy
@@ -593,11 +593,11 @@ $1.deploy: $1.all $(addsuffix .deploy,$4)
 
 .PHONY: $1.clean
 $1.clean:
-	$(usp-bjam) --clean $$(call bjam-options,$1) $(build-settings) $2
+	$(usp-bjam) --clean $$(call bjam-options,$1) $(build-settings) "$$(call bjam-target,$2)"
 
 .PHONY: $1.bjam-stage
 $1.bjam-stage: $1.all
-	$(usp-bjam) $$(call bjam-options,$1) $(build-settings) $2//uspb-stage
+	$(usp-bjam) $$(call bjam-options,$1) $(build-settings) "$$(call bjam-target,$2,uspb-stage)"
 
 endef
 
@@ -639,17 +639,17 @@ $1: $1.all
 
 .PHONY: $1.all
 $1.all: build-dir-skeleton $(addsuffix .stage,$3)
-	$(usp-bjam) $$(call bjam-options,$1) $(build-settings) $2//uspb-all
+	$(usp-bjam) $$(call bjam-options,$1) $(build-settings) "$$(call bjam-target,$2,uspb-all)"
 
 .PHONY: $1.deploy
 $1.deploy: $1.all $(addsuffix .deploy,$3)
-	$(usp-bjam) $$(call bjam-deploy-options,$1) $(build-settings) $2//uspb-deploy
+	$(usp-bjam) $$(call bjam-deploy-options,$1) $(build-settings) "$$(call bjam-target,$2,uspb-deploy)"
 
-$(if $4,.PHONY: $1.project-artifacts$(newline)$1.project-artifacts: $1.all$(newline)$(tab)$(usp-bjam) $$(call bjam-package-options,$1) $(build-settings) $2//uspb-deploy)
+$(if $4,.PHONY: $1.project-artifacts$(newline)$1.project-artifacts: $1.all$(newline)$(tab)$(usp-bjam) $$(call bjam-package-options,$1) $(build-settings) "$$(call bjam-target,$2,uspb-deploy)")
 
 .PHONY: $1.clean
 $1.clean:
-	$(usp-bjam) --clean $$(call bjam-options,$1) $(build-settings) $2
+	$(usp-bjam) --clean $$(call bjam-options,$1) $(build-settings) "$$(call bjam-target,$2)"
 
 endef
 
@@ -690,11 +690,11 @@ $1.staged-libs :=
 $1: $1.all
 
 $1.all: build-dir-skeleton $(addsuffix .stage,$3)
-	$(usp-bjam) $$(call bjam-options,$1) $(build-settings) $2//uspb-all
+	$(usp-bjam) $$(call bjam-options,$1) $(build-settings) "$$(call bjam-target,$2,uspb-all)"
 
 .PHONY: $1.clean
 $1.clean:
-	$(usp-bjam) --clean $$(call bjam-options,$1) $(build-settings) $2
+	$(usp-bjam) --clean $$(call bjam-options,$1) $(build-settings) "$$(call bjam-target,$2)"
 
 .PHONY: $1.deploy
 $1.deploy:
@@ -702,7 +702,7 @@ $1.deploy:
 # Pattern rule for running a specific test
 .PHONY: $1.%
 $1.%: build-dir-skeleton $(addsuffix .stage,$3)
-	$(usp-bjam) $$(call bjam-options,$1) $(build-settings) $2//$$*
+	$(usp-bjam) $$(call bjam-options,$1) $(build-settings) "$$(call bjam-target,$2,$$*)"
 
 endef
 
