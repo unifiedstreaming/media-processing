@@ -17,12 +17,6 @@
 # <http://www.gnu.org/licenses/>.
 #
 
-rule cuti-artifact-name ( name : type ? : properties * ) 
-{
-  local version = [ require-from-environ cuti.version ] ;
-  return [ dll-artifact-name $(name) : $(version) : $(type) ] ;
-}
-
 lib cuti
 :
   add_handler.cpp
@@ -125,7 +119,7 @@ lib cuti
   <link>shared
   <target-os>windows:<find-shared-library>advapi32
   <target-os>windows:<find-shared-library>ws2_32
-  <tag>@cuti-artifact-name
+  <tag>@uspbuild-dll-name
 :
 :
   <include>..

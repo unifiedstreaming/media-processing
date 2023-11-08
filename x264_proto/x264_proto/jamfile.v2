@@ -19,12 +19,6 @@
 # library.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-rule x264_proto-artifact-name ( name : type ? : properties * )
-{
-  local version = [ require-from-environ x264_proto.version ] ;
-  return [ dll-artifact-name $(name) : $(version) : $(type) ] ;
-}
-
 lib-dir = [ stage-lib-dir ] ;
 
 lib x264_proto
@@ -34,7 +28,7 @@ lib x264_proto
 :
   <define>BUILDING_X264_PROTO
   <link>shared
-  <tag>@x264_proto-artifact-name
+  <tag>@uspbuild-dll-name
 :
 :
   <include>..

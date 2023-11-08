@@ -137,6 +137,12 @@ rule dll-artifact-name ( name : version ? : type ? )
   return $(result) ;
 }
 
+rule uspbuild-dll-name ( name : type ? : properties * )
+{
+  local version = [ os.environ "$(name).version" ] ;
+  return [ dll-artifact-name $(name) : $(version) : $(type) ] ;
+}
+  
 project oss
 : requirements
   <cxxstd>17
