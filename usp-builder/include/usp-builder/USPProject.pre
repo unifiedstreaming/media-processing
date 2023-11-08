@@ -437,7 +437,7 @@ bjam-dll-project = $(if $(call is-enabled,$1,$(bjam-dll-keys)),$(call expand,$(c
 )))
 
 #
-# $(call bjam-plugin-project-impl,<name>,<version>,<source dir>,<prereq name>*,<distributable>?)
+# $(call bjam-plugin-project-impl,<name>,<version>?,<source dir>,<prereq name>*,<distributable>)
 #
 define bjam-plugin-project-impl =
 #
@@ -478,7 +478,7 @@ endef
 #
 # properties are:
 # name           project name
-# version        version number
+# version?       version number
 # source-dir     source directory
 # prereqs*       prerequisite projects
 # distributable  either 'yes' or 'no'
@@ -488,7 +488,7 @@ bjam-plugin-keys := name version source-dir prereqs distributable enabled
 bjam-plugin-project = $(if $(call is-enabled,$1,$(bjam-plugin-keys)),$(call expand,$(call call-stripped, \
   bjam-plugin-project-impl, \
   $(call get-value,name,$1,$(bjam-plugin-keys)), \
-  $(call get-value,version,$1,$(bjam-plugin-keys)), \
+  $(call find-value,version,$1,$(bjam-plugin-keys)), \
   $(call get-value,source-dir,$1,$(bjam-plugin-keys)), \
   $(call find-values,prereqs,$1,$(bjam-plugin-keys)), \
   $(call get-boolean-value,distributable,$1,$(bjam-plugin-keys)) \
