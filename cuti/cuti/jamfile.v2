@@ -17,6 +17,8 @@
 # <http://www.gnu.org/licenses/>.
 #
 
+import usp-builder ;
+
 lib cuti
 :
   add_handler.cpp
@@ -119,7 +121,7 @@ lib cuti
   <link>shared
   <target-os>windows:<find-shared-library>advapi32
   <target-os>windows:<find-shared-library>ws2_32
-  <tag>@uspbuild-dll-name
+  <tag>@usp-builder.uspbuild-dll-name
 :
 :
   <include>..
@@ -138,7 +140,7 @@ install uspb-stage-implib
 :
   <install-dependencies>off
   <install-type>IMPORT_LIB
-  <conditional>@stage-lib-location
+  <conditional>@usp-builder.stage-lib-location
 ;
 
 explicit uspb-stage-dll ;
@@ -149,7 +151,7 @@ install uspb-stage-dll
   <install-dependencies>off
   <install-type>SHARED_LIB
   <install-type>PDB
-  <conditional>@stage-dll-location
+  <conditional>@usp-builder.stage-dll-location
 ;
 
 explicit uspb-deploy ;
@@ -160,6 +162,6 @@ install uspb-deploy
   <install-dependencies>off
   <install-type>SHARED_LIB
   <install-type>PDB
-  <conditional>@deploy-dll-location
+  <conditional>@usp-builder.deploy-dll-location
 ;
 

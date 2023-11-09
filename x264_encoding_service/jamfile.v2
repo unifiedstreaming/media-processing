@@ -17,7 +17,9 @@
 # <http://www.gnu.org/licenses/>.
 #
 
-lib-dir = [ stage-lib-dir ] ;
+import usp-builder ;
+
+lib-dir = [ usp-builder.stage-lib-dir ] ;
 
 exe x264_encoding_service
 : main.cpp
@@ -36,6 +38,6 @@ install uspb-deploy
   <install-dependencies>off
   <install-type>EXE
   <install-type>PDB
-  <conditional>@deploy-exe-location
+  <conditional>@usp-builder.deploy-exe-location
 ;
 

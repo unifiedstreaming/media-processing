@@ -17,7 +17,9 @@
 # <http://www.gnu.org/licenses/>.
 #
 
-lib-dir = [ stage-lib-dir ] ;
+import usp-builder ;
+
+lib-dir = [ usp-builder.stage-lib-dir ] ;
 
 lib x264_es_utils
 :
@@ -43,5 +45,5 @@ install uspb-stage
   x264_es_utils
 :
   <install-dependencies>off
-  <conditional>@stage-lib-location
+  <conditional>@usp-builder.stage-lib-location
 ;

@@ -20,8 +20,9 @@
 
 
 import testing ;
+import usp-builder ;
 
-lib-dir = [ stage-lib-dir ] ;
+lib-dir = [ usp-builder.stage-lib-dir ] ;
 
 project
 : requirements
