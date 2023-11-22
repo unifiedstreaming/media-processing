@@ -41,7 +41,7 @@ struct CUTI_ABI quoted_char_t
   { }
 
   explicit quoted_char_t(unsigned char c)
-  : c_(std::char_traits<unsigned char>::to_int_type(c))
+  : c_(c)
   { }
 
   explicit quoted_char_t(int c)
