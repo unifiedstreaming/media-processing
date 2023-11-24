@@ -30,8 +30,11 @@
 #
 
 stage-venv-makefile := $(lastword $(MAKEFILE_LIST))
+stage-venv-src-dir := $(abspath $(dir $(stage-venv-makefile)))
 
 include usp-builder/USPStageVenv.mki
+
+requirements-file := $(stage-venv-src-dir)/requirements.txt
 
 $(if $(work-dir),,$(error work-dir must be set))
 
@@ -49,7 +52,7 @@ $(stage-dir)/timestamps/stage_venv: $(stage-venv-makefile) | $(work-dir)
 	$(usp-system-python) -m venv "$(call to-native,$(stage-venv-dir))"
 	cd "$(call to-shell,$(work-dir))" && $(stage-venv-pip) \
 	  install --no-cache --progress-bar off --upgrade \
-	  pip setuptools wheel
+	  --requirement "$(call to-native,$(requirements-file))"
 	echo timestamp >"$(call to-shell,$@)"
 
 $(work-dir):
