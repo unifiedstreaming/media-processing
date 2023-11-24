@@ -47,7 +47,8 @@ stage: $(stage-dir)/timestamps/stage_venv
 .PHONY: deploy
 deploy:
 
-$(stage-dir)/timestamps/stage_venv: $(stage-venv-makefile) | $(work-dir)
+$(stage-dir)/timestamps/stage_venv: \
+  $(stage-venv-makefile) $(requirements-file) | $(work-dir)
 	$(usp-rm-dir) "$(call to-shell,$(stage-venv-dir))"
 	$(usp-system-python) -m venv "$(call to-native,$(stage-venv-dir))"
 	cd "$(call to-shell,$(work-dir))" && $(stage-venv-pip) \
