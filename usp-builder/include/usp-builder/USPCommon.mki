@@ -846,3 +846,23 @@ check-duplicate-basenames = $(strip \
 # $(call read-link,<path>)
 #
 read-link = $(if $(windows),,$(shell readlink "$(call to-shell,$1)"))
+
+#
+# $(call checked-python-sysconfig-var,<name>,<result>)
+#
+checked-python-sysconfig-var = $(strip \
+  $(if $(or $(filter-out 1,$(words $2)),$(filter None,$2)), \
+    $(error failed to determine python sysconfig variable '$1') \
+  ) \
+  $2 \
+)
+    
+#
+# $(call python-sysconfig-var,<name>)
+#
+python-sysconfig-var = $(call checked-python-sysconfig-var,$1,$(shell $(usp-system-python) -c "import sysconfig; print(sysconfig.get_config_var('$1'))"))
+
+#
+# $(call python-extension-filename,<extension name>)
+#
+python-extension-filename = $1$(call python-sysconfig-var,EXT_SUFFIX)
