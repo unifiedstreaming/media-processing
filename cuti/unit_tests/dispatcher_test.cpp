@@ -534,13 +534,16 @@ void do_test_interrupted_server(logging_context_t const& client_context,
       });
     }  
 
-    scoped_thread_t stopper([&dispatcher]
     {
-      std::this_thread::sleep_for(milliseconds_t(1000));
-      dispatcher->stop(SIGINT);
-    });
+      scoped_thread_t stopper([&dispatcher]
+      {
+        std::this_thread::sleep_for(milliseconds_t(1000));
+        dispatcher->stop(SIGINT);
+      });
 
-    dispatcher->run();
+      dispatcher->run();
+    }
+
     dispatcher.reset();
   }
   
