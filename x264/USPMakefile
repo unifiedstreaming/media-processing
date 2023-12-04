@@ -32,7 +32,7 @@ ifneq ($(build-x264),)
   #
   $(if $(unix-like),,$(error unix-like build environment required))
 
-  compiler := $(if $(filter msvc%,$(toolset)),cl.exe,$(if $(filter clang%,$(toolset)),clang,gcc))
+  compiler := $(if $(filter msvc%,$(toolset)),cl.exe,$(toolset))
 
   extra-cflags := $(strip \
     $(if $(filter msvc%,$(toolset)), \
