@@ -361,6 +361,8 @@ override undefined-sanitizer :=\
   $(call validate-build-setting,undefined-sanitizer,on norecover,)
 override variant :=\
   $(call validate-build-setting,variant,debug release,$(default-variant))
+override stdlib :=\
+  $(call validate-build-setting,stdlib,native gnu gnu11 libc++,)
 
 override build-settings := $(strip \
   address-model=$(address-model) \
@@ -369,6 +371,7 @@ override build-settings := $(strip \
   toolset=$(toolset) \
   $(addprefix undefined-sanitizer=,$(undefined-sanitizer)) \
   variant=$(variant) \
+  $(addprefix stdlib=,$(stdlib)) \
 )
 
 #
