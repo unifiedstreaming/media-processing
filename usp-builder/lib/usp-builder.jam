@@ -24,6 +24,7 @@
 
 import os ;
 import errors ;
+import path ;
 import regex ;
 
 rule require-from-environ ( name )
@@ -154,4 +155,119 @@ rule uspbuild-dll-name ( name : type ? : properties * )
 {
   local version = [ os.environ "$(name).version" ] ;
   return [ dll-artifact-name $(name) : $(version) : $(type) ] ;
+}
+
+rule default-system-python ( )
+{
+  local nullfile ;
+  if [ os.name ] = NT
+  {
+    nullfile = NUL ;
+  }
+  else
+  {
+    nullfile = /dev/null ;
+  }
+
+  local result ;
+  local probe = [ SHELL python3 --version 2>$(nullfile) : strip-eol ] ;
+  if "$(probe)" != ""
+  {
+    result = python3 ;
+  }
+  else
+  {
+    result = python ;
+  }
+
+  return "$(result)" ;
+}
+  
+rule system-python ( )
+{
+  local result = [ os.environ "usp-system-python" ] ;
+  if $(result) = ""
+  {
+    result = [ default-system-python ] ;
+  }
+  return "$(result)" ;
+}
+
+rule python-sysconfig-path ( name )
+{
+  local python = [ system-python ] ;
+
+  local value = [ SHELL "$(python) -c \"import sysconfig; print(sysconfig.get_path('$(name)'))\"" : strip-eol ] ;
+  if $(value) = "" || $(value) = "None"
+  {
+    errors.error "failed to determine python sysconfig path '$(name)'" ;
+  }
+
+  return $(value) ;
+}
+
+rule python-sysconfig-var ( name )
+{
+  local python = [ system-python ] ;
+
+  local value = [ SHELL "$(python) -c \"import sysconfig; print(sysconfig.get_config_var('$(name)'))\"" : strip-eol ] ;
+  if $(value) = "" || $(value) = "None"
+  {
+    errors.error "failed to determine python sysconfig variable '$(name)'" ;
+  }
+
+  return $(value) ;
+}
+
+rule python-rtlib-include-dir ( )
+{
+  return [ python-sysconfig-path "include" ] ;
+}
+
+rule python-rtlib-filepath ( )
+{
+  local result ;
+
+  if [ os.name ] = NT
+  {
+    local prefix = [ python-sysconfig-var prefix ] ;
+    local version_nodot = [ python-sysconfig-var py_version_nodot ] ;
+    result = "$(prefix)\\libs\\python$(version_nodot).lib" ;
+  }
+  else
+  {
+    local libdir = [ python-sysconfig-var LIBDIR ] ;
+    local ldlibrary = [ python-sysconfig-var LDLIBRARY ] ;
+    result = "$(libdir)/$(ldlibrary)" ;
+    if ! [ path.exists $(result) ]
+    {
+      # Hack: fall back to LIBPL (Ubuntu 18 and 20 - possibly others)
+      local libpl = [ python-sysconfig-var LIBPL ] ;
+      result = "$(libpl)/$(ldlibrary)" ;
+    }
+  }
+
+  return $(result) ;
+}
+
+rule python-extension-filename ( name : type ? : properties * )
+{
+  local dll-suffix = [ python-sysconfig-var EXT_SUFFIX ] ;
+
+  local result = "" ;
+
+  if $(type) = SHARED_LIB
+  {
+    result = $(name)$(dll-suffix) ;
+  }
+  else if $(type) = PDB
+  {
+    result = $(name)$(dll-suffix:B).pdb ;
+  }
+  else if $(type) = IMPORT_LIB
+  {
+    result = $(name)$(dll-suffix:B).lib ;
+  }
+
+  return $(result) ;
 }
