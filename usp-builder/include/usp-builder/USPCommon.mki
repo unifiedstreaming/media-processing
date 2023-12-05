@@ -422,6 +422,11 @@ sanitizer-flags := $(strip \
 )
 
 #
+# Determine stdlib flags for compiler command lines
+#
+stdlib-flags := $(if $(filter libc++,$(stdlib)),-stdlib=libc++)
+
+#
 # Determine the name of the bjam executable, preferring 'b2' over 'bjam'
 #
 default-bjam := $(if $(shell b2 --version 2>$(dev-null)),b2,bjam)
