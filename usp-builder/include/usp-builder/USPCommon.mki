@@ -362,7 +362,7 @@ override undefined-sanitizer :=\
 override variant :=\
   $(call validate-build-setting,variant,debug release,$(default-variant))
 override stdlib :=\
-  $(call validate-build-setting,stdlib,native gnu gnu11 libc++,)
+  $(call validate-build-setting,stdlib,libc++,)
 
 override build-settings := $(strip \
   address-model=$(address-model) \
