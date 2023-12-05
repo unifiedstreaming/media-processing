@@ -26,15 +26,15 @@
 
 #
 # Downstream projects must rebuild when
-# $(stage-dir)/timestamps/stage_venv has been touched.
+# $(stage-dir)/timestamps/tools_venv has been touched.
 #
 
-stage-venv-makefile := $(lastword $(MAKEFILE_LIST))
-stage-venv-src-dir := $(abspath $(dir $(stage-venv-makefile)))
+tools-venv-makefile := $(lastword $(MAKEFILE_LIST))
+tools-venv-src-dir := $(abspath $(dir $(tools-venv-makefile)))
 
-include usp-builder/USPStageVenv.mki
+include usp-builder/USPToolsVenv.mki
 
-requirements-file := $(stage-venv-src-dir)/requirements.txt
+requirements-file := $(tools-venv-src-dir)/requirements.txt
 
 $(if $(work-dir),,$(error work-dir must be set))
 
@@ -42,16 +42,16 @@ $(if $(work-dir),,$(error work-dir must be set))
 all:
 
 .PHONY: stage
-stage: $(stage-dir)/timestamps/stage_venv
+stage: $(stage-dir)/timestamps/tools_venv
 
 .PHONY: deploy
 deploy:
 
-$(stage-dir)/timestamps/stage_venv: \
-  $(stage-venv-makefile) $(requirements-file) | $(work-dir)
-	$(usp-rm-dir) "$(call to-shell,$(stage-venv-dir))"
-	$(usp-system-python) -m venv "$(call to-native,$(stage-venv-dir))"
-	cd "$(call to-shell,$(work-dir))" && $(stage-venv-pip) \
+$(stage-dir)/timestamps/tools_venv: \
+  $(tools-venv-makefile) $(requirements-file) | $(work-dir)
+	$(usp-rm-dir) "$(call to-shell,$(tools-venv-dir))"
+	$(usp-system-python) -m venv "$(call to-native,$(tools-venv-dir))"
+	cd "$(call to-shell,$(work-dir))" && $(tools-venv-pip) \
 	  install --no-cache --upgrade --upgrade-strategy=eager \
 	  --requirement "$(call to-native,$(requirements-file))"
 	echo timestamp >"$(call to-shell,$@)"
