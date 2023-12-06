@@ -83,7 +83,6 @@ skeleton-build-dirs := \
   $(stage-dir)/include \
   $(stage-dir)/lib \
   $(stage-dir)/lib/jamfiles \
-  $(stage-dir)/timestamps \
   $(unit-test-out-dir)
   
 .PHONY: build-dir-skeleton
@@ -98,7 +97,6 @@ $(stage-dir)/bin: | $(stage-dir)
 $(stage-dir)/include: | $(stage-dir)
 $(stage-dir)/lib: | $(stage-dir)
 $(stage-dir)/lib/jamfiles: | $(stage-dir)/lib
-$(stage-dir)/timestamps: | $(stage-dir)
 $(unit-test-out-dir): | $(build-mode-dir)
 
 $(skeleton-build-dirs):
@@ -287,7 +285,6 @@ $(if $5,.PHONY: $1.project-artifacts$(newline)$1.project-artifacts: $1.all$(newl
 .PHONY: $1.clean
 $1.clean:
 	$(usp-rm-dir) "$(call to-shell,$(call project-work-dir,$1))"
-	$(usp-rm-file) "$(call to-shell,$(stage-dir)/timestamps/$1)"
 
 endef
 
