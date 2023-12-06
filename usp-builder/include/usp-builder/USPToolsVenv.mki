@@ -24,8 +24,8 @@ include usp-builder/USPCommon.mki
 #
 
 override stage-dir := $(call required-value,stage-dir)
-tools-venv-dir := $(stage-dir)/venv
+tools-venv-dir := $(stage-dir)/tools-venv
 tools-venv-bin-dir := $(tools-venv-dir)/$(if $(windows),Scripts,bin)
 tools-venv-python := $(tools-venv-bin-dir)/python
-tools-venv-pip := $(tools-venv-python) -m pip $(if $(verbose),--verbose)
+tools-venv-pip := $(tools-venv-python) -m pip$(if $(verbose), --verbose)
 wheelhouse-dir := $(stage-dir)/lib/wheelhouse
