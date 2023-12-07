@@ -50,8 +50,10 @@ deploy:
 $(tools-venv-dir)/tools.stamp: \
   $(tools-venv-makefile) $(requirements-file) | $(work-dir)
 	$(usp-rm-dir) "$(call to-shell,$(tools-venv-dir))"
-	$(usp-system-python) -m venv "$(call to-native,$(tools-venv-dir))"
-	cd "$(call to-shell,$(work-dir))" && $(tools-venv-pip) \
+	"$(call to-shell,$(usp-system-python))" -m venv "$(call to-native,$(tools-venv-dir))"
+	cd "$(call to-shell,$(work-dir))" && \
+	  "$(call to-shell,$(tools-venv-python))" \
+	  -m pip $(tools-venv-pip-options) \
 	  install --no-cache --upgrade --upgrade-strategy=eager \
 	  --requirement "$(call to-native,$(requirements-file))"
 	echo timestamp >"$(call to-shell,$@)"

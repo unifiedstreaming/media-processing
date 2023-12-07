@@ -868,7 +868,7 @@ checked-python-sysconfig-var = $(strip \
 #
 # $(call python-sysconfig-var,<name>)
 #
-python-sysconfig-var = $(call checked-python-sysconfig-var,$1,$(shell $(usp-system-python) -c "import sysconfig; print(sysconfig.get_config_var('$1'))"))
+python-sysconfig-var = $(call checked-python-sysconfig-var,$1,$(shell "$(call to-shell,$(usp-system-python))" -c "import sysconfig; print(sysconfig.get_config_var('$1'))"))
 
 #
 # $(call python-extension-filename,<extension name>)
