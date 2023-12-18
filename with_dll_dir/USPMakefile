@@ -1,0 +1,98 @@
+#
+# Copyright (C) 2023 CodeShop B.V.
+#
+# This file is part of the with_dll_dir python utility.
+#
+# The with_dll_dir python utility is free software: you can redistribute it
+# and/or modify it under the terms of version 2.1 of the GNU Lesser
+# General Public License as published by the Free Software
+# Foundation.
+#
+# The with_dll_dir python utility is distributed in the hope that it
+# will be useful, but WITHOUT ANY WARRANTY; without even the implied
+# warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+# See version 2.1 of the GNU Lesser General Public License for more
+# details.
+#
+# You should have received a copy of version 2.1 of the GNU Lesser
+# General Public License along with the cuti library.  If not, see
+# <http://www.gnu.org/licenses/>.
+#
+
+with-dll-dir-makefile := $(lastword $(MAKEFILE_LIST))
+
+include usp-builder/USPToolsVenv.mki
+
+override stage-dir := $(call required-value,stage-dir)
+override work-dir := $(call required-value,work-dir)
+override with_dll_dir.version := $(call required-value,with_dll_dir.version)
+
+src-dir := $(abspath $(dir with-dll-dir-makefile))
+$(call check-out-of-tree,$(work-dir),$(src-dir))
+
+src-files := $(call find-files,%,$(src-dir))
+
+build-dir := $(work-dir)/$(notdir $(src-dir))
+
+pip-install-options := --upgrade --no-index --progress-bar off --no-cache 
+
+#
+# $(call setup-py-contents,<version> )
+#
+define setup-py-contents =
+
+from setuptools import setup
+
+setup(
+    name = 'with_dll_dir',
+    version = '$1',
+    packages = [ 'with_dll_dir' ]
+)
+
+endef
+
+#
+# $(call target-dir,<dest-dir>)
+#
+target-dir = $1/libexec/usp-python-apps
+
+.PHONY: all
+all: $(work-dir)/build-dir.stamp
+
+.PHONY: stage
+stage: $(work-dir)/stage.stamp
+
+.PHONY: deploy
+deploy: $(work-dir)/build-dir.stamp $(tools-venv-dir)/tools.stamp
+	$(usp-rm-dir) "$(call to-shell,$(build-dir)/build)"
+	"$(call to-shell,$(tools-venv-pip))" $(tools-venv-pip-options) \
+	  install $(pip-install-options) \
+	  --target="$(call to-native,$(call target-dir,$(call required-value,dest-dir)))" \
+	  "$(call to-native,$(build-dir))"
+	  
+$(work-dir)/stage.stamp: $(work-dir)/build-dir.stamp $(tools-venv-dir)/tools.stamp
+	$(usp-rm-dir) "$(call to-shell,$(build-dir)/build)"
+	"$(call to-shell,$(tools-venv-pip))" $(tools-venv-pip-options) \
+	  install $(pip-install-options) \
+	  --target="$(call to-native,$(call target-dir,$(stage-dir)))" \
+	  "$(call to-native,$(build-dir))"
+	echo timestamp >"$(call to-shell,$@)"
+
+$(work-dir)/build-dir.stamp: \
+  $(build-dir)/setup.py $(src-files) \
+  | $(work-dir)
+	$(file >$@.dep.next,$(call dependency-listing,$@,$(src-files)))
+	$(MAKE) -I "$(usp-builder-include-dir)" -f "$(usp-builder-lib-dir)/UpdateCopyOfSource.mak" src-dir="$(src-dir)" work-dir="$(work-dir)"
+	$(usp-mv-f) "$(call to-shell,$@.dep.next)" "$(call to-shell,$@.dep)"
+	echo timestamp >"$(call to-shell,$@)"
+
+-include $(work-dir)/build-dir.stamp.dep
+
+$(build-dir)/setup.py: $(with-dll-dir-makefile) | $(build-dir)
+	$(file >$@,$(call setup-py-contents,$(with_dll_dir.version)))
+	@echo updated $@
+
+$(build-dir): | $(work-dir)
+
+$(build-dir) $(work-dir):
+	$(usp-mkdir-p) "$(call to-shell,$@)"
