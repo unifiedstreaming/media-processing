@@ -18,11 +18,15 @@
 # General Public License along with the cuti library.  If not, see
 # <http://www.gnu.org/licenses/>.
 #
-# This python script is intended to be used as a frontend to some
-# other python script that relies on native DLLs in some other
-# directory than a depending python extension (on Windows, the python
-# interpreter uses OS magic is to ignore %PATH% when finding these
-# DLLs).
+
+# This Windows-only python script is intended to be used as a frontend
+# for some other python script that imports a python extension which
+# in turn drags in a native DLL from a different directory (on
+# Windows, the python interpreter uses OS magic is to ignore %PATH%
+# when finding such DLLs).
+#
+# See https://bugs.python.org/issue36085 or
+# https://github.com/python/cpython/issues/80266 for details.
 
 import os
 import pkgutil
@@ -63,40 +67,19 @@ def main():
   script = os.path.realpath(sys.argv[1])
   sys.argv.pop(1)
 
-  if os.name == "nt":
-
-    if "add_dll_directory" in dir(os):
-
-      # PATH is ignored when loading *native* DLLs as dependencies from
-      # python extension modules.  See https://bugs.python.org/issue36085
-      # or https://github.com/python/cpython/issues/80266 for details.
-      # Use os.add_dll_directory() instead.
-      os.add_dll_directory(dll_dir)
-      if verbose:
-        print_stderr(sys.argv[0] + ": added dll directory " + dll_dir)
-
-    else:
-
-      suffix = ""
-      if "PATH" in os.environ:
-        suffix = ";" + os.environ["PATH"]
-      os.environ["PATH"] = dll_dir + suffix
-      if verbose:
-        print_stderr(sys.argv[0] + ": added " + dll_dir + " to PATH")
-
-  elif os.name == "posix":
-
-    suffix = ""
-    if "LD_LIBRARY_PATH" in os.environ:
-      suffix = ":" + os.environ["LD_LIBRARY_PATH"]
-    os.environ["LD_LIBRARY_PATH"] = dll_dir + suffix
-    if verbose:
-      print_stderr(sys.argv[0] + ": added " + dll_dir + " to LD_LIBRARY_PATH")
-
-  else:
-
-    print_stderr(sys.argv[0] + ": unsupported os name " + os.name)
+  if os.name != "nt":
+    print_stderr(sys.argv[0] + ": unsupported os " + os.name)
     sys.exit(1)
+    
+  if "add_dll_directory" not in dir(os):
+    print_stderr(sys.argv[0] +
+      ": os.add_dll_directory not supported by python interpreter " +
+      sys.executable)
+    sys.exit(1)
+
+  os.add_dll_directory(dll_dir)
+  if verbose:
+    print_stderr(sys.argv[0] + ": added dll directory " + dll_dir)
 
   if pkgutil.get_importer(script) is None:
 

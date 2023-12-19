@@ -23,6 +23,8 @@ with-dll-dir-makefile := $(lastword $(MAKEFILE_LIST))
 
 include usp-builder/USPToolsVenv.mki
 
+$(if $(windows),,$(error this project is Windows-only))
+
 override stage-dir := $(call required-value,stage-dir)
 override work-dir := $(call required-value,work-dir)
 override with_dll_dir.version := $(call required-value,with_dll_dir.version)
