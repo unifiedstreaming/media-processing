@@ -65,14 +65,14 @@ all: $(work-dir)/build-dir.stamp
 stage: $(work-dir)/stage.stamp
 
 .PHONY: deploy
-deploy: $(work-dir)/build-dir.stamp $(tools-venv-dir)/tools.stamp
+deploy: $(work-dir)/build-dir.stamp $(tools-venv-stamp)
 	$(usp-rm-dir) "$(call to-shell,$(build-dir)/build)"
 	"$(call to-shell,$(tools-venv-pip))" $(tools-venv-pip-options) \
 	  install $(pip-install-options) \
 	  --target="$(call to-native,$(call target-dir,$(call required-value,dest-dir)))" \
 	  "$(call to-native,$(build-dir))"
 	  
-$(work-dir)/stage.stamp: $(work-dir)/build-dir.stamp $(tools-venv-dir)/tools.stamp
+$(work-dir)/stage.stamp: $(work-dir)/build-dir.stamp $(tools-venv-stamp)
 	$(usp-rm-dir) "$(call to-shell,$(build-dir)/build)"
 	"$(call to-shell,$(tools-venv-pip))" $(tools-venv-pip-options) \
 	  install $(pip-install-options) \

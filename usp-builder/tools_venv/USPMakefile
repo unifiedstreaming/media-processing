@@ -26,7 +26,7 @@
 
 #
 # Downstream projects must rebuild when
-# $(tools-venv-dir)/tools.stamp has been touched.
+# $(tools-venv-stamp) has been touched.
 #
 
 tools-venv-makefile := $(lastword $(MAKEFILE_LIST))
@@ -42,12 +42,12 @@ $(if $(work-dir),,$(error work-dir must be set))
 all:
 
 .PHONY: stage
-stage: $(tools-venv-dir)/tools.stamp
+stage: $(tools-venv-stamp)
 
 .PHONY: deploy
 deploy:
 
-$(tools-venv-dir)/tools.stamp: \
+$(tools-venv-stamp): \
   $(tools-venv-makefile) $(requirements-file) | $(work-dir)
 	$(usp-rm-dir) "$(call to-shell,$(tools-venv-dir))"
 	"$(call to-shell,$(usp-system-python))" -m venv "$(call to-native,$(tools-venv-dir))"
