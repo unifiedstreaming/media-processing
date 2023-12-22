@@ -30,4 +30,9 @@ tools-venv-python := $(tools-venv-bin-dir)/python
 tools-venv-pip := $(tools-venv-bin-dir)/pip
 tools-venv-pip-options := $(if $(verbose),--verbose)
 tools-venv-stamp := $(tools-venv-dir)/tools.stamp
+
 wheelhouse-dir := $(stage-dir)/lib/wheelhouse
+
+# $(call wheelhouse-stamp,<distribution name>*)
+# (<distribution name> PyPI speak for the PyPI project name)
+wheelhouse-stamp = $(addprefix $(wheelhouse-dir)/,$(addsuffix .whl-stamp,$1))
