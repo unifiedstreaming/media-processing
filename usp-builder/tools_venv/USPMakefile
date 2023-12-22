@@ -32,7 +32,7 @@
 tools-venv-makefile := $(lastword $(MAKEFILE_LIST))
 tools-venv-src-dir := $(abspath $(dir $(tools-venv-makefile)))
 
-include usp-builder/USPToolsVenv.mki
+include usp-builder/USPPythonTools.mki
 
 requirements-file := $(tools-venv-src-dir)/requirements.txt
 

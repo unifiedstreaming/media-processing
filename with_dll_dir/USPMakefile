@@ -21,7 +21,7 @@
 
 with-dll-dir-makefile := $(lastword $(MAKEFILE_LIST))
 
-include usp-builder/USPToolsVenv.mki
+include usp-builder/USPPythonTools.mki
 
 $(if $(windows),,$(error this project is Windows-only))
 
