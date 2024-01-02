@@ -95,7 +95,7 @@ checked-deb-package-name = $(call checked-package-name,$1)
 override package := $(call checked-deb-package-name,$(package))
 
 #
-# $(call control-content,<package name>,<maintainer>,<description>,<package version>,<package revision>,<prereq package>*)
+# $(call control-content,<package name>,<maintainer>,<description>,<package version>,<package revision>,<prereq package>*,<has python code>?)
 #
 define control-content =
 Source: $1
@@ -105,7 +105,7 @@ Maintainer: $2
 Package: $1
 Architecture: $(call get-deb-arch)
 Description: $3
-Depends: $(foreach p,$6,$p (= $4-$5),) $${misc:Depends}, $${shlibs:Depends}
+Depends:$(foreach p,$6, $p (= $4-$5)$(comma))$(if $7, python3$(comma)) $${misc:Depends}$(comma) $${shlibs:Depends}
 Section: misc
 Priority: optional
 
@@ -223,6 +223,8 @@ override deb-work-dir := $(packaging-work-dir)/$(deb-package-basename)
 
 override artifacts := $(patsubst $(artifacts-dir)/%,%,$(call find-files,%,$(artifacts-dir)))
 
+override has-python-code := $(if $(filter %.py,$(artifacts)),yes,)
+
 #
 # Rules
 #
@@ -260,7 +262,7 @@ $(deb-work-dir)/debian/compat: $(deb-work-dir)/debian
 	$(info generated $@)
 
 $(deb-work-dir)/debian/control: $(deb-work-dir)/debian
-	$(file >$@,$(call control-content,$(package),$(pkg-maintainer),$(pkg-description),$(pkg-version),$(pkg-revision),$(foreach p,$(prereq-packages),$p)))
+	$(file >$@,$(call control-content,$(package),$(pkg-maintainer),$(pkg-description),$(pkg-version),$(pkg-revision),$(foreach p,$(prereq-packages),$p),$(has-python-code)))
 	$(info generated $@)
 
 $(deb-work-dir)/debian/rules: $(deb-work-dir)/debian
