@@ -3,7 +3,7 @@ Upstream-name: x264_encoding_service
 Source: https://github.com/unifiedstreaming/oss-temp
 
 Files: *
-Copyright: 2021-2023 CodeShop B.V.
+Copyright: 2021-2024 CodeShop B.V.
 License: GPL-2
  The x264_encoding_service is free software: you can redistribute it
  and/or modify it under the terms of version 2 of the GNU General

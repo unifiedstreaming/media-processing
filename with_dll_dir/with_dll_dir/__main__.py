@@ -1,5 +1,5 @@
 #
-# Copyright (C) 2023 CodeShop B.V.
+# Copyright (C) 2023-2024 CodeShop B.V.
 #
 # This file is part of the with_dll_dir python utility.
 #

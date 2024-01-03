@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2021-2023 CodeShop B.V.
+ * Copyright (C) 2021-2024 CodeShop B.V.
  *
  * This file is part of the x264_encoding_service.
  *
