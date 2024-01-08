@@ -93,6 +93,21 @@ checked-apk-package-name = $(strip \
     $(call split-word,$(strip $1))) \
 )
 
+#
+# $(call required-system-packages,<artifact>*)
+#
+required-system-packages = $(strip \
+  $(if $(filter %.py,$1),python3) \
+)
+  
+#
+# $(call depends-listing,<system package>*,<prereq package>*,<version>,<revision>)
+#
+depends-listing = $(strip \
+  $(foreach p,$1,$p) \
+  $(foreach p,$2,$p=$3-r$4) \
+)
+
 override package := $(call checked-apk-package-name,$(package))
 
 #
@@ -169,7 +184,7 @@ pkgdesc="$4"
 url="FIXME"
 arch="all"
 license="$7"
-depends="$(foreach p,$6,$p=$2-r$3)"
+depends="$(call depends-listing,$(call required-system-packages,$9),$6,$2,$3)"
 subpackages="$(foreach s,$(if $(with-symbol-pkg),$$pkgname-dbg) $(if $(11),$$pkgname-doc),$s)"
 source=""
 options="!fhs$(if $(with-symbol-pkg),, !dbg !strip)"
