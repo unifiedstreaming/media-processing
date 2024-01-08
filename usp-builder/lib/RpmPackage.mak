@@ -177,13 +177,16 @@ override artifacts := $(patsubst $(artifacts-dir)/%,%,$(call find-files,%,$(arti
 # See https://fedoraproject.org/wiki/Packaging:Systemd and
 # https://docs.fedoraproject.org/en-US/packaging-guidelines/Scriptlets/#Systemd
 #
-# Python bytecode (re-)compilation is disabled here; see
+# Python bytecode (re-)compilation, hard-linking and shebang mangling
+# are disabled here; see
 # https://docs.fedoraproject.org/en-US/packaging-guidelines/Python_Appendix/#_manual_byte_compilation_for_epel_6_and_7
-#
 #
 define spec-file-content =
 
 %global __os_install_post %(echo '%{__os_install_post}' | sed -e 's!/usr/lib[^[:space:]]*/brp-python-bytecompile[[:space:]].*$$!!g')
+%global __os_install_post %(echo '%{__os_install_post}' | sed -e 's!/usr/lib[^[:space:]]*/brp-python-hardlink[[:space:]].*$$!!g')
+%global __os_install_post %(echo '%{__os_install_post}' | sed -e 's!/usr/lib[^[:space:]]*/brp-mangle-shebangs[[:space:]].*$$!!g')
+%global __os_install_post %(echo '%{__os_install_post}' | sed -e 's!/usr/lib[^[:space:]]*/brp-java-repack-jars[[:space:]].*$$!!g')
 
 $(if $(with-symbol-pkg),,%define _build_id_links none)
 $(if $(with-symbol-pkg),,%global debug_package %{nil})
