@@ -51,19 +51,34 @@ get-rpm-arch = $(call checked-rpm-arch-output, \
 )
 
 #
-# $(call requires-line-elt,<prereq package>)
+# $(call prereqs-listing,<prereq package>*,<separator>?)
 #
-requires-line-elt = $1 = %{version}-%{release}
+prereqs-listing = $(strip \
+  $(if $(firstword $1), \
+    $2$(firstword $1) = %{version}-%{release}$(call prereqs-listing,$(wordlist 2,$(words $1),$1),$(comma)$(space)) \
+  ) \
+)
 
 #
-# $(call requires-line-cont,<prereq package>*)
+# $(call requires-listing,<system package>*,<prereq package>*,<separator>?)
 #
-requires-line-cont = $(if $(firstword $1),$(comma) $(call requires-line-elt,$(firstword $1))$(call requires-line-cont,$(wordlist 2,$(words $1),$1)))
+requires-listing = $(strip \
+  $(if $(firstword $1), \
+    $3$(firstword $1)$(call requires-listing,$(wordlist 2,$(words $1),$1),$2,$(comma)$(space)) \
+  , \
+    $(call prereqs-listing,$2,$3) \
+  ) \
+)
 
 #
-# $(call requires-line,<prereq package>*)
+# $(call requires-line-impl,<requires-listing>?)
 #
-requires-line = $(if $(firstword $1),Requires: $(call requires-line-elt,$(firstword $1))$(call requires-line-cont,$(wordlist 2,$(words $1),$1)),# No explicit Requires: line)
+requires-line-impl = $(if $(strip $1),Requires: $(strip $1),# No explicit Requires: line)
+
+#
+# $(call requires-line,<system package>*,<prereq package>*)
+#
+requires-line = $(call requires-line-impl,$(call requires-listing,$1,$2))
 
 #
 # $(call service-post,<service name>)
@@ -141,6 +156,13 @@ checked-rpm-package-name = $(strip \
     $(call split-word,$(strip $1))) \
 )
 
+#
+# $(call required-system-packages,<artifact>*)
+#
+required-system-packages = $(strip \
+  $(if $(filter %.py,$1),python3) \
+)
+  
 override package := $(call checked-rpm-package-name,$(package))
 
 #
@@ -200,7 +222,7 @@ Release: $3
 Summary: $4
 License: $5
 $(if $(strip $(11)),BuildRequires: systemd$(newline)%{?systemd_requires})
-$(call requires-line,$6)
+$(call requires-line,$(call required-system-packages,$8),$6)
 Provides: %{name} = %{version}
 
 %description
