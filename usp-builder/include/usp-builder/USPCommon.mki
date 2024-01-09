@@ -811,6 +811,21 @@ checked-package-name = $(strip \
 )
 
 #
+# $(call checked-package-version-or-revision,<keyword>,<value>?)
+#
+checked-package-version-or-revision = $(strip \
+  $(if $(firstword $2), \
+    $(if $(filter-out 1,$(words $2)), \
+      $(error $1 ('$2') must not contain whitespace) \
+    ) \
+    $(if $(filter-out $(alnums) + . ~,$(call split-word,$2)), \
+      $(error $1 ('$2') may only contain alphanumerics, '+', '.', and '~') \
+    ) \
+    $2 \
+  ) \
+)
+    
+#
 # $(call notdir-basename-impl,<output>,<input>)
 #
 notdir-basename-impl = $(strip \

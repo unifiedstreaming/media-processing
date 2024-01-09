@@ -24,19 +24,6 @@
 include usp-builder/USPCommon.mki
 
 #
-# $(call checked-pkg-version-or-revision,<variable name>)
-#
-checked-pkg-version-or-revision = $(strip \
-  $(if $(filter-out 1,$(words $($1))), \
-    $(error $1 '$($1)' must contain exactly one word) \
-  ) \
-  $(if $(filter-out $(alnums) + . ~,$(call split-word,$($1))), \
-    $(error $1 '$($1)' may only contain alphanumerics, '+', '.', and '~') \
-  ) \
-  $($1) \
-)
-
-#
 # $(call checked-apache-modules-dir,<apxs output>)
 #
 checked-apache-modules-dir = $(strip \
@@ -166,7 +153,7 @@ $(call check-packaging-build-setting,variant,release)
 #
 override artifacts-dir := $(call to-make,$(call required-value,artifacts-dir))
 
-override pkg-version := $(if $(pkg-version),$(call checked-pkg-version-or-revision,pkg-version),$(call required-value,pkg-version))
+override pkg-version := $(if $(pkg-version),$(call checked-package-version-or-revision,pkg-version,$(pkg-version)),$(call required-value,pkg-version))
 
 override pkgs-dir := $(call to-make,$(call non-relative-path,$(call required-value,pkgs-dir)))
 
@@ -185,7 +172,7 @@ override pkg-description := $(if $(pkg-description),$(pkg-description),not speci
 
 override pkg-maintainer := $(if $(pkg-maintainer),$(pkg-maintainer),not specified)
 
-override pkg-revision := $(if $(pkg-revision),$(call checked-pkg-version-or-revision,pkg-revision),1)
+override pkg-revision := $(if $(pkg-revision),$(call checked-package-version-or-revision,pkg-revision,$(pkg-revision)),1)
 
 override prereq-packages := $(foreach pkg,$(prereq-packages),$(pkg))
 
