@@ -12,6 +12,10 @@
 #
 # Project definitions
 #
+cuti_version := $(call read-single-word-file,cuti/version)
+x264_encoding_service_version := $(call read-single-word-file,x264_encoding_service/version)
+x264_proto_version := $(call read-single-word-file,x264_proto/version)
+
 $(call bjam-exe-project, \
   name = x264_encoding_service \
   source-dir = x264_encoding_service \
@@ -34,7 +38,7 @@ $(call bjam-test-project, \
 
 $(call bjam-dll-project, \
   name = x264_proto \
-  version = 0.0.0 \
+  version = $(x264_proto_version) \
   source-dir = x264_proto/x264_proto \
   include-dir = x264_proto \
   prereqs = cuti \
@@ -49,7 +53,7 @@ $(call bjam-test-project, \
 
 $(call bjam-dll-project, \
   name = cuti \
-  version = 0.0.0 \
+  version = $(cuti_version) \
   source-dir = cuti/cuti \
   include-dir = cuti \
   distributable = yes \
@@ -73,6 +77,7 @@ $(call gmake-project, \
 #
 $(call package, \
   name = x264-encoding-service \
+  version = $(x264_encoding_service_version) \
   projects = x264_encoding_service \
   prereq-packages = libx264-proto libcuti \
   license = GPLv2 \
@@ -89,6 +94,7 @@ $(call package, \
 
 $(call package, \
   name = libx264-proto \
+  version = $(x264_proto_version) \
   projects = x264_proto \
   prereq-packages = libcuti \
   license = LGPLv2.1 \
@@ -99,6 +105,7 @@ $(call package, \
 
 $(call package, \
   name = libcuti \
+  version = $(cuti_version) \
   projects = cuti \
   license = LGPLv2.1 \
   doc-files = \

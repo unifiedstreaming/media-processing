@@ -658,7 +658,7 @@ bjam-test-project = $(if $(call is-enabled,$1,$(bjam-test-keys)),$(call expand,$
 )))
 
 #
-# $(call package-impl,<package name>,<apk-name>?,<deb-name>?,<rpm-name>?,<zip-name>?,<project>*,<prereq-package>*,<license>,<doc file>*,<conf file>*,<service file>*,<openrc file>*,<apache conf-file>*,<apache-load-file>*)
+# $(call package-impl,<package name>,<apk-name>?,<deb-name>?,<rpm-name>?,<zip-name>?,<project>*,<prereq-package>*,<license>,<doc file>*,<conf file>*,<service file>*,<openrc file>*,<apache conf-file>*,<apache-load-file>*,<version>,<revision>?)
 #
 define package-impl =
 #
@@ -687,6 +687,8 @@ $1.package-service-files := $(11)
 $1.package-openrc-files := $(12)
 $1.package-apache-conf-files := $(13)
 $1.package-apache-load-files := $(14)
+$1.package-version := $(15)
+$1.package-revision := $(if $(16),$(16),1)
 
 endef
 
@@ -708,6 +710,8 @@ endef
 # openrc-files*       package-specific openrc init files
 # apache-conf-files*  package-specific apache .conf file templates
 # apache-load-files*  package-specific apache .load file templates
+# version             package version
+# revision?           package revision?
 package-keys := \
   name \
   projects \
@@ -723,7 +727,9 @@ package-keys := \
   openrc-files \
   apache-conf-files \
   apache-load-files \
-  enabled
+  enabled \
+  version \
+  revision 
   
 package = $(if $(call is-enabled,$1,$(package-keys)),$(call expand,$(call call-stripped, \
   package-impl, \
@@ -740,7 +746,9 @@ package = $(if $(call is-enabled,$1,$(package-keys)),$(call expand,$(call call-s
   $(call check-duplicate-basenames,$(call find-values,service-files,$1,$(package-keys))), \
   $(call check-duplicate-basenames,$(call find-values,openrc-files,$1,$(package-keys))), \
   $(call check-duplicate-basenames,$(call find-values,apache-conf-files,$1,$(package-keys))), \
-  $(call check-duplicate-basenames,$(call find-values,apache-load-files,$1,$(package-keys))) \
+  $(call check-duplicate-basenames,$(call find-values,apache-load-files,$1,$(package-keys))), \
+  $(call checked-package-version-or-revision,version,$(call get-value,version,$1,$(package-keys))), \
+  $(call checked-package-version-or-revision,revision,$(call find-value,revision,$1,$(package-keys))) \
 )))
 
 #

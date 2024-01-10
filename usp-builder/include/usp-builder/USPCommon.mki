@@ -889,3 +889,20 @@ python-sysconfig-var = $(call checked-python-sysconfig-var,$1,$(shell "$(call to
 # $(call python-extension-filename,<extension name>)
 #
 python-extension-filename = $1$(call python-sysconfig-var,EXT_SUFFIX)
+
+# 
+# $(call checked-read-single-word-file,<filename>,<contents>)
+#
+checked-read-single-word-file = $(strip \
+  $(if $(filter-out 1,$(words $2)), \
+    $(error '$1' must contain a single word after stripping comments) \
+  ) \
+  $(firstword $2) \
+)
+
+#
+# $(call read-single-word-file,<filename>)
+# 
+# Reads a single-word file; comments are stripped
+#
+read-single-word-file = $(call checked-read-single-word-file,$1,$(shell "$(call to-shell,$(usp-sed))" -e 's/#.*//' "$(call to-shell,$1)"))
