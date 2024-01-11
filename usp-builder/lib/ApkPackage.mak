@@ -101,11 +101,11 @@ required-system-packages = $(strip \
 )
   
 #
-# $(call depends-listing,<system package>*,<prereq package>*,<version>,<revision>)
+# $(call depends-listing,<system package>*,<prereq package>*)
 #
 depends-listing = $(strip \
   $(foreach p,$1,$p) \
-  $(foreach p,$2,$p=$3-r$4) \
+  $(foreach p,$2,$p=$(call get-package-version,$p)-r$(call get-package-revision,$p)) \
 )
 
 override package := $(call checked-apk-package-name,$(package))
@@ -184,7 +184,7 @@ pkgdesc="$4"
 url="FIXME"
 arch="all"
 license="$7"
-depends="$(call depends-listing,$(call required-system-packages,$9),$6,$2,$3)"
+depends="$(call depends-listing,$(call required-system-packages,$9),$6)"
 subpackages="$(foreach s,$(if $(with-symbol-pkg),$$pkgname-dbg) $(if $(11),$$pkgname-doc),$s)"
 source=""
 options="!fhs$(if $(with-symbol-pkg),, !dbg !strip)"

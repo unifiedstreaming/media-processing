@@ -55,7 +55,7 @@ get-rpm-arch = $(call checked-rpm-arch-output, \
 #
 prereqs-listing = $(strip \
   $(if $(firstword $1), \
-    $2$(firstword $1) = %{version}-%{release}$(call prereqs-listing,$(wordlist 2,$(words $1),$1),$(comma)$(space)) \
+    $2$(firstword $1) = $(call get-package-version,$(firstword $1))-$(call get-package-revision,$(firstword $1))$(call prereqs-listing,$(wordlist 2,$(words $1),$1),$(comma)$(space)) \
   ) \
 )
 

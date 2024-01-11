@@ -39,7 +39,7 @@ pdb-base = $1-pdb_$2-$3
 #
 define main-meta-content =
 package: $(call main-base,$1,$2,$3)
-requires: $(foreach p,$4,$(call main-base,$p,$2,$3))
+requires: $(foreach p,$4,$(call main-base,$p,$(call get-package-version,$p),$(call get-package-revision,$p)))
 
 endef
 

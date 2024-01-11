@@ -139,6 +139,16 @@ check-packaging-build-setting = $(strip \
 )
 
 #
+# $(call get-package-version,<package name>)
+#
+get-package-version = $(call checked-package-version-or-revision,$1.package-version,$(call required-value,$1.package-version))
+
+#
+# $(call get-package-revision,<package name>)
+#
+get-package-revision = $(call checked-package-version-or-revision,$1.package-revision,$(call required-value,$1.package-revision))
+
+#
 # Check build settings
 #
 $(call check-packaging-build-setting,address-model,$(default-address-model))
@@ -153,11 +163,13 @@ $(call check-packaging-build-setting,variant,release)
 #
 override artifacts-dir := $(call to-make,$(call required-value,artifacts-dir))
 
-override pkg-version := $(if $(pkg-version),$(call checked-package-version-or-revision,pkg-version,$(pkg-version)),$(call required-value,pkg-version))
-
 override pkgs-dir := $(call to-make,$(call non-relative-path,$(call required-value,pkgs-dir)))
 
 override package := $(call required-value,package)
+
+override pkg-version := $(call get-package-version,$(package))
+
+override pkg-revision := $(call get-package-revision,$(package))
 
 override license := $(call required-value,license)
 
@@ -171,8 +183,6 @@ override with-symbol-pkg := $(if $(call find-files,%,$(artifacts-dir)),yes)
 override pkg-description := $(if $(pkg-description),$(pkg-description),not specified)
 
 override pkg-maintainer := $(if $(pkg-maintainer),$(pkg-maintainer),not specified)
-
-override pkg-revision := $(if $(pkg-revision),$(call checked-package-version-or-revision,pkg-revision,$(pkg-revision)),1)
 
 override prereq-packages := $(foreach pkg,$(prereq-packages),$(pkg))
 

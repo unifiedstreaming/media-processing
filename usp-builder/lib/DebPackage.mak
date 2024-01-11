@@ -102,7 +102,7 @@ required-system-packages = $(strip \
 )
   
 #
-# $(call control-content,<package name>,<maintainer>,<description>,<package version>,<package revision>,<prereq package>*,<artifact>*)
+# $(call control-content,<package name>,<maintainer>,<description>,<prereq package>*,<artifact>*)
 #
 define control-content =
 Source: $1
@@ -112,7 +112,7 @@ Maintainer: $2
 Package: $1
 Architecture: $(call get-deb-arch)
 Description: $3
-Depends: $(strip $(foreach p,$(call required-system-packages,$7),$p$(comma)) $(foreach p,$6, $p (= $4-$5)$(comma)) $${misc:Depends}$(comma) $${shlibs:Depends})
+Depends: $(strip $(foreach p,$(call required-system-packages,$5),$p$(comma)) $(foreach p,$4, $p (= $(call get-package-version,$p)-$(call get-package-revision,$p))$(comma)) $${misc:Depends}$(comma) $${shlibs:Depends})
 Section: misc
 Priority: optional
 
@@ -267,7 +267,7 @@ $(deb-work-dir)/debian/compat: $(deb-work-dir)/debian
 	$(info generated $@)
 
 $(deb-work-dir)/debian/control: $(deb-work-dir)/debian
-	$(file >$@,$(call control-content,$(package),$(pkg-maintainer),$(pkg-description),$(pkg-version),$(pkg-revision),$(foreach p,$(prereq-packages),$p),$(artifacts)))
+	$(file >$@,$(call control-content,$(package),$(pkg-maintainer),$(pkg-description),$(foreach p,$(prereq-packages),$p),$(artifacts)))
 	$(info generated $@)
 
 $(deb-work-dir)/debian/rules: $(deb-work-dir)/debian
