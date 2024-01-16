@@ -266,7 +266,7 @@ $(foreach f,$(11),$(call service-preun,$(call service-name,$f)))
 $(foreach f,$(11),$(call service-postun,$(call service-name,$f)))
 
 %files
-$(foreach f,$8,$(newline)/$(call distro-path,$f))$(foreach f,$9,$(newline)%config(noreplace) /etc/$(notdir $f))$(foreach f,$(10),$(newline)/usr/share/doc/$1/$(notdir $f))$(foreach f,$(11),$(newline)%{_unitdir}/$(call service-name,$f)$(call service-suffix,$f))$(foreach f,$(12),$(newline)%config(noreplace) %{_httpd_confdir}/$(call installed-apache-conf-file-name,$f,15-))
+$(foreach f,$8,$(newline)$(if $(filter etc/%,$(call distro-path,$f)),%config(noreplace) )/$(call distro-path,$f))$(foreach f,$9,$(newline)%config(noreplace) /etc/$(notdir $f))$(foreach f,$(10),$(newline)/usr/share/doc/$1/$(notdir $f))$(foreach f,$(11),$(newline)%{_unitdir}/$(call service-name,$f)$(call service-suffix,$f))$(foreach f,$(12),$(newline)%config(noreplace) %{_httpd_confdir}/$(call installed-apache-conf-file-name,$f,15-))
 
 endef
 
