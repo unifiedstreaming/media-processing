@@ -100,7 +100,11 @@ distro-path = $(strip \
   $(if $(filter apache2/%,$1), \
     $(patsubst apache2/%,$(patsubst /%,%,$(apache-modules-dir))/%,$1) \
   , \
-    usr/$1 \
+    $(if $(filter etc/%,$1), \
+      $1 \
+    , \
+      usr/$1 \
+    ) \
   ) \
 )
 
