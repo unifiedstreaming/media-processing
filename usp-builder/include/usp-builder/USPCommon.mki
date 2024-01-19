@@ -166,6 +166,12 @@ usp-system-python := $(call get-command,usp-system-python,$(default-usp-system-p
 usp-zip := $(call get-command,usp-zip,zip,zip)
 
 #
+# force PYTHONIOENCODING to UTF-8
+#
+PYTHONIOENCODING=utf-8:surrogateescape
+export PYTHONIOENCODING
+
+#
 # $(call unset,<environment variable>)
 #
 unset = $(if $(unix-like),unset $1,set $1=)
