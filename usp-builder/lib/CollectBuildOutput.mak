@@ -24,7 +24,7 @@ include usp-builder/USPCommon.mki
 #
 soname = $(shell \
   objdump -p "$1" 2>/dev/null | $(usp-sed) \
-    -n -e 's|^[[:space:]]*SONAME[[:space:]]\+\([^[:space:]]\+\).*|\1|p' \
+    -E -n -e 's|^[[:space:]]*SONAME[[:space:]]+([^[:space:]]+).*|\1|p' \
 )
 
 #
