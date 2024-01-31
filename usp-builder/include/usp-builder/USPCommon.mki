@@ -162,7 +162,7 @@ default-usp-sed := $(strip \
     sed \
   ) \
 )
-    
+
 #
 # pick up system commands for the shell
 #
