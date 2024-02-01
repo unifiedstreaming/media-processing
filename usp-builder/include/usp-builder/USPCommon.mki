@@ -335,7 +335,7 @@ checked-major-gcc-version = $(strip \
 #
 # $(call major-gcc-version)
 #
-major-gcc-version = $(call checked-major-gcc-version,$(shell gcc -v 2>&1 \
+major-gcc-version = $(call checked-major-gcc-version,$(shell $(if $(toolset-c-compiler),$(toolset-c-compiler),gcc) -v 2>&1 \
   | $(usp-sed) -n 's/^gcc version[[:space:]]\+\([[:digit:]]\+\).*/\1/p'))
 
 #
