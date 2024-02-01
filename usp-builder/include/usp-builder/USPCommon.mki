@@ -418,8 +418,8 @@ toolset-compilers := $(strip \
   ) \
 )
 
-toolset-c-compiler := $(word 1,$(toolset-compilers))
-toolset-cpp-compiler := $(word 2,$(toolset-compilers))
+toolset-c-compiler := $(if $(toolset-c-compiler),$(toolset-c-compiler),$(word 1,$(toolset-compilers)))
+toolset-cpp-compiler := $(if $(toolset-cpp-compiler),$(toolset-cpp-compiler),$(word 2,$(toolset-compilers)))
 
 #
 # Determine sanitizer flags for compiler command lines
