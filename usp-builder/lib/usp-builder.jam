@@ -237,13 +237,21 @@ rule python-rtlib-filepath ( )
   else
   {
     local libdir = [ python-sysconfig-var LIBDIR ] ;
-    local ldlibrary = [ python-sysconfig-var LDLIBRARY ] ;
-    result = "$(libdir)/$(ldlibrary)" ;
-    if ! [ path.exists $(result) ]
+    if [ os.name ] = MACOSX
     {
-      # Hack: fall back to LIBPL (Ubuntu 18 and 20 - possibly others)
-      local libpl = [ python-sysconfig-var LIBPL ] ;
-      result = "$(libpl)/$(ldlibrary)" ;
+      local ldversion = [ python-sysconfig-var LDVERSION ] ;
+      result = "$(libdir)/libpython$(ldversion).dylib" ;
+    }
+    else
+    {
+      local ldlibrary = [ python-sysconfig-var LDLIBRARY ] ;
+      result = "$(libdir)/$(ldlibrary)" ;
+      if ! [ path.exists $(result) ]
+      {
+        # Hack: fall back to LIBPL (Ubuntu 18 and 20 - possibly others)
+        local libpl = [ python-sysconfig-var LIBPL ] ;
+        result = "$(libpl)/$(ldlibrary)" ;
+      }
     }
   }
 
