@@ -177,6 +177,16 @@ usp-system-python := $(call get-command,usp-system-python,$(default-usp-system-p
 usp-zip := $(call get-command,usp-zip,zip,zip)
 
 #
+# check for GNU sed
+#
+$(strip \
+  $(if $(filter GNU,$(shell $(usp-sed) --version 2>/dev/null)), \
+  , \
+    $(error '$(usp-sed)' must be a GNU version of sed) \
+  ) \
+)
+
+#
 # force PYTHONIOENCODING to UTF-8
 #
 PYTHONIOENCODING=utf-8:surrogateescape
