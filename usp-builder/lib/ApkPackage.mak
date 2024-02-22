@@ -45,16 +45,15 @@ check-package-not-installed = $(strip \
 #
 checked-apk-arch = $(strip \
   $(if $(filter-out 1,$(words $1)), \
-    $(error 'arch' command failed) \
+    $(error 'abuild -A' command failed) \
   ) \
   $1 \
 )
 
 #
 # $(call get-apk-arch)
-# TODO: there has to be a better way...
 #
-get-apk-arch = $(call checked-apk-arch,$(shell arch))
+get-apk-arch = $(call checked-apk-arch,$(shell abuild -A))
 
 #
 # $(call checked-apk-package-name-impl,<package name>,<char>*)
