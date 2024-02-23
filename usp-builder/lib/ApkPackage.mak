@@ -125,6 +125,8 @@ $(call check-package-not-installed,$(package))
 #
 override apk-package-basename := $(package)-$(pkg-version)-r$(pkg-revision)
 override apk-work-dir := $(packaging-work-dir)/$(apk-package-basename)
+override abuild-output-dir := $(apk-work-dir)/abuild-output
+override abuild-pkgs-dir := $(abuild-output-dir)/apk/$(apk-arch)
 
 override artifacts := $(patsubst $(artifacts-dir)/%,%,$(call find-files,%,$(artifacts-dir)))
 
@@ -247,13 +249,15 @@ export PATH := $(apk-work-dir)/fake-git:$(PATH)
 all: apk-package
 
 .PHONY: apk-package
-apk-package: $(apk-work-dir)/APKBUILD \
+apk-package: build-apk-packages
+	$(usp-mkdir-p) "$(call to-shell,$(pkgs-dir))" $(foreach f,$(wildcard $(abuild-pkgs-dir)/*.apk),&& $(usp-cp) "$(call to-shell,$f)" "$(call to-shell,$(pkgs-dir)/$(notdir $f))")
+	
+.PHONY: build-apk-packages
+build-apk-packages: $(apk-work-dir)/APKBUILD \
   $(apk-work-dir)/fake-git/git \
-  $(if $(strip $(openrc-files)),$(addprefix $(apk-work-dir)/$(package),.post-install .pre-deinstall .post-upgrade)) \
-  | $(pkgs-dir)/apk/$(apk-arch)
-	cd "$(call to-shell,$(apk-work-dir))" && abuild -m -P "$(call to-shell,$(pkgs-dir))" cleanpkg
-	cd "$(call to-shell,$(apk-work-dir))" && abuild -m -d -P "$(call to-shell,$(pkgs-dir))"
-
+  $(if $(strip $(openrc-files)),$(addprefix $(apk-work-dir)/$(package),.post-install .pre-deinstall .post-upgrade))
+	cd "$(call to-shell,$(apk-work-dir))" && abuild -m -d -P "$(call to-shell,$(abuild-output-dir))"
+	
 $(apk-work-dir)/APKBUILD: clean-apk-work-dir
 	$(file >$@,$(call apkbuild-content,$(package),$(pkg-version),$(pkg-revision),$(pkg-description),$(pkg-maintainer),$(prereq-packages),$(license),$(artifacts-dir),$(artifacts),$(conf-files),$(doc-files),$(openrc-files),$(apache-conf-files)))
 	$(info generated $@)
@@ -284,9 +288,6 @@ $(apk-work-dir)/$(package).post-upgrade: clean-apk-work-dir
 	$(file >$@,$(call post-upgrade-content,$(foreach f,$(openrc-files),$(call service-name,$f))))
 	$(info generated $@)
 	chmod +x "$(call to-shell,$@)"
-	
-$(pkgs-dir)/apk/$(apk-arch):
-	$(usp-mkdir-p) "$(call to-shell,$@)"	
 	
 .PHONY: clean-apk-work-dir
 clean-apk-work-dir:
