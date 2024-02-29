@@ -316,6 +316,7 @@ gmake-project = $(if $(call is-enabled,$1,$(gmake-keys)),$(call expand,$(call ca
 # (to be evaluated very lazily, as part of a recipe)
 #
 bjam-options = $(strip \
+ $(if $(bjam-cores),-j$(bjam-cores)) \
  $(if $(verbose),-d+2) \
  --build-dir="$(call to-native,$(bjam-build-dir))" \
  -sin-usp-build=yes \
