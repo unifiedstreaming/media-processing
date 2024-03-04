@@ -948,3 +948,15 @@ checked-read-single-word-file = $(strip \
 # Reads a single-word file; comments are stripped
 #
 read-single-word-file = $(call checked-read-single-word-file,$1,$(shell "$(call to-shell,$(usp-sed))" -e 's/#.*//' "$(call to-shell,$1)"))
+
+#
+# $(call update-link-rule,<symlink location>,<expected target>)
+#
+# yields a rule to update a symbolic link if needed by checking what 
+# it points to; intended to be used in (its own?) .PHONY target
+#
+update-link-rule = $(strip \
+  $(if $(filter-out $(call read-link,$1),$2), \
+    $(usp-ln-sf) "$(call to-shell,$2)" "$(call to-shell,$1)" \
+  ) \
+)
