@@ -659,7 +659,7 @@ bjam-test-project = $(if $(call is-enabled,$1,$(bjam-test-keys)),$(call expand,$
 )))
 
 #
-# $(call package-impl,<package name>,<apk-name>?,<deb-name>?,<rpm-name>?,<zip-name>?,<project>*,<prereq-package>*,<license>,<doc file>*,<conf file>*,<service file>*,<openrc file>*,<apache conf-file>*,<apache-load-file>*,<version>,<revision>?)
+# $(call package-impl,<package name>,<apk-name>?,<deb-name>?,<rpm-name>?,<zip-name>?,<project>*,<prereq-package>*,<license>,<doc file>*,<conf file>*,<service file>*,<openrc file>*,<apache conf-file>*,<apache-load-file>*,<version>,<revision>?,<add debug package>?)
 #
 define package-impl =
 #
@@ -690,6 +690,7 @@ $1.package-apache-conf-files := $(13)
 $1.package-apache-load-files := $(14)
 $1.package-version := $(15)
 $1.package-revision := $(if $(16),$(16),1)
+$1.package-add-debug-package := $(if $(17),yes)
 
 endef
 
@@ -697,22 +698,24 @@ endef
 # $(call package,<properties>)
 #
 # properties are:
-# name                package name
-# projects*           packaged projects
-# prereq-packages*    prerequisite packages
-# apk-name?           apk-specific package name override
-# deb-name?           deb-specific package name override
-# rpm-name?           rpm-specific package name override
-# zip-name?           zip-specific package name override
-# license             package license
-# doc-files*          package-specific documentation files
-# conf-files*         package-specific config files
-# service-files*      package-specific systemd service files
-# openrc-files*       package-specific openrc init files
-# apache-conf-files*  package-specific apache .conf file templates
-# apache-load-files*  package-specific apache .load file templates
-# version             package version
-# revision?           package revision?
+# name                 package name
+# projects*            packaged projects
+# prereq-packages*     prerequisite packages
+# apk-name?            apk-specific package name override
+# deb-name?            deb-specific package name override
+# rpm-name?            rpm-specific package name override
+# zip-name?            zip-specific package name override
+# license              package license
+# doc-files*           package-specific documentation files
+# conf-files*          package-specific config files
+# service-files*       package-specific systemd service files
+# openrc-files*        package-specific openrc init files
+# apache-conf-files*   package-specific apache .conf file templates
+# apache-load-files*   package-specific apache .load file templates
+# version              package version
+# revision?            package revision?
+# enabled?             either 'yes' or 'no', defaults to yes
+# add-debug-package?   either 'yes' or 'no', defaults to yes
 package-keys := \
   name \
   projects \
@@ -730,7 +733,8 @@ package-keys := \
   apache-load-files \
   enabled \
   version \
-  revision 
+  revision \
+  add-debug-package
   
 package = $(if $(call is-enabled,$1,$(package-keys)),$(call expand,$(call call-stripped, \
   package-impl, \
@@ -749,7 +753,8 @@ package = $(if $(call is-enabled,$1,$(package-keys)),$(call expand,$(call call-s
   $(call check-duplicate-basenames,$(call find-values,apache-conf-files,$1,$(package-keys))), \
   $(call check-duplicate-basenames,$(call find-values,apache-load-files,$1,$(package-keys))), \
   $(call checked-package-version-or-revision,version,$(call get-value,version,$1,$(package-keys))), \
-  $(call checked-package-version-or-revision,revision,$(call find-value,revision,$1,$(package-keys))) \
+  $(call checked-package-version-or-revision,revision,$(call find-value,revision,$1,$(package-keys))), \
+  $(call find-boolean-value,add-debug-package,$1,$(package-keys),yes) \
 )))
 
 #

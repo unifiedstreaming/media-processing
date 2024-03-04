@@ -128,7 +128,7 @@ override apk-work-dir := $(packaging-work-dir)/$(apk-package-basename)
 override abuild-output-dir := $(apk-work-dir)/abuild-output
 override abuild-pkgs-dir := $(abuild-output-dir)/apk/$(apk-arch)
 
-override artifacts := $(patsubst $(artifacts-dir)/%,%,$(call find-files,%,$(artifacts-dir)))
+override artifacts := $(patsubst $(artifacts-dir)/%,%,$(call find-files-and-links,$(artifacts-dir)))
 
 #
 # $ (call fake-git-content)
@@ -174,7 +174,7 @@ exit 0
 endef
 
 #
-# $(call apkbuild-content,<package>,<version>,<revision>,<description>,<maintainer>,<prereq package>*,<license>,<artifacts-dir>,<artifact>*,<conf file>*,<doc file>*,<openrc file>*,<apache conf file>*)
+# $(call apkbuild-content,<package>,<version>,<revision>,<description>,<maintainer>,<prereq package>*,<license>,<artifacts-dir>,<artifact>*,<conf file>*,<doc file>*,<openrc file>*,<apache conf file>*,<add debug package>?)
 #
 define apkbuild-content =
 pkgname="$1"
@@ -186,9 +186,9 @@ url="FIXME"
 arch="all"
 license="$7"
 depends="$(call depends-listing,$(call required-system-packages,$9),$6)"
-subpackages="$(foreach s,$(if $(with-symbol-pkg),$$pkgname-dbg) $(if $(11),$$pkgname-doc),$s)"
+subpackages="$(foreach s,$(if $(14),$$pkgname-dbg) $(if $(11),$$pkgname-doc),$s)"
 source=""
-options="!fhs$(if $(with-symbol-pkg),, !dbg !strip)"
+options="!fhs$(if $(14),, !dbg !strip)"
 $(if $(strip $(12)),install="$1.post-install $1.pre-deinstall $1.post-upgrade")
 
 prepare() {
@@ -259,7 +259,7 @@ build-apk-packages: $(apk-work-dir)/APKBUILD \
 	cd "$(call to-shell,$(apk-work-dir))" && abuild -m -d -P "$(call to-shell,$(abuild-output-dir))"
 	
 $(apk-work-dir)/APKBUILD: clean-apk-work-dir
-	$(file >$@,$(call apkbuild-content,$(package),$(pkg-version),$(pkg-revision),$(pkg-description),$(pkg-maintainer),$(prereq-packages),$(license),$(artifacts-dir),$(artifacts),$(conf-files),$(doc-files),$(openrc-files),$(apache-conf-files)))
+	$(file >$@,$(call apkbuild-content,$(package),$(pkg-version),$(pkg-revision),$(pkg-description),$(pkg-maintainer),$(prereq-packages),$(license),$(artifacts-dir),$(artifacts),$(conf-files),$(doc-files),$(openrc-files),$(apache-conf-files),$(add-debug-package)))
 	$(info generated $@)
 	
 #

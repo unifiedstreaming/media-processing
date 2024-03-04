@@ -290,6 +290,21 @@ find-dirs = $(strip \
 )
 
 #
+# $(call find-files-and-links,<directory>)
+#
+# $(wildcard) has inconsistent behavior between make versions and/or
+# platforms when hitting a dangling symlink; we want these included
+# here
+#
+find-files-and-links = $(strip \
+  $(if $(windows), \
+    $(call find-files,%,$1) \
+  , \
+    $(shell find "$(call to-shell,$1)" -type f -o -type l) \
+  ) \
+)
+
+#
 # $(call dependency-listing,<target> ...,<prerequisite file> ...)
 #
 # Returns the text for a dependency makefile, where each <target>

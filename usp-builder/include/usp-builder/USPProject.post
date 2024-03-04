@@ -160,6 +160,7 @@ native-packager-settings = $(strip \
   $($1.package-$2-name).package-version="$($1.package-version)" \
   $($1.package-$2-name).package-revision="$($1.package-revision)" \
   $(foreach p,$($1.package-prereqs),$($p.package-$2-name).package-version="$($p.package-version)" $($p.package-$2-name).package-revision="$($p.package-revision)") \
+  add-debug-package=$(if $($1.package-add-debug-package),yes,no) \
 )
 
 #

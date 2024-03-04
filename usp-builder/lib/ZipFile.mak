@@ -61,12 +61,12 @@ override pdb-zip-basename := $(call pdb-base,$(package),$(pkg-version),$(pkg-rev
 override main-zip-filename := $(main-zip-basename).zip
 override pdb-zip-filename := $(pdb-zip-basename).zip
 
-override artifacts := $(patsubst $(artifacts-dir)/%,%,$(call find-files,%,$(artifacts-dir)))
+override artifacts := $(patsubst $(artifacts-dir)/%,%,$(call find-files-and-links,$(artifacts-dir)))
 
 override main-artifacts := $(filter-out %.pdb,$(artifacts))
 override main-artifact-dirs := $(call dedup,$(patsubst %/,%,$(dir $(main-artifacts))))
 
-override pdb-artifacts := $(if $(with-symbol-pkg),$(filter %.pdb,$(artifacts)),)
+override pdb-artifacts := $(if $(add-debug-package),$(filter %.pdb,$(artifacts)),)
 override pdb-artifact-dirs := $(call dedup,$(patsubst %/,%,$(dir $(pdb-artifacts))))
 
 override zip-options := -X $(if $(windows),,--symlinks)
@@ -81,7 +81,7 @@ override pdb-work-dir := $(packaging-work-dir)/$(pdb-zip-basename)
 all: zip-file
 
 .PHONY: zip-file
-zip-file: $(pkgs-dir)/$(main-zip-filename) $(if $(with-symbol-pkg),$(pkgs-dir)/$(pdb-zip-filename))
+zip-file: $(pkgs-dir)/$(main-zip-filename) $(if $(add-debug-package),$(pkgs-dir)/$(pdb-zip-filename))
 
 $(pkgs-dir)/$(main-zip-filename): \
   $(main-work-dir)/usp-meta/$(main-zip-basename).meta \

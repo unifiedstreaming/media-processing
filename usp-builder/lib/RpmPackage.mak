@@ -187,10 +187,10 @@ override rpm-debug-package-filename := $(package)-debuginfo-$(pkg-version)-$(pkg
 
 override rpm-work-dir := $(packaging-work-dir)/$(rpm-package-basename)
 
-override artifacts := $(patsubst $(artifacts-dir)/%,%,$(call find-files,%,$(artifacts-dir)))
+override artifacts := $(patsubst $(artifacts-dir)/%,%,$(call find-files-and-links,$(artifacts-dir)))
 
 #
-# $(call spec-file-content,<package>,<version>,<revision>,<description>,<license>,<prereq-package>*,<source artifact dir>,<source artifact>*,<conf file>,<doc file>*,<service file>*,<apache conf file>*)
+# $(call spec-file-content,<package>,<version>,<revision>,<description>,<license>,<prereq-package>*,<source artifact dir>,<source artifact>*,<conf file>,<doc file>*,<service file>*,<apache conf file>*,<add debug package>?)
 #
 # Please note that, in contrast to the way Debian handles things, the
 # default rpm systemd postinstall hook does not enable or start any
@@ -210,11 +210,11 @@ define spec-file-content =
 %global __os_install_post %(echo '%{__os_install_post}' | sed -e 's!/usr/lib[^[:space:]]*/brp-mangle-shebangs[[:space:]].*$$!!g')
 %global __os_install_post %(echo '%{__os_install_post}' | sed -e 's!/usr/lib[^[:space:]]*/brp-java-repack-jars[[:space:]].*$$!!g')
 
-$(if $(with-symbol-pkg),,%define _build_id_links none)
-$(if $(with-symbol-pkg),,%global debug_package %{nil})
-$(if $(with-symbol-pkg),,%global __os_install_post %{nil})
+$(if $(13),,%define _build_id_links none)
+$(if $(13),,%global debug_package %{nil})
+$(if $(13),,%global __os_install_post %{nil})
 
-$(if $(with-symbol-pkg),%define _debugsource_template %{nil})
+$(if $(13),%define _debugsource_template %{nil})
 
 Name: $1
 Version: $2
@@ -228,7 +228,7 @@ Provides: %{name} = %{version}
 %description
 $4
 
-$(if $(with-symbol-pkg),%debug_package)
+$(if $(13),%debug_package)
 
 %prep
 
@@ -277,7 +277,7 @@ all: rpm-package
 rpm-package: $(pkgs-dir)/$(rpm-package-filename)
 
 $(pkgs-dir)/$(rpm-package-filename): $(rpm-work-dir)/RPMS/$(rpm-arch)/$(rpm-package-filename) | $(pkgs-dir)
-ifdef with-symbol-pkg
+ifdef add-debug-package
 	$(usp-cp) "$(call to-shell,$(rpm-work-dir)/RPMS/$(rpm-arch)/$(rpm-debug-package-filename))" "$(call to-shell,$(pkgs-dir)/$(rpm-debug-package-filename))"
 endif
 	$(usp-cp) "$(call to-shell,$(rpm-work-dir)/RPMS/$(rpm-arch)/$(rpm-package-filename))" "$(call to-shell,$(pkgs-dir)/$(rpm-package-filename))"
@@ -289,7 +289,7 @@ $(rpm-work-dir)/RPMS/$(rpm-arch)/$(rpm-package-filename): $(rpm-work-dir)/SPECS/
 	rpmbuild -bb --define '_topdir $(rpm-work-dir)' $<
 
 $(rpm-work-dir)/SPECS/$(package).spec: $(rpm-work-dir)/SPECS
-	$(file >$@,$(call spec-file-content,$(package),$(pkg-version),$(pkg-revision),$(pkg-description),$(license),$(addsuffix ,$(prereq-packages)),$(artifacts-dir),$(artifacts),$(conf-files),$(doc-files),$(service-files),$(apache-conf-files)))
+	$(file >$@,$(call spec-file-content,$(package),$(pkg-version),$(pkg-revision),$(pkg-description),$(license),$(addsuffix ,$(prereq-packages)),$(artifacts-dir),$(artifacts),$(conf-files),$(doc-files),$(service-files),$(apache-conf-files),$(add-debug-package)))
 	$(info generated $@)
 
 $(rpm-work-dir)/SPECS: clean-rpm-work-dir
