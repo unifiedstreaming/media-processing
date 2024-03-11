@@ -960,3 +960,44 @@ update-link-rule = $(strip \
     $(usp-ln-sf) "$(call to-shell,$2)" "$(call to-shell,$1)" \
   ) \
 )
+
+#
+# $(call replace-item,<item>,[<original> <replacement>]*)
+#
+replace-item = $(strip \
+  $(if $(word 1,$2), \
+    $(if $(word 2,$2), \
+      $(if $(filter $(word 1,$2),$1), \
+        $(word 2,$2) \
+      , \
+        $(call replace-item,$1,$(wordlist 3,$(words $2),$2)) \
+      ) \
+    , \
+      $(error $(strip \
+        replace-item: replacements list has odd number of elements \
+      )) \
+    ) \
+  , \
+    $1 \
+  ) \
+)
+
+#
+# $(call replace-items,<item>*,[<original> <replacement>]*)
+#
+replace-items = $(strip \
+  $(foreach i,$1,$(call replace-item,$i,$2)) \
+)
+
+# 
+# $(call count-is-odd,<element>*)
+#
+count-is-odd = $(strip \
+  $(if $(word 1,$1), \
+    $(if $(word 2,$1), \
+      $(call count-is-odd,$(wordlist 3,$(words $1),$1)) \
+    , \
+      yes \
+    ) \
+  ) \
+)

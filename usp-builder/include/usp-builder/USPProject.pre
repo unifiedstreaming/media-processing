@@ -659,7 +659,7 @@ bjam-test-project = $(if $(call is-enabled,$1,$(bjam-test-keys)),$(call expand,$
 )))
 
 #
-# $(call package-impl,<package name>,<apk-name>?,<deb-name>?,<rpm-name>?,<zip-name>?,<project>*,<prereq-package>*,<license>,<doc file>*,<conf file>*,<service file>*,<openrc file>*,<apache conf-file>*,<apache-load-file>*,<version>,<revision>?,<add debug package>?)
+# $(call package-impl,<package name>,<project>*,<prereq-package>*,<license>,<doc file>*,<conf file>*,<service file>*,<openrc file>*,<apache conf-file>*,<apache-load-file>*,<version>,<revision>?,<add debug package>?)
 #
 define package-impl =
 #
@@ -667,30 +667,18 @@ define package-impl =
 #
 all-packages := $$(call add-package,$$(all-packages),$(call checked-package-name,$1))
 
-$1.package-apk-name := $(if $2,$2,$1)
-all-apk-packages := $$(call add-package,$$(all-apk-packages),$$($1.package-apk-name))
-
-$1.package-deb-name := $(if $3,$3,$1)
-all-deb-packages := $$(call add-package,$$(all-deb-packages),$$($1.package-deb-name))
-
-$1.package-rpm-name := $(if $4,$4,$1)
-all-rpm-packages := $$(call add-package,$$(all-rpm-packages),$$($1.package-rpm-name))
-
-$1.package-zip-name := $(if $5,$5,$1)
-all-zip-packages := $$(call add-package,$$(all-zip-packages),$$($1.package-zip-name))
-
-$1.package-projects := $6
-$1.package-prereqs := $7
-$1.package-license := $8
-$1.package-doc-files := $9
-$1.package-conf-files := $(10)
-$1.package-service-files := $(11)
-$1.package-openrc-files := $(12)
-$1.package-apache-conf-files := $(13)
-$1.package-apache-load-files := $(14)
-$1.package-version := $(15)
-$1.package-revision := $(if $(16),$(16),1)
-$1.package-add-debug-package := $(if $(17),yes)
+$1.package-projects := $2
+$1.package-prereqs := $3
+$1.package-license := $4
+$1.package-doc-files := $5
+$1.package-conf-files := $6
+$1.package-service-files := $7
+$1.package-openrc-files := $8
+$1.package-apache-conf-files := $9
+$1.package-apache-load-files := $(10)
+$1.package-version := $(11)
+$1.package-revision := $(if $(12),$(12),1)
+$1.package-add-debug-package := $(if $(13),yes)
 
 endef
 
@@ -701,10 +689,6 @@ endef
 # name                 package name
 # projects*            packaged projects
 # prereq-packages*     prerequisite packages
-# apk-name?            apk-specific package name override
-# deb-name?            deb-specific package name override
-# rpm-name?            rpm-specific package name override
-# zip-name?            zip-specific package name override
 # license              package license
 # doc-files*           package-specific documentation files
 # conf-files*          package-specific config files
@@ -720,10 +704,6 @@ package-keys := \
   name \
   projects \
   prereq-packages \
-  apk-name \
-  deb-name \
-  rpm-name \
-  zip-name \
   license \
   doc-files \
   conf-files \
@@ -739,10 +719,6 @@ package-keys := \
 package = $(if $(call is-enabled,$1,$(package-keys)),$(call expand,$(call call-stripped, \
   package-impl, \
   $(call get-value,name,$1,$(package-keys)), \
-  $(call find-value,apk-name,$1,$(package-keys)), \
-  $(call find-value,deb-name,$1,$(package-keys)), \
-  $(call find-value,rpm-name,$1,$(package-keys)), \
-  $(call find-value,zip-name,$1,$(package-keys)), \
   $(call find-values,projects,$1,$(package-keys)), \
   $(call find-values,prereq-packages,$1,$(package-keys)), \
   $(call get-value,license,$1,$(package-keys)), \
@@ -758,14 +734,70 @@ package = $(if $(call is-enabled,$1,$(package-keys)),$(call expand,$(call call-s
 )))
 
 #
-# Clear the lists of projects and packages just before reading the
-# project definition file
+# $(call map-apk-packages-impl,[<original> <replacement>]*)
+#
+define map-apk-packages-impl =
+
+apk-package.map := $1
+
+endef
+
+#
+# $(call map-apk-packages,[<original> <replacement>]*)
+#
+map-apk-packages = $(if $(call count-is-odd,$1),$(error apk package map has odd number of elements),$(call expand,$(call call-stripped,map-apk-packages-impl,$1)))
+
+#
+# $(call map-deb-packages-impl,[<original> <replacement>]*)
+#
+define map-deb-packages-impl =
+
+deb-package.map := $1
+
+endef
+
+#
+# $(call map-deb-packages,[<original> <replacement>]*)
+#
+map-deb-packages = $(if $(call count-is-odd,$1),$(error deb package map has odd number of elements),$(call expand,$(call call-stripped,map-deb-packages-impl,$1)))
+
+#
+# $(call map-rpm-packages-impl,[<original> <replacement>]*)
+#
+define map-rpm-packages-impl =
+
+rpm-package.map := $1
+
+endef
+
+#
+# $(call map-rpm-packages,[<original> <replacement>]*)
+#
+map-rpm-packages = $(if $(call count-is-odd,$1),$(error rpm package map has odd number of elements),$(call expand,$(call call-stripped,map-rpm-packages-impl,$1)))
+
+#
+# $(call map-zip-files-impl,[<original> <replacement>]*)
+#
+define map-zip-files-impl =
+
+zip-file.map := $1
+
+endef
+
+#
+# $(call map-zip-files,[<original> <replacement>]*)
+#
+map-zip-files = $(if $(call count-is-odd,$1),$(error zip file map has odd number of elements),$(call expand,$(call call-stripped,map-zip-files-impl,$1)))
+
+#
+# Clear the lists of projects and packages, as well as the package maps,
+# just before reading the project definition file
 #
 all-projects :=
 
 all-packages :=
 
-all-apk-packages :=
-all-deb-packages :=
-all-rpm-packages :=
-all-zip-packages :=
+apk-package.map :=
+deb-package.map :=
+rpm-package.map :=
+zip-file.map :=

@@ -213,6 +213,32 @@ $(foreach pkg,$(all-packages),$(call check-package-prereqs,$(pkg)))
 $(foreach pkg,$(all-packages),$(call check-packaged-projects,$(pkg)))
 
 #
+# Set packager-specific package names
+#
+$(foreach pkg,$(all-packages),$(call expand,$(pkg).package-apk-name := $(call replace-items,$(pkg),$(apk-package.map))))
+
+$(foreach pkg,$(all-packages),$(call expand,$(pkg).package-deb-name := $(call replace-items,$(pkg),$(deb-package.map))))
+
+$(foreach pkg,$(all-packages),$(call expand,$(pkg).package-rpm-name := $(call replace-items,$(pkg),$(rpm-package.map))))
+
+$(foreach pkg,$(all-packages),$(call expand,$(pkg).package-zip-name := $(call replace-items,$(pkg),$(zip-file.map))))
+
+#
+# Check for duplicate packager-specific package names
+#
+all-apk-packages :=
+$(foreach pkg,$(all-packages),$(eval all-apk-packages := $(call add-package,$(all-apk-packages),$($(pkg).package-apk-name))))
+
+all-deb-packages :=
+$(foreach pkg,$(all-packages),$(eval all-deb-packages := $(call add-package,$(all-deb-packages),$($(pkg).package-deb-name))))
+
+all-rpm-packages :=
+$(foreach pkg,$(all-packages),$(eval all-rpm-packages := $(call add-package,$(all-rpm-packages),$($(pkg).package-rpm-name))))
+
+all-zip-files :=
+$(foreach pkg,$(all-packages),$(eval all-zip-files := $(call add-package,$(all-zip-files),$($(pkg).package-zip-name))))
+
+#
 # Define artifact targets for all packages
 #
 $(strip \
