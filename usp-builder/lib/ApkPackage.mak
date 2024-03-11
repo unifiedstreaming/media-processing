@@ -39,7 +39,7 @@ check-package-not-installed = $(strip \
     $(error package "$1" appears to be installed - please purge it first) \
   ) \
 )
-  
+
 #
 # $(call checked-apk-arch,<output>)
 #
