@@ -659,7 +659,7 @@ bjam-test-project = $(if $(call is-enabled,$1,$(bjam-test-keys)),$(call expand,$
 )))
 
 #
-# $(call package-impl,<package name>,<project>*,<prereq-package>*,<license>,<doc file>*,<conf file>*,<service file>*,<openrc file>*,<apache conf-file>*,<apache-load-file>*,<version>,<revision>?,<add debug package>?)
+# $(call package-impl,<package name>,<project>*,<prereq-package>*,<license>,<doc file>*,<conf file>*,<service file>*,<openrc file>*,<apache conf-file>*,<apache-load-file>*,<version>,<revision>?,<add debug package>?,<extra prereq system package>*)
 #
 define package-impl =
 #
@@ -679,6 +679,7 @@ $1.package-apache-load-files := $(10)
 $1.package-version := $(11)
 $1.package-revision := $(if $(12),$(12),1)
 $1.package-add-debug-package := $(if $(13),yes)
+$1.package-extra-prereq-system-packages := $(14)
 
 endef
 
@@ -686,20 +687,21 @@ endef
 # $(call package,<properties>)
 #
 # properties are:
-# name                 package name
-# projects*            packaged projects
-# prereq-packages*     prerequisite packages
-# license              package license
-# doc-files*           package-specific documentation files
-# conf-files*          package-specific config files
-# service-files*       package-specific systemd service files
-# openrc-files*        package-specific openrc init files
-# apache-conf-files*   package-specific apache .conf file templates
-# apache-load-files*   package-specific apache .load file templates
-# version              package version
-# revision?            package revision?
-# enabled?             either 'yes' or 'no', defaults to yes
-# add-debug-package?   either 'yes' or 'no', defaults to yes
+# name                           package name
+# projects*                      packaged projects
+# prereq-packages*               prerequisite packages
+# license                        package license
+# doc-files*                     package-specific documentation files
+# conf-files*                    package-specific config files
+# service-files*                 package-specific systemd service files
+# openrc-files*                  package-specific openrc init files
+# apache-conf-files*             package-specific apache .conf file templates
+# apache-load-files*             package-specific apache .load file templates
+# version                        package version
+# revision?                      package revision
+# enabled?                       either 'yes' or 'no', defaults to yes
+# add-debug-package?             either 'yes' or 'no', defaults to yes
+# extra-prereq-system-packages*  extra prerequisite system packages  
 package-keys := \
   name \
   projects \
@@ -714,7 +716,8 @@ package-keys := \
   enabled \
   version \
   revision \
-  add-debug-package
+  add-debug-package \
+  extra-prereq-system-packages
   
 package = $(if $(call is-enabled,$1,$(package-keys)),$(call expand,$(call call-stripped, \
   package-impl, \
@@ -730,7 +733,8 @@ package = $(if $(call is-enabled,$1,$(package-keys)),$(call expand,$(call call-s
   $(call check-duplicate-basenames,$(call find-values,apache-load-files,$1,$(package-keys))), \
   $(call checked-package-version-or-revision,version,$(call get-value,version,$1,$(package-keys))), \
   $(call checked-package-version-or-revision,revision,$(call find-value,revision,$1,$(package-keys))), \
-  $(call find-boolean-value,add-debug-package,$1,$(package-keys),yes) \
+  $(call find-boolean-value,add-debug-package,$1,$(package-keys),yes), \
+  $(call find-values,extra-prereq-system-packages,$1,$(package-keys)) \
 )))
 
 #

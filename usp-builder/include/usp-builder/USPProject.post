@@ -141,6 +141,24 @@ check-packaged-projects = $(strip \
 )
 
 #
+# $(call get-package-map,<flavor>)
+#
+get-package-map = $(strip \
+  $(if $(filter zip,$1), \
+    $(zip-file.map) \
+  , \
+    $($1-package.map) \
+  ) \
+)
+
+#
+# $(call mapped-package-names,<package name>*,<flavor>)
+#
+mapped-package-names = $(strip \
+  $(sort $(call replace-items,$1,$(call get-package-map,$2))) \
+)
+  
+#
 # $(call native-packager-settings,<package>,<flavor>)
 #
 native-packager-settings = $(strip \
@@ -161,6 +179,7 @@ native-packager-settings = $(strip \
   $($1.package-$2-name).package-revision="$($1.package-revision)" \
   $(foreach p,$($1.package-prereqs),$($p.package-$2-name).package-version="$($p.package-version)" $($p.package-$2-name).package-revision="$($p.package-revision)") \
   add-debug-package=$(if $($1.package-add-debug-package),yes,no) \
+  extra-prereq-system-packages="$(call mapped-package-names,$($1.package-extra-prereq-system-packages),$2)" \
 )
 
 #
