@@ -156,13 +156,6 @@ checked-rpm-package-name = $(strip \
     $(call split-word,$(strip $1))) \
 )
 
-#
-# $(call required-system-packages,<artifact>*)
-#
-required-system-packages = $(strip \
-  $(if $(filter %.py,$1),python3) \
-)
-  
 override package := $(call checked-rpm-package-name,$(package))
 
 #
@@ -190,7 +183,7 @@ override rpm-work-dir := $(packaging-work-dir)/$(rpm-package-basename)
 override artifacts := $(patsubst $(artifacts-dir)/%,%,$(call find-files-and-links,$(artifacts-dir)))
 
 #
-# $(call spec-file-content,<package>,<version>,<revision>,<description>,<license>,<prereq-package>*,<source artifact dir>,<source artifact>*,<conf file>,<doc file>*,<service file>*,<apache conf file>*,<add debug package>?)
+# $(call spec-file-content,<package>,<version>,<revision>,<description>,<license>,<prereq-package>*,<source artifact dir>,<source artifact>*,<conf file>,<doc file>*,<service file>*,<apache conf file>*,<add debug package>?,<required system package>*)
 #
 # Please note that, in contrast to the way Debian handles things, the
 # default rpm systemd postinstall hook does not enable or start any
@@ -222,7 +215,7 @@ Release: $3
 Summary: $4
 License: $5
 $(if $(strip $(11)),BuildRequires: systemd$(newline)%{?systemd_requires})
-$(call requires-line,$(call required-system-packages,$8),$6)
+$(call requires-line,$(14),$6)
 Provides: %{name} = %{version}
 
 %description
@@ -289,7 +282,7 @@ $(rpm-work-dir)/RPMS/$(rpm-arch)/$(rpm-package-filename): $(rpm-work-dir)/SPECS/
 	rpmbuild -bb --define '_topdir $(rpm-work-dir)' $<
 
 $(rpm-work-dir)/SPECS/$(package).spec: $(rpm-work-dir)/SPECS
-	$(file >$@,$(call spec-file-content,$(package),$(pkg-version),$(pkg-revision),$(pkg-description),$(license),$(addsuffix ,$(prereq-packages)),$(artifacts-dir),$(artifacts),$(conf-files),$(doc-files),$(service-files),$(apache-conf-files),$(add-debug-package)))
+	$(file >$@,$(call spec-file-content,$(package),$(pkg-version),$(pkg-revision),$(pkg-description),$(license),$(addsuffix ,$(prereq-packages)),$(artifacts-dir),$(artifacts),$(conf-files),$(doc-files),$(service-files),$(apache-conf-files),$(add-debug-package),$(extra-prereq-system-packages)))
 	$(info generated $@)
 
 $(rpm-work-dir)/SPECS: clean-rpm-work-dir

@@ -35,11 +35,12 @@ main-base = $1_$2-$3
 pdb-base = $1-pdb_$2-$3
 
 #
-# $(call main-meta-content,<package>,<version>,<revision>,<prereq package>*)
+# $(call main-meta-content,<package>,<version>,<revision>,<prereq package>*,<prereq system package>*)
 #
 define main-meta-content =
 package: $(call main-base,$1,$2,$3)
 requires: $(foreach p,$4,$(call main-base,$p,$(call get-package-version,$p),$(call get-package-revision,$p)))
+system-requirements: $(strip $5) 
 
 endef
 
@@ -49,6 +50,7 @@ endef
 define pdb-meta-content =
 package: $(call pdb-base,$1,$2,$3)
 requires: $(call main-base,$1,$2,$3)
+system-requirements:
 
 endef
 
@@ -98,7 +100,7 @@ $(pkgs-dir)/$(main-zip-filename): \
 
 $(main-work-dir)/usp-meta/$(main-zip-basename).meta: \
   $(main-work-dir)/usp-meta
-	$(file >$@,$(call main-meta-content,$(package),$(pkg-version),$(pkg-revision),$(prereq-packages)))
+	$(file >$@,$(call main-meta-content,$(package),$(pkg-version),$(pkg-revision),$(prereq-packages),$(extra-prereq-system-packages)))
 	$(info generated $@)
 	
 $(main-work-dir)/usp-meta: clean-main-work-dir

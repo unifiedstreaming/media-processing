@@ -93,13 +93,6 @@ checked-apk-package-name = $(strip \
 )
 
 #
-# $(call required-system-packages,<artifact>*)
-#
-required-system-packages = $(strip \
-  $(if $(filter %.py,$1),python3) \
-)
-  
-#
 # $(call depends-listing,<system package>*,<prereq package>*)
 #
 depends-listing = $(strip \
@@ -174,7 +167,7 @@ exit 0
 endef
 
 #
-# $(call apkbuild-content,<package>,<version>,<revision>,<description>,<maintainer>,<prereq package>*,<license>,<artifacts-dir>,<artifact>*,<conf file>*,<doc file>*,<openrc file>*,<apache conf file>*,<add debug package>?)
+# $(call apkbuild-content,<package>,<version>,<revision>,<description>,<maintainer>,<prereq package>*,<license>,<artifacts-dir>,<artifact>*,<conf file>*,<doc file>*,<openrc file>*,<apache conf file>*,<add debug package>?,<required system package>*)
 #
 define apkbuild-content =
 pkgname="$1"
@@ -185,7 +178,7 @@ pkgdesc="$4"
 url="FIXME"
 arch="all"
 license="$7"
-depends="$(call depends-listing,$(call required-system-packages,$9),$6)"
+depends="$(call depends-listing,$(15),$6)"
 subpackages="$(foreach s,$(if $(14),$$pkgname-dbg) $(if $(11),$$pkgname-doc),$s)"
 source=""
 options="!fhs$(if $(14),, !dbg !strip)"
@@ -259,7 +252,7 @@ build-apk-packages: $(apk-work-dir)/APKBUILD \
 	cd "$(call to-shell,$(apk-work-dir))" && abuild -m -d -P "$(call to-shell,$(abuild-output-dir))"
 	
 $(apk-work-dir)/APKBUILD: clean-apk-work-dir
-	$(file >$@,$(call apkbuild-content,$(package),$(pkg-version),$(pkg-revision),$(pkg-description),$(pkg-maintainer),$(prereq-packages),$(license),$(artifacts-dir),$(artifacts),$(conf-files),$(doc-files),$(openrc-files),$(apache-conf-files),$(add-debug-package)))
+	$(file >$@,$(call apkbuild-content,$(package),$(pkg-version),$(pkg-revision),$(pkg-description),$(pkg-maintainer),$(prereq-packages),$(license),$(artifacts-dir),$(artifacts),$(conf-files),$(doc-files),$(openrc-files),$(apache-conf-files),$(add-debug-package),$(extra-prereq-system-packages)))
 	$(info generated $@)
 	
 #

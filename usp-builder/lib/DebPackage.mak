@@ -95,14 +95,7 @@ checked-deb-package-name = $(call checked-package-name,$1)
 override package := $(call checked-deb-package-name,$(package))
 
 #
-# $(call required-system-packages,<artifact>*)
-#
-required-system-packages = $(strip \
-  $(if $(filter %.py,$1),python3) \
-)
-  
-#
-# $(call control-content,<package name>,<maintainer>,<description>,<prereq package>*,<artifact>*)
+# $(call control-content,<package name>,<maintainer>,<description>,<prereq package>*,<required system package>*)
 #
 define control-content =
 Source: $1
@@ -112,7 +105,7 @@ Maintainer: $2
 Package: $1
 Architecture: $(call get-deb-arch)
 Description: $3
-Depends: $(strip $(foreach p,$(call required-system-packages,$5),$p$(comma)) $(foreach p,$4, $p (= $(call get-package-version,$p)-$(call get-package-revision,$p))$(comma)) $${misc:Depends}$(comma) $${shlibs:Depends})
+Depends: $(strip $(foreach p,$5,$p$(comma)) $(foreach p,$4, $p (= $(call get-package-version,$p)-$(call get-package-revision,$p))$(comma)) $${misc:Depends}$(comma) $${shlibs:Depends})
 Section: misc
 Priority: optional
 
@@ -267,7 +260,7 @@ $(deb-work-dir)/debian/compat: $(deb-work-dir)/debian
 	$(info generated $@)
 
 $(deb-work-dir)/debian/control: $(deb-work-dir)/debian
-	$(file >$@,$(call control-content,$(package),$(pkg-maintainer),$(pkg-description),$(foreach p,$(prereq-packages),$p),$(artifacts)))
+	$(file >$@,$(call control-content,$(package),$(pkg-maintainer),$(pkg-description),$(foreach p,$(prereq-packages),$p),$(extra-prereq-system-packages)))
 	$(info generated $@)
 
 $(deb-work-dir)/debian/rules: $(deb-work-dir)/debian
