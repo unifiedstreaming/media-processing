@@ -243,10 +243,19 @@ gmake-deploy-options = $(strip \
 )
 
 #
-# $(call gmake-package-options,<project name>)
+# $(call gmake-custom-package-options,<project name>)
 # (to be evaluated very lazily, as part of a recipe)
 #
-gmake-package-options = $(strip \
+gmake-custom-package-options = $(strip \
+  $(call gmake-options,$1) \
+  pkgs-dir="$(call to-shell,$(call non-relative-path,$(call required-value,pkgs-dir)))" \
+)
+
+#
+# $(call gmake-project-artifact-options,<project name>)
+# (to be evaluated very lazily, as part of a recipe)
+#
+gmake-project-artifact-options = $(strip \
   $(call gmake-options,$1) \
   dest-dir="$(call to-shell,$(call project-artifacts-dir,$1))" \
 )
@@ -276,11 +285,15 @@ $1.all: build-dir-skeleton $(addsuffix .stage,$4)
 $1.stage: $1.all
 	$$(MAKE) -I $(usp-builder-include-dir) -C $(dir $3) -f $(notdir $3) $$(call gmake-options,$1) $(build-settings) stage
 
+.PHONY: $1.custom-package
+$1.custom-package: build-dir-skeleton $(addsuffix .stage,$4)
+	$$(MAKE) -I $(usp-builder-include-dir) -C $(dir $3) -f $(notdir $3) $$(call gmake-custom-package-options,$1) $(build-settings) custom-package
+
 .PHONY: $1.deploy
 $1.deploy: $1.all $(addsuffix .deploy,$4)
 	$$(MAKE) -I $(usp-builder-include-dir) -C $(dir $3) -f $(notdir $3) $$(call gmake-deploy-options,$1) $(build-settings) deploy
 
-$(if $5,.PHONY: $1.project-artifacts$(newline)$1.project-artifacts: $1.all$(newline)$(tab)$$(MAKE) -I $(usp-builder-include-dir) -C $(dir $3) -f $(notdir $3) $$(call gmake-package-options,$1) $(build-settings) deploy)
+$(if $5,.PHONY: $1.project-artifacts$(newline)$1.project-artifacts: $1.all$(newline)$(tab)$$(MAKE) -I $(usp-builder-include-dir) -C $(dir $3) -f $(notdir $3) $$(call gmake-project-artifact-options,$1) $(build-settings) deploy)
 
 .PHONY: $1.clean
 $1.clean:
