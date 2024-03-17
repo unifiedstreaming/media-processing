@@ -22,6 +22,9 @@ project oss
   <target-os>windows:<define>NOMINMAX
   <target-os>windows:<define>WIN32_LEAN_AND_MEAN
   <threading>multi
+  <target-os>darwin:<linkflags>-Wl,-rpath,@loader_path/../lib
+  <target-os>freebsd:<linkflags>-Wl,--enable-new-dtags
+  <target-os>freebsd:<linkflags>-Wl,-rpath,\\$ORIGIN/../lib
   <target-os>linux:<linkflags>-Wl,--enable-new-dtags
   <target-os>linux:<linkflags>-Wl,-rpath,\\$ORIGIN/../lib
   <local-visibility>hidden
