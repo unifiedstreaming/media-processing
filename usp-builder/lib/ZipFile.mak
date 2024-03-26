@@ -25,31 +25,31 @@
 include usp-builder/USPPackaging.mki
 
 #
-# $(call main-base,<package>,<version>,<revision>,<platform>?)
+# $(call main-base,<package>,<version>,<revision>)
 #
-main-base = $1_$2-$3$(if $4,-$4)
+main-base = $1_$2-$3
 
 #
-# $(call pdb-base,<package>,<version>,<revision>,<platform>?)
+# $(call pdb-base,<package>,<version>,<revision>)
 #
-pdb-base = $1-pdb_$2-$3$(if $4,-$4)
+pdb-base = $1-pdb_$2-$3
 
 #
-# $(call main-meta-content,<package>,<version>,<revision>,<prereq package>*,<prereq system package>*,<platform>?)
+# $(call main-meta-content,<package>,<version>,<revision>,<prereq package>*,<prereq system package>*)
 #
 define main-meta-content =
-package: $(call main-base,$1,$2,$3,$6)
-requires: $(foreach p,$4,$(call main-base,$p,$(call get-package-version,$p),$(call get-package-revision,$p),$6))
+package: $(call main-base,$1,$2,$3)
+requires: $(foreach p,$4,$(call main-base,$p,$(call get-package-version,$p),$(call get-package-revision,$p)))
 system-requirements: $(strip $5) 
 
 endef
 
 #
-# $(call pdb-meta-content,<package>,<version>,<revision>,<platform>?)
+# $(call pdb-meta-content,<package>,<version>,<revision>)
 #
 define pdb-meta-content =
-package: $(call pdb-base,$1,$2,$3,$4)
-requires: $(call main-base,$1,$2,$3,$4)
+package: $(call pdb-base,$1,$2,$3)
+requires: $(call main-base,$1,$2,$3)
 system-requirements:
 
 endef
@@ -57,9 +57,8 @@ endef
 #
 # Set some derived variables
 #
-override platform-id := $(if $(windows),win$(address-model),)
-override main-zip-basename := $(call main-base,$(package),$(pkg-version),$(pkg-revision),$(platform-id))
-override pdb-zip-basename := $(call pdb-base,$(package),$(pkg-version),$(pkg-revision),$(platform-id))
+override main-zip-basename := $(call main-base,$(package),$(pkg-version),$(pkg-revision))
+override pdb-zip-basename := $(call pdb-base,$(package),$(pkg-version),$(pkg-revision))
 
 override main-zip-filename := $(main-zip-basename).zip
 override pdb-zip-filename := $(pdb-zip-basename).zip
@@ -101,7 +100,7 @@ $(pkgs-dir)/$(main-zip-filename): \
 
 $(main-work-dir)/usp-meta/$(main-zip-basename).meta: \
   $(main-work-dir)/usp-meta
-	$(file >$@,$(call main-meta-content,$(package),$(pkg-version),$(pkg-revision),$(prereq-packages),$(extra-prereq-system-packages),$(platform-id)))
+	$(file >$@,$(call main-meta-content,$(package),$(pkg-version),$(pkg-revision),$(prereq-packages),$(extra-prereq-system-packages)))
 	$(info generated $@)
 	
 $(main-work-dir)/usp-meta: clean-main-work-dir
@@ -123,7 +122,7 @@ $(pkgs-dir)/$(pdb-zip-filename): \
 
 $(pdb-work-dir)/usp-meta/$(pdb-zip-basename).meta: \
   $(pdb-work-dir)/usp-meta
-	$(file >$@,$(call pdb-meta-content,$(package),$(pkg-version),$(pkg-revision),$(platform-id)))
+	$(file >$@,$(call pdb-meta-content,$(package),$(pkg-version),$(pkg-revision)))
 	$(info generated $@)
 
 $(pdb-work-dir)/usp-meta: clean-pdb-work-dir
