@@ -221,7 +221,14 @@ rule python-sysconfig-var ( name )
 
 rule python-rtlib-include-dir ( )
 {
-  return [ python-sysconfig-path "include" ] ;
+  if [ os.name ] = MACOSX
+  {
+    return [ python-sysconfig-var "INCLUDEPY" ] ;
+  }
+  else
+  {
+    return [ python-sysconfig-path "include" ] ;
+  }
 }
 
 rule python-rtlib-filepath ( )
