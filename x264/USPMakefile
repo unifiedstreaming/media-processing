@@ -99,7 +99,7 @@ else
   #
   $(warning using pre-built binaries)
 
-  prebuilt-dir := $(x264-src-dir)/prebuilt/msvc-14.2/$(variant)/address-model-$(address-model)
+  prebuilt-dir := $(x264-src-dir)/prebuilt/msvc-14.3/$(variant)/address-model-$(address-model)
   filenames := $(patsubst $(prebuilt-dir)/%,%,$(call find-files,%,$(prebuilt-dir)))
   staged-files := $(addprefix $(stage-dir)/,$(filenames))
   staged-subdirs := $(sort $(abspath $(dir $(staged-files))))
