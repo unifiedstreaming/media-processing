@@ -55,10 +55,12 @@ struct subroutine_t
   subroutine_t& operator=(subroutine_t const&) = delete;
   
   template<typename... Args>
-  void start(on_success_t on_success, Args&&... args)
+  void start(stack_marker_t& base_marker,
+             on_success_t on_success,
+             Args&&... args)
   {
     subresult_.start_child(
-      on_success, child_, std::forward<Args>(args)...);
+      base_marker, on_success, child_, std::forward<Args>(args)...);
   }
     
 private :

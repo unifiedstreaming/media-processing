@@ -57,7 +57,10 @@ void nb_inbuf_t::enable_throughput_checking(throughput_settings_t settings)
     
     auto guard = make_scoped_guard([&] { checker_.reset(); });
     alarm_ticket_ = scheduler_->call_alarm(
-      checker_->next_tick(), [this] { this->on_next_tick(); });
+      checker_->next_tick(),
+      [this](stack_marker_t& base_marker)
+      { this->on_next_tick(base_marker); }
+    );
     guard.dismiss();
   }
 }
@@ -99,19 +102,29 @@ void nb_inbuf_t::call_when_readable(scheduler_t& scheduler,
 
   if(this->readable())
   {
-    alarm_ticket_ = scheduler.call_alarm(duration_t(0),
-      [this] { this->on_already_readable(); });
+    alarm_ticket_ = scheduler.call_alarm(
+      duration_t(0),
+      [this](stack_marker_t& base_marker)
+      { this->on_already_readable(base_marker);
+      }
+    );
   }
   else
   {
-    auto readable_ticket = source_->call_when_readable(scheduler,
-      [this] { this->on_source_readable(); });
+    auto readable_ticket = source_->call_when_readable(
+      scheduler,
+      [this](stack_marker_t& base_marker)
+      { this->on_source_readable(base_marker); }
+    );
     if(checker_ != std::nullopt)
     {
       auto guard = make_scoped_guard(
         [&] { scheduler.cancel(readable_ticket); });
-      alarm_ticket_ = scheduler.call_alarm(checker_->next_tick(),
-        [this] { this->on_next_tick(); });
+      alarm_ticket_ = scheduler.call_alarm(
+        checker_->next_tick(),
+        [this](stack_marker_t& base_marker)
+        { this->on_next_tick(base_marker); }
+     );
       guard.dismiss();
     }
     readable_ticket_ = readable_ticket;
@@ -147,7 +160,7 @@ nb_inbuf_t::~nb_inbuf_t()
   delete[] buf_;
 }
 
-void nb_inbuf_t::on_already_readable()
+void nb_inbuf_t::on_already_readable(stack_marker_t& base_marker)
 {
   assert(readable_ticket_.empty());
   assert(!alarm_ticket_.empty());
@@ -157,10 +170,10 @@ void nb_inbuf_t::on_already_readable()
   scheduler_ = nullptr;
   auto callback = std::move(callback_);
   
-  callback();
+  callback(base_marker);
 }
 
-void nb_inbuf_t::on_source_readable()
+void nb_inbuf_t::on_source_readable(stack_marker_t& base_marker)
 {
   assert(!this->readable());
 
@@ -194,8 +207,11 @@ void nb_inbuf_t::on_source_readable()
     // spurious wakeup: reschedule
     auto guard = make_scoped_guard(
       [this] { this->cancel_when_readable(); });
-    readable_ticket_ = source_->call_when_readable(*scheduler_,
-      [this] { this->on_source_readable(); });
+    readable_ticket_ = source_->call_when_readable(
+      *scheduler_,
+      [this](stack_marker_t& base_marker)
+      { this->on_source_readable(base_marker); }
+    );
     guard.dismiss();
     return;
   }
@@ -215,10 +231,10 @@ void nb_inbuf_t::on_source_readable()
   scheduler_ = nullptr;
   auto callback = std::move(callback_);
 
-  callback();
+  callback(base_marker);
 }
 
-void nb_inbuf_t::on_next_tick()
+void nb_inbuf_t::on_next_tick(stack_marker_t& base_marker)
 {
   assert(!this->readable());
 
@@ -237,8 +253,11 @@ void nb_inbuf_t::on_next_tick()
     // schedule next tick
     auto guard = make_scoped_guard(
       [this] { this->cancel_when_readable(); });
-    alarm_ticket_ = scheduler_->call_alarm(checker_->next_tick(),
-      [this] { this->on_next_tick(); });
+    alarm_ticket_ = scheduler_->call_alarm(
+      checker_->next_tick(),
+      [this](stack_marker_t& base_marker)
+      { this->on_next_tick(base_marker); }
+    );
     guard.dismiss();
     return;
   }
@@ -254,7 +273,7 @@ void nb_inbuf_t::on_next_tick()
   scheduler_ = nullptr;
   auto callback = std::move(callback_);
 
-  callback();
+  callback(base_marker);
 }    
     
 } // cuti

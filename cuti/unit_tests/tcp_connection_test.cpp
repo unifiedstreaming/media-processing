@@ -30,6 +30,7 @@
 #include <cuti/scoped_thread.hpp>
 #include <cuti/selector.hpp>
 #include <cuti/selector_factory.hpp>
+#include <cuti/stack_marker.hpp>
 #include <cuti/streambuf_backend.hpp>
 #include <cuti/tcp_connection.hpp>
 
@@ -509,8 +510,11 @@ struct producer_t
   {
     if(self->writable_ticket_.empty() && self->wants_write())
     {
-      self->writable_ticket_ = self->out_.call_when_writable(scheduler,
-        [ self, &scheduler ] { self->on_writable(self, scheduler); });
+      self->writable_ticket_ = self->out_.call_when_writable(
+        scheduler,
+        [self, &scheduler](stack_marker_t&)
+	{ self->on_writable(self, scheduler); }
+      );
     }
   }
 
@@ -604,14 +608,20 @@ struct filter_t
   {
     if(self->readable_ticket_.empty() && self->wants_read())
     {
-      self->readable_ticket_ = self->in_.call_when_readable(scheduler,
-        [ self, &scheduler ] { self->on_readable(self, scheduler); });
+      self->readable_ticket_ = self->in_.call_when_readable(
+        scheduler,
+        [self, &scheduler](stack_marker_t&)
+	{ self->on_readable(self, scheduler); }
+      );
     }
 
     if(self->writable_ticket_.empty() && self->wants_write())
     {
-      self->writable_ticket_ = self->out_.call_when_writable(scheduler,
-        [ self, &scheduler ] { self->on_writable(self, scheduler); });
+      self->writable_ticket_ = self->out_.call_when_writable(
+        scheduler,
+        [self, &scheduler](stack_marker_t&)
+	{ self->on_writable(self, scheduler); }
+      );
     }
   }
 
@@ -740,8 +750,11 @@ struct consumer_t
   {
     if(self->readable_ticket_.empty() && self->wants_read())
     {
-      self->readable_ticket_ = self->in_.call_when_readable(scheduler,
-        [ self, &scheduler ] { self->on_readable(self, scheduler); });
+      self->readable_ticket_ = self->in_.call_when_readable(
+        scheduler,
+        [self, &scheduler](stack_marker_t&)
+        { self->on_readable(self, scheduler); }
+      );
     }
   }
 
@@ -956,9 +969,10 @@ void selected_transfer(logging_context_t const& context,
   auto consumer = start_event_handler<consumer_t>(scheduler,
     context, *consumer_in, first, last, bufsize);
 
+  stack_marker_t base_marker;
   while(auto callback = scheduler.wait())
   {
-    callback();
+    callback(base_marker);
   }
 
   assert(consumer->done());
@@ -1078,9 +1092,10 @@ void selected_client_server(logging_context_t const& context,
   auto consumer = start_event_handler<consumer_t>(scheduler,
     context, *client_side, first, last, bufsize);
 
+  stack_marker_t base_marker;
   while(auto callback = scheduler.wait())
   {
-    callback();
+    callback(base_marker);
   }
 
   assert(consumer->done());
@@ -1160,10 +1175,10 @@ void scheduler_switch(logging_context_t const& context,
   cancellation_ticket_t readable;
   assert(readable.empty());
 
-  writable = client->call_when_writable(sched1, [] { });
+  writable = client->call_when_writable(sched1, [](stack_marker_t&) { });
   assert(!writable.empty());
 
-  readable = server->call_when_readable(sched1, [] { });
+  readable = server->call_when_readable(sched1, [](stack_marker_t&) { });
   assert(!readable.empty());
 
   assert(sched1.wait() != nullptr);
@@ -1171,19 +1186,19 @@ void scheduler_switch(logging_context_t const& context,
   assert(sched1.wait() == nullptr);
   assert(sched2.wait() == nullptr);
 
-  writable = client->call_when_writable(sched1, [] { });
+  writable = client->call_when_writable(sched1, [](stack_marker_t&) { });
   assert(!writable.empty());
 
-  readable = server->call_when_readable(sched1, [] { });
+  readable = server->call_when_readable(sched1, [](stack_marker_t&) { });
   assert(!readable.empty());
 
   sched1.cancel(writable);
   sched1.cancel(readable);
 
-  writable = client->call_when_writable(sched2, [] { });
+  writable = client->call_when_writable(sched2, [](stack_marker_t&) { });
   assert(!writable.empty());
 
-  readable = server->call_when_readable(sched2, [] { });
+  readable = server->call_when_readable(sched2, [](stack_marker_t&) { });
   assert(!readable.empty());
 
   assert(sched1.wait() == nullptr);
@@ -1191,19 +1206,19 @@ void scheduler_switch(logging_context_t const& context,
   assert(sched2.wait() != nullptr);
   assert(sched2.wait() == nullptr);
 
-  writable = client->call_when_writable(sched2, [] { });
+  writable = client->call_when_writable(sched2, [](stack_marker_t&) { });
   assert(!writable.empty());
 
-  readable = server->call_when_readable(sched2, [] { });
+  readable = server->call_when_readable(sched2, [](stack_marker_t&) { });
   assert(!readable.empty());
 
   sched2.cancel(writable);
   sched2.cancel(readable);
 
-  writable = client->call_when_writable(sched1, [] { });
+  writable = client->call_when_writable(sched1, [](stack_marker_t&) { });
   assert(!writable.empty());
 
-  readable = server->call_when_readable(sched1, [] { });
+  readable = server->call_when_readable(sched1, [](stack_marker_t&) { });
   assert(!readable.empty());
 
   assert(sched1.wait() != nullptr);

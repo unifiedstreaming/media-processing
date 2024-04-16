@@ -26,6 +26,7 @@
 #include <cuti/method_runner.hpp>
 #include <cuti/nb_string_inbuf.hpp>
 #include <cuti/nb_string_outbuf.hpp>
+#include <cuti/stack_marker.hpp>
 
 #include <cstring>
 #include <stdexcept>
@@ -52,9 +53,9 @@ struct succeed_t
   : result_(result)
   { }
 
-  void start()
+  void start(stack_marker_t& base_marker)
   {
-    result_.submit();
+    result_.submit(base_marker);
   }
 
 private :
@@ -75,9 +76,9 @@ struct fail_t
   : result_(result)
   { }
 
-  void start()
+  void start(stack_marker_t& base_marker)
   {
-    result_.fail(std::runtime_error("method failed"));
+    result_.fail(base_marker, std::runtime_error("method failed"));
   }
 
 private :
@@ -100,15 +101,15 @@ struct configurable_t
   , fail_(fail)
   { }
 
-  void start()
+  void start(stack_marker_t& base_marker)
   {
     if(fail_)
     {
-      result_.fail(std::runtime_error("configured to fail"));
+      result_.fail(base_marker, std::runtime_error("configured to fail"));
       return;
     }
 
-    result_.submit();
+    result_.submit(base_marker);
   }
 
 private :
@@ -146,10 +147,11 @@ void test_method(
   auto nb_outbuf = make_nb_string_outbuf(output);
 
   default_scheduler_t scheduler;
+
+  bound_inbuf_t bound_inbuf(*nb_inbuf, scheduler);
+  bound_outbuf_t bound_outbuf(*nb_outbuf, scheduler);
+
   stack_marker_t base_marker;
-  
-  bound_inbuf_t bound_inbuf(base_marker, *nb_inbuf, scheduler);
-  bound_outbuf_t bound_outbuf(base_marker, *nb_outbuf, scheduler);
 
   /*
    * Set up method runner
@@ -159,7 +161,7 @@ void test_method(
     logging_context, bound_inbuf, bound_outbuf, method_map);
 
   // All sample methods used here submit immediately
-  runner.start(method_name);
+  runner.start(base_marker, method_name);
   assert(final_result.available());
 
   if(expected_what.empty())

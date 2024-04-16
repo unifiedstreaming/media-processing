@@ -78,22 +78,25 @@ struct token_suffix_writer_t
   token_suffix_writer_t(token_suffix_writer_t const&) = delete;
   token_suffix_writer_t& operator=(token_suffix_writer_t const&) = delete;
   
-  void start()
+  void start(stack_marker_t& base_marker)
   {
     p_ = Literal;
 
     stack_marker_t marker;
-    if(marker.in_range(buf_.base_marker()))
+    if(marker.in_range(base_marker))
     {
-      this->write_chars();
+      this->write_chars(base_marker);
       return;
     }
 
-    buf_.call_when_writable([this] { this->write_chars(); });
+    buf_.call_when_writable(
+      [this](stack_marker_t& base_marker)
+      { this->write_chars(base_marker); }
+    );
   }
 
 private :
-  void write_chars()
+  void write_chars(stack_marker_t& base_marker)
   {
     while(*p_ != '\0' && buf_.writable())
     {
@@ -103,11 +106,14 @@ private :
 
     if(*p_ != '\0')
     {
-      buf_.call_when_writable([this] { this->write_chars(); });
+      buf_.call_when_writable(
+        [this](stack_marker_t& base_marker)
+        { this->write_chars(base_marker); }
+      );
       return;
     }
 
-    result_.submit();
+    result_.submit(base_marker);
   }
 
 private :
@@ -132,10 +138,10 @@ struct CUTI_ABI digits_writer_t
   digits_writer_t(digits_writer_t const&) = delete;
   digits_writer_t& operator=(digits_writer_t const&) = delete;
   
-  void start(T value);
+  void start(stack_marker_t& base_marker, T value);
 
 private :
-  void write_digits();
+  void write_digits(stack_marker_t& base_marker);
 
 private :
   result_t<void>& result_;
@@ -162,10 +168,10 @@ struct CUTI_ABI boolean_writer_t
   boolean_writer_t(boolean_writer_t const&) = delete;
   boolean_writer_t& operator=(boolean_writer_t const&) = delete;
   
-  void start(T value);
+  void start(stack_marker_t& base_marker, T value);
 
 private :
-  void on_done();
+  void on_done(stack_marker_t& base_marker);
 
 private :
   result_t<void>& result_;
@@ -190,11 +196,11 @@ struct CUTI_ABI unsigned_writer_t
   unsigned_writer_t(unsigned_writer_t const&) = delete;
   unsigned_writer_t& operator=(unsigned_writer_t const&) = delete;
 
-  void start(T value);
+  void start(stack_marker_t& base_marker, T value);
 
 private :
-  void on_digits_written();
-  void on_space_written();
+  void on_digits_written(stack_marker_t& base_marker);
+  void on_space_written(stack_marker_t& base_marker);
 
 private :
   result_t<void>& result_;
@@ -220,14 +226,14 @@ struct CUTI_ABI signed_writer_t
   signed_writer_t(signed_writer_t const&) = delete;
   signed_writer_t& operator=(signed_writer_t const&) = delete;
 
-  void start(T value);
+  void start(stack_marker_t& base_marker, T value);
 
 private :
   using UT = std::make_unsigned_t<T>;
 
-  void write_minus();
-  void on_digits_written();
-  void on_space_written();
+  void write_minus(stack_marker_t& base_marker);
+  void on_digits_written(stack_marker_t& base_marker);
+  void on_space_written(stack_marker_t& base_marker);
 
 private :
   result_t<void>& result_;
@@ -260,13 +266,13 @@ struct CUTI_ABI blob_writer_t
   blob_writer_t(blob_writer_t const&) = delete;
   blob_writer_t& operator=(blob_writer_t const&) = delete;
   
-  void start(T value);
+  void start(stack_marker_t& base_marker, T value);
 
 private :
-  void write_opening_dq();
-  void write_contents();
-  void write_escaped();
-  void on_suffix_written();
+  void write_opening_dq(stack_marker_t& base_marker);
+  void write_contents(stack_marker_t& base_marker);
+  void write_escaped(stack_marker_t& base_marker);
+  void on_suffix_written(stack_marker_t& base_marker);
 
 private :
   result_t<void>& result_;
@@ -293,11 +299,11 @@ struct CUTI_ABI identifier_writer_t
   identifier_writer_t(identifier_writer_t const&) = delete;
   identifier_writer_t& operator=(identifier_writer_t const&) = delete;
 
-  void start(identifier_t value);
+  void start(stack_marker_t& base_marker, identifier_t value);
 
 private :
-  void write_contents();
-  void on_space_written();
+  void write_contents(stack_marker_t& base_marker);
+  void on_space_written(stack_marker_t& base_marker);
 
 private :
   result_t<void>& result_;
@@ -331,14 +337,14 @@ struct sequence_writer_t
   sequence_writer_t(sequence_writer_t const&) = delete;
   sequence_writer_t& operator=(sequence_writer_t const&) = delete;
   
-  void start(producer_t<T>& producer)
+  void start(stack_marker_t& base_marker, producer_t<T>& producer)
   {
     producer_ = &producer;
-    begin_writer_.start(&sequence_writer_t::write_elements);
+    begin_writer_.start(base_marker, &sequence_writer_t::write_elements);
   }
 
 private :
-  void write_elements()
+  void write_elements(stack_marker_t& base_marker)
   {
     assert(producer_ != nullptr);
 
@@ -349,24 +355,24 @@ private :
     }
     catch(std::exception const&)
     {
-      result_.fail(std::current_exception());
+      result_.fail(base_marker, std::current_exception());
       return;
     }
    
     if(element != std::nullopt)
     {
       element_writer_.start(
-        &sequence_writer_t::write_elements, std::move(*element));
+        base_marker, &sequence_writer_t::write_elements, std::move(*element));
       return;
     }
 
     producer_ = nullptr;
-    end_writer_.start(&sequence_writer_t::on_end_written);
+    end_writer_.start(base_marker, &sequence_writer_t::on_end_written);
   }
       
-  void on_end_written()
+  void on_end_written(stack_marker_t& base_marker)
   {
-    result_.submit();
+    result_.submit(base_marker);
   }
 
 private :
@@ -410,18 +416,18 @@ struct optional_writer_t
   optional_writer_t(optional_writer_t const&) = delete;
   optional_writer_t& operator=(optional_writer_t const&) = delete;
   
-  void start(std::optional<T> value)
+  void start(stack_marker_t& base_marker, std::optional<T> value)
   {
     producer_.emplace(std::move(value));
     sequence_writer_.start(
-      &optional_writer_t::on_sequence_written, *producer_);
+      base_marker, &optional_writer_t::on_sequence_written, *producer_);
   }
 
 private :
-  void on_sequence_written()
+  void on_sequence_written(stack_marker_t& base_marker)
   {
     producer_.reset();
-    result_.submit();
+    result_.submit(base_marker);
   }
 
 private :
@@ -472,17 +478,18 @@ struct vector_writer_t
   vector_writer_t(vector_writer_t const&) = delete;
   vector_writer_t& operator=(vector_writer_t const&) = delete;
   
-  void start(std::vector<T> value)
+  void start(stack_marker_t& base_marker, std::vector<T> value)
   {
     producer_.emplace(std::move(value));
-    sequence_writer_.start(&vector_writer_t::on_sequence_written, *producer_);
+    sequence_writer_.start(
+      base_marker, &vector_writer_t::on_sequence_written, *producer_);
   }
 
 private :
-  void on_sequence_written()
+  void on_sequence_written(stack_marker_t& base_marker)
   {
     producer_.reset();
-    result_.submit();
+    result_.submit(base_marker);
   }
 
 private :
@@ -508,9 +515,9 @@ struct tuple_elements_writer_t<T, std::index_sequence<>>
   tuple_elements_writer_t(tuple_elements_writer_t const&) = delete;
   tuple_elements_writer_t& operator=(tuple_elements_writer_t const&) = delete;
   
-  void start(T&)
+  void start(stack_marker_t& base_marker, T& /* ignored */)
   {
-    result_.submit();
+    result_.submit(base_marker);
   }
   
 private :
@@ -536,22 +543,26 @@ struct tuple_elements_writer_t<T, std::index_sequence<First, Rest...>>
   tuple_elements_writer_t(tuple_elements_writer_t const&) = delete;
   tuple_elements_writer_t& operator=(tuple_elements_writer_t const&) = delete;
   
-  void start(T& value)
+  void start(stack_marker_t& base_marker, T& value)
   {
     value_ = &value;
-    element_writer_.start(&tuple_elements_writer_t::on_element_written,
-                          std::move(std::get<First>(*value_)));
+    element_writer_.start(
+      base_marker,
+      &tuple_elements_writer_t::on_element_written,
+      std::move(std::get<First>(*value_))
+    );
   }
 
 private :
-  void on_element_written()
+  void on_element_written(stack_marker_t& base_marker)
   {
-    delegate_.start(&tuple_elements_writer_t::on_delegate_done, *value_);
+    delegate_.start(
+      base_marker, &tuple_elements_writer_t::on_delegate_done, *value_);
   }
 
-  void on_delegate_done()
+  void on_delegate_done(stack_marker_t& base_marker)
   {
-    result_.submit();
+    result_.submit(base_marker);
   }
 
 private :
@@ -585,26 +596,27 @@ struct tuple_writer_t
   tuple_writer_t(tuple_writer_t const&) = delete;
   tuple_writer_t& operator=(tuple_writer_t const&) = delete;
   
-  void start(T value)
+  void start(stack_marker_t& base_marker, T value)
   {
     value_ = std::move(value);
-    prefix_writer_.start(&tuple_writer_t::on_prefix_written);
+    prefix_writer_.start(base_marker, &tuple_writer_t::on_prefix_written);
   }
 
 private :
-  void on_prefix_written()
+  void on_prefix_written(stack_marker_t& base_marker)
   {
-    elements_writer_.start(&tuple_writer_t::on_elements_written, value_);
+    elements_writer_.start(
+      base_marker, &tuple_writer_t::on_elements_written, value_);
   }
     
-  void on_elements_written()
+  void on_elements_written(stack_marker_t& base_marker)
   {
-    suffix_writer_.start(&tuple_writer_t::on_suffix_written);
+    suffix_writer_.start(base_marker, &tuple_writer_t::on_suffix_written);
   }
 
-  void on_suffix_written()
+  void on_suffix_written(stack_marker_t& base_marker)
   {
-    result_.submit();
+    result_.submit(base_marker);
   }
 
 private :
@@ -632,16 +644,18 @@ struct user_type_writer_t
   user_type_writer_t& operator=(user_type_writer_t const&) = delete;
   
   template<typename TT>
-  void start(TT&& value)
+  void start(stack_marker_t& base_marker, TT&& value)
   {
-    tuple_writer_.start(&user_type_writer_t::on_tuple_writer_done,
-                        mapping_t::to_tuple(std::forward<TT>(value)));
+    tuple_writer_.start(
+      base_marker,
+      &user_type_writer_t::on_tuple_writer_done,
+      mapping_t::to_tuple(std::forward<TT>(value)));
   }
 
 private :
-  void on_tuple_writer_done()
+  void on_tuple_writer_done(stack_marker_t& base_marker)
   {
-    result_.submit();
+    result_.submit(base_marker);
   }
     
 private :
@@ -658,7 +672,7 @@ struct CUTI_ABI exception_writer_t
   exception_writer_t(exception_writer_t const&) = delete;
   exception_writer_t& operator=(exception_writer_t const&) = delete;
   
-  void start(remote_error_t error);
+  void start(stack_marker_t& base_marker, remote_error_t error);
 
   ~exception_writer_t();
 
@@ -678,11 +692,11 @@ struct CUTI_ABI eom_writer_t
   eom_writer_t(eom_writer_t const&) = delete;
   eom_writer_t& operator=(eom_writer_t const&) = delete;
 
-  void start();
+  void start(stack_marker_t& base_marker);
 
 private :
-  void on_newline_written();
-  void on_flushed();
+  void on_newline_written(stack_marker_t& base_marker);
+  void on_flushed(stack_marker_t& base_marker);
 
 private :
   result_t<void>& result_;

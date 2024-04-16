@@ -42,46 +42,48 @@ echo_handler_t::echo_handler_t(result_t<void>& result,
 , element_writer_(*this, result_, outbuf)
 { }
 
-void echo_handler_t::start()
+void echo_handler_t::start(stack_marker_t& base_marker)
 {
-  begin_reader_.start(&echo_handler_t::write_begin);
+  begin_reader_.start(base_marker, &echo_handler_t::write_begin);
 }
 
-void echo_handler_t::write_begin()
+void echo_handler_t::write_begin(stack_marker_t& base_marker)
 {
-  begin_writer_.start(&echo_handler_t::echo_elements);
+  begin_writer_.start(base_marker, &echo_handler_t::echo_elements);
 }
 
-void echo_handler_t::echo_elements()
+void echo_handler_t::echo_elements(stack_marker_t& base_marker)
 {
-  end_checker_.start(&echo_handler_t::on_end_checker);
+  end_checker_.start(base_marker, &echo_handler_t::on_end_checker);
 }
 
-void echo_handler_t::on_end_checker(bool at_end)
+void echo_handler_t::on_end_checker(stack_marker_t& base_marker, bool at_end)
 {
   if(at_end)
   {
-    end_writer_.start(&echo_handler_t::on_end_written);
+    end_writer_.start(base_marker, &echo_handler_t::on_end_written);
     return;
   }
 
-  element_reader_.start(&echo_handler_t::write_element);
+  element_reader_.start(base_marker, &echo_handler_t::write_element);
 }
 
-void echo_handler_t::on_end_written()
+void echo_handler_t::on_end_written(stack_marker_t& base_marker)
 {
-  result_.submit();
+  result_.submit(base_marker);
 }
 
-void echo_handler_t::write_element(std::string value)
+void echo_handler_t::write_element(
+  stack_marker_t& base_marker, std::string value)
 {
   if(censored_ && value == *censored_)
   {
-    result_.fail(std::runtime_error(value + " is censored"));
+    result_.fail(base_marker, std::runtime_error(value + " is censored"));
     return;
   }
 
-  element_writer_.start(&echo_handler_t::echo_elements, std::move(value));
+  element_writer_.start(
+    base_marker, &echo_handler_t::echo_elements, std::move(value));
 }
 
 } // cuti

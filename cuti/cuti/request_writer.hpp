@@ -26,6 +26,7 @@
 #include "output_list.hpp"
 #include "output_list_writer.hpp"
 #include "result.hpp"
+#include "stack_marker.hpp"
 #include "subroutine.hpp"
 
 #include <cassert>
@@ -50,23 +51,26 @@ struct request_writer_t
   request_writer_t(request_writer_t const&) = delete;
   request_writer_t& operator=(request_writer_t const&) = delete;
   
-  void start(identifier_t method, output_list_t<Args...>& args)
+  void start(stack_marker_t& base_marker,
+             identifier_t method,
+             output_list_t<Args...>& args)
   {
     args_ = &args;
     method_writer_.start(
-      &request_writer_t::on_method_written, std::move(method));
+      base_marker, &request_writer_t::on_method_written, std::move(method));
   }
 
 private :
-  void on_method_written()
+  void on_method_written(stack_marker_t& base_marker)
   {
     assert(args_ != nullptr);
-    args_writer_.start(&request_writer_t::on_args_written, *args_);
+    args_writer_.start(
+      base_marker, &request_writer_t::on_args_written, *args_);
   }
 
-  void on_args_written()
+  void on_args_written(stack_marker_t& base_marker)
   {
-    result_.submit();
+    result_.submit(base_marker);
   }
 
 private :

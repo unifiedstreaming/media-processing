@@ -40,17 +40,18 @@ method_runner_t::method_runner_t(result_t<void>& result,
 , method_(nullptr)
 { }
 
-void method_runner_t::start(identifier_t const& name)
+void method_runner_t::start(stack_marker_t& base_marker,
+                            identifier_t const& name)
 {
   method_ = map_.create_method_instance(
     name, result_, context_, inbuf_, outbuf_);
   if(method_ == nullptr)
   {
-    result_.fail(parse_error_t("method not found"));
+    result_.fail(base_marker, parse_error_t("method not found"));
     return;
   }
 
-  method_->start();
+  method_->start(base_marker);
 }
 
 method_runner_t::~method_runner_t()

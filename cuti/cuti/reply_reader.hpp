@@ -25,6 +25,7 @@
 #include "input_list.hpp"
 #include "input_list_reader.hpp"
 #include "result.hpp"
+#include "stack_marker.hpp"
 #include "subroutine.hpp"
 
 #include <cassert>
@@ -48,20 +49,20 @@ struct reply_reader_t
   reply_reader_t(reply_reader_t const&) = delete;
   reply_reader_t operator=(reply_reader_t const&) = delete;
 
-  void start(input_list_t<Args...>& args)
+  void start(stack_marker_t& base_marker, input_list_t<Args...>& args)
   {
-    args_reader_.start(&reply_reader_t::on_args_read, args);
+    args_reader_.start(base_marker, &reply_reader_t::on_args_read, args);
   }
 
 private :
-  void on_args_read()
+  void on_args_read(stack_marker_t& base_marker)
   {
-    eom_checker_.start(&reply_reader_t::on_eom_checked);
+    eom_checker_.start(base_marker, &reply_reader_t::on_eom_checked);
   }
 
-  void on_eom_checked()
+  void on_eom_checked(stack_marker_t& base_marker)
   {
-    result_.submit();
+    result_.submit(base_marker);
   }
 
 private :

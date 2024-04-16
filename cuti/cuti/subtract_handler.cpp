@@ -33,17 +33,17 @@ subtract_handler_t::subtract_handler_t(result_t<void>& result,
 , first_arg_()
 { }
 
-void subtract_handler_t::start()
+void subtract_handler_t::start(stack_marker_t& base_marker)
 {
   if(auto msg = context_.message_at(loglevel_t::info))
   {
     *msg << "subtract_handler: " << __func__;
   }
 
-  int_reader_.start(&subtract_handler_t::on_first_arg);
+  int_reader_.start(base_marker, &subtract_handler_t::on_first_arg);
 }
 
-void subtract_handler_t::on_first_arg(int arg)
+void subtract_handler_t::on_first_arg(stack_marker_t& base_marker, int arg)
 {
   if(auto msg = context_.message_at(loglevel_t::info))
   {
@@ -51,10 +51,10 @@ void subtract_handler_t::on_first_arg(int arg)
   }
 
   first_arg_ = arg;
-  int_reader_.start(&subtract_handler_t::on_second_arg);
+  int_reader_.start(base_marker, &subtract_handler_t::on_second_arg);
 }
 
-void subtract_handler_t::on_second_arg(int arg)
+void subtract_handler_t::on_second_arg(stack_marker_t& base_marker, int arg)
 {
   if(auto msg = context_.message_at(loglevel_t::info))
   {
@@ -65,7 +65,7 @@ void subtract_handler_t::on_second_arg(int arg)
   {
     if(first_arg_ < std::numeric_limits<int>::min() + arg)
     {
-      result_.fail(std::runtime_error("subtraction underflow"));
+      result_.fail(base_marker, std::runtime_error("subtraction underflow"));
       return;
     }
   }
@@ -73,22 +73,23 @@ void subtract_handler_t::on_second_arg(int arg)
   {
     if(first_arg_ > std::numeric_limits<int>::max() + arg)
     {
-      result_.fail(std::runtime_error("subtraction overflow"));
+      result_.fail(base_marker, std::runtime_error("subtraction overflow"));
       return;
     }
   }
     
-  int_writer_.start(&subtract_handler_t::on_done, first_arg_ - arg);
+  int_writer_.start(
+    base_marker, &subtract_handler_t::on_done, first_arg_ - arg);
 }
 
-void subtract_handler_t::on_done()
+void subtract_handler_t::on_done(stack_marker_t& base_marker)
 {
   if(auto msg = context_.message_at(loglevel_t::info))
   {
     *msg << "subtract_handler: " << __func__;
   }
 
-  result_.submit();
+  result_.submit(base_marker);
 }
 
 } // cuti

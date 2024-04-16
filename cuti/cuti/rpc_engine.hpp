@@ -30,6 +30,7 @@
 #include "reply_reader.hpp"
 #include "request_writer.hpp"
 #include "result.hpp"
+#include "stack_marker.hpp"
 #include "subroutine.hpp"
 #include "type_list.hpp"
 
@@ -67,7 +68,8 @@ struct rpc_engine_t<type_list_t<InputArgs...>,
   rpc_engine_t(rpc_engine_t const&) = delete;
   rpc_engine_t& operator=(rpc_engine_t const&) = delete;
   
-  void start(identifier_t method,
+  void start(stack_marker_t& base_marker,
+             identifier_t method,
              input_list_t<InputArgs...>& reply_args,
              output_list_t<OutputArgs...>& request_args)
   {
@@ -82,27 +84,29 @@ struct rpc_engine_t<type_list_t<InputArgs...>,
     {
       input_state_ = reading_reply;
       reply_reader_.start(
-        &rpc_engine_t::on_reply_read, reply_args);
+        base_marker, &rpc_engine_t::on_reply_read, reply_args);
     }
 
     // ...but be careful here: input engine may have changed output state
     if(output_state_ == output_not_started)
     {
       output_state_ = writing_request;
-      request_writer_.start(
-        &rpc_engine_t::on_request_written, std::move(method), request_args);
+      request_writer_.start(base_marker,
+                            &rpc_engine_t::on_request_written,
+                            std::move(method),
+                            request_args);
     }
   }
 
 private :
-  void on_reply_read()
+  void on_reply_read(stack_marker_t& base_marker)
   {
     assert(input_state_ == reading_reply);
     input_state_ = draining_message;
-    message_drainer_.start(&rpc_engine_t::on_message_drained);
+    message_drainer_.start(base_marker, &rpc_engine_t::on_message_drained);
   }
 
-  void on_reply_error(std::exception_ptr ex)
+  void on_reply_error(stack_marker_t& base_marker, std::exception_ptr ex)
   {
     assert(ex != nullptr);
     assert(input_state_ == reading_reply);
@@ -117,15 +121,15 @@ private :
       // Skip or cancel request writing
       outbuf_.cancel_when_writable();
       output_state_ = writing_eom;
-      eom_writer_.start(&rpc_engine_t::on_eom_written);
+      eom_writer_.start(base_marker, &rpc_engine_t::on_eom_written);
     }
 
     assert(input_state_ == reading_reply);
     input_state_ = draining_message;
-    message_drainer_.start(&rpc_engine_t::on_message_drained);
+    message_drainer_.start(base_marker, &rpc_engine_t::on_message_drained);
   }
 
-  void on_message_drained()
+  void on_message_drained(stack_marker_t& base_marker)
   {
     assert(input_state_ == draining_message);
     input_state_ = input_done;
@@ -134,23 +138,23 @@ private :
     {
       if(ex_ != nullptr)
       {
-        result_.fail(std::move(ex_));
+        result_.fail(base_marker, std::move(ex_));
       }
       else
       {
-        result_.submit();
+        result_.submit(base_marker);
       }
     }
   }
 
-  void on_request_written()
+  void on_request_written(stack_marker_t& base_marker)
   {
     assert(output_state_ == writing_request);
     output_state_ = writing_eom;
-    eom_writer_.start(&rpc_engine_t::on_eom_written);
+    eom_writer_.start(base_marker, &rpc_engine_t::on_eom_written);
   }
 
-  void on_request_error(std::exception_ptr ex)
+  void on_request_error(stack_marker_t& base_marker, std::exception_ptr ex)
   {
     assert(ex != nullptr);
     assert(output_state_ == writing_request);
@@ -165,15 +169,15 @@ private :
       // Skip or cancel reply reading
       inbuf_.cancel_when_readable();
       input_state_ = draining_message;
-      message_drainer_.start(&rpc_engine_t::on_message_drained);
+      message_drainer_.start(base_marker, &rpc_engine_t::on_message_drained);
     }
 
     assert(output_state_ == writing_request);
     output_state_ = writing_eom;
-    eom_writer_.start(&rpc_engine_t::on_eom_written);
+    eom_writer_.start(base_marker, &rpc_engine_t::on_eom_written);
   }
 
-  void on_eom_written()
+  void on_eom_written(stack_marker_t& base_marker)
   {
     assert(output_state_ == writing_eom);
     output_state_ = output_done;
@@ -182,11 +186,11 @@ private :
     {
       if(ex_ != nullptr)
       {
-        result_.fail(std::move(ex_));
+        result_.fail(base_marker, std::move(ex_));
       }
       else
       {
-        result_.submit();
+        result_.submit(base_marker);
       }
     }
   }

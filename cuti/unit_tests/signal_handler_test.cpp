@@ -24,6 +24,7 @@
 #include <cuti/default_scheduler.hpp>
 #include <cuti/option_walker.hpp>
 #include <cuti/selector_factory.hpp>
+#include <cuti/stack_marker.hpp>
 #include <cuti/tcp_connection.hpp>
 
 #include <exception>
@@ -66,7 +67,7 @@ void trap(int sig1, int sig2)
   std::tie(sender, receiver) = make_connected_pair();
   sender->set_nonblocking();
 
-  auto send_sig1 = [&]
+  auto send_sig1 = [&](stack_marker_t&)
   {
     char buf[1];
     buf[0] = static_cast<char>(sig1);
@@ -75,7 +76,7 @@ void trap(int sig1, int sig2)
   };
   signal_handler_t handler1(sig1, send_sig1);
     
-  auto send_sig2 = [&]
+  auto send_sig2 = [&](stack_marker_t&)
   {
     char buf[1];
     buf[0] = static_cast<char>(sig2);
@@ -120,8 +121,8 @@ void ignore(int sig1, int sig2)
 
 void nested(int sig1, int sig2)
 {
-  signal_handler_t handler1(sig1, []{ });
-  signal_handler_t handler2(sig2, []{ });
+  signal_handler_t handler1(sig1, [](stack_marker_t&){ });
+  signal_handler_t handler2(sig2, [](stack_marker_t&){ });
   trap(sig1, sig2);
   ignore(sig1, sig2);
 }
@@ -143,7 +144,7 @@ int interactive_trap()
   std::tie(sender, receiver) = make_connected_pair();
   sender->set_nonblocking();
 
-  auto send_sigint = [&]
+  auto send_sigint = [&](stack_marker_t&)
   {
     char buf[1];
     buf[0] = static_cast<char>(SIGINT);
@@ -154,16 +155,20 @@ int interactive_trap()
   std::cout << "Trapping SIGINT: 10 seconds to hit ^C..." << std::endl;
 
   default_scheduler_t scheduler;
-  bool timeout = false;
-  scheduler.call_alarm(seconds_t(10), [&] { timeout = true; });
-  bool readable = false;
-  receiver->call_when_readable(scheduler, [&] { readable = true; });
 
+  bool timeout = false;
+  scheduler.call_alarm(
+    seconds_t(10), [&](stack_marker_t&) { timeout = true; });
+  bool readable = false;
+  receiver->call_when_readable(
+    scheduler, [&](stack_marker_t&) { readable = true; });
+
+  stack_marker_t base_marker;
   while(!timeout && !readable)
   {
     callback_t callback = scheduler.wait();
     assert(callback != nullptr);
-    callback();
+    callback(base_marker);
   }
 
   if(timeout)
@@ -198,12 +203,15 @@ int interactive_trap_then_ignore()
   default_scheduler_t scheduler;
 
   bool timeout = false;
-  scheduler.call_alarm(seconds_t(10), [&] { timeout = true; });
+  scheduler.call_alarm(
+    seconds_t(10), [&](stack_marker_t&) { timeout = true; });
+
+  stack_marker_t base_marker;
   while(!timeout)
   {
     callback_t callback = scheduler.wait();
     assert(callback != nullptr);
-    callback();
+    callback(base_marker);
   }
 
   std::cout << "Ignoring SIGINT: timeout; succeeded" << std::endl;

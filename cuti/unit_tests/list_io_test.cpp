@@ -27,6 +27,7 @@
 #include <cuti/option_walker.hpp>
 #include <cuti/output_list_writer.hpp>
 #include <cuti/result.hpp>
+#include <cuti/stack_marker.hpp>
 #include <cuti/streambuf_backend.hpp>
 #include <cuti/subroutine.hpp>
 #include <cuti/tcp_connection.hpp>
@@ -60,41 +61,42 @@ struct message_reader_t
   message_reader_t(message_reader_t const&) = delete;
   message_reader_t& operator=(message_reader_t const&) = delete;
   
-  void start(input_list_t<Values...>& inputs)
+  void start(stack_marker_t& base_marker, input_list_t<Values...>& inputs)
   {
     ex_ = nullptr;
-    inputs_reader_.start(&message_reader_t::on_inputs_read, inputs);
+    inputs_reader_.start(
+      base_marker, &message_reader_t::on_inputs_read, inputs);
   }
 
 private :
-  void on_inputs_read()
+  void on_inputs_read(stack_marker_t& base_marker)
   {
-    eom_checker_.start(&message_reader_t::on_eom_checked);
+    eom_checker_.start(base_marker, &message_reader_t::on_eom_checked);
   }
 
-  void on_eom_checked()
+  void on_eom_checked(stack_marker_t& base_marker)
   {
-    message_drainer_.start(&message_reader_t::on_message_drained);
+    message_drainer_.start(base_marker, &message_reader_t::on_message_drained);
   }
 
-  void on_failure(std::exception_ptr ex)
+  void on_failure(stack_marker_t& base_marker, std::exception_ptr ex)
   {
     assert(ex != nullptr);
     assert(ex_ == nullptr);
 
     ex_ = std::move(ex);
-    message_drainer_.start(&message_reader_t::on_message_drained);
+    message_drainer_.start(base_marker, &message_reader_t::on_message_drained);
   }
 
-  void on_message_drained()
+  void on_message_drained(stack_marker_t& base_marker)
   {
     if(ex_ != nullptr)
     {
-      result_.fail(std::move(ex_));
+      result_.fail(base_marker, std::move(ex_));
       return;
     }
 
-    result_.submit();
+    result_.submit(base_marker);
   }
   
 private :
@@ -123,36 +125,37 @@ struct message_writer_t
   message_writer_t(message_writer_t const&) = delete;
   message_writer_t& operator=(message_writer_t const&) = delete;
   
-  void start(output_list_t<Values...>& outputs)
+  void start(stack_marker_t& base_marker, output_list_t<Values...>& outputs)
   {
     ex_ = nullptr;
-    outputs_writer_.start(&message_writer_t::on_outputs_written, outputs);
+    outputs_writer_.start(
+      base_marker, &message_writer_t::on_outputs_written, outputs);
   }
 
 private :
-  void on_outputs_written()
+  void on_outputs_written(stack_marker_t& base_marker)
   {
-    eom_writer_.start(&message_writer_t::on_eom_written);
+    eom_writer_.start(base_marker, &message_writer_t::on_eom_written);
   }
 
-  void on_failure(std::exception_ptr ex)
+  void on_failure(stack_marker_t& base_marker, std::exception_ptr ex)
   {
     assert(ex != nullptr);
     assert(ex_ == nullptr);
 
     ex_ = std::move(ex);
-    eom_writer_.start(&message_writer_t::on_eom_written);
+    eom_writer_.start(base_marker, &message_writer_t::on_eom_written);
   }    
 
-  void on_eom_written()
+  void on_eom_written(stack_marker_t& base_marker)
   {
     if(ex_ != nullptr)
     {
-      result_.fail(std::move(ex_));
+      result_.fail(base_marker, std::move(ex_));
       return;
     }
 
-    result_.submit();
+    result_.submit(base_marker);
   }
 
 private :
@@ -186,18 +189,21 @@ struct messaging_client_t<input_list_t<InputValues...>,
   messaging_client_t(messaging_client_t const&) = delete;
   messaging_client_t& operator=(messaging_client_t const&) = delete;
   
-  void start(input_list_t<InputValues...>& inputs,
+  void start(stack_marker_t& base_marker,
+             input_list_t<InputValues...>& inputs,
              output_list_t<OutputValues...>& outputs)
   {
     child_count_ = 2;
     ex_ = nullptr;
 
-    message_reader_.start(&messaging_client_t::on_child_done, inputs);
-    message_writer_.start(&messaging_client_t::on_child_done, outputs);
+    message_reader_.start(
+      base_marker, &messaging_client_t::on_child_done, inputs);
+    message_writer_.start(
+      base_marker, &messaging_client_t::on_child_done, outputs);
   }
 
 private :
-  void on_child_failure(std::exception_ptr ex)
+  void on_child_failure(stack_marker_t& base_marker, std::exception_ptr ex)
   {
     assert(ex != nullptr);
 
@@ -206,10 +212,10 @@ private :
       ex_ = std::move(ex);
     }
 
-    this->on_child_done();
+    this->on_child_done(base_marker);
   }
 
-  void on_child_done()
+  void on_child_done(stack_marker_t& base_marker)
   {
     if(--child_count_ != 0)
     {
@@ -218,11 +224,11 @@ private :
 
     if(ex_ != nullptr)
     {
-      result_.fail(std::move(ex_));
+      result_.fail(base_marker, std::move(ex_));
       return;
     }
 
-    result_.submit();
+    result_.submit(base_marker);
   }
     
 private :
@@ -249,10 +255,9 @@ void perform_rpc(logging_context_t const& context,
   }
 
   default_scheduler_t scheduler;
-  stack_marker_t base_marker;
 
-  bound_inbuf_t inbuf(base_marker, nb_inbuf, scheduler);
-  bound_outbuf_t outbuf(base_marker, nb_outbuf, scheduler);
+  bound_inbuf_t inbuf(nb_inbuf, scheduler);
+  bound_outbuf_t outbuf(nb_outbuf, scheduler);
 
   final_result_t<void> result;
 
@@ -260,14 +265,16 @@ void perform_rpc(logging_context_t const& context,
     input_list_t<InputValues...> , output_list_t<OutputValues...>>
   client(result, inbuf, outbuf);
 
-  client.start(inputs, outputs);
+  stack_marker_t base_marker;
+
+  client.start(base_marker, inputs, outputs);
 
   unsigned int n_callbacks = 0;
   while(!result.available())
   {
     callback_t cb = scheduler.wait();
     assert(cb != nullptr);
-    cb();
+    cb(base_marker);
     ++n_callbacks;
   }
 

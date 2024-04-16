@@ -31,6 +31,7 @@
 #include <cuti/rpc_client.hpp>
 #include <cuti/scoped_guard.hpp>
 #include <cuti/scoped_thread.hpp>
+#include <cuti/stack_marker.hpp>
 #include <cuti/streambuf_backend.hpp>
 #include <cuti/tcp_connection.hpp>
 
@@ -64,17 +65,17 @@ struct sleep_handler_t
   , msecs_reader_(*this, result_, inbuf)
   { }
 
-  void start()
+  void start(stack_marker_t& base_marker)
   {
     if(auto msg = context_.message_at(loglevel_t::info))
     {
       *msg << "sleep_handler: starting";
     }
-    msecs_reader_.start(&sleep_handler_t::on_msecs);
+    msecs_reader_.start(base_marker, &sleep_handler_t::on_msecs);
   }
 
 private :
-  void on_msecs(unsigned int msecs)
+  void on_msecs(stack_marker_t& base_marker, unsigned int msecs)
   {
     if(auto msg = context_.message_at(loglevel_t::info))
     {
@@ -94,7 +95,7 @@ private :
       *msg << "sleep_handler: done";
     }
 
-    result_.submit();
+    result_.submit(base_marker);
   }
     
 private :

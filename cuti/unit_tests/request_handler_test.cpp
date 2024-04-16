@@ -27,6 +27,7 @@
 #include <cuti/option_walker.hpp>
 #include <cuti/quoted.hpp>
 #include <cuti/request_handler.hpp>
+#include <cuti/stack_marker.hpp>
 #include <cuti/subtract_handler.hpp>
 #include <cuti/streambuf_backend.hpp>
 
@@ -53,21 +54,21 @@ struct int_reply_reader_t
   , value_()
   { }
 
-  void start()
+  void start(stack_marker_t& base_marker)
   {
-    value_reader_.start(&int_reply_reader_t::on_value);
+    value_reader_.start(base_marker, &int_reply_reader_t::on_value);
   }
 
 private :
-  void on_value(int value)
+  void on_value(stack_marker_t& base_marker, int value)
   {
     value_ = value;
-    eom_checker_.start(&int_reply_reader_t::on_eom_checked);
+    eom_checker_.start(base_marker, &int_reply_reader_t::on_eom_checked);
   }
 
-  void on_eom_checked()
+  void on_eom_checked(stack_marker_t& base_marker)
   {
-    result_.submit(value_);
+    result_.submit(base_marker, value_);
   }
 
 private :
@@ -97,20 +98,21 @@ int run_int_request(logging_context_t const& client_context,
   default_scheduler_t scheduler;
 
   {
+    bound_inbuf_t bit(*request_inbuf, scheduler);
+    bound_outbuf_t bot(*reply_outbuf, scheduler);
+
     stack_marker_t base_marker;
-    bound_inbuf_t bit(base_marker, *request_inbuf, scheduler);
-    bound_outbuf_t bot(base_marker, *reply_outbuf, scheduler);
 
     final_result_t<void> result;
     request_handler_t request_handler(result, server_context,
       bit, bot, method_map);
-    request_handler.start();
+    request_handler.start(base_marker);
 
     while(!result.available())
     {
       auto callback = scheduler.wait();
       assert(callback != nullptr);
-      callback();
+      callback(base_marker);
     }
 
     result.value();
@@ -123,18 +125,19 @@ int run_int_request(logging_context_t const& client_context,
 
   auto reply_inbuf = make_nb_string_inbuf(std::move(reply), bufsize);
   {
+    bound_inbuf_t bit(*reply_inbuf, scheduler);
+
     stack_marker_t base_marker;
-    bound_inbuf_t bit(base_marker, *reply_inbuf, scheduler);
 
     final_result_t<int> result;
     int_reply_reader_t reply_reader(result, bit);
-    reply_reader.start();
+    reply_reader.start(base_marker);
 
     while(!result.available())
     {
       auto callback = scheduler.wait();
       assert(callback != nullptr);
-      callback();
+      callback(base_marker);
     }
 
     int value = result.value();

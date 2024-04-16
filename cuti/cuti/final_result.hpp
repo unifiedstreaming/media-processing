@@ -63,14 +63,14 @@ struct final_result_t : result_t<T>
   }
     
 private :
-  void do_submit(submit_arg_t value) override
+  void do_submit(stack_marker_t& /* ignored */, submit_arg_t value) override
   {
     assert(!this->available());
 
     state_.template emplace<1>(std::move(value));
   }
 
-  void do_fail(std::exception_ptr ex) override
+  void do_fail(stack_marker_t& /* ignored */, std::exception_ptr ex) override
   {
     assert(!this->available());
 

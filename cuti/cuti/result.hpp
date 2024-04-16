@@ -21,6 +21,7 @@
 #define CUTI_RESULT_HPP_
 
 #include "linkage.h"
+#include "stack_marker.hpp"
 
 #include <cassert>
 #include <exception>
@@ -40,23 +41,23 @@ struct any_result_t
   any_result_t(any_result_t const&) = delete;
   any_result_t& operator=(any_result_t const&) = delete;
   
-  void fail(std::exception_ptr ex)
+  void fail(stack_marker_t& base_marker, std::exception_ptr ex)
   {
     assert(ex != nullptr);
-    this->do_fail(std::move(ex));
+    this->do_fail(base_marker, std::move(ex));
   }
 
   template<typename Ex>
-  void fail(Ex&& ex)
+  void fail(stack_marker_t& base_marker, Ex&& ex)
   {
-    this->do_fail(std::make_exception_ptr(std::forward<Ex>(ex)));
+    this->do_fail(base_marker, std::make_exception_ptr(std::forward<Ex>(ex)));
   }
 
   virtual ~any_result_t()
   { }
 
 private :
-  virtual void do_fail(std::exception_ptr ex) = 0;
+  virtual void do_fail(stack_marker_t& base_marker, std::exception_ptr ex) = 0;
 };
 
 /*
@@ -87,13 +88,13 @@ struct result_t : any_result_t
 {
   using submit_arg_t = typename result_helper_t<T>::submit_arg_t;
 
-  void submit(submit_arg_t value = no_value_t{})
+  void submit(stack_marker_t& base_marker, submit_arg_t value = no_value_t{})
   {
-    this->do_submit(std::move(value));
+    this->do_submit(base_marker, std::move(value));
   }
 
 private :
-  virtual void do_submit(submit_arg_t value) = 0;
+  virtual void do_submit(stack_marker_t& base_marker, submit_arg_t value) = 0;
 };
 
 } // cuti

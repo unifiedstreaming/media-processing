@@ -27,21 +27,24 @@ flusher_t::flusher_t(result_t<void>& result, bound_outbuf_t& buf)
 , buf_(buf)
 { }
 
-void flusher_t::start()
+void flusher_t::start(stack_marker_t& base_marker)
 {
   buf_.start_flush();
-  this->check_flushed();
+  this->check_flushed(base_marker);
 }
 
-void flusher_t::check_flushed()
+void flusher_t::check_flushed(stack_marker_t& base_marker)
 {
   if(!buf_.writable())
   {
-    buf_.call_when_writable([this] { this->check_flushed(); });
+    buf_.call_when_writable(
+      [this](stack_marker_t& base_marker)
+      { this->check_flushed(base_marker); }
+    );
     return;
   }
 
-  result_.submit();
+  result_.submit(base_marker);
 }
 
 } // cuti

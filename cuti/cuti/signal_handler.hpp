@@ -23,8 +23,11 @@
 #include "callback.hpp"
 #include "linkage.h"
 
+#include <cassert>
 #include <csignal>
 #include <memory>
+#include <type_traits>
+#include <utility>
 
 namespace cuti
 {
@@ -53,6 +56,9 @@ struct CUTI_ABI signal_handler_t
   /*
    * Sets the signal handler for <sig>.  If <handler> is nullptr,
    * the signal is effectively ignored.
+   *
+   * For signal handlers, the stack_marker reference to passed to the
+   * callback is a valid referece, but otherwise meaningless.
    */
   signal_handler_t(int sig, callback_t handler);
 

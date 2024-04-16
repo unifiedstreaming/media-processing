@@ -18,6 +18,7 @@
  */
 
 #include <cuti/callback.hpp>
+#include <cuti/stack_marker.hpp>
 
 #include <exception>
 #include <functional>
@@ -39,7 +40,7 @@ struct functor_t
   : called_(called)
   { }
 
-  void operator()() const
+  void operator()(stack_marker_t& /* ignored */) const
   {
     called_ = true;
   }
@@ -86,12 +87,12 @@ static_assert(
 
 bool function_called = false;
 
-void function()
+void function(stack_marker_t& /* ignored */)
 {
   function_called = true;
 }
 
-void counting_function(int& n_calls)
+void counting_function(stack_marker_t& /* ignored */, int& n_calls)
 {
   ++n_calls;
 }
@@ -104,31 +105,40 @@ void empty_callback()
 
 void function_callback()
 {
+  stack_marker_t base_marker;
+
   callback_t cb(function);
   assert(cb != nullptr);
 
   function_called = false;
-  cb();
+  cb(base_marker);
   assert(function_called);
 }
 
 void counting_function_callback()
 {
+  stack_marker_t base_marker;
+
   int n_calls = 0;
 
-  callback_t cb([&] { counting_function(n_calls); });
+  callback_t cb(
+    [&](stack_marker_t& base_marker)
+    { counting_function(base_marker, n_calls); }
+  );
   assert(cb != nullptr);
 
-  cb();
+  cb(base_marker);
   assert(n_calls == 1);
 
-  cb();
+  cb(base_marker);
   assert(n_calls == 2);
 }
   
 void function_ptr_callback()
 {
-  void (*f)(void) = nullptr;
+  stack_marker_t base_marker;
+
+  void (*f)(stack_marker_t&) = nullptr;
   callback_t cb1(f);
   assert(cb1 == nullptr);
 
@@ -136,7 +146,7 @@ void function_ptr_callback()
   callback_t cb2(f);
   assert(cb2 != nullptr);
   function_called = false;
-  cb2();
+  cb2(base_marker);
   assert(function_called);
 
   f = nullptr;
@@ -147,21 +157,25 @@ void function_ptr_callback()
   cb2 = f;
   assert(cb2 != nullptr);
   function_called = false;
-  cb2();
+  cb2(base_marker);
   assert(function_called);
 }  
   
 void functor_callback()
 {
+  stack_marker_t base_marker;
+
   bool called = false;
   callback_t cb = functor_t(called);
   assert(cb != nullptr);
-  cb();
+  cb(base_marker);
   assert(called);
 }
 
 void functor_ptr_callback()
 {
+  stack_marker_t base_marker;
+
   bool called = false;
   functor_t functor(called);
 
@@ -172,17 +186,19 @@ void functor_ptr_callback()
   ptr = &functor;
   callback_t cb2 = ptr;
   assert(cb2 != nullptr);
-  cb2();
+  cb2(base_marker);
 
   assert(called);
 }
   
 void lambda_callback()
 {
+  stack_marker_t base_marker;
+
   bool called = false;
-  callback_t cb([&] { called = true; });
+  callback_t cb([&](stack_marker_t& /* ignored */) { called = true; });
   assert(cb != nullptr);
-  cb();
+  cb(base_marker);
   assert(called);
 }
 

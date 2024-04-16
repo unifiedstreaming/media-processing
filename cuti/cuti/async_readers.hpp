@@ -84,20 +84,23 @@ struct CUTI_ABI whitespace_skipper_t
   whitespace_skipper_t(whitespace_skipper_t const&) = delete;
   whitespace_skipper_t& operator=(whitespace_skipper_t const&) = delete;
 
-  void start()
+  void start(stack_marker_t& base_marker)
   {
     stack_marker_t marker;
-    if(marker.in_range(buf_.base_marker()))
+    if(marker.in_range(base_marker))
     {
-      this->skip_spaces();
+      this->skip_spaces(base_marker);
       return;
     }
 
-    buf_.call_when_readable([this] { this->skip_spaces(); });
+    buf_.call_when_readable(
+      [this](stack_marker_t& base_marker)
+      { this->skip_spaces(base_marker); }
+    );
   }
 
 private :
-  void skip_spaces()
+  void skip_spaces(stack_marker_t& base_marker)
   {
     int c{};
     while(buf_.readable() && is_whitespace(c = buf_.peek()))
@@ -107,21 +110,24 @@ private :
 
     if(!buf_.readable())
     {
-      buf_.call_when_readable([this] { this->start(); });
+      buf_.call_when_readable(
+        [this](stack_marker_t& base_marker)
+        { this->start(base_marker); }
+      );
       return;
     }
 
     if(c == '!')
     {
-      this->start_exception_handler();
+      this->start_exception_handler(base_marker);
       return;
     }
 
-    result_.submit(c);
+    result_.submit(base_marker, c);
   }
 
 private :
-  void start_exception_handler();
+  void start_exception_handler(stack_marker_t& base_marker);
 
 private :
   struct exception_handler_t;
@@ -155,20 +161,20 @@ struct expected_checker_t
    * Skips whitespace, eventually submitting true if C is found, and
    * false otherwise.  C is skipped if found.
    */
-  void start()
+  void start(stack_marker_t& base_marker)
   {
-    skipper_.start(&expected_checker_t::on_whitespace_skipped);
+    skipper_.start(base_marker, &expected_checker_t::on_whitespace_skipped);
   }
 
 private :
-  void on_whitespace_skipped(int c)
+  void on_whitespace_skipped(stack_marker_t& base_marker, int c)
   {
     assert(buf_.readable());
     assert(buf_.peek() == c);
 
     if(c != C)
     {
-      result_.submit(false);
+      result_.submit(base_marker, false);
       return;
     }
 
@@ -177,7 +183,7 @@ private :
       buf_.skip();
     }
 
-    result_.submit(true);
+    result_.submit(base_marker, true);
   }
 
 private :
@@ -204,13 +210,13 @@ struct expected_reader_t
    * Skips whitespace, checks for C, then submits with C skipped, or
    * fails.
    */
-  void start()
+  void start(stack_marker_t& base_marker)
   {
-    skipper_.start(&expected_reader_t::on_whitespace_skipped);
+    skipper_.start(base_marker, &expected_reader_t::on_whitespace_skipped);
   }
 
 private :
-  void on_whitespace_skipped(int c)
+  void on_whitespace_skipped(stack_marker_t& base_marker, int c)
   {
     assert(buf_.readable());
     assert(buf_.peek() == c);
@@ -219,7 +225,7 @@ private :
     {
       exception_builder_t<parse_error_t> builder;
       builder << quoted_char(C) << " expected, but got " << quoted_char(c);
-      result_.fail(builder.exception_object());
+      result_.fail(base_marker, builder.exception_object());
       return;
     }
 
@@ -228,7 +234,7 @@ private :
       buf_.skip();
     }
       
-    result_.submit();
+    result_.submit(base_marker);
   }
 
 private :
@@ -249,10 +255,10 @@ struct CUTI_ABI digits_reader_t
   digits_reader_t(digits_reader_t const&) = delete;
   digits_reader_t& operator=(digits_reader_t const&) = delete;
 
-  void start(T max);
+  void start(stack_marker_t& base_marker, T max);
 
 private :
-  void read_digits();
+  void read_digits(stack_marker_t& base_marker);
 
 private :
   result_t<T>& result_;
@@ -276,10 +282,10 @@ struct CUTI_ABI hex_digits_reader_t
   hex_digits_reader_t(hex_digits_reader_t const&) = delete;
   hex_digits_reader_t& operator=(hex_digits_reader_t const&) = delete;
 
-  void start();
+  void start(stack_marker_t& base_marker);
 
 private :
-  void read_digits();
+  void read_digits(stack_marker_t& base_marker);
 
 private :
   result_t<int>& result_;
@@ -298,10 +304,10 @@ struct CUTI_ABI boolean_reader_t
   boolean_reader_t(boolean_reader_t const&) = delete;
   boolean_reader_t& operator=(boolean_reader_t const&) = delete;
   
-  void start();
+  void start(stack_marker_t& base_marker);
 
 private :
-  void on_whitespace_skipped(int c);
+  void on_whitespace_skipped(stack_marker_t& base_marker, int c);
 
 private :
   result_t<T>& result_;
@@ -324,11 +330,11 @@ struct CUTI_ABI unsigned_reader_t
   unsigned_reader_t(unsigned_reader_t const&) = delete;
   unsigned_reader_t& operator=(unsigned_reader_t const&) = delete;
 
-  void start();
+  void start(stack_marker_t& base_marker);
 
 private :
-  void on_whitespace_skipped(int c);
-  void on_digits_read(T value);
+  void on_whitespace_skipped(stack_marker_t& base_marker, int c);
+  void on_digits_read(stack_marker_t& base_marker, T value);
 
 private :
   result_t<T>& result_;
@@ -354,13 +360,13 @@ struct CUTI_ABI signed_reader_t
   signed_reader_t(signed_reader_t const&) = delete;
   signed_reader_t& operator=(signed_reader_t const&) = delete;
 
-  void start();
+  void start(stack_marker_t& base_marker);
 
 private :
   using UT = std::make_unsigned_t<T>;
 
-  void on_whitespace_skipped(int c);
-  void on_digits_read(UT unsigned_value);
+  void on_whitespace_skipped(stack_marker_t& base_marker, int c);
+  void on_digits_read(stack_marker_t& base_marker, UT unsigned_value);
 
 private :
   result_t<T>& result_;
@@ -391,13 +397,13 @@ struct CUTI_ABI blob_reader_t
   blob_reader_t(blob_reader_t const&) = delete;
   blob_reader_t& operator=(blob_reader_t const&) = delete;
 
-  void start();
+  void start(stack_marker_t& base_marker);
 
 private :
-  void read_leading_dq(int c);
-  void read_contents();
-  void read_escaped();
-  void on_hex_digits(int c);
+  void read_leading_dq(stack_marker_t& base_marker, int c);
+  void read_contents(stack_marker_t& base_marker);
+  void read_escaped(stack_marker_t& base_marker);
+  void on_hex_digits(stack_marker_t& base_marker, int c);
   
 private :
   result_t<T>& result_;
@@ -422,11 +428,11 @@ struct CUTI_ABI identifier_reader_t
   identifier_reader_t(identifier_reader_t const&) = delete;
   identifier_reader_t& operator=(identifier_reader_t const&) = delete;
 
-  void start();
+  void start(stack_marker_t& base_marker);
 
 private :
-  void read_leader(int c);
-  void read_followers();
+  void read_leader(stack_marker_t& base_marker, int c);
+  void read_followers(stack_marker_t& base_marker);
 
 private :
   result_t<identifier_t>& result_;
@@ -455,19 +461,19 @@ struct sequence_reader_t
   sequence_reader_t(sequence_reader_t const&) = delete;
   sequence_reader_t& operator=(sequence_reader_t const&) = delete;
   
-  void start(consumer_t<T>& consumer)
+  void start(stack_marker_t& base_marker, consumer_t<T>& consumer)
   {
     consumer_ = &consumer;
-    begin_reader_.start(&sequence_reader_t::read_elements);
+    begin_reader_.start(base_marker, &sequence_reader_t::read_elements);
   }
 
 private :
-  void read_elements()
+  void read_elements(stack_marker_t& base_marker)
   {
-    end_checker_.start(&sequence_reader_t::on_end_checker);
+    end_checker_.start(base_marker, &sequence_reader_t::on_end_checker);
   }
 
-  void on_end_checker(bool at_end)
+  void on_end_checker(stack_marker_t& base_marker, bool at_end)
   {
     assert(consumer_ != nullptr);
 
@@ -479,19 +485,19 @@ private :
       }
       catch(std::exception const&)
       {
-        result_.fail(std::current_exception());
+        result_.fail(base_marker, std::current_exception());
         return;
       }
         
       consumer_ = nullptr;
-      result_.submit();
+      result_.submit(base_marker);
       return;
     }
       
-    element_reader_.start(&sequence_reader_t::on_element);
+    element_reader_.start(base_marker, &sequence_reader_t::on_element);
   }
     
-  void on_element(T element)
+  void on_element(stack_marker_t& base_marker, T element)
   {
     assert(consumer_ != nullptr);
 
@@ -501,11 +507,11 @@ private :
     }
     catch(std::exception const&)
     {
-      result_.fail(std::current_exception());
+      result_.fail(base_marker, std::current_exception());
       return;
     }
         
-    this->read_elements();
+    this->read_elements(base_marker);
   }
 
 private :
@@ -559,19 +565,20 @@ struct optional_reader_t
   optional_reader_t(optional_reader_t const&) = delete;
   optional_reader_t& operator=(optional_reader_t const&) = delete;
   
-  void start()
+  void start(stack_marker_t& base_marker)
   {
     consumer_.emplace();
-    sequence_reader_.start(&optional_reader_t::on_sequence_read, *consumer_);
+    sequence_reader_.start(
+      base_marker, &optional_reader_t::on_sequence_read, *consumer_);
   }
 
 private :
-  void on_sequence_read()
+  void on_sequence_read(stack_marker_t& base_marker)
   {
     assert(consumer_ != std::nullopt);
     auto value = std::move(consumer_->value());
     consumer_.reset();
-    result_.submit(std::move(value));
+    result_.submit(base_marker, std::move(value));
   }
 
 private :
@@ -619,19 +626,20 @@ struct vector_reader_t
   vector_reader_t(vector_reader_t const&) = delete;
   vector_reader_t& operator=(vector_reader_t const&) = delete;
   
-  void start()
+  void start(stack_marker_t& base_marker)
   {
     consumer_.emplace();
-    sequence_reader_.start(&vector_reader_t::on_sequence_read, *consumer_);
+    sequence_reader_.start(
+      base_marker, &vector_reader_t::on_sequence_read, *consumer_);
   }
 
 private :
-  void on_sequence_read()
+  void on_sequence_read(stack_marker_t& base_marker)
   {
     assert(consumer_ != std::nullopt);
     auto value = std::move(consumer_->value());
     consumer_.reset();
-    result_.submit(std::move(value));
+    result_.submit(base_marker, std::move(value));
   }
 
 private :
@@ -657,9 +665,9 @@ struct tuple_elements_reader_t<T, std::index_sequence<>>
   tuple_elements_reader_t(tuple_elements_reader_t const&) = delete;
   tuple_elements_reader_t& operator=(tuple_elements_reader_t const&) = delete;
   
-  void start(T&)
+  void start(stack_marker_t& base_marker, T& /* ignored */)
   {
-    result_.submit();
+    result_.submit(base_marker);
   }
   
 private :
@@ -684,22 +692,24 @@ struct tuple_elements_reader_t<T, std::index_sequence<First, Rest...>>
   tuple_elements_reader_t(tuple_elements_reader_t const&) = delete;
   tuple_elements_reader_t& operator=(tuple_elements_reader_t const&) = delete;
   
-  void start(T& value)
+  void start(stack_marker_t& base_marker, T& value)
   {
     value_ = &value;
-    element_reader_.start(&tuple_elements_reader_t::on_element_read);
+    element_reader_.start(
+      base_marker, &tuple_elements_reader_t::on_element_read);
   }
 
 private :
-  void on_element_read(element_t element)
+  void on_element_read(stack_marker_t& base_marker, element_t element)
   {
     std::get<First>(*value_) = std::move(element);
-    delegate_.start(&tuple_elements_reader_t::on_delegate_done, *value_);
+    delegate_.start(
+      base_marker, &tuple_elements_reader_t::on_delegate_done, *value_);
   }
 
-  void on_delegate_done()
+  void on_delegate_done(stack_marker_t& base_marker)
   {
-    result_.submit();
+    result_.submit(base_marker);
   }
 
 private :
@@ -729,25 +739,26 @@ struct tuple_reader_t
   tuple_reader_t(tuple_reader_t const&) = delete;
   tuple_reader_t& operator=(tuple_reader_t const&) = delete;
 
-  void start()
+  void start(stack_marker_t& base_marker)
   {
-    begin_reader_.start(&tuple_reader_t::on_begin_read);
+    begin_reader_.start(base_marker, &tuple_reader_t::on_begin_read);
   }
 
 private :
-  void on_begin_read()
+  void on_begin_read(stack_marker_t& base_marker)
   {
-    elements_reader_.start(&tuple_reader_t::on_elements_read, value_);
+    elements_reader_.start(
+      base_marker, &tuple_reader_t::on_elements_read, value_);
   }
 
-  void on_elements_read()
+  void on_elements_read(stack_marker_t& base_marker)
   {
-    end_reader_.start(&tuple_reader_t::on_end_read);
+    end_reader_.start(base_marker, &tuple_reader_t::on_end_read);
   }
 
-  void on_end_read()
+  void on_end_read(stack_marker_t& base_marker)
   {
-    result_.submit(std::move(value_));
+    result_.submit(base_marker, std::move(value_));
   }
 
 private :
@@ -774,13 +785,13 @@ struct user_type_reader_t
   user_type_reader_t(user_type_reader_t const&) = delete;
   user_type_reader_t& operator=(user_type_reader_t const&) = delete;
 
-  void start()
+  void start(stack_marker_t& base_marker)
   {
-    tuple_reader_.start(&user_type_reader_t::on_tuple);
+    tuple_reader_.start(base_marker, &user_type_reader_t::on_tuple);
   }
 
 private :
-  void on_tuple(tuple_t t)
+  void on_tuple(stack_marker_t& base_marker, tuple_t t)
   {
     std::optional<T> opt_value;
     try
@@ -789,11 +800,11 @@ private :
     }
     catch(std::exception const&)
     {
-      result_.fail(std::current_exception());
+      result_.fail(base_marker, std::current_exception());
       return;
     }
       
-    result_.submit(std::move(*opt_value));
+    result_.submit(base_marker, std::move(*opt_value));
   }
     
 private :
@@ -811,24 +822,24 @@ struct CUTI_ABI eom_checker_t
   , skipper_(*this, result_, buf_)
   { }
 
-  void start()
+  void start(stack_marker_t& base_marker)
   {
-    skipper_.start(&eom_checker_t::on_whitespace_skipped);
+    skipper_.start(base_marker, &eom_checker_t::on_whitespace_skipped);
   }
 
 private :
-  void on_whitespace_skipped(int c)
+  void on_whitespace_skipped(stack_marker_t& base_marker, int c)
   {
     if(c != '\n')
     {
       exception_builder_t<parse_error_t> builder;
       builder << "end of message (" << quoted_char('\n') <<
         ") expected, but got " << quoted_char(c);
-      result_.fail(builder.exception_object());
+      result_.fail(base_marker, builder.exception_object());
       return;
     }
 
-    result_.submit();
+    result_.submit(base_marker);
   }
 
 private :
@@ -846,20 +857,23 @@ struct CUTI_ABI message_drainer_t
   , buf_(buf)
   { }
 
-  void start()
+  void start(stack_marker_t& base_marker)
   {
     stack_marker_t marker;
-    if(marker.in_range(buf_.base_marker()))
+    if(marker.in_range(base_marker))
     {
-      this->drain();
+      this->drain(base_marker);
       return;
     }
 
-    buf_.call_when_readable([this] { this->drain(); });
+    buf_.call_when_readable(
+      [this](stack_marker_t& base_marker)
+      { this->drain(base_marker); }
+    );
   }
 
 private :
-  void drain()
+  void drain(stack_marker_t& base_marker)
   {
     int c{};
     while(buf_.readable() && (c = buf_.peek()) != '\n' && c != eof)
@@ -869,7 +883,10 @@ private :
 
     if(!buf_.readable())
     {
-      buf_.call_when_readable([this] { this->drain(); });
+      buf_.call_when_readable(
+        [this](stack_marker_t& base_marker)
+        { this->drain(base_marker); }
+      );
       return;
     }
 
@@ -878,7 +895,7 @@ private :
       buf_.skip();
     }
 
-    result_.submit();
+    result_.submit(base_marker);
   }
 
 private :

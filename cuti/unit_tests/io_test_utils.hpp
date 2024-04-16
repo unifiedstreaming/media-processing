@@ -72,21 +72,22 @@ void test_failing_read(logging_context_t const& context,
   }
 
   default_scheduler_t scheduler;
-  stack_marker_t marker;
 
   auto inbuf = make_nb_string_inbuf(std::move(input), bufsize);
-  bound_inbuf_t bit(marker, *inbuf, scheduler);
+  bound_inbuf_t bit(*inbuf, scheduler);
+
+  stack_marker_t base_marker;
 
   final_result_t<T> read_result;
   reader_t<T> reader(read_result, bit);
-  reader.start();
+  reader.start(base_marker);
 
   std::size_t n_reading_callbacks = 0;
   while(!read_result.available())
   {
     auto cb = scheduler.wait();
     assert(cb != nullptr);
-    cb();
+    cb(base_marker);
     ++n_reading_callbacks;
   }
 
@@ -127,22 +128,23 @@ void test_roundtrip(logging_context_t const& context,
   }
 
   default_scheduler_t scheduler;
-  stack_marker_t marker;
 
   std::string serialized_form;
   auto outbuf = make_nb_string_outbuf(serialized_form, bufsize);
-  bound_outbuf_t bot(marker, *outbuf, scheduler);
+  bound_outbuf_t bot(*outbuf, scheduler);
+
+  stack_marker_t base_marker;
 
   final_result_t<void> write_result;
   writer_t<T> writer(write_result, bot);
-  writer.start(value);
+  writer.start(base_marker, value);
 
   std::size_t n_writing_callbacks = 0;
   while(!write_result.available())
   {
     auto cb = scheduler.wait();
     assert(cb != nullptr);
-    cb();
+    cb(base_marker);
     ++n_writing_callbacks;
   }
 
@@ -156,14 +158,14 @@ void test_roundtrip(logging_context_t const& context,
 
   final_result_t<void> flush_result;
   flusher_t flusher(flush_result, bot);
-  flusher.start();
+  flusher.start(base_marker);
 
   std::size_t n_flushing_callbacks = 0;
   while(!flush_result.available())
   {
     auto cb = scheduler.wait();
     assert(cb != nullptr);
-    cb();
+    cb(base_marker);
     ++n_flushing_callbacks;
   }
 
@@ -196,18 +198,18 @@ void test_roundtrip(logging_context_t const& context,
 
   auto inbuf = make_nb_string_inbuf(std::move(serialized_form), bufsize);
 
-  bound_inbuf_t bit(marker, *inbuf, scheduler);
+  bound_inbuf_t bit(*inbuf, scheduler);
 
   final_result_t<T> read_result;
   reader_t<T> reader(read_result, bit);
-  reader.start();
+  reader.start(base_marker);
 
   std::size_t n_reading_callbacks = 0;
   while(!read_result.available())
   {
     auto cb = scheduler.wait();
     assert(cb != nullptr);
-    cb();
+    cb(base_marker);
     ++n_reading_callbacks;
   }
 
@@ -221,14 +223,14 @@ void test_roundtrip(logging_context_t const& context,
 
   final_result_t<void> eof_reader_result;
   eof_reader_t eof_reader(eof_reader_result, bit);
-  eof_reader.start();
+  eof_reader.start(base_marker);
 
   std::size_t n_eof_reader_callbacks = 0;
   while(!eof_reader_result.available())
   {
     auto cb = scheduler.wait();
     assert(cb != nullptr);
-    cb();
+    cb(base_marker);
     ++n_eof_reader_callbacks;
   }
 

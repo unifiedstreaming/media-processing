@@ -43,13 +43,14 @@ request_handler_t::request_handler_t(
 , method_name_()
 { }
 
-void request_handler_t::start()
+void request_handler_t::start(stack_marker_t& base_marker)
 {
   method_name_.reset();
-  method_reader_.start(&request_handler_t::start_method);
+  method_reader_.start(base_marker, &request_handler_t::start_method);
 }
 
-void request_handler_t::start_method(identifier_t name)
+void request_handler_t::start_method(
+  stack_marker_t& base_marker, identifier_t name)
 {
   assert(name.is_valid());
   method_name_.emplace(std::move(name));
@@ -60,10 +61,11 @@ void request_handler_t::start_method(identifier_t name)
       *method_name_ << "\'";
   }
 
-  method_runner_.start(&request_handler_t::on_method_succeeded, *method_name_);
+  method_runner_.start(
+    base_marker, &request_handler_t::on_method_succeeded, *method_name_);
 }
   
-void request_handler_t::on_method_succeeded()
+void request_handler_t::on_method_succeeded(stack_marker_t& base_marker)
 {
   assert(method_name_.has_value());
 
@@ -73,25 +75,29 @@ void request_handler_t::on_method_succeeded()
       *method_name_ << "\' succeeded";
   }
 
-  eom_checker_.start(&request_handler_t::write_eom);
+  eom_checker_.start(base_marker, &request_handler_t::write_eom);
 }
 
-void request_handler_t::on_method_reader_failure(std::exception_ptr ex)
+void request_handler_t::on_method_reader_failure(
+  stack_marker_t& base_marker, std::exception_ptr ex)
 {
-  this->report_failure("bad_request", std::move(ex));
+  this->report_failure(base_marker, "bad_request", std::move(ex));
 }
 
-void request_handler_t::on_method_failure(std::exception_ptr ex)
+void request_handler_t::on_method_failure(
+  stack_marker_t& base_marker, std::exception_ptr ex)
 {
-  this->report_failure("method_failed", std::move(ex));
+  this->report_failure(base_marker, "method_failed", std::move(ex));
 }
 
-void request_handler_t::on_eom_checker_failure(std::exception_ptr ex)
+void request_handler_t::on_eom_checker_failure(
+  stack_marker_t& base_marker, std::exception_ptr ex)
 {
-  this->report_failure("bad_request", std::move(ex));
+  this->report_failure(base_marker, "bad_request", std::move(ex));
 }
 
-void request_handler_t::report_failure(std::string type, std::exception_ptr ex)
+void request_handler_t::report_failure(
+  stack_marker_t& base_marker, std::string type, std::exception_ptr ex)
 {
   std::string description;
   try
@@ -115,22 +121,23 @@ void request_handler_t::report_failure(std::string type, std::exception_ptr ex)
     *msg << "request_handler " << inbuf_ << ": reporting error: " << error;
   }
 
-  exception_writer_.start(&request_handler_t::write_eom, std::move(error));
+  exception_writer_.start(
+    base_marker, &request_handler_t::write_eom, std::move(error));
 }
 
-void request_handler_t::write_eom()
+void request_handler_t::write_eom(stack_marker_t& base_marker)
 {
-  eom_writer_.start(&request_handler_t::drain_request);
+  eom_writer_.start(base_marker, &request_handler_t::drain_request);
 }
 
-void request_handler_t::drain_request()
+void request_handler_t::drain_request(stack_marker_t& base_marker)
 {
-  request_drainer_.start(&request_handler_t::on_request_drained);
+  request_drainer_.start(base_marker, &request_handler_t::on_request_drained);
 }
 
-void request_handler_t::on_request_drained()
+void request_handler_t::on_request_drained(stack_marker_t& base_marker)
 {
-  result_.submit();
+  result_.submit(base_marker);
 }
 
 } // cuti

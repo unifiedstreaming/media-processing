@@ -31,6 +31,7 @@
 #include "nb_tcp_buffers.hpp"
 #include "request_handler.hpp"
 #include "scoped_thread.hpp"
+#include "stack_marker.hpp"
 #include "tcp_acceptor.hpp"
 #include "tcp_connection.hpp"
 
@@ -119,7 +120,9 @@ struct wakeup_flag_t
     this->cancel_when_up();
 
     readable_ticket_ = pipe_reader_->call_when_readable(scheduler,
-      [this] { this->on_pipe_readable(); });
+      [this](stack_marker_t& base_marker)
+      { this->on_pipe_readable(base_marker); }
+    );
     scheduler_ = &scheduler;
     callback_ = std::move(callback);
   }
@@ -143,7 +146,7 @@ struct wakeup_flag_t
   }
 
 private :
-  void on_pipe_readable()
+  void on_pipe_readable(stack_marker_t& base_marker)
   {
     assert(!readable_ticket_.empty());
     assert(callback_ != nullptr);
@@ -152,7 +155,7 @@ private :
     scheduler_ = nullptr;
     callback_t callback = std::move(callback_);
 
-    callback();
+    callback(base_marker);
   }
       
 private :
@@ -223,7 +226,9 @@ struct listener_t
     this->cancel_when_ready();
 
     ready_ticket_ = acceptor_.call_when_ready(scheduler,
-      [this] { this->on_acceptor_ready(); });
+      [this](stack_marker_t& base_marker)
+      { this->on_acceptor_ready(base_marker); }
+    );
     scheduler_ = &scheduler;
     callback_ = std::move(callback);
   }
@@ -252,7 +257,7 @@ struct listener_t
   }
 
 private :
-  void on_acceptor_ready()
+  void on_acceptor_ready(stack_marker_t& base_marker)
   {
     assert(!ready_ticket_.empty());
     assert(callback_ != nullptr);
@@ -261,7 +266,7 @@ private :
     scheduler_ = nullptr;
     callback_t callback = std::move(callback_);
 
-    callback();
+    callback(base_marker);
   }
 
 private :
@@ -355,8 +360,11 @@ struct core_dispatcher_t
   , woken_up_(false)
   , selected_client_()
   {
-    wakeup_flag_.call_when_up(scheduler_,
-      [this] { this->on_wakeup_flag(); });
+    wakeup_flag_.call_when_up(
+      scheduler_,
+      [this](stack_marker_t& /* ignored */)
+      { this->on_wakeup_flag(); }
+    );
 
     if(auto msg = context.message_at(loglevel_t::info))
     {
@@ -385,8 +393,11 @@ struct core_dispatcher_t
   {
     auto listener = listeners_.emplace(listeners_.begin(),
       context_, endpoint, map);
-    listener->call_when_ready(scheduler_,
-      [this, listener] { this->on_listener_ready(listener); });
+    listener->call_when_ready(
+      scheduler_,
+      [this, listener](stack_marker_t& /* ignored */)
+      { this->on_listener_ready(listener); }
+    );
 
     return listener->endpoint();
   }
@@ -396,11 +407,12 @@ struct core_dispatcher_t
     assert(!woken_up_);
     assert(!selected_client_.has_value());
 
+    stack_marker_t base_marker;
     do 
     {
       auto cb = scheduler_.wait();
       assert(cb != nullptr);
-      cb();
+      cb(base_marker);
     } while(!woken_up_ && !selected_client_.has_value());
 
     if(woken_up_)
@@ -464,8 +476,11 @@ struct core_dispatcher_t
 
       monitored_clients_.splice(monitored_clients_.begin(),
         served_clients_, client);
-      client->nb_inbuf().call_when_readable(scheduler_,
-        [this, client] { this->on_client_readable(client); });
+      client->nb_inbuf().call_when_readable(
+        scheduler_,
+        [this, client](stack_marker_t& /* ignored */)
+        { this->on_client_readable(client); }
+      );
     }
   }
 
@@ -489,8 +504,11 @@ private :
       woken_up_ = true;
     }
 
-    wakeup_flag_.call_when_up(scheduler_,
-      [this] { this->on_wakeup_flag(); });
+    wakeup_flag_.call_when_up(
+      scheduler_,
+      [this](stack_marker_t& /* ignored */)
+      { this->on_wakeup_flag(); }
+    );
   }
 
   void on_listener_ready(std::list<listener_t>::iterator listener)
@@ -507,8 +525,11 @@ private :
       this->resume_monitoring(new_client, handler_completed);
     }
 
-    listener->call_when_ready(scheduler_,
-      [this, listener] { this->on_listener_ready(listener); });
+    listener->call_when_ready(
+      scheduler_,
+      [this, listener](stack_marker_t& /* ignored */)
+      { this->on_listener_ready(listener); }
+    );
   }
         
   void on_client_readable(std::list<client_t>::iterator client)
@@ -532,8 +553,11 @@ private :
     }
     else
     {
-      client->nb_inbuf().call_when_readable(scheduler_,
-        [this, client] { this->on_client_readable(client); });
+      client->nb_inbuf().call_when_readable(
+        scheduler_,
+        [this, client](stack_marker_t& /* ignored */)
+        { this->on_client_readable(client); }
+      );
     }
   }
       
@@ -690,8 +714,11 @@ struct pooled_thread_t
   , just_joined_()
   , thread_()
   {
-    wakeup_flag_.call_when_up(scheduler_,
-      [this] { this->on_wakeup_flag(); });
+    wakeup_flag_.call_when_up(
+      scheduler_,
+      [this](stack_marker_t& /* ignored */)
+      { this->on_wakeup_flag(); }
+    );
     thread_.emplace(
       [this, f = std::forward<F>(f) ] { this->run(f); });
   }
@@ -751,8 +778,11 @@ private :
     }
     else
     {
-      wakeup_flag_.call_when_up(scheduler_,
-        [this] { this->on_wakeup_flag(); });
+      wakeup_flag_.call_when_up(
+        scheduler_,
+        [this](stack_marker_t& /* ignored */)
+        { this->on_wakeup_flag(); }
+      );
     }
   }
       
@@ -881,18 +911,18 @@ bool handle_request(pooled_thread_t& current_thread, client_t& client)
 {
   default_scheduler_t& scheduler = current_thread.scheduler();
 
-  stack_marker_t base_marker;
-
-  bound_inbuf_t bound_inbuf(base_marker, client.nb_inbuf(), scheduler);
+  bound_inbuf_t bound_inbuf(client.nb_inbuf(), scheduler);
   bound_inbuf.enable_throughput_checking(client.throughput_settings());
 
-  bound_outbuf_t bound_outbuf(base_marker, client.nb_outbuf(), scheduler);
+  bound_outbuf_t bound_outbuf(client.nb_outbuf(), scheduler);
   bound_outbuf.enable_throughput_checking(client.throughput_settings());
+
+  stack_marker_t base_marker;
 
   final_result_t<void> result;
   request_handler_t request_handler(result,
     client.context(), bound_inbuf, bound_outbuf, client.method_map());
-  request_handler.start();
+  request_handler.start(base_marker);
 
   while(!result.available())
   {
@@ -903,7 +933,7 @@ bool handle_request(pooled_thread_t& current_thread, client_t& client)
 
     auto cb = scheduler.wait();
     assert(cb != nullptr);
-    cb();
+    cb(base_marker);
   }
 
   result.value();

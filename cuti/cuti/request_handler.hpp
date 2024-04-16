@@ -31,6 +31,7 @@
 #include "method_map.hpp"
 #include "method_runner.hpp"
 #include "result.hpp"
+#include "stack_marker.hpp"
 #include "subroutine.hpp"
 
 #include <exception>
@@ -53,21 +54,25 @@ struct CUTI_ABI request_handler_t
   request_handler_t(request_handler_t const&) = delete;
   request_handler_t& operator=(request_handler_t const&) = delete;
   
-  void start();
+  void start(stack_marker_t& base_marker);
 
 private :
-  void start_method(identifier_t name);
-  void on_method_succeeded();
+  void start_method(stack_marker_t& base_marker, identifier_t name);
+  void on_method_succeeded(stack_marker_t& base_marker);
 
-  void on_method_reader_failure(std::exception_ptr ex);
-  void on_method_failure(std::exception_ptr ex);
-  void on_eom_checker_failure(std::exception_ptr ex);
+  void on_method_reader_failure(
+    stack_marker_t& base_marker, std::exception_ptr ex);
+  void on_method_failure(
+    stack_marker_t& base_marker, std::exception_ptr ex);
+  void on_eom_checker_failure(
+    stack_marker_t& base_marker, std::exception_ptr ex);
 
-  void report_failure(std::string type, std::exception_ptr ex);
+  void report_failure(
+    stack_marker_t& base_marker, std::string type, std::exception_ptr ex);
 
-  void write_eom();
-  void drain_request();
-  void on_request_drained();
+  void write_eom(stack_marker_t& base_marker);
+  void drain_request(stack_marker_t& base_marker);
+  void on_request_drained(stack_marker_t& base_marker);
 
 private :
   result_t<void>& result_;

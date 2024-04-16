@@ -27,6 +27,7 @@
 #include "linkage.h"
 #include "logging_context.hpp"
 #include "result.hpp"
+#include "stack_marker.hpp"
 #include "subroutine.hpp"
 
 #include <optional>
@@ -51,14 +52,14 @@ struct CUTI_ABI echo_handler_t
   echo_handler_t(echo_handler_t const&) = delete;
   echo_handler_t& operator=(echo_handler_t const&) = delete;
   
-  void start();
+  void start(stack_marker_t& base_marker);
 
 private :
-  void write_begin();
-  void echo_elements();
-  void on_end_checker(bool at_end);
-  void on_end_written();
-  void write_element(std::string value);
+  void write_begin(stack_marker_t& base_marker);
+  void echo_elements(stack_marker_t& base_marker);
+  void on_end_checker(stack_marker_t& base_marker, bool at_end);
+  void on_end_written(stack_marker_t& base_marker);
+  void write_element(stack_marker_t& base_marker, std::string value);
 
 private :
   result_t<void>& result_;

@@ -27,6 +27,7 @@
 #include <cuti/nb_string_outbuf.hpp>
 #include <cuti/nb_tcp_buffers.hpp>
 #include <cuti/option_walker.hpp>
+#include <cuti/stack_marker.hpp>
 #include <cuti/streambuf_backend.hpp>
 #include <cuti/system_error.hpp>
 
@@ -64,7 +65,9 @@ struct copier_t
   
   void start()
   {
-    inbuf_->call_when_readable(scheduler_, [this] { this->read_data(); });
+    inbuf_->call_when_readable(
+      scheduler_,
+      [this](stack_marker_t&) { this->read_data(); });
   }
 
   bool done() const
@@ -122,12 +125,14 @@ private :
 
     if(!eof_seen_ && circbuf_.has_slack())
     {
-      inbuf_->call_when_readable(scheduler_, [this] { this->read_data(); });
+      inbuf_->call_when_readable(scheduler_,
+        [this](stack_marker_t&) { this->read_data(); });
     }
 
     if(eof_seen_ || circbuf_.has_data())
     {
-      outbuf_->call_when_writable(scheduler_, [this] { this->write_data(); });
+      outbuf_->call_when_writable(scheduler_,
+        [this](stack_marker_t&) { this->write_data(); });
     }
   }
       
@@ -163,18 +168,21 @@ private :
 
     if(circbuf_.has_data())
     {
-      outbuf_->call_when_writable(scheduler_, [this] { this->write_data(); });
+      outbuf_->call_when_writable(scheduler_,
+        [this](stack_marker_t&) { this->write_data(); });
     }
 
     if(!eof_seen_ && circbuf_.has_slack())
     {
-      inbuf_->call_when_readable(scheduler_, [this] { this->read_data(); });
+      inbuf_->call_when_readable(scheduler_,
+        [this](stack_marker_t&) { this->read_data(); });
     }
 
     if(eof_seen_ && !circbuf_.has_data())
     {
       outbuf_->start_flush();
-      outbuf_->call_when_writable(scheduler_, [this] { this->await_flush(); });
+      outbuf_->call_when_writable(scheduler_,
+        [this](stack_marker_t&) { this->await_flush(); });
     }
   }
 
@@ -189,7 +197,8 @@ private :
 
     if(!done)
     {
-      outbuf_->call_when_writable(scheduler_, [this] { this->await_flush(); });
+      outbuf_->call_when_writable(scheduler_,
+        [this](stack_marker_t&) { this->await_flush(); });
     }
     else
     {
@@ -263,9 +272,10 @@ void do_test_string_buffers(logging_context_t const& context,
     copier->start();
   }
     
+  stack_marker_t base_marker;
   while(auto cb = scheduler.wait())
   {
-    cb();
+    cb(base_marker);
   }
 
   for(auto& copier : copiers)
@@ -358,9 +368,10 @@ void do_test_tcp_buffers(logging_context_t const& context,
   echoer.start();
   consumer.start();
 
+  stack_marker_t base_marker;
   while(auto cb = scheduler.wait())
   {
-    cb();
+    cb(base_marker);
   }
 
   assert(producer.done());
@@ -402,7 +413,8 @@ void drain(scheduler_t& scheduler, nb_inbuf_t& inbuf)
 
   if(!inbuf.readable())
   {
-    inbuf.call_when_readable(scheduler, [&] { drain(scheduler, inbuf); });
+    inbuf.call_when_readable(scheduler,
+      [&](stack_marker_t&) { drain(scheduler, inbuf); });
   }
 }
 
@@ -417,7 +429,7 @@ void drain_n(scheduler_t& scheduler, nb_inbuf_t& inbuf, std::size_t n)
   if(n != 0 && !inbuf.readable())
   {
     inbuf.call_when_readable(scheduler,
-      [&, n] { drain_n(scheduler, inbuf, n); });
+      [&, n](stack_marker_t&) { drain_n(scheduler, inbuf, n); });
   }
 }
 
@@ -430,7 +442,8 @@ void flood(scheduler_t& scheduler, nb_outbuf_t& outbuf)
 
   if(!outbuf.writable())
   {
-    outbuf.call_when_writable(scheduler, [&] { flood(scheduler, outbuf); });
+    outbuf.call_when_writable(scheduler,
+      [&](stack_marker_t&) { flood(scheduler, outbuf); });
   }
 }
 
@@ -448,7 +461,7 @@ void flood_n(scheduler_t& scheduler, nb_outbuf_t& outbuf, std::size_t n)
   if(!outbuf.writable())
   {
     outbuf.call_when_writable(scheduler,
-      [&, n] { flood_n(scheduler, outbuf, n); });
+      [&, n](stack_marker_t&) { flood_n(scheduler, outbuf, n); });
   }
 }
 
@@ -489,9 +502,9 @@ void test_inbuf_throughput_checking(logging_context_t const& context,
   if(enable_while_running)
   {
     client_out->call_when_writable(scheduler,
-      [&] { flood_n(scheduler, *client_out, 1234567); });
+      [&](stack_marker_t&) { flood_n(scheduler, *client_out, 1234567); });
     server_in->call_when_readable(scheduler,
-      [&] { drain(scheduler, *server_in); });
+      [&](stack_marker_t&) { drain(scheduler, *server_in); });
 
     server_in->enable_throughput_checking(settings);
   }
@@ -500,16 +513,17 @@ void test_inbuf_throughput_checking(logging_context_t const& context,
     server_in->enable_throughput_checking(settings);
 
     client_out->call_when_writable(scheduler,
-      [&] { flood_n(scheduler, *client_out, 1234567); });
+      [&](stack_marker_t&) { flood_n(scheduler, *client_out, 1234567); });
     server_in->call_when_readable(scheduler,
-      [&] { drain(scheduler, *server_in); });
+      [&](stack_marker_t&) { drain(scheduler, *server_in); });
   }
 
+  stack_marker_t base_marker;
   while(server_in->error_status() == 0)
   {
     auto cb = scheduler.wait();
     assert(cb != nullptr);
-    cb();
+    cb(base_marker);
   }
 
   assert(server_in->readable());
@@ -560,9 +574,9 @@ void test_outbuf_throughput_checking(logging_context_t const& context,
   if(enable_while_running)
   {
     client_out->call_when_writable(scheduler,
-      [&] { flood(scheduler, *client_out); });
+      [&](stack_marker_t&) { flood(scheduler, *client_out); });
     server_in->call_when_readable(scheduler,
-      [&] { drain_n(scheduler, *server_in, 1234567); });
+      [&](stack_marker_t&) { drain_n(scheduler, *server_in, 1234567); });
 
     client_out->enable_throughput_checking(settings);
   }
@@ -571,16 +585,17 @@ void test_outbuf_throughput_checking(logging_context_t const& context,
     client_out->enable_throughput_checking(settings);
 
     client_out->call_when_writable(scheduler,
-      [&] { flood(scheduler, *client_out); });
+      [&](stack_marker_t&) { flood(scheduler, *client_out); });
     server_in->call_when_readable(scheduler,
-      [&] { drain_n(scheduler, *server_in, 1234567); });
+      [&](stack_marker_t&) { drain_n(scheduler, *server_in, 1234567); });
   }
 
+  stack_marker_t base_marker;
   while(client_out->error_status() == 0)
   {
     auto cb = scheduler.wait();
     assert(cb != nullptr);
-    cb();
+    cb(base_marker);
   }
 
   assert(client_out->writable());

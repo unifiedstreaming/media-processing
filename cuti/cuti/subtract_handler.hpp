@@ -27,6 +27,7 @@
 #include "linkage.h"
 #include "logging_context.hpp"
 #include "result.hpp"
+#include "stack_marker.hpp"
 #include "subroutine.hpp"
 
 namespace cuti
@@ -47,12 +48,12 @@ struct CUTI_ABI subtract_handler_t
   subtract_handler_t(subtract_handler_t const&) = delete;
   subtract_handler_t& operator=(subtract_handler_t const&) = delete;
   
-  void start();
+  void start(stack_marker_t& base_marker);
 
 private :
-  void on_first_arg(int arg);
-  void on_second_arg(int arg);
-  void on_done();
+  void on_first_arg(stack_marker_t& base_marker, int arg);
+  void on_second_arg(stack_marker_t& base_marker, int arg);
+  void on_done(stack_marker_t& base_marker);
 
 private :
   result_t<void>& result_;

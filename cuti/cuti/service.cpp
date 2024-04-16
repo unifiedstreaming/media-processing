@@ -23,6 +23,7 @@
 #include "fs_utils.hpp"
 #include "scoped_guard.hpp"
 #include "signal_handler.hpp"
+#include "stack_marker.hpp"
 #include "streambuf_backend.hpp"
 #include "syslog_backend.hpp"
 #include "system_error.hpp"
@@ -96,7 +97,8 @@ void run_attended(service_config_t const& config, char const* argv0)
   logging_context_t context(logger, default_loglevel);
   if(auto service = config.create_service(context))
   {
-    signal_handler_t handler(SIGINT, [&] { service->stop(SIGINT); });
+    signal_handler_t handler(SIGINT,
+      [&service](stack_marker_t&) { service->stop(SIGINT); });
     service->run();
   }
 }
@@ -550,7 +552,7 @@ void run_as_daemon(service_config_t const& config, char const* argv0)
       logging_context_t context(logger, default_loglevel);
       auto service = config.create_service(context);
 
-      auto request_stop = [&]
+      auto request_stop = [&service](stack_marker_t&)
       {
         if(service != nullptr)
         {

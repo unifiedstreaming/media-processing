@@ -23,6 +23,7 @@
 #include "bound_outbuf.hpp"
 #include "linkage.h"
 #include "result.hpp"
+#include "stack_marker.hpp"
 
 namespace cuti
 {
@@ -36,10 +37,10 @@ struct CUTI_ABI flusher_t
   flusher_t(flusher_t const&) = delete;
   flusher_t& operator=(flusher_t const&) = delete;
   
-  void start();
+  void start(stack_marker_t& base_marker);
 
 private :
-  void check_flushed();
+  void check_flushed(stack_marker_t& base_marker);
 
 private :
   result_t<void>& result_;

@@ -26,6 +26,7 @@
 #include "error_status.hpp"
 #include "linkage.h"
 #include "nb_source.hpp"
+#include "stack_marker.hpp"
 #include "throughput_checker.hpp"
 
 #include <cassert>
@@ -133,9 +134,9 @@ struct CUTI_ABI nb_inbuf_t
   }
     
 private :
-  void on_already_readable();
-  void on_source_readable();
-  void on_next_tick();
+  void on_already_readable(stack_marker_t& base_marker);
+  void on_source_readable(stack_marker_t& base_marker);
+  void on_next_tick(stack_marker_t& base_marker);
 
 private :
   std::unique_ptr<nb_source_t> source_;

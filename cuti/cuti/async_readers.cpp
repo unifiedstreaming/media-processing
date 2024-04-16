@@ -45,15 +45,15 @@ struct whitespace_skipper_t::exception_handler_t
   exception_handler_t(exception_handler_t const&) = delete;
   exception_handler_t& operator=(exception_handler_t const&) = delete;
 
-  void start()
+  void start(stack_marker_t& base_marker)
   {
-    error_reader_.start(&exception_handler_t::on_error_read);
+    error_reader_.start(base_marker, &exception_handler_t::on_error_read);
   }
 
 private :
-  void on_error_read(remote_error_t error)
+  void on_error_read(stack_marker_t& base_marker, remote_error_t error)
   {
-    result_.fail(std::move(error));
+    result_.fail(base_marker, std::move(error));
   }
 
 private :
@@ -67,7 +67,7 @@ void whitespace_skipper_t::exception_handler_deleter_t::operator()(
   delete handler;
 }
 
-void whitespace_skipper_t::start_exception_handler()
+void whitespace_skipper_t::start_exception_handler(stack_marker_t& base_marker)
 {
   assert(buf_.readable());
   assert(buf_.peek() == '!');
@@ -78,7 +78,7 @@ void whitespace_skipper_t::start_exception_handler()
     exception_handler_.reset(new exception_handler_t(result_, buf_));
   }
 
-  exception_handler_->start();
+  exception_handler_->start(base_marker);
 }
 
 template<typename T>
@@ -91,17 +91,17 @@ digits_reader_t<T>::digits_reader_t(result_t<T>& result, bound_inbuf_t& buf)
 { }
 
 template<typename T>
-void digits_reader_t<T>::start(T max)
+void digits_reader_t<T>::start(stack_marker_t& base_marker, T max)
 {
   max_ = max;
   digit_seen_ = false;
   value_ = 0;
 
-  this->read_digits();
+  this->read_digits(base_marker);
 }
 
 template<typename T>
-void digits_reader_t<T>::read_digits()
+void digits_reader_t<T>::read_digits(stack_marker_t& base_marker)
 {
   int c{};
   int dval{};
@@ -112,7 +112,7 @@ void digits_reader_t<T>::read_digits()
     T udval = static_cast<T>(dval);
     if(value_ > max_ / 10 || udval > max_ - 10 * value_)
     {
-      result_.fail(parse_error_t("integral type overflow"));
+      result_.fail(base_marker, parse_error_t("integral type overflow"));
       return;
     }
 
@@ -124,7 +124,10 @@ void digits_reader_t<T>::read_digits()
 
   if(!buf_.readable())
   {
-    buf_.call_when_readable([this] { this->read_digits(); });
+    buf_.call_when_readable(
+      [this](stack_marker_t& base_marker)
+      { this->read_digits(base_marker); }
+    );
     return;
   }
 
@@ -132,7 +135,7 @@ void digits_reader_t<T>::read_digits()
   {
     exception_builder_t<parse_error_t> builder;
     builder << "digit expected, but got " << quoted_char(c);
-    result_.fail(builder.exception_object());
+    result_.fail(base_marker, builder.exception_object());
     return;
   }
 
@@ -141,11 +144,11 @@ void digits_reader_t<T>::read_digits()
     // avoid submitting a half-baked value
     exception_builder_t<parse_error_t> builder;
     builder << "unexpected " << quoted_char(c) << " in integral value";
-    result_.fail(builder.exception_object());
+    result_.fail(base_marker, builder.exception_object());
     return;
   }
 
-  result_.submit(value_);
+  result_.submit(base_marker, value_);
 }
 
 template struct digits_reader_t<unsigned short>;
@@ -161,15 +164,15 @@ hex_digits_reader_t::hex_digits_reader_t(
 , value_()
 { }
 
-void hex_digits_reader_t::start()
+void hex_digits_reader_t::start(stack_marker_t& base_marker)
 {
   shift_ = 8;
   value_ = 0;
 
-  this->read_digits();
+  this->read_digits(base_marker);
 }
 
-void hex_digits_reader_t::read_digits()
+void hex_digits_reader_t::read_digits(stack_marker_t& base_marker)
 {
   assert(shift_ % 4 == 0);
 
@@ -181,7 +184,7 @@ void hex_digits_reader_t::read_digits()
     {
       exception_builder_t<parse_error_t> builder;
       builder << "hex digit expected, but got " << quoted_char(c);
-      result_.fail(builder.exception_object());
+      result_.fail(base_marker, builder.exception_object());
       return;
     }
 
@@ -193,11 +196,14 @@ void hex_digits_reader_t::read_digits()
 
   if(shift_ != 0)
   {
-    buf_.call_when_readable([this] { this->read_digits(); });
+    buf_.call_when_readable(
+      [this](stack_marker_t& base_marker)
+      { this->read_digits(base_marker); }
+    );
     return;
   }
 
-  result_.submit(value_);
+  result_.submit(base_marker, value_);
 }
   
 template<typename T>
@@ -208,13 +214,14 @@ boolean_reader_t<T>::boolean_reader_t(result_t<T>& result, bound_inbuf_t& buf)
 { }
 
 template<typename T>
-void boolean_reader_t<T>::start()
+void boolean_reader_t<T>::start(stack_marker_t& base_marker)
 {
-  skipper_.start(&boolean_reader_t::on_whitespace_skipped);
+  skipper_.start(base_marker, &boolean_reader_t::on_whitespace_skipped);
 }
 
 template<typename T>
-void boolean_reader_t<T>::on_whitespace_skipped(int c)
+void boolean_reader_t<T>::on_whitespace_skipped(
+  stack_marker_t& base_marker, int c)
 {
   assert(buf_.readable());
   assert(buf_.peek() == c);
@@ -234,13 +241,13 @@ void boolean_reader_t<T>::on_whitespace_skipped(int c)
       builder << "boolean value (" << 
         quoted_char('&') << " or " << quoted_char('|') <<
         ") expected, but got " << quoted_char(c);
-      result_.fail(builder.exception_object());
+      result_.fail(base_marker, builder.exception_object());
       return;
     }
   }
   buf_.skip();
 
-  result_.submit(value);
+  result_.submit(base_marker, value);
 }
   
 template struct boolean_reader_t<bool>;
@@ -255,22 +262,26 @@ unsigned_reader_t<T>::unsigned_reader_t(result_t<T>& result,
 { }
 
 template<typename T>
-void unsigned_reader_t<T>::start()
+void unsigned_reader_t<T>::start(stack_marker_t& base_marker)
 {
-  skipper_.start(&unsigned_reader_t::on_whitespace_skipped);
+  skipper_.start(base_marker, &unsigned_reader_t::on_whitespace_skipped);
 }
 
 template<typename T>
-void unsigned_reader_t<T>::on_whitespace_skipped(int)
+void unsigned_reader_t<T>::on_whitespace_skipped(
+  stack_marker_t& base_marker, int /* ignored */)
 {
   digits_reader_.start(
-    &unsigned_reader_t::on_digits_read, std::numeric_limits<T>::max());
+    base_marker,
+    &unsigned_reader_t::on_digits_read,
+    std::numeric_limits<T>::max()
+  );
 }    
 
 template<typename T>
-void unsigned_reader_t<T>::on_digits_read(T value)
+void unsigned_reader_t<T>::on_digits_read(stack_marker_t& base_marker, T value)
 {
-  result_.submit(value);
+  result_.submit(base_marker, value);
 }
 
 template struct unsigned_reader_t<unsigned short>;
@@ -288,14 +299,15 @@ signed_reader_t<T>::signed_reader_t(result_t<T>& result, bound_inbuf_t& buf)
 { }
 
 template<typename T>
-void signed_reader_t<T>::start()
+void signed_reader_t<T>::start(stack_marker_t& base_marker)
 {
   negative_ = false;
-  skipper_.start(&signed_reader_t::on_whitespace_skipped);
+  skipper_.start(base_marker, &signed_reader_t::on_whitespace_skipped);
 }
 
 template<typename T>
-void signed_reader_t<T>::on_whitespace_skipped(int c)
+void signed_reader_t<T>::on_whitespace_skipped(
+  stack_marker_t& base_marker, int c)
 {
   assert(buf_.readable());
   assert(c == buf_.peek());
@@ -308,11 +320,12 @@ void signed_reader_t<T>::on_whitespace_skipped(int c)
     buf_.skip();
   }
 
-  digits_reader_.start(&signed_reader_t::on_digits_read, max);
+  digits_reader_.start(base_marker, &signed_reader_t::on_digits_read, max);
 }
 
 template<typename T>
-void signed_reader_t<T>::on_digits_read(UT unsigned_value)
+void signed_reader_t<T>::on_digits_read(
+  stack_marker_t& base_marker, UT unsigned_value)
 {
   T signed_value;
 
@@ -328,7 +341,7 @@ void signed_reader_t<T>::on_digits_read(UT unsigned_value)
     --signed_value;
   }
 
-  result_.submit(signed_value);
+  result_.submit(base_marker, signed_value);
 }
 
 template struct signed_reader_t<short>;
@@ -346,14 +359,14 @@ blob_reader_t<T>::blob_reader_t(result_t<T>& result, bound_inbuf_t& buf)
 { }
 
 template<typename T>
-void blob_reader_t<T>::start()
+void blob_reader_t<T>::start(stack_marker_t& base_marker)
 {
   value_.clear();
-  skipper_.start(&blob_reader_t::read_leading_dq);
+  skipper_.start(base_marker, &blob_reader_t::read_leading_dq);
 }
 
 template<typename T>
-void blob_reader_t<T>::read_leading_dq(int c)
+void blob_reader_t<T>::read_leading_dq(stack_marker_t& base_marker, int c)
 {
   assert(buf_.readable());
   assert(buf_.peek() == c);
@@ -363,16 +376,16 @@ void blob_reader_t<T>::read_leading_dq(int c)
     exception_builder_t<parse_error_t> builder;
     builder << "opening double quote (" << quoted_char('\"') <<
       ") expected, but got " << quoted_char(c);
-    result_.fail(builder.exception_object());
+    result_.fail(base_marker, builder.exception_object());
     return;
   }
   buf_.skip();
 
-  this->read_contents();
+  this->read_contents(base_marker);
 }
 
 template<typename T>
-void blob_reader_t<T>::read_contents()
+void blob_reader_t<T>::read_contents(stack_marker_t& base_marker)
 {
   int c{};
   while(buf_.readable() && (c = buf_.peek()) != '\"')
@@ -381,17 +394,19 @@ void blob_reader_t<T>::read_contents()
     {
     case eof :
       {
-        result_.fail(parse_error_t("unexpected eof in string value"));
+        result_.fail(
+          base_marker, parse_error_t("unexpected eof in string value"));
         return;
       }
     case '\n' :
       {
-        result_.fail(parse_error_t("non-escaped newline in string value"));
+        result_.fail(
+          base_marker, parse_error_t("non-escaped newline in string value"));
         return;
       }
     case '\\' :
       buf_.skip();
-      this->read_escaped();
+      this->read_escaped(base_marker);
       return;
     default :
       buf_.skip();
@@ -402,20 +417,26 @@ void blob_reader_t<T>::read_contents()
 
   if(!buf_.readable())
   {
-    buf_.call_when_readable([this] { this->read_contents(); });
+    buf_.call_when_readable(
+      [this](stack_marker_t& base_marker)
+      { this->read_contents(base_marker); }
+    );
     return;
   }
   buf_.skip();
 
-  result_.submit(std::move(value_));
+  result_.submit(base_marker, std::move(value_));
 }
 
 template<typename T>
-void blob_reader_t<T>::read_escaped()
+void blob_reader_t<T>::read_escaped(stack_marker_t& base_marker)
 {
   if(!buf_.readable())
   {
-    buf_.call_when_readable([this] { this->read_escaped(); });
+    buf_.call_when_readable(
+      [this](stack_marker_t& base_marker)
+      { this->read_escaped(base_marker); }
+    );
     return;
   }
 
@@ -433,7 +454,7 @@ void blob_reader_t<T>::read_escaped()
     break;
   case 'x' :
     buf_.skip();
-    hex_digits_reader_.start(&blob_reader_t::on_hex_digits);
+    hex_digits_reader_.start(base_marker, &blob_reader_t::on_hex_digits);
     return;
   case '\"' :
     value_.push_back('\"');
@@ -449,7 +470,7 @@ void blob_reader_t<T>::read_escaped()
       exception_builder_t<parse_error_t> builder;
       builder << "unknown escape sequence: " << quoted_char(c) <<
         " after backslash in string value";
-      result_.fail(builder.exception_object());
+      result_.fail(base_marker, builder.exception_object());
       return;
     }
   }
@@ -457,28 +478,34 @@ void blob_reader_t<T>::read_escaped()
   buf_.skip();
 
   stack_marker_t marker;
-  if(marker.in_range(buf_.base_marker()))
+  if(marker.in_range(base_marker))
   {
-    this->read_contents();
+    this->read_contents(base_marker);
     return;
   }
 
-  buf_.call_when_readable([this] { this->read_contents(); });
+  buf_.call_when_readable(
+    [this](stack_marker_t& base_marker)
+    { this->read_contents(base_marker); }
+  );
 }
 
 template<typename T>
-void blob_reader_t<T>::on_hex_digits(int c)
+void blob_reader_t<T>::on_hex_digits(stack_marker_t& base_marker, int c)
 {
   value_.push_back(static_cast<typename T::value_type>(c));
 
   stack_marker_t marker;
-  if(marker.in_range(buf_.base_marker()))
+  if(marker.in_range(base_marker))
   {
-    this->read_contents();
+    this->read_contents(base_marker);
     return;
   }
 
-  buf_.call_when_readable([this] { this->read_contents(); });
+  buf_.call_when_readable(
+    [this](stack_marker_t& base_marker)
+    { this->read_contents(base_marker); }
+  );
 }
 
 template struct blob_reader_t<std::string>;
@@ -494,14 +521,14 @@ identifier_reader_t::identifier_reader_t(result_t<identifier_t>& result,
 , wrapped_()
 { }
 
-void identifier_reader_t::start()
+void identifier_reader_t::start(stack_marker_t& base_marker)
 {
   wrapped_.clear();
 
-  skipper_.start(&identifier_reader_t::read_leader);
+  skipper_.start(base_marker, &identifier_reader_t::read_leader);
 }
 
-void identifier_reader_t::read_leader(int c)
+void identifier_reader_t::read_leader(stack_marker_t& base_marker, int c)
 {
   assert(buf_.readable());
   assert(buf_.peek() == c);
@@ -510,17 +537,17 @@ void identifier_reader_t::read_leader(int c)
   {
     exception_builder_t<parse_error_t> builder;
     builder << "identifier expected, but got " << quoted_char(c);
-    result_.fail(builder.exception_object());
+    result_.fail(base_marker, builder.exception_object());
     return;
   }
 
   wrapped_.push_back(static_cast<char>(c));
   buf_.skip();
 
-  this->read_followers();
+  this->read_followers(base_marker);
 }
 
-void identifier_reader_t::read_followers()
+void identifier_reader_t::read_followers(stack_marker_t& base_marker)
 {
   int c{};
   while(buf_.readable() && identifier_t::is_follower(c = buf_.peek()))
@@ -531,7 +558,10 @@ void identifier_reader_t::read_followers()
 
   if(!buf_.readable())
   {
-    buf_.call_when_readable([this] { this->read_followers(); });
+    buf_.call_when_readable(
+      [this](stack_marker_t& base_marker)
+      { this->read_followers(base_marker); }
+    );
     return;
   }
 
@@ -540,11 +570,11 @@ void identifier_reader_t::read_followers()
     // avoid submitting a half-baked value
     exception_builder_t<parse_error_t> builder;
     builder << "unexpected " << quoted_char(c) << " in identifier value";
-    result_.fail(builder.exception_object());
+    result_.fail(base_marker, builder.exception_object());
     return;
   }
 
-  result_.submit(std::move(wrapped_));
+  result_.submit(base_marker, std::move(wrapped_));
 }
 
 } // detail

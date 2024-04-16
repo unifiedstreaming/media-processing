@@ -24,7 +24,7 @@
 #include "system_error.hpp"
 
 #include <cassert>
-#include <iostream>
+#include <ostream>
 #include <utility>
 
 #ifdef _WIN32

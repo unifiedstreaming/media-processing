@@ -21,6 +21,7 @@
 #define CUTI_SUBRESULT_HPP_
 
 #include "result.hpp"
+#include "stack_marker.hpp"
 
 #include <cassert>
 #include <utility>
@@ -46,9 +47,11 @@ struct failure_handler_t<Parent, failure_mode_t::forward_upwards>
   : parents_result_(parents_result)
   { }
 
-  void operator()(Parent& /* ignored */, std::exception_ptr ex) const
+  void operator()(stack_marker_t& base_marker,
+                  Parent& /* ignored */,
+                  std::exception_ptr ex) const
   {
-    parents_result_.fail(std::move(ex));
+    parents_result_.fail(base_marker, std::move(ex));
   }
 
 private :
@@ -58,19 +61,23 @@ private :
 template<typename Parent>
 struct failure_handler_t<Parent, failure_mode_t::handle_in_parent>
 {
-  using handler_type = void (Parent::*)(std::exception_ptr);
+  using handler_type = void (Parent::*)(stack_marker_t&, std::exception_ptr);
 
-  explicit failure_handler_t(void (Parent::*handler)(std::exception_ptr))
+  explicit failure_handler_t(
+    void (Parent::*handler)(stack_marker_t&, std::exception_ptr)
+  )
   : handler_((assert(handler != nullptr), handler))
   { }
 
-  void operator()(Parent& parent, std::exception_ptr ex) const
+  void operator()(stack_marker_t& base_marker,
+                  Parent& parent,
+                  std::exception_ptr ex) const
   {
-    (parent.*handler_)(std::move(ex));
+    (parent.*handler_)(base_marker, std::move(ex));
   }
 
 private :
-  void (Parent::*handler_)(std::exception_ptr);
+  void (Parent::*handler_)(stack_marker_t&, std::exception_ptr);
 };
 
 /*
@@ -79,26 +86,32 @@ private :
 template<typename Parent, typename T>
 struct subresult_reporter_t
 {
-  using on_success_t = void (Parent::*)(T);
+  using on_success_t = void (Parent::*)(stack_marker_t&, T);
 
   template<typename TT>
   static void report_success(
-    Parent& parent, on_success_t on_success, TT&& value)
+    stack_marker_t& base_marker,
+    Parent& parent,
+    on_success_t on_success,
+    TT&& value)
   {
-    (parent.*on_success)(std::forward<TT>(value));
+    (parent.*on_success)(base_marker, std::forward<TT>(value));
   }
 };
     
 template<typename Parent>
 struct subresult_reporter_t<Parent, void>
 {
-  using on_success_t = void (Parent::*)();
+  using on_success_t = void (Parent::*)(stack_marker_t&);
 
   template<typename TT>
   static void report_success(
-    Parent& parent, on_success_t on_success, TT&& /*ignored */)
+    stack_marker_t& base_marker,
+    Parent& parent,
+    on_success_t on_success,
+    TT&& /*ignored */)
   {
-    (parent.*on_success)();
+    (parent.*on_success)(base_marker);
   }
 };
 
@@ -119,24 +132,28 @@ struct subresult_t : result_t<T>
   { }
 
   template<typename Child, typename... Args>
-  void start_child(on_success_t on_success, Child& child, Args&&... args)
+  void start_child(
+    stack_marker_t& base_marker,
+    on_success_t on_success,
+    Child& child,
+    Args&&... args)
   {
     assert(on_success != nullptr);
     on_success_ = on_success;
-    child.start(std::forward<Args>(args)...);
+    child.start(base_marker, std::forward<Args>(args)...);
   }
     
 private :
-  void do_submit(submit_arg_t value) override
+  void do_submit(stack_marker_t& base_marker, submit_arg_t value) override
   {
     assert(on_success_ != nullptr);
     subresult_reporter_t<Parent, T>::report_success(
-      parent_, on_success_, std::move(value));
+      base_marker, parent_, on_success_, std::move(value));
   }
 
-  void do_fail(std::exception_ptr ex) override
+  void do_fail(stack_marker_t& base_marker, std::exception_ptr ex) override
   {
-    failure_handler_(parent_, std::move(ex));
+    failure_handler_(base_marker, parent_, std::move(ex));
   }
 
 private :

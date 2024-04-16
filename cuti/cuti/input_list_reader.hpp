@@ -25,6 +25,7 @@
 #include "input_list.hpp"
 #include "linkage.h"
 #include "result.hpp"
+#include "stack_marker.hpp"
 #include "streaming_tag.hpp"
 #include "subroutine.hpp"
 
@@ -49,14 +50,14 @@ struct input_reader_t
   input_reader_t(input_reader_t const&) = delete;
   input_reader_t& operator=(input_reader_t const&) = delete;
   
-  void start(input_t<Value>& input)
+  void start(stack_marker_t& base_marker, input_t<Value>& input)
   {
     input_ = &input;
-    value_reader_.start(&input_reader_t::on_value);
+    value_reader_.start(base_marker, &input_reader_t::on_value);
   }
 
 private :
-  void on_value(Value value)
+  void on_value(stack_marker_t& base_marker, Value value)
   {
     assert(input_ != nullptr);
 
@@ -66,12 +67,12 @@ private :
     }
     catch(std::exception const&)
     {
-      result_.fail(std::current_exception());
+      result_.fail(base_marker, std::current_exception());
       return;
     }
 
     input_ = nullptr;
-    result_.submit();
+    result_.submit(base_marker);
   }
 
 private :
@@ -91,15 +92,17 @@ struct input_reader_t<streaming_tag_t<Value>>
   , sequence_reader_(*this, result_, buf)
   { }
 
-  void start(input_t<streaming_tag_t<Value>>& input)
+  void start(stack_marker_t& base_marker,
+             input_t<streaming_tag_t<Value>>& input)
   {
-    sequence_reader_.start(&input_reader_t::on_sequence_read, input);
+    sequence_reader_.start(
+      base_marker, &input_reader_t::on_sequence_read, input);
   }
 
 private :
-  void on_sequence_read()
+  void on_sequence_read(stack_marker_t& base_marker)
   {
-    result_.submit();
+    result_.submit(base_marker);
   }
     
 private :
@@ -122,9 +125,9 @@ struct CUTI_ABI input_list_reader_t<>
   input_list_reader_t(input_list_reader_t const&) = delete;
   input_list_reader_t& operator=(input_list_reader_t const&) = delete;
 
-  void start(input_list_t<>& /* ignored */)
+  void start(stack_marker_t& base_marker, input_list_t<>& /* ignored */)
   {
-    result_.submit();
+    result_.submit(base_marker);
   }
 
 private :
@@ -146,25 +149,26 @@ struct input_list_reader_t<FirstValue, OtherValues...>
   input_list_reader_t(input_list_reader_t const&) = delete;
   input_list_reader_t& operator=(input_list_reader_t const&) = delete;
 
-  void start(input_list_t<FirstValue, OtherValues...>& inputs)
+  void start(stack_marker_t& base_marker,
+             input_list_t<FirstValue, OtherValues...>& inputs)
   {
     inputs_ = &inputs;
     first_reader_.start(
-      &input_list_reader_t::on_first_read, inputs_->first());
+      base_marker, &input_list_reader_t::on_first_read, inputs_->first());
   }
 
 private :
-  void on_first_read()
+  void on_first_read(stack_marker_t& base_marker)
   {
     assert(inputs_ != nullptr);
     others_reader_.start(
-      &input_list_reader_t::on_others_read, inputs_->others());
+      base_marker, &input_list_reader_t::on_others_read, inputs_->others());
   }
 
-  void on_others_read()
+  void on_others_read(stack_marker_t& base_marker)
   {
     inputs_ = nullptr;
-    result_.submit();
+    result_.submit(base_marker);
   }
 
 private :

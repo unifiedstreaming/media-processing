@@ -22,6 +22,7 @@
 
 #include "linkage.h"
 #include "result.hpp"
+#include "stack_marker.hpp"
 
 #include <memory>
 
@@ -48,7 +49,7 @@ struct CUTI_ABI method_runner_t
   method_runner_t(method_runner_t const&) = delete;
   method_runner_t& operator=(method_runner_t const&) = delete;
   
-  void start(identifier_t const& name);
+  void start(stack_marker_t& base_marker, identifier_t const& name);
 
   ~method_runner_t();
 

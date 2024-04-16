@@ -97,25 +97,25 @@ struct CUTI_ABI rpc_client_t
   {
     assert(method.is_valid());
 
-    stack_marker_t base_marker;
-
-    bound_inbuf_t bound_inbuf(base_marker, *inbuf_, scheduler_);
+    bound_inbuf_t bound_inbuf(*inbuf_, scheduler_);
     bound_inbuf.enable_throughput_checking(settings_);
   
-    bound_outbuf_t bound_outbuf(base_marker, *outbuf_, scheduler_);
+    bound_outbuf_t bound_outbuf(*outbuf_, scheduler_);
     bound_outbuf.enable_throughput_checking(settings_);
   
     final_result_t<void> result;
     rpc_engine_t<type_list_t<InputArgs...>, type_list_t<OutputArgs...>>
       rpc_engine(result, bound_inbuf, bound_outbuf);
 
-    rpc_engine.start(std::move(method), input_args, output_args);
+    stack_marker_t base_marker;
+
+    rpc_engine.start(base_marker, std::move(method), input_args, output_args);
 
     while(!result.available())
     {
       auto callback = scheduler_.wait();
       assert(callback != nullptr);
-      callback();
+      callback(base_marker);
     }
     assert(scheduler_.wait() == nullptr);
 

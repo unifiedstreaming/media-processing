@@ -48,7 +48,7 @@ struct output_writer_t
   output_writer_t(output_writer_t const&) = delete;
   output_writer_t& operator=(output_writer_t const&) = delete;
   
-  void start(output_t<Value>& output)
+  void start(stack_marker_t& base_marker, output_t<Value>& output)
   {
     std::optional<Value> value;
     
@@ -58,17 +58,18 @@ struct output_writer_t
     }
     catch(std::exception const&)
     {
-      result_.fail(std::current_exception());
+      result_.fail(base_marker, std::current_exception());
       return;
     }
 
-    value_writer_.start(&output_writer_t::on_value_written, std::move(*value));
+    value_writer_.start(
+      base_marker, &output_writer_t::on_value_written, std::move(*value));
   }
 
 private :
-  void on_value_written()
+  void on_value_written(stack_marker_t& base_marker)
   {
-    result_.submit();
+    result_.submit(base_marker);
   }
 
 private :
@@ -89,15 +90,17 @@ struct output_writer_t<streaming_tag_t<Value>>
   output_writer_t(output_writer_t const&) = delete;
   output_writer_t& operator=(output_writer_t const&) = delete;
   
-  void start(output_t<streaming_tag_t<Value>>& value)
+  void start(stack_marker_t& base_marker,
+             output_t<streaming_tag_t<Value>>& value)
   {
-    sequence_writer_.start(&output_writer_t::on_sequence_written, value);
+    sequence_writer_.start(
+      base_marker, &output_writer_t::on_sequence_written, value);
   }
 
 private :
-  void on_sequence_written()
+  void on_sequence_written(stack_marker_t& base_marker)
   {
-    result_.submit();
+    result_.submit(base_marker);
   }
 
 private :
@@ -120,9 +123,9 @@ struct CUTI_ABI output_list_writer_t<>
   output_list_writer_t(output_list_writer_t const&) = delete;
   output_list_writer_t& operator=(output_list_writer_t const&) = delete;
   
-  void start(output_list_t<>& /* ignored */)
+  void start(stack_marker_t& base_marker, output_list_t<>& /* ignored */)
   {
-    result_.submit();
+    result_.submit(base_marker);
   }
 
 private :
@@ -144,25 +147,28 @@ struct output_list_writer_t<FirstValue, OtherValues...>
   output_list_writer_t(output_list_writer_t const&) = delete;
   output_list_writer_t& operator=(output_list_writer_t const&) = delete;
   
-  void start(output_list_t<FirstValue, OtherValues...>& outputs)
+  void start(stack_marker_t& base_marker,
+             output_list_t<FirstValue, OtherValues...>& outputs)
   {
     outputs_ = &outputs;
     first_writer_.start(
+      base_marker,
       &output_list_writer_t::on_first_written, outputs_->first());
   }
 
 private :
-  void on_first_written()
+  void on_first_written(stack_marker_t& base_marker)
   {
     assert(outputs_ != nullptr);
     others_writer_.start(
+      base_marker,
       &output_list_writer_t::on_others_written, outputs_->others());
   }
 
-  void on_others_written()
+  void on_others_written(stack_marker_t& base_marker)
   {
     outputs_ = nullptr;
-    result_.submit();
+    result_.submit(base_marker);
   }
     
 private :

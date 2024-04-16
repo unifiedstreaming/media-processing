@@ -24,6 +24,7 @@
 #include <cuti/logging_context.hpp>
 #include <cuti/option_walker.hpp>
 #include <cuti/scoped_thread.hpp>
+#include <cuti/stack_marker.hpp>
 #include <cuti/streambuf_backend.hpp>
 
 #include <iostream>
@@ -74,7 +75,7 @@ private :
     if(count_ != 0)
     {
       ticket_ = writer_->call_when_writable(scheduler_,
-        [this] { this->on_writable(); });
+        [this](stack_marker_t& /* ignored */) { this->on_writable(); });
     }
     else
     {
@@ -115,8 +116,9 @@ struct event_consumer_t
   , eof_seen_(false)
   , ticket_()
   {
-    ticket_ = reader_->call_when_readable(scheduler_,
-      [ this ] { this->on_readable(); });
+    ticket_ = reader_->call_when_readable(
+      scheduler_,
+      [this](stack_marker_t& /* ignored */) { this->on_readable(); });
   }
 
   event_consumer_t(event_consumer_t const&) = delete;
@@ -158,8 +160,9 @@ private :
 
     if(!eof_seen_)
     {
-      ticket_ = reader_->call_when_readable(scheduler_,
-        [ this ] { this->on_readable(); });
+      ticket_ = reader_->call_when_readable(
+        scheduler_,
+        [this](stack_marker_t& /* ignored */) { this->on_readable(); });
     }
   }        
 
@@ -227,16 +230,22 @@ struct mcq_t
       selecting_ = true;
     }
 
+    stack_marker_t base_marker;
+
     std::optional<int> rr = std::nullopt;
     do
     {
       bool readable = false;
-      reader_->call_when_readable(scheduler_, [&] { readable = true; });
+      reader_->call_when_readable(
+        scheduler_,
+	[&](stack_marker_t& /* ignored */)
+	{ readable = true; }
+      );
       do 
       {
         auto cb = scheduler_.wait();
         assert(cb != nullptr);
-        cb();
+        cb(base_marker);
       } while(!readable);
 
       {
@@ -393,12 +402,14 @@ void scheduled_transfer(logging_context_t const& context,
   event_consumer_t consumer(std::move(reader), scheduler, count);
   event_producer_t producer(std::move(writer), scheduler, count);
 
+  stack_marker_t base_marker;
+
   unsigned int n_callbacks = 0;
   while(!consumer.done())
   {
     auto cb = scheduler.wait();
     assert(cb != nullptr);
-    cb();
+    cb(base_marker);
     ++n_callbacks;
   }
 

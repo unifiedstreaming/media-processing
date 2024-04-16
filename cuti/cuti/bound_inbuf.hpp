@@ -23,7 +23,6 @@
 #include "callback.hpp"
 #include "linkage.h"
 #include "nb_inbuf.hpp"
-#include "stack_marker.hpp"
 
 #include <ostream>
 #include <utility>
@@ -39,22 +38,15 @@ struct scheduler_t;
  */
 struct CUTI_ABI bound_inbuf_t
 {
-  bound_inbuf_t(stack_marker_t& base_marker,
-                nb_inbuf_t& inbuf,
+  bound_inbuf_t(nb_inbuf_t& inbuf,
                 scheduler_t& scheduler)
-  : base_marker_(base_marker)
-  , inbuf_(inbuf)
+  : inbuf_(inbuf)
   , scheduler_(scheduler)
   { }
 
   bound_inbuf_t(bound_inbuf_t const&) = delete;
   bound_inbuf_t& operator=(bound_inbuf_t const&) = delete;
 
-  stack_marker_t const& base_marker() const
-  {
-    return base_marker_;
-  }
-  
   error_status_t error_status() const noexcept
   {
     return inbuf_.error_status();
@@ -112,7 +104,6 @@ struct CUTI_ABI bound_inbuf_t
   }
 
 private :
-  stack_marker_t& base_marker_;
   nb_inbuf_t& inbuf_;
   scheduler_t& scheduler_;
 };

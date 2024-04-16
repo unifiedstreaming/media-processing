@@ -22,6 +22,7 @@
 
 #include "linkage.h"
 #include "result.hpp"
+#include "stack_marker.hpp"
 
 #include <memory>
 #include <utility>
@@ -46,7 +47,7 @@ struct CUTI_ABI method_t
   method_t(method_t const&) = delete;
   method_t& operator=(method_t const&) = delete;
 
-  virtual void start() = 0;
+  virtual void start(stack_marker_t& base_marker) = 0;
 
   virtual ~method_t()
   { }
@@ -68,9 +69,9 @@ struct method_inst_t : method_t
   : impl_(result, context, inbuf, outbuf, std::forward<Others>(others)...)
   { }
 
-  void start() override
+  void start(stack_marker_t& base_marker) override
   {
-    impl_.start();
+    impl_.start(base_marker);
   }
 
 private :

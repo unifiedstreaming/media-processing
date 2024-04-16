@@ -35,17 +35,17 @@ add_handler_t::add_handler_t(result_t<void>& result,
 , first_arg_()
 { }
 
-void add_handler_t::start()
+void add_handler_t::start(stack_marker_t& base_marker)
 {
   if(auto msg = context_.message_at(loglevel_t::info))
   {
     *msg << "add_handler: " << __func__;
   }
 
-  int_reader_.start(&add_handler_t::on_first_arg);
+  int_reader_.start(base_marker, &add_handler_t::on_first_arg);
 }
 
-void add_handler_t::on_first_arg(int arg)
+void add_handler_t::on_first_arg(stack_marker_t& base_marker, int arg)
 {
   if(auto msg = context_.message_at(loglevel_t::info))
   {
@@ -53,10 +53,10 @@ void add_handler_t::on_first_arg(int arg)
   }
 
   first_arg_ = arg;
-  int_reader_.start(&add_handler_t::on_second_arg);
+  int_reader_.start(base_marker, &add_handler_t::on_second_arg);
 }
 
-void add_handler_t::on_second_arg(int arg)
+void add_handler_t::on_second_arg(stack_marker_t& base_marker, int arg)
 {
   if(auto msg = context_.message_at(loglevel_t::info))
   {
@@ -67,7 +67,7 @@ void add_handler_t::on_second_arg(int arg)
   {
     if(arg > std::numeric_limits<int>::max() - first_arg_)
     {
-      result_.fail(std::runtime_error("addition overflow"));
+      result_.fail(base_marker, std::runtime_error("addition overflow"));
       return;
     }
   }
@@ -75,22 +75,22 @@ void add_handler_t::on_second_arg(int arg)
   {
     if(arg < std::numeric_limits<int>::min() - first_arg_)
     {
-      result_.fail(std::runtime_error("addition underflow"));
+      result_.fail(base_marker, std::runtime_error("addition underflow"));
       return;
     }
   }
     
-  int_writer_.start(&add_handler_t::on_done, first_arg_ + arg);
+  int_writer_.start(base_marker, &add_handler_t::on_done, first_arg_ + arg);
 }
 
-void add_handler_t::on_done()
+void add_handler_t::on_done(stack_marker_t& base_marker)
 {
   if(auto msg = context_.message_at(loglevel_t::info))
   {
     *msg << "add_handler: " << __func__;
   }
 
-  result_.submit();
+  result_.submit(base_marker);
 }
 
 } // cuti

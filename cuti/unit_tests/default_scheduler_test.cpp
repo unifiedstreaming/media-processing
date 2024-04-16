@@ -26,6 +26,7 @@
 #include <cuti/resolver.hpp>
 #include <cuti/selector.hpp>
 #include <cuti/selector_factory.hpp>
+#include <cuti/stack_marker.hpp>
 #include <cuti/streambuf_backend.hpp>
 #include <cuti/tcp_acceptor.hpp>
 #include <cuti/tcp_connection.hpp>
@@ -111,16 +112,22 @@ private :
         *msg << "dos_protector: " << acceptor_ <<
            ": requesting ready callback";
       }
-      ready_ticket_ = acceptor_.call_when_ready(scheduler,
-        [self, &scheduler] { self->on_ready(self, scheduler); });
+      ready_ticket_ = acceptor_.call_when_ready(
+        scheduler,
+        [self, &scheduler](stack_marker_t&)
+        { self->on_ready(self, scheduler); }
+      );
 
       if(auto msg = context_.message_at(loglevel))
       {
         *msg << "dos_protector: " << acceptor_ <<
            ": requesting timeout callback";
       }
-      timeout_ticket_ = scheduler.call_alarm(timeout_, 
-        [self, &scheduler] { self->on_timeout(self, scheduler); });
+      timeout_ticket_ = scheduler.call_alarm(
+        timeout_, 
+        [self, &scheduler](stack_marker_t&)
+        { self->on_timeout(self, scheduler); }
+      );
     }
   }
 
@@ -211,13 +218,18 @@ void check_alarm_order(logging_context_t const& context,
 
   std::vector<int> order;
 
-  scheduler.call_alarm(milliseconds_t(0), [&] { order.push_back(0); });
-  scheduler.call_alarm(milliseconds_t(1), [&] { order.push_back(1); });
-  scheduler.call_alarm(milliseconds_t(2), [&] { order.push_back(2); });
+  scheduler.call_alarm(milliseconds_t(0),
+    [&](stack_marker_t&) { order.push_back(0); });
+  scheduler.call_alarm(milliseconds_t(1),
+    [&](stack_marker_t&) { order.push_back(1); });
+  scheduler.call_alarm(milliseconds_t(2),
+    [&](stack_marker_t&) { order.push_back(2); });
+
+  stack_marker_t base_marker;
 
   while(auto cb = scheduler.wait())
   {
-    cb();
+    cb(base_marker);
   }
 
   assert(order.size() == 3);
@@ -275,9 +287,10 @@ void no_client(logging_context_t const& context,
 
   assert(!protector->timed_out());
 
+  stack_marker_t base_marker;
   while(callback_t callback = scheduler.wait())
   {
-    callback();
+    callback(base_marker);
   }
 
   assert(protector->timed_out());
@@ -321,9 +334,10 @@ void single_client(logging_context_t const& context,
     *msg << "single_client(): client " << client;
   }
 
+  stack_marker_t base_marker;
   while(callback_t callback = scheduler.wait())
   {
-    callback();
+    callback(base_marker);
   }
 
   assert(protector->done());
@@ -369,9 +383,10 @@ void multiple_clients(logging_context_t const& context,
       " client2: " << client2;
   }
 
+  stack_marker_t base_marker;
   while(callback_t callback = scheduler.wait())
   {
-    callback();
+    callback(base_marker);
   }
 
   assert(protector->done());
@@ -423,9 +438,10 @@ void multiple_acceptors(logging_context_t const& context,
       " client2: " << client2;
   }
 
+  stack_marker_t base_marker;
   while(callback_t callback = scheduler.wait())
   {
-    callback();
+    callback(base_marker);
   }
 
   assert(protector1->done());
@@ -478,9 +494,10 @@ void one_idle_acceptor(logging_context_t const& context,
       " client2: " << client2;
   }
 
+  stack_marker_t base_marker;
   while(callback_t callback = scheduler.wait())
   {
-    callback();
+    callback(base_marker);
   }
 
   assert(protector1->done());
@@ -524,23 +541,24 @@ void scheduler_switch(logging_context_t const& context,
   assert(scheduler1.wait() == nullptr);
   assert(scheduler2.wait() == nullptr);
 
-  cancellation_ticket_t ticket = acceptor.call_when_ready(scheduler1, [] { });
+  cancellation_ticket_t ticket = acceptor.call_when_ready(
+    scheduler1, [](stack_marker_t&) { });
   assert(!ticket.empty());
 
   assert(scheduler1.wait() != nullptr);
-  ticket = acceptor.call_when_ready(scheduler1, [] { }); 
+  ticket = acceptor.call_when_ready(scheduler1, [](stack_marker_t&) { }); 
   assert(!ticket.empty());
 
   assert(scheduler2.wait() == nullptr);
 
   scheduler1.cancel(ticket);
-  ticket = acceptor.call_when_ready(scheduler2, [] { });
+  ticket = acceptor.call_when_ready(scheduler2, [](stack_marker_t&) { });
   assert(!ticket.empty());
 
   assert(scheduler1.wait() == nullptr);
  
   assert(scheduler2.wait() != nullptr);
-  ticket = acceptor.call_when_ready(scheduler2, [] { });
+  ticket = acceptor.call_when_ready(scheduler2, [](stack_marker_t&) { });
   assert(!ticket.empty());
 
   scheduler2.cancel(ticket);

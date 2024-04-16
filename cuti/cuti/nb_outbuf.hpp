@@ -25,6 +25,7 @@
 #include "error_status.hpp"
 #include "linkage.h"
 #include "nb_sink.hpp"
+#include "stack_marker.hpp"
 #include "throughput_checker.hpp"
 
 #include <cassert>
@@ -133,9 +134,9 @@ struct CUTI_ABI nb_outbuf_t
   }
     
 private :
-  void on_already_writable();
-  void on_sink_writable();
-  void on_next_tick();
+  void on_already_writable(stack_marker_t& base_marker);
+  void on_sink_writable(stack_marker_t& base_marker);
+  void on_next_tick(stack_marker_t& base_marker);
 
 private :
   std::unique_ptr<nb_sink_t> sink_;

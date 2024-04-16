@@ -60,18 +60,18 @@ struct servant_t
   servant_t(servant_t const&) = delete;
   servant_t& operator=(servant_t const&) = delete;
   
-  void start()
+  void start(stack_marker_t& base_marker)
   {
     if(auto msg = context_.message_at(loglevel_t::info))
     {
       *msg << "servant: " << __func__;
     }
 
-    method_reader_.start(&servant_t::on_method);
+    method_reader_.start(base_marker, &servant_t::on_method);
   }
 
 private :
-  void on_method(identifier_t method)
+  void on_method(stack_marker_t& base_marker, identifier_t method)
   {
     if(auto msg = context_.message_at(loglevel_t::info))
     {
@@ -80,26 +80,28 @@ private :
 
     if(method != "echo")
     {
-      exception_writer_.start(&servant_t::start_flusher,
+      exception_writer_.start(
+        base_marker,
+	&servant_t::start_flusher,
         remote_error_t("bad_method", method.as_string()));
       return;
     }
 
-    argument_reader_.start(&servant_t::on_argument);
+    argument_reader_.start(base_marker, &servant_t::on_argument);
   }
 
-  void on_argument(std::string argument)
+  void on_argument(stack_marker_t& base_marker, std::string argument)
   {
     if(auto msg = context_.message_at(loglevel_t::info))
     {
       *msg << "servant: " << __func__ << ": argument: " << argument;
     }
 
-    reply_writer_.start(&servant_t::start_flusher,
-      std::move(argument));
+    reply_writer_.start(
+      base_marker, &servant_t::start_flusher, std::move(argument));
   }
 
-  void on_bad_request(std::exception_ptr exptr)
+  void on_bad_request(stack_marker_t& base_marker, std::exception_ptr exptr)
   {
     try
     {
@@ -112,29 +114,31 @@ private :
         *msg << "servant: " << __func__ << ": ex: " << ex.what();
       }
 
-      exception_writer_.start(&servant_t::start_flusher,
+      exception_writer_.start(
+        base_marker,
+        &servant_t::start_flusher,
         remote_error_t("bad_request", ex.what()));
     }
   }
 
-  void start_flusher()
+  void start_flusher(stack_marker_t& base_marker)
   {
     if(auto msg = context_.message_at(loglevel_t::info))
     {
         *msg << "servant: " << __func__;
     }
 
-    flusher_.start(&servant_t::on_flushed);
+    flusher_.start(base_marker, &servant_t::on_flushed);
   }
 
-  void on_flushed()
+  void on_flushed(stack_marker_t& base_marker)
   {
     if(auto msg = context_.message_at(loglevel_t::info))
     {
         *msg << "servant: " << __func__;
     }
 
-    result_.submit();
+    result_.submit(base_marker);
   }
 
 private :
@@ -166,7 +170,8 @@ struct request_t
   , argument_()
   { }
 
-  void start(identifier_t method, std::string argument)
+  void start(
+    stack_marker_t& base_marker,identifier_t method, std::string argument)
   {
     if(auto msg = context_.message_at(loglevel_t::info))
     {
@@ -176,34 +181,34 @@ struct request_t
 
     argument_ = std::move(argument); 
 
-    reply_reader_.start(&request_t::on_reply);
-    method_writer_.start(&request_t::on_method_written,
-      std::move(method));
+    reply_reader_.start(base_marker, &request_t::on_reply);
+    method_writer_.start(
+      base_marker, &request_t::on_method_written, std::move(method));
   }
     
 private :
-  void on_method_written()
+  void on_method_written(stack_marker_t& base_marker)
   {
     if(auto msg = context_.message_at(loglevel_t::info))
     {
       *msg << "request: " << __func__;
     }
 
-    argument_writer_.start(&request_t::on_argument_written,
-      std::move(argument_));
+    argument_writer_.start(
+      base_marker, &request_t::on_argument_written, std::move(argument_));
   }
 
-  void on_argument_written()
+  void on_argument_written(stack_marker_t& base_marker)
   {
     if(auto msg = context_.message_at(loglevel_t::info))
     {
       *msg << "request: " << __func__;
     }
 
-    flusher_.start(&request_t::on_flushed);
+    flusher_.start(base_marker, &request_t::on_flushed);
   }
 
-  void on_flushed()
+  void on_flushed(stack_marker_t&)
   {
     if(auto msg = context_.message_at(loglevel_t::info))
     {
@@ -211,14 +216,14 @@ private :
     }
   }
 
-  void on_reply(std::string reply)
+  void on_reply(stack_marker_t& base_marker, std::string reply)
   {
     if(auto msg = context_.message_at(loglevel_t::info))
     {
       *msg << "request: " << __func__ << ": reply: " << reply;
     }
 
-    result_.submit(std::move(reply));
+    result_.submit(base_marker, std::move(reply));
   }
   
 private :
@@ -254,30 +259,31 @@ void test_bad_method(logging_context_t const& context, std::size_t bufsize)
     make_nb_tcp_buffers(std::move(client_side), bufsize, bufsize);
   
   default_scheduler_t scheduler;
-  stack_marker_t stack_marker;
 
-  bound_inbuf_t bound_server_in(stack_marker, *server_in, scheduler);
-  bound_outbuf_t bound_server_out(stack_marker, *server_out, scheduler);
+  bound_inbuf_t bound_server_in(*server_in, scheduler);
+  bound_outbuf_t bound_server_out(*server_out, scheduler);
   
-  bound_inbuf_t bound_client_in(stack_marker, *client_in, scheduler);
-  bound_outbuf_t bound_client_out(stack_marker, *client_out, scheduler);
+  bound_inbuf_t bound_client_in(*client_in, scheduler);
+  bound_outbuf_t bound_client_out(*client_out, scheduler);
   
+  stack_marker_t base_marker;
+
   final_result_t<void> servant_result;
   servant_t servant(context, servant_result,
     bound_server_in, bound_server_out);
-  servant.start();
+  servant.start(base_marker);
 
   final_result_t<std::string> request_result;
   request_t request(context, request_result,
     bound_client_in, bound_client_out);
-  request.start("tryme", "and see");
+  request.start(base_marker, "tryme", "and see");
 
   unsigned int n_callbacks = 0;
   while(!request_result.available())
   {
     callback_t cb = scheduler.wait();
     assert(cb != nullptr);
-    cb();
+    cb(base_marker);
     ++n_callbacks;
   }
 

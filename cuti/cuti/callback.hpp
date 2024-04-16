@@ -21,6 +21,7 @@
 #define CUTI_CALLBACK_HPP_
 
 #include "linkage.h"
+#include "stack_marker.hpp"
 
 #include <cassert>
 #include <cstddef>
@@ -88,10 +89,10 @@ struct CUTI_ABI callback_t
     impl_.swap(other.impl_);
   }
 
-  void operator()() const
+  void operator()(stack_marker_t& base_marker) const
   {
     assert(*this != nullptr);
-    (*impl_)();
+    (*impl_)(base_marker);
   }
 
   friend bool operator==(callback_t const& lhs, std::nullptr_t) noexcept
@@ -123,7 +124,7 @@ private :
     impl_t(impl_t const&) = delete;
     impl_t& operator=(impl_t const&) = delete;
 
-    virtual void operator()() const = 0;
+    virtual void operator()(stack_marker_t& base_marker) const = 0;
 
     virtual ~impl_t();
   };
@@ -136,9 +137,9 @@ private :
     , f_((assert(f != nullptr), f))
     { }
 
-    void operator()() const override
+    void operator()(stack_marker_t& base_marker) const override
     {
-      (*f_)();
+      (*f_)(base_marker);
     }
 
   private :
@@ -154,9 +155,9 @@ private :
     , f_(std::forward<FF>(f))
     { }
 
-    void operator()() const override
+    void operator()(stack_marker_t& base_marker) const override
     {
-      f_();
+      f_(base_marker);
     }
 
   private :

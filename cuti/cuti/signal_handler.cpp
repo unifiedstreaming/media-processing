@@ -108,7 +108,8 @@ private :
 
       if(curr_impl->callback_ != nullptr)
       {
-        curr_impl->callback_();
+        stack_marker_t base_marker;
+        curr_impl->callback_(base_marker);
       }
 
       result = TRUE;
@@ -217,7 +218,10 @@ private :
     if(curr_impls[sig]->callback_ != nullptr)
     {
       auto saved_errno = errno;
-      curr_impls[sig]->callback_();
+
+      stack_marker_t base_marker;
+      curr_impls[sig]->callback_(base_marker);
+
       errno = saved_errno;
     }
   }

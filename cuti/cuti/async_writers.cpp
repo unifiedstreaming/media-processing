@@ -45,7 +45,7 @@ digits_writer_t<T>::digits_writer_t(result_t<void>& result,
 { }
 
 template<typename T>
-void digits_writer_t<T>::start(T value)
+void digits_writer_t<T>::start(stack_marker_t& base_marker, T value)
 {
   static T constexpr max = std::numeric_limits<T>::max();
 
@@ -56,11 +56,11 @@ void digits_writer_t<T>::start(T value)
     divisor_ *= 10;
   }
 
-  this->write_digits();
+  this->write_digits(base_marker);
 }
 
 template<typename T>
-void digits_writer_t<T>::write_digits()
+void digits_writer_t<T>::write_digits(stack_marker_t& base_marker)
 {
   while(divisor_ >= 1 && buf_.writable())
   {
@@ -71,11 +71,14 @@ void digits_writer_t<T>::write_digits()
 
   if(divisor_ >= 1)
   {
-    buf_.call_when_writable([this] { this->write_digits(); });
+    buf_.call_when_writable(
+      [this](stack_marker_t& base_marker)
+      { this->write_digits(base_marker); }
+    );
     return;
   }
 
-  result_.submit();
+  result_.submit(base_marker);
 }
       
 template struct digits_writer_t<unsigned short>;
@@ -95,22 +98,22 @@ boolean_writer_t<T>::boolean_writer_t(
 { }
 
 template<typename T>
-void boolean_writer_t<T>::start(T value)
+void boolean_writer_t<T>::start(stack_marker_t& base_marker, T value)
 {
   if(value)
   {
-    true_writer_.start(&boolean_writer_t::on_done);
+    true_writer_.start(base_marker, &boolean_writer_t::on_done);
   }
   else
   {
-    false_writer_.start(&boolean_writer_t::on_done);
+    false_writer_.start(base_marker, &boolean_writer_t::on_done);
   }
 }
 
 template<typename T>
-void boolean_writer_t<T>::on_done()
+void boolean_writer_t<T>::on_done(stack_marker_t& base_marker)
 {
-  result_.submit();
+  result_.submit(base_marker);
 }
 
 template struct boolean_writer_t<bool>;
@@ -127,21 +130,22 @@ unsigned_writer_t<T>::unsigned_writer_t(result_t<void>& result,
 { }
 
 template<typename T>
-void unsigned_writer_t<T>::start(T value)
+void unsigned_writer_t<T>::start(stack_marker_t& base_marker, T value)
 {
-  digits_writer_.start(&unsigned_writer_t::on_digits_written, value);
+  digits_writer_.start(
+    base_marker, &unsigned_writer_t::on_digits_written, value);
 }
 
 template<typename T>
-void unsigned_writer_t<T>::on_digits_written()
+void unsigned_writer_t<T>::on_digits_written(stack_marker_t& base_marker)
 {
-  space_writer_.start(&unsigned_writer_t::on_space_written);
+  space_writer_.start(base_marker, &unsigned_writer_t::on_space_written);
 }
 
 template<typename T>
-void unsigned_writer_t<T>::on_space_written()
+void unsigned_writer_t<T>::on_space_written(stack_marker_t& base_marker)
 {
-  result_.submit();
+  result_.submit(base_marker);
 }
 
 template struct unsigned_writer_t<unsigned short>;
@@ -159,13 +163,13 @@ signed_writer_t<T>::signed_writer_t(result_t<void>& result, bound_outbuf_t& buf)
 { }
 
 template<typename T>
-void signed_writer_t<T>::start(T value)
+void signed_writer_t<T>::start(stack_marker_t& base_marker, T value)
 {
   if(value >= 0)
   {
     unsigned_value_ = value;
     digits_writer_.start(
-      &signed_writer_t::on_digits_written, unsigned_value_);
+      base_marker, &signed_writer_t::on_digits_written, unsigned_value_);
   }
   else
   {
@@ -173,34 +177,37 @@ void signed_writer_t<T>::start(T value)
     value = -value;
     unsigned_value_ = value;
     ++unsigned_value_;
-    this->write_minus();
+    this->write_minus(base_marker);
   }  
 }
 
 template<typename T>
-void signed_writer_t<T>::write_minus()
+void signed_writer_t<T>::write_minus(stack_marker_t& base_marker)
 {
   if(!buf_.writable())
   {
-    buf_.call_when_writable([this] { this->write_minus(); });
+    buf_.call_when_writable(
+      [this](stack_marker_t& base_marker)
+      { this->write_minus(base_marker); }
+    );
     return;
   }
   buf_.put('-');
 
   digits_writer_.start(
-    &signed_writer_t::on_digits_written, unsigned_value_);
+    base_marker, &signed_writer_t::on_digits_written, unsigned_value_);
 }
 
 template<typename T>
-void signed_writer_t<T>::on_digits_written()
+void signed_writer_t<T>::on_digits_written(stack_marker_t& base_marker)
 {
-  space_writer_.start(&signed_writer_t::on_space_written);
+  space_writer_.start(base_marker, &signed_writer_t::on_space_written);
 }
 
 template<typename T>
-void signed_writer_t<T>::on_space_written()
+void signed_writer_t<T>::on_space_written(stack_marker_t& base_marker)
 {
-  result_.submit();
+  result_.submit(base_marker);
 }
 
 template struct signed_writer_t<short>;
@@ -219,30 +226,33 @@ blob_writer_t<T>::blob_writer_t(result_t<void>& result, bound_outbuf_t& buf)
 { }
 
 template<typename T>
-void blob_writer_t<T>::start(T value)
+void blob_writer_t<T>::start(stack_marker_t& base_marker, T value)
 {
   value_ = std::move(value);
   first_ = value_.begin();
   last_ = value_.end();
     
-  this->write_opening_dq();
+  this->write_opening_dq(base_marker);
 }
 
 template<typename T>
-void blob_writer_t<T>::write_opening_dq()
+void blob_writer_t<T>::write_opening_dq(stack_marker_t& base_marker)
 {
   if(!buf_.writable())
   {
-    buf_.call_when_writable([this] { this->write_opening_dq(); });
+    buf_.call_when_writable(
+      [this](stack_marker_t& base_marker)
+      { this->write_opening_dq(base_marker); }
+    );
     return;
   }
   buf_.put('\"');
 
-  this->write_contents();
+  this->write_contents(base_marker);
 }
 
 template<typename T>
-void blob_writer_t<T>::write_contents()
+void blob_writer_t<T>::write_contents(stack_marker_t& base_marker)
 {
   while(first_ != last_ && buf_.writable())
   {
@@ -252,7 +262,7 @@ void blob_writer_t<T>::write_contents()
     case '\"' :
     case '\\' :
       buf_.put('\\');
-      this->write_escaped();
+      this->write_escaped(base_marker);
       return;
     default :
       buf_.put(static_cast<char>(*first_));
@@ -263,19 +273,25 @@ void blob_writer_t<T>::write_contents()
 
   if(first_ != last_)
   {
-    buf_.call_when_writable([this] { this->write_contents(); });
+    buf_.call_when_writable(
+      [this](stack_marker_t& base_marker)
+      { this->write_contents(base_marker); }
+    );
     return;
   }
 
-  suffix_writer_.start(&blob_writer_t::on_suffix_written);
+  suffix_writer_.start(base_marker, &blob_writer_t::on_suffix_written);
 }
 
 template<typename T>
-void blob_writer_t<T>::write_escaped()
+void blob_writer_t<T>::write_escaped(stack_marker_t& base_marker)
 {
   if(!buf_.writable())
   {
-    buf_.call_when_writable([this] { this->write_escaped(); });
+    buf_.call_when_writable(
+      [this](stack_marker_t& base_marker)
+      { this->write_escaped(base_marker); }
+    );
     return;
   }
     
@@ -298,20 +314,23 @@ void blob_writer_t<T>::write_escaped()
   ++first_;
 
   stack_marker_t marker;
-  if(marker.in_range(buf_.base_marker()))
+  if(marker.in_range(base_marker))
   {
-    this->write_contents();
+    this->write_contents(base_marker);
     return;
   }
 
-  buf_.call_when_writable([this] { this->write_contents(); });
+  buf_.call_when_writable(
+    [this](stack_marker_t& base_marker)
+    { this->write_contents(base_marker); }
+  );
 }
 
 template<typename T>
-void blob_writer_t<T>::on_suffix_written()
+void blob_writer_t<T>::on_suffix_written(stack_marker_t& base_marker)
 {
   value_.clear();
-  result_.submit();
+  result_.submit(base_marker);
 }
 
 template struct blob_writer_t<std::string>;
@@ -329,7 +348,8 @@ identifier_writer_t::identifier_writer_t(result_t<void>& result,
 , end_()
 { }
 
-void identifier_writer_t::start(identifier_t value)
+void identifier_writer_t::start(
+  stack_marker_t& base_marker, identifier_t value)
 {
   assert(value.is_valid());
   value_ = std::move(value);
@@ -338,10 +358,10 @@ void identifier_writer_t::start(identifier_t value)
   begin_ = rep.begin();
   end_ = rep.end();
 
-  this->write_contents();
+  this->write_contents(base_marker);
 }
 
-void identifier_writer_t::write_contents()
+void identifier_writer_t::write_contents(stack_marker_t& base_marker)
 {
   while(begin_ != end_ && buf_.writable())
   {
@@ -351,17 +371,20 @@ void identifier_writer_t::write_contents()
 
   if(begin_ != end_)
   {
-    buf_.call_when_writable([this] { this->write_contents(); });
+    buf_.call_when_writable(
+      [this](stack_marker_t& base_marker)
+      { this->write_contents(base_marker); }
+    );
     return;
   }
 
-  space_writer_.start(&identifier_writer_t::on_space_written);
+  space_writer_.start(base_marker, &identifier_writer_t::on_space_written);
 }
 
-void identifier_writer_t::on_space_written()
+void identifier_writer_t::on_space_written(stack_marker_t& base_marker)
 {
   value_ = identifier_t{};
-  result_.submit();
+  result_.submit(base_marker);
 }
   
 char const sequence_prefix[] = "[ ";
@@ -389,23 +412,24 @@ struct exception_writer_t::impl_t
   impl_t(impl_t const&) = delete;
   impl_t& operator=(impl_t const&) = delete;
 
-  void start(remote_error_t error)
+  void start(stack_marker_t& base_marker, remote_error_t error)
   {
     error_.emplace(std::move(error));
-    marker_writer_.start(&impl_t::on_marker_written);
+    marker_writer_.start(base_marker, &impl_t::on_marker_written);
   }
 
 private :
-  void on_marker_written()
+  void on_marker_written(stack_marker_t& base_marker)
   {
     assert(error_ != std::nullopt);
-    error_writer_.start(&impl_t::on_error_written, std::move(*error_));
+    error_writer_.start(
+      base_marker, &impl_t::on_error_written, std::move(*error_));
   }
 
-  void on_error_written()
+  void on_error_written(stack_marker_t& base_marker)
   {
     error_.reset();
-    result_.submit();
+    result_.submit(base_marker);
   }
 
 private :
@@ -423,9 +447,10 @@ exception_writer_t::exception_writer_t(result_t<void>& result,
 : impl_(std::make_unique<impl_t>(result, buf))
 { }
 
-void exception_writer_t::start(remote_error_t error)
+void exception_writer_t::start(
+  stack_marker_t& base_marker, remote_error_t error)
 {
-  impl_->start(std::move(error));
+  impl_->start(base_marker, std::move(error));
 }
 
 exception_writer_t::~exception_writer_t()
@@ -439,19 +464,19 @@ eom_writer_t::eom_writer_t(result_t<void>& result, bound_outbuf_t& buf)
 , flusher_(*this, result_, buf)
 { }
 
-void eom_writer_t::start()
+void eom_writer_t::start(stack_marker_t& base_marker)
 {
-  newline_writer_.start(&eom_writer_t::on_newline_written);
+  newline_writer_.start(base_marker, &eom_writer_t::on_newline_written);
 }
 
-void eom_writer_t::on_newline_written()
+void eom_writer_t::on_newline_written(stack_marker_t& base_marker)
 {
-  flusher_.start(&eom_writer_t::on_flushed);
+  flusher_.start(base_marker, &eom_writer_t::on_flushed);
 }
 
-void eom_writer_t::on_flushed()
+void eom_writer_t::on_flushed(stack_marker_t& base_marker)
 {
-  result_.submit();
+  result_.submit(base_marker);
 }
 
 } // detail
