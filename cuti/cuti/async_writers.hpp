@@ -89,8 +89,7 @@ struct token_suffix_writer_t
     }
 
     buf_.call_when_writable(
-      [this](stack_marker_t& base_marker)
-      { this->write_chars(base_marker); }
+      [this](stack_marker_t& marker) { this->write_chars(marker); }
     );
   }
 
@@ -106,8 +105,7 @@ private :
     if(*p_ != '\0')
     {
       buf_.call_when_writable(
-        [this](stack_marker_t& base_marker)
-        { this->write_chars(base_marker); }
+        [this](stack_marker_t& marker) { this->write_chars(marker); }
       );
       return;
     }

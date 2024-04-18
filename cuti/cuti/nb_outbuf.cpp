@@ -79,8 +79,7 @@ void nb_outbuf_t::enable_throughput_checking(throughput_settings_t settings)
       [&] { checker_.reset(); });
     alarm_ticket_ = scheduler_->call_alarm(
       checker_->next_tick(),
-      [this](stack_marker_t& base_marker)
-      { this->on_next_tick(base_marker); }
+      [this](stack_marker_t& marker) { this->on_next_tick(marker); }
     );
     guard.dismiss();
   }
@@ -110,15 +109,13 @@ void nb_outbuf_t::call_when_writable(scheduler_t& scheduler,
   {
     alarm_ticket_ = scheduler.call_alarm(
       duration_t(0),
-      [this](stack_marker_t& base_marker)
-      { this->on_already_writable(base_marker); });
+      [this](stack_marker_t& marker) { this->on_already_writable(marker); });
   }
   else
   {
     auto writable_ticket = sink_->call_when_writable(
       scheduler,
-      [this](stack_marker_t& base_marker)
-      { this->on_sink_writable(base_marker); }
+      [this](stack_marker_t& marker) { this->on_sink_writable(marker); }
     );
     if(checker_ != std::nullopt)
     {
@@ -126,8 +123,8 @@ void nb_outbuf_t::call_when_writable(scheduler_t& scheduler,
         [&] { scheduler.cancel(writable_ticket); });
       alarm_ticket_ = scheduler.call_alarm(
         checker_->next_tick(),
-        [this](stack_marker_t& base_marker)
-        { this->on_next_tick(base_marker); });
+        [this](stack_marker_t& marker) { this->on_next_tick(marker); }
+      );
       guard.dismiss();
     }
     writable_ticket_ = writable_ticket;
@@ -217,8 +214,7 @@ void nb_outbuf_t::on_sink_writable(stack_marker_t& base_marker)
       [this] { this->cancel_when_writable(); });
     writable_ticket_ = sink_->call_when_writable(
       *scheduler_,
-      [this](stack_marker_t& base_marker)
-      { this->on_sink_writable(base_marker); }
+      [this](stack_marker_t& marker) { this->on_sink_writable(marker); }
     );
     guard.dismiss();
     return;
@@ -263,8 +259,7 @@ void nb_outbuf_t::on_next_tick(stack_marker_t& base_marker)
       [this] { this->cancel_when_writable(); });
     alarm_ticket_ = scheduler_->call_alarm(
       checker_->next_tick(),
-      [this](stack_marker_t& base_marker)
-      { this->on_next_tick(base_marker); }
+      [this](stack_marker_t& marker) { this->on_next_tick(marker); }
     );
     guard.dismiss();
     return;

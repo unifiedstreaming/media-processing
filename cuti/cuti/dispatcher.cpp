@@ -120,8 +120,7 @@ struct wakeup_flag_t
     this->cancel_when_up();
 
     readable_ticket_ = pipe_reader_->call_when_readable(scheduler,
-      [this](stack_marker_t& base_marker)
-      { this->on_pipe_readable(base_marker); }
+      [this](stack_marker_t& marker) { this->on_pipe_readable(marker); }
     );
     scheduler_ = &scheduler;
     callback_ = std::move(callback);
@@ -226,8 +225,7 @@ struct listener_t
     this->cancel_when_ready();
 
     ready_ticket_ = acceptor_.call_when_ready(scheduler,
-      [this](stack_marker_t& base_marker)
-      { this->on_acceptor_ready(base_marker); }
+      [this](stack_marker_t& marker) { this->on_acceptor_ready(marker); }
     );
     scheduler_ = &scheduler;
     callback_ = std::move(callback);
@@ -362,8 +360,7 @@ struct core_dispatcher_t
   {
     wakeup_flag_.call_when_up(
       scheduler_,
-      [this](stack_marker_t& /* ignored */)
-      { this->on_wakeup_flag(); }
+      [this](stack_marker_t& /* ignored */) { this->on_wakeup_flag(); }
     );
 
     if(auto msg = context.message_at(loglevel_t::info))
@@ -395,8 +392,7 @@ struct core_dispatcher_t
       context_, endpoint, map);
     listener->call_when_ready(
       scheduler_,
-      [this, listener](stack_marker_t& /* ignored */)
-      { this->on_listener_ready(listener); }
+      [this, listener](stack_marker_t&) { this->on_listener_ready(listener); }
     );
 
     return listener->endpoint();
@@ -478,8 +474,7 @@ struct core_dispatcher_t
         served_clients_, client);
       client->nb_inbuf().call_when_readable(
         scheduler_,
-        [this, client](stack_marker_t& /* ignored */)
-        { this->on_client_readable(client); }
+        [this, client](stack_marker_t&) { this->on_client_readable(client); }
       );
     }
   }
@@ -506,8 +501,7 @@ private :
 
     wakeup_flag_.call_when_up(
       scheduler_,
-      [this](stack_marker_t& /* ignored */)
-      { this->on_wakeup_flag(); }
+      [this](stack_marker_t&) { this->on_wakeup_flag(); }
     );
   }
 
@@ -527,8 +521,7 @@ private :
 
     listener->call_when_ready(
       scheduler_,
-      [this, listener](stack_marker_t& /* ignored */)
-      { this->on_listener_ready(listener); }
+      [this, listener](stack_marker_t&) { this->on_listener_ready(listener); }
     );
   }
         
@@ -555,8 +548,7 @@ private :
     {
       client->nb_inbuf().call_when_readable(
         scheduler_,
-        [this, client](stack_marker_t& /* ignored */)
-        { this->on_client_readable(client); }
+        [this, client](stack_marker_t&) { this->on_client_readable(client); }
       );
     }
   }
@@ -716,8 +708,7 @@ struct pooled_thread_t
   {
     wakeup_flag_.call_when_up(
       scheduler_,
-      [this](stack_marker_t& /* ignored */)
-      { this->on_wakeup_flag(); }
+      [this](stack_marker_t&) { this->on_wakeup_flag(); }
     );
     thread_.emplace(
       [this, f = std::forward<F>(f) ] { this->run(f); });
@@ -780,8 +771,7 @@ private :
     {
       wakeup_flag_.call_when_up(
         scheduler_,
-        [this](stack_marker_t& /* ignored */)
-        { this->on_wakeup_flag(); }
+        [this](stack_marker_t&) { this->on_wakeup_flag(); }
       );
     }
   }

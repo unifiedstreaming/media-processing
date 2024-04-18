@@ -125,8 +125,7 @@ void digits_reader_t<T>::read_digits(stack_marker_t& base_marker)
   if(!buf_.readable())
   {
     buf_.call_when_readable(
-      [this](stack_marker_t& base_marker)
-      { this->read_digits(base_marker); }
+      [this](stack_marker_t& marker) { this->read_digits(marker); }
     );
     return;
   }
@@ -197,8 +196,7 @@ void hex_digits_reader_t::read_digits(stack_marker_t& base_marker)
   if(shift_ != 0)
   {
     buf_.call_when_readable(
-      [this](stack_marker_t& base_marker)
-      { this->read_digits(base_marker); }
+      [this](stack_marker_t& marker) { this->read_digits(marker); }
     );
     return;
   }
@@ -418,8 +416,7 @@ void blob_reader_t<T>::read_contents(stack_marker_t& base_marker)
   if(!buf_.readable())
   {
     buf_.call_when_readable(
-      [this](stack_marker_t& base_marker)
-      { this->read_contents(base_marker); }
+      [this](stack_marker_t& marker) { this->read_contents(marker); }
     );
     return;
   }
@@ -434,8 +431,7 @@ void blob_reader_t<T>::read_escaped(stack_marker_t& base_marker)
   if(!buf_.readable())
   {
     buf_.call_when_readable(
-      [this](stack_marker_t& base_marker)
-      { this->read_escaped(base_marker); }
+      [this](stack_marker_t& marker) { this->read_escaped(marker); }
     );
     return;
   }
@@ -484,8 +480,7 @@ void blob_reader_t<T>::read_escaped(stack_marker_t& base_marker)
   }
 
   buf_.call_when_readable(
-    [this](stack_marker_t& base_marker)
-    { this->read_contents(base_marker); }
+    [this](stack_marker_t& marker) { this->read_contents(marker); }
   );
 }
 
@@ -501,8 +496,7 @@ void blob_reader_t<T>::on_hex_digits(stack_marker_t& base_marker, int c)
   }
 
   buf_.call_when_readable(
-    [this](stack_marker_t& base_marker)
-    { this->read_contents(base_marker); }
+    [this](stack_marker_t& marker) { this->read_contents(marker); }
   );
 }
 
@@ -557,8 +551,7 @@ void identifier_reader_t::read_followers(stack_marker_t& base_marker)
   if(!buf_.readable())
   {
     buf_.call_when_readable(
-      [this](stack_marker_t& base_marker)
-      { this->read_followers(base_marker); }
+      [this](stack_marker_t& marker) { this->read_followers(marker); }
     );
     return;
   }

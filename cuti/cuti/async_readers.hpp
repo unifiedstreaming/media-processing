@@ -93,8 +93,7 @@ struct CUTI_ABI whitespace_skipper_t
     }
 
     buf_.call_when_readable(
-      [this](stack_marker_t& base_marker)
-      { this->skip_spaces(base_marker); }
+      [this](stack_marker_t& marker) { this->skip_spaces(marker); }
     );
   }
 
@@ -110,8 +109,7 @@ private :
     if(!buf_.readable())
     {
       buf_.call_when_readable(
-        [this](stack_marker_t& base_marker)
-        { this->start(base_marker); }
+        [this](stack_marker_t& marker) { this->start(marker); }
       );
       return;
     }
@@ -865,8 +863,7 @@ struct CUTI_ABI message_drainer_t
     }
 
     buf_.call_when_readable(
-      [this](stack_marker_t& base_marker)
-      { this->drain(base_marker); }
+      [this](stack_marker_t& marker) { this->drain(marker); }
     );
   }
 
@@ -882,8 +879,7 @@ private :
     if(!buf_.readable())
     {
       buf_.call_when_readable(
-        [this](stack_marker_t& base_marker)
-        { this->drain(base_marker); }
+        [this](stack_marker_t& marker) { this->drain(marker); }
       );
       return;
     }

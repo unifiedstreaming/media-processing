@@ -38,8 +38,7 @@ void flusher_t::check_flushed(stack_marker_t& base_marker)
   if(!buf_.writable())
   {
     buf_.call_when_writable(
-      [this](stack_marker_t& base_marker)
-      { this->check_flushed(base_marker); }
+      [this](stack_marker_t& marker) { this->check_flushed(marker); }
     );
     return;
   }

@@ -72,8 +72,7 @@ void digits_writer_t<T>::write_digits(stack_marker_t& base_marker)
   if(divisor_ >= 1)
   {
     buf_.call_when_writable(
-      [this](stack_marker_t& base_marker)
-      { this->write_digits(base_marker); }
+      [this](stack_marker_t& marker) { this->write_digits(marker); }
     );
     return;
   }
@@ -187,8 +186,7 @@ void signed_writer_t<T>::write_minus(stack_marker_t& base_marker)
   if(!buf_.writable())
   {
     buf_.call_when_writable(
-      [this](stack_marker_t& base_marker)
-      { this->write_minus(base_marker); }
+      [this](stack_marker_t& marker) { this->write_minus(marker); }
     );
     return;
   }
@@ -241,8 +239,7 @@ void blob_writer_t<T>::write_opening_dq(stack_marker_t& base_marker)
   if(!buf_.writable())
   {
     buf_.call_when_writable(
-      [this](stack_marker_t& base_marker)
-      { this->write_opening_dq(base_marker); }
+      [this](stack_marker_t& marker) { this->write_opening_dq(marker); }
     );
     return;
   }
@@ -274,8 +271,7 @@ void blob_writer_t<T>::write_contents(stack_marker_t& base_marker)
   if(first_ != last_)
   {
     buf_.call_when_writable(
-      [this](stack_marker_t& base_marker)
-      { this->write_contents(base_marker); }
+      [this](stack_marker_t& marker) { this->write_contents(marker); }
     );
     return;
   }
@@ -289,8 +285,7 @@ void blob_writer_t<T>::write_escaped(stack_marker_t& base_marker)
   if(!buf_.writable())
   {
     buf_.call_when_writable(
-      [this](stack_marker_t& base_marker)
-      { this->write_escaped(base_marker); }
+      [this](stack_marker_t& marker) { this->write_escaped(marker); }
     );
     return;
   }
@@ -320,8 +315,7 @@ void blob_writer_t<T>::write_escaped(stack_marker_t& base_marker)
   }
 
   buf_.call_when_writable(
-    [this](stack_marker_t& base_marker)
-    { this->write_contents(base_marker); }
+    [this](stack_marker_t& marker) { this->write_contents(marker); }
   );
 }
 
@@ -371,8 +365,7 @@ void identifier_writer_t::write_contents(stack_marker_t& base_marker)
   if(begin_ != end_)
   {
     buf_.call_when_writable(
-      [this](stack_marker_t& base_marker)
-      { this->write_contents(base_marker); }
+      [this](stack_marker_t& marker) { this->write_contents(marker); }
     );
     return;
   }
