@@ -86,8 +86,7 @@ struct CUTI_ABI whitespace_skipper_t
 
   void start(stack_marker_t& base_marker)
   {
-    stack_marker_t marker;
-    if(marker.in_range(base_marker))
+    if(base_marker.in_range())
     {
       this->skip_spaces(base_marker);
       return;
@@ -859,8 +858,7 @@ struct CUTI_ABI message_drainer_t
 
   void start(stack_marker_t& base_marker)
   {
-    stack_marker_t marker;
-    if(marker.in_range(base_marker))
+    if(base_marker.in_range())
     {
       this->drain(base_marker);
       return;

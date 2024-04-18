@@ -313,8 +313,7 @@ void blob_writer_t<T>::write_escaped(stack_marker_t& base_marker)
   }
   ++first_;
 
-  stack_marker_t marker;
-  if(marker.in_range(base_marker))
+  if(base_marker.in_range())
   {
     this->write_contents(base_marker);
     return;

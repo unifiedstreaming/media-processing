@@ -47,16 +47,17 @@ struct CUTI_ABI stack_marker_t
   stack_marker_t(stack_marker_t const&) = delete;
   stack_marker_t& operator=(stack_marker_t const&) = delete;
   
-  std::uintptr_t address() const;
-
-  bool in_range(stack_marker_t const& other,
-                std::uintptr_t threshold = default_threshold) const
+  bool in_range(std::uintptr_t threshold = default_threshold) const
   {
+    stack_marker_t here;
     auto addr1 = this->address();
-    auto addr2 = other.address();
+    auto addr2 = here.address();
     return addr1 <= addr2 ? addr2 - addr1 < threshold
                           : addr1 - addr2 < threshold;
   }
+
+private :
+  std::uintptr_t address() const;
 };
 
 } // cuti

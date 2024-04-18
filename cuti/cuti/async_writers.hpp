@@ -82,8 +82,7 @@ struct token_suffix_writer_t
   {
     p_ = Literal;
 
-    stack_marker_t marker;
-    if(marker.in_range(base_marker))
+    if(base_marker.in_range())
     {
       this->write_chars(base_marker);
       return;

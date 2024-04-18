@@ -477,8 +477,7 @@ void blob_reader_t<T>::read_escaped(stack_marker_t& base_marker)
 
   buf_.skip();
 
-  stack_marker_t marker;
-  if(marker.in_range(base_marker))
+  if(base_marker.in_range())
   {
     this->read_contents(base_marker);
     return;
@@ -495,8 +494,7 @@ void blob_reader_t<T>::on_hex_digits(stack_marker_t& base_marker, int c)
 {
   value_.push_back(static_cast<typename T::value_type>(c));
 
-  stack_marker_t marker;
-  if(marker.in_range(base_marker))
+  if(base_marker.in_range())
   {
     this->read_contents(base_marker);
     return;
