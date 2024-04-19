@@ -12,9 +12,9 @@
 #
 # Project definitions
 #
-cuti_version := $(call read-single-word-file,cuti/version.usp-builder)
-x264_encoding_service_version := $(call read-single-word-file,x264_encoding_service/version.usp-builder)
-x264_proto_version := $(call read-single-word-file,x264_proto/version.usp-builder)
+cuti_version := 0.0.0
+x264_encoding_service_version := 0.0.0
+x264_proto_version := 0.0.0
 
 $(call bjam-exe-project, \
   name = x264_encoding_service \
