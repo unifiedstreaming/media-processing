@@ -117,8 +117,6 @@ struct CUTI_ABI service_config_t
   /*
    * Creates the actual service application object.
    * The service should log via <logging_context>.
-   * <control_pipe> yields shutdown signal numbers; the service must
-   * respond to any input by returning from its run() method.
    * If this function returns nullptr, run_service() returns
    * immediately.
    */

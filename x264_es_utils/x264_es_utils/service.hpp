@@ -32,7 +32,6 @@ namespace cuti
 
 struct logging_context_t;
 struct method_map_t;
-struct tcp_connection_t;
 
 } // cuti
 
