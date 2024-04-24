@@ -11,7 +11,9 @@
 
 .NOTPARALLEL:
 
-.PHONY: all $(MAKECMDGOALS)
-all $(MAKECMDGOALS):
+goals-except-all := $(filter-out all,$(MAKECMDGOALS))
+
+.PHONY: all $(goals-except-all)
+all $(goals-except-all):
 	$(MAKE) -I usp-builder/include -f usp-builder/lib/Main.mak "$@"
 
