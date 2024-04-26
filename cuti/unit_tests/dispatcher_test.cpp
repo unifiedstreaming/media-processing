@@ -612,12 +612,11 @@ void test_restart(logging_context_t const& client_context,
     dispatcher_t dispatcher(server_context, config);
     endpoint_t server_address = dispatcher.add_listener(
       local_interfaces(any_port).front(), map);
-    rpc_client_t client(server_address, bufsize, bufsize);
 
     /*
      * In theory, restarting a stopped dispatcher should be possible.
      * However, the connections associated with any currently running
-     * requests will be lost.  Here, we do not have such connnections.
+     * requests may be lost.  Here, we do not have such connnections.
      */
     for(int i = 0; i != 2; ++i)
     {
@@ -625,6 +624,7 @@ void test_restart(logging_context_t const& client_context,
         [&dispatcher] { dispatcher.run(); });
       auto stop_guard = make_scoped_guard(
         [&dispatcher] { dispatcher.stop(SIGINT); });
+      rpc_client_t client(server_address, bufsize, bufsize);
       echo_nothing(client);
     }
   }
