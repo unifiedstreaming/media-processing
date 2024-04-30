@@ -26,6 +26,7 @@ lib x264_es_utils
   config.cpp
   config_reader.cpp
   encoder_settings.cpp
+  encoding_session.cpp
   service.cpp
   $(lib-dir)/jamfiles/cuti//cuti
   $(lib-dir)/jamfiles/x264_proto//x264_proto
