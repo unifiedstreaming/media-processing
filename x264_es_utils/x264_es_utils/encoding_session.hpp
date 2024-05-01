@@ -32,7 +32,7 @@ namespace x264_es_utils
 struct encoding_session_t
 {
   encoding_session_t(encoder_settings_t const& encoder_settings,
-                     x264_proto::session_params_t session_params);
+                     x264_proto::session_params_t const& session_params);
 
   encoding_session_t(encoding_session_t const&) = delete;
   encoding_session_t& operator=(encoding_session_t const&) = delete;
@@ -40,11 +40,11 @@ struct encoding_session_t
   x264_proto::samples_header_t samples_header() const;
 
   std::optional<x264_proto::sample_t> encode(x264_proto::frame_t frame);
-  std::optional<x264_proto::sample_t> delayed_sample();
+  std::optional<x264_proto::sample_t> flush();
 
 private :
   int backlog_;
-  bool delayed_sample_called_;
+  bool flush_called_;
 };
 
 } // x264_es_utils

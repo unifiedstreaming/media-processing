@@ -25,6 +25,7 @@ lib x264_es_utils
 :
   config.cpp
   config_reader.cpp
+  encode_handler.cpp
   encoder_settings.cpp
   encoding_session.cpp
   service.cpp

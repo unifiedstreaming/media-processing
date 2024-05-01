@@ -25,9 +25,9 @@ namespace x264_es_utils
 {
 
 encoding_session_t::encoding_session_t(encoder_settings_t const&,
-                                       x264_proto::session_params_t)
+                                       x264_proto::session_params_t const&)
 : backlog_(0)
-, delayed_sample_called_(false)
+, flush_called_(false)
 { }
 
 x264_proto::samples_header_t encoding_session_t::samples_header() const
@@ -38,7 +38,7 @@ x264_proto::samples_header_t encoding_session_t::samples_header() const
 std::optional<x264_proto::sample_t>
 encoding_session_t::encode(x264_proto::frame_t)
 {
-  assert(! delayed_sample_called_);
+  assert(! flush_called_);
   
   std::optional<x264_proto::sample_t> result = std::nullopt;
 
@@ -55,9 +55,9 @@ encoding_session_t::encode(x264_proto::frame_t)
 }
 
 std::optional<x264_proto::sample_t>
-encoding_session_t::delayed_sample()
+encoding_session_t::flush()
 {
-  delayed_sample_called_ = true;
+  flush_called_ = true;
   
   std::optional<x264_proto::sample_t> result = std::nullopt;
 
