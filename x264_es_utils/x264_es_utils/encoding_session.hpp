@@ -22,6 +22,8 @@
 
 #include "encoder_settings.hpp"
 
+#include <cuti/logging_context.hpp>
+
 #include <x264_proto/types.hpp>
 
 #include <optional>
@@ -31,7 +33,8 @@ namespace x264_es_utils
 
 struct encoding_session_t
 {
-  encoding_session_t(encoder_settings_t const& encoder_settings,
+  encoding_session_t(cuti::logging_context_t const& context,
+                     encoder_settings_t const& encoder_settings,
                      x264_proto::session_params_t const& session_params);
 
   encoding_session_t(encoding_session_t const&) = delete;
@@ -42,7 +45,10 @@ struct encoding_session_t
   std::optional<x264_proto::sample_t> encode(x264_proto::frame_t frame);
   std::optional<x264_proto::sample_t> flush();
 
+  ~encoding_session_t();
+
 private :
+  cuti::logging_context_t const& context_;
   int backlog_;
   bool flush_called_;
 };

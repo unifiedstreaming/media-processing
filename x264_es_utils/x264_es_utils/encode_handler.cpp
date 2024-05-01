@@ -57,7 +57,7 @@ void encode_handler_t::create_session(
 {
   try
   {
-    encoding_session_.emplace(encoder_settings_, session_params);
+    encoding_session_.emplace(context_, encoder_settings_, session_params);
   }
   catch (std::exception const& ex)
   {

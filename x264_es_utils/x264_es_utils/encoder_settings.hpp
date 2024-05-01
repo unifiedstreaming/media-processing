@@ -20,18 +20,18 @@
 #ifndef X264_ES_UTILS_ENCODER_SETTINGS_HPP_
 #define X264_ES_UTILS_ENCODER_SETTINGS_HPP_
 
+#include <cuti/flag.hpp>
+
 namespace x264_es_utils
 {
 
 struct encoder_settings_t
 {
-  static bool constexpr default_deterministic = true;
- 
   encoder_settings_t()
-  : deterministic_(default_deterministic)
+  : deterministic_()
   { }
 
-  bool deterministic_;
+  cuti::flag_t deterministic_;
 };
 
 } // x264_es_utils
