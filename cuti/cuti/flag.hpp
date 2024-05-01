@@ -31,33 +31,33 @@ namespace cuti
  */
 struct CUTI_ABI flag_t
 {
-  flag_t() noexcept
+  constexpr flag_t() noexcept
   : value_(false)
   { }
 
-  flag_t(bool value) noexcept
+  constexpr flag_t(bool value) noexcept
   : value_(value)
   { }
 
-  explicit operator bool() const noexcept
+  constexpr explicit operator bool() const noexcept
   { return value_; }
 
-  bool operator==(flag_t const& that) const noexcept
+  constexpr bool operator==(flag_t const& that) const noexcept
   { return value_ == that.value_; }
 
-  bool operator!=(flag_t const& that) const noexcept
+  constexpr bool operator!=(flag_t const& that) const noexcept
   { return !(*this == that); }
 
-  friend bool operator==(flag_t const& lhs, bool rhs) noexcept
+  constexpr friend bool operator==(flag_t const& lhs, bool rhs) noexcept
   { return lhs.value_ == rhs; }
 
-  friend bool operator==(bool lhs, flag_t const& rhs) noexcept
+  constexpr friend bool operator==(bool lhs, flag_t const& rhs) noexcept
   { return rhs == lhs; }
 
-  friend bool operator!=(flag_t const& lhs, bool rhs) noexcept
+  constexpr friend bool operator!=(flag_t const& lhs, bool rhs) noexcept
   { return !(lhs == rhs); }
 
-  friend bool operator!=(bool lhs, flag_t const& rhs) noexcept
+  constexpr friend bool operator!=(bool lhs, flag_t const& rhs) noexcept
   { return !(lhs == rhs); }
 
 private :

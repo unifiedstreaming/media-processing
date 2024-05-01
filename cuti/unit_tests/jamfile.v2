@@ -55,6 +55,10 @@ unit-test event_pipe_test
 : event_pipe_test.cpp
 ;
 
+unit-test flag_test
+: flag_test.cpp
+;
+
 unit-test fs_utils_test
 : fs_utils_test.cpp
 ;
