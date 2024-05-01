@@ -38,12 +38,12 @@ encode_handler_t::encode_handler_t(cuti::result_t<void>& result,
 , encoding_session_(std::nullopt)
 , session_params_reader_(*this, result_, inbuf)
 , samples_header_writer_(*this, result_, outbuf)
-, begin_sequence_reader_(*this, result, inbuf)
-, begin_sequence_writer_(*this, result, outbuf)
-, end_sequence_checker_(*this, result, inbuf)
-, frame_reader_(*this, result, inbuf)
-, sample_writer_(*this, result, outbuf)
-, end_sequence_writer_(*this, result, outbuf)
+, begin_sequence_reader_(*this, result_, inbuf)
+, begin_sequence_writer_(*this, result_, outbuf)
+, end_sequence_checker_(*this, result_, inbuf)
+, frame_reader_(*this, result_, inbuf)
+, sample_writer_(*this, result_, outbuf)
+, end_sequence_writer_(*this, result_, outbuf)
 { }
 
 void encode_handler_t::start(cuti::stack_marker_t& marker)
