@@ -28,7 +28,7 @@ constexpr flag_t default_flag;
 static_assert(! default_flag);
 
 constexpr flag_t false_flag = false;
-static_assert(! default_flag);
+static_assert(! false_flag);
 
 constexpr flag_t true_flag = true;
 static_assert(true_flag);
