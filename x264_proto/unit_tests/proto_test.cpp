@@ -41,7 +41,45 @@ void test_serialization(
   cuti::logging_context_t const& context,
   std::size_t bufsize)
 {
-  cuti::io_test_utils::test_roundtrip(context, bufsize, session_params_t());
+  {
+    constexpr unsigned timescale = 25;
+    constexpr unsigned bitrate = 1000000;
+    constexpr unsigned width = 1280;
+    constexpr unsigned height = 720;
+    constexpr unsigned sar_width = 1;
+    constexpr unsigned sar_height = 1;
+    constexpr profile_t profile = profile_t::BASELINE;
+    constexpr unsigned level_idc = 30;
+    constexpr std::optional<bool> overscan_appropriate_flag;
+    constexpr std::optional<unsigned> video_format;
+    constexpr std::optional<bool> video_full_range_flag;
+    constexpr std::optional<unsigned> colour_primaries;
+    constexpr std::optional<unsigned> transfer_characteristics;
+    constexpr std::optional<unsigned> matrix_coefficients;
+    constexpr std::optional<unsigned> chroma_sample_loc_type_top_field;
+    constexpr std::optional<unsigned> chroma_sample_loc_type_bottom_field;
+    constexpr unsigned framerate_num = 25;
+    constexpr unsigned framerate_den = 1;
+    cuti::io_test_utils::test_roundtrip(context, bufsize, session_params_t(
+      timescale,
+      bitrate,
+      width,
+      height,
+      sar_width,
+      sar_height,
+      profile,
+      level_idc,
+      overscan_appropriate_flag,
+      video_format,
+      video_full_range_flag,
+      colour_primaries,
+      transfer_characteristics,
+      matrix_coefficients,
+      chroma_sample_loc_type_top_field,
+      chroma_sample_loc_type_bottom_field,
+      framerate_num,
+      framerate_den));
+  }
   cuti::io_test_utils::test_roundtrip(context, bufsize, frame_t());
   cuti::io_test_utils::test_roundtrip(context, bufsize, sample_headers_t());
   cuti::io_test_utils::test_roundtrip(context, bufsize, sample_t());
