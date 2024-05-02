@@ -20,20 +20,20 @@
 #ifndef CUTI_IO_TEST_UTILS_HPP_
 #define CUTI_IO_TEST_UTILS_HPP_
 
-#include <cuti/async_readers.hpp>
-#include <cuti/async_writers.hpp>
-#include <cuti/bound_inbuf.hpp>
-#include <cuti/bound_outbuf.hpp>
-#include <cuti/default_scheduler.hpp>
-#include <cuti/eof_reader.hpp>
-#include <cuti/final_result.hpp>
-#include <cuti/flusher.hpp>
-#include <cuti/loglevel.hpp>
-#include <cuti/logging_context.hpp>
-#include <cuti/nb_string_inbuf.hpp>
-#include <cuti/nb_string_outbuf.hpp>
-#include <cuti/quoted.hpp>
-#include <cuti/stack_marker.hpp>
+#include "async_readers.hpp"
+#include "async_writers.hpp"
+#include "bound_inbuf.hpp"
+#include "bound_outbuf.hpp"
+#include "default_scheduler.hpp"
+#include "eof_reader.hpp"
+#include "final_result.hpp"
+#include "flusher.hpp"
+#include "loglevel.hpp"
+#include "logging_context.hpp"
+#include "nb_string_inbuf.hpp"
+#include "nb_string_outbuf.hpp"
+#include "quoted.hpp"
+#include "stack_marker.hpp"
 
 #include <cstddef>
 #include <functional>
@@ -57,6 +57,9 @@ namespace cuti
 {
 
 namespace io_test_utils
+{
+
+namespace // anonymous
 {
 
 template<typename T>
@@ -250,6 +253,8 @@ void test_roundtrip(logging_context_t const& context,
 {
   test_roundtrip(context, bufsize, value, std::equal_to<T>{});
 }
+
+} // anonymous
 
 } // io_test_utils
 

@@ -17,13 +17,12 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#include "io_test_utils.hpp"
 
 #include <cuti/async_readers.hpp>
 #include <cuti/async_writers.hpp>
-
 #include <cuti/charclass.hpp>
 #include <cuti/cmdline_reader.hpp>
+#include <cuti/io_test_utils.hpp>
 #include <cuti/option_walker.hpp>
 #include <cuti/streambuf_backend.hpp>
 
