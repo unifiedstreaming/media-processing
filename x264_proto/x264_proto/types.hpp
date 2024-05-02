@@ -42,7 +42,7 @@ struct X264_PROTO_ABI frame_t
   // TBD
 };
 
-struct X264_PROTO_ABI samples_header_t
+struct X264_PROTO_ABI sample_headers_t
 {
   // TBD
 };
@@ -91,19 +91,19 @@ struct X264_PROTO_ABI cuti::tuple_mapping_t<x264_proto::frame_t>
 };
 
 template<>
-struct X264_PROTO_ABI cuti::tuple_mapping_t<x264_proto::samples_header_t>
+struct X264_PROTO_ABI cuti::tuple_mapping_t<x264_proto::sample_headers_t>
 {
   using tuple_t = std::tuple<>; // TBD
 
-  static tuple_t to_tuple(x264_proto::samples_header_t value)
+  static tuple_t to_tuple(x264_proto::sample_headers_t value)
   {
     return tuple_t();
   }
 
-  static x264_proto::samples_header_t from_tuple(tuple_t tuple)
+  static x264_proto::sample_headers_t from_tuple(tuple_t tuple)
   {
     return
-      std::make_from_tuple<x264_proto::samples_header_t>(std::move(tuple));
+      std::make_from_tuple<x264_proto::sample_headers_t>(std::move(tuple));
   }
 };
 

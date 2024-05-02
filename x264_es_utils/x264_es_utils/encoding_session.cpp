@@ -38,14 +38,14 @@ encoding_session_t::encoding_session_t(
   }
 }
 
-x264_proto::samples_header_t encoding_session_t::samples_header() const
+x264_proto::sample_headers_t encoding_session_t::samples_header() const
 {
   if(auto msg = context_.message_at(cuti::loglevel_t::info))
   {
     *msg << "encoding_session[" << this << "]: returning samples header";
   }
 
-  return x264_proto::samples_header_t();
+  return x264_proto::sample_headers_t();
 }
 
 std::optional<x264_proto::sample_t>
