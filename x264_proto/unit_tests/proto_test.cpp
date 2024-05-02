@@ -20,21 +20,13 @@
  */
 
 #include <cuti/cmdline_reader.hpp>
-#include <cuti/dispatcher.hpp>
-#include <cuti/endpoint.hpp>
-#include <cuti/flag.hpp>
-#include <cuti/logger.hpp>
+#include <cuti/io_test_utils.hpp>
 #include <cuti/logging_context.hpp>
 #include <cuti/option_walker.hpp>
-#include <cuti/resolver.hpp>
-#include <cuti/rpc_client.hpp>
-#include <cuti/scoped_guard.hpp>
-#include <cuti/scoped_thread.hpp>
 #include <cuti/streambuf_backend.hpp>
-#include <x264_proto/client.hpp>
 
-#include <csignal>
-#include <exception>
+#include <x264_proto/types.hpp>
+
 #include <iostream>
 
 #undef NDEBUG
@@ -43,11 +35,72 @@
 namespace // anonymous
 {
 
-int run_tests(int argc, char const* const* argv)
+using namespace x264_proto;
+
+void test_serialization(
+  cuti::logging_context_t const& context,
+  std::size_t bufsize)
 {
-  return 0;
+  cuti::io_test_utils::test_roundtrip(context, bufsize, session_params_t());
+  cuti::io_test_utils::test_roundtrip(context, bufsize, frame_t());
+  cuti::io_test_utils::test_roundtrip(context, bufsize, sample_headers_t());
+  cuti::io_test_utils::test_roundtrip(context, bufsize, sample_t());
 }
 
+struct options_t
+{
+  constexpr static cuti::loglevel_t default_loglevel = cuti::loglevel_t::error;
+
+  options_t()
+  : loglevel_(default_loglevel)
+  { }
+
+  cuti::loglevel_t loglevel_;
+};
+
+void print_usage(std::ostream& os, char const* argv0)
+{
+  os << "usage: " << argv0 << " [<option> ...]\n";
+  os << "options are:\n";
+  os << "  --loglevel <level>       set loglevel " <<
+    "(default: " << loglevel_string(options_t::default_loglevel) << ")\n";
+  os << std::flush;
+}
+
+void read_options(options_t& options, cuti::option_walker_t& walker)
+{
+  while(!walker.done())
+  {
+    if(!walker.match("--loglevel", options.loglevel_))
+    {
+      break;
+    }
+  }
+}
+
+int run_tests(int argc, char const* const* argv)
+{
+  options_t options;
+  cuti::cmdline_reader_t reader(argc, argv);
+  cuti::option_walker_t walker(reader);
+
+  read_options(options, walker);
+  if(!walker.done() || !reader.at_end())
+  {
+    print_usage(std::cerr, argv[0]);
+    return 1;
+  }
+
+  cuti::logger_t logger(
+    std::make_unique<cuti::streambuf_backend_t>(std::cerr));
+  cuti::logging_context_t context(logger, options.loglevel_);
+
+  test_serialization(context, 1);
+  test_serialization(context, cuti::nb_outbuf_t::default_bufsize);
+
+  return 0;
+}
+  
 } // anonymous
 
 int main(int argc, char* argv[])

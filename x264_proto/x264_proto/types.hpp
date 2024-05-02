@@ -35,26 +35,50 @@ namespace x264_proto
 struct X264_PROTO_ABI session_params_t
 {
   // TBD
+
+  bool operator==(session_params_t const& rhs) const
+  { return true; }
+  
+  bool operator!=(session_params_t const& rhs) const
+  { return !(*this == rhs); }
 };
 
 struct X264_PROTO_ABI frame_t
 {
   // TBD
+
+  bool operator==(frame_t const& rhs) const
+  { return true; }
+  
+  bool operator!=(frame_t const& rhs) const
+  { return !(*this == rhs); }
 };
 
 struct X264_PROTO_ABI sample_headers_t
 {
   // TBD
+
+  bool operator==(sample_headers_t const& rhs) const
+  { return true; }
+  
+  bool operator!=(sample_headers_t const& rhs) const
+  { return !(*this == rhs); }
 };
 
 struct X264_PROTO_ABI sample_t
 {
   // TBD
+
+  bool operator==(sample_t const& rhs) const
+  { return true; }
+  
+  bool operator!=(sample_t const& rhs) const
+  { return !(*this == rhs); }
 };
 
 } // x264_proto
 
-// cuti serialization
+// adapters for cuti serialization
 
 template<>
 struct X264_PROTO_ABI cuti::tuple_mapping_t<x264_proto::session_params_t>
