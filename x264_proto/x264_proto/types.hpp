@@ -24,13 +24,30 @@
 
 #include "linkage.h"
 
+#include <cuti/parse_error.hpp>
 #include <cuti/tuple_mapping.hpp>
 
+#include <string>
 #include <tuple>
 #include <utility>
 
 namespace x264_proto
 {
+
+enum class profile_t : unsigned
+{
+  BASELINE = 66,
+  MAIN = 77,
+  HIGH = 100,
+  HIGH10 = 110,
+  HIGH422 = 122,
+  HIGH444_PREDICTIVE = 244,
+};
+
+enum class format_t : unsigned
+{
+  NV12,
+};
 
 struct X264_PROTO_ABI session_params_t
 {
@@ -79,6 +96,59 @@ struct X264_PROTO_ABI sample_t
 } // x264_proto
 
 // adapters for cuti serialization
+
+template<>
+struct X264_PROTO_ABI cuti::tuple_mapping_t<x264_proto::profile_t>
+{
+  using underlying_t = std::underlying_type_t<x264_proto::profile_t>;
+  using tuple_t = std::tuple<underlying_t>;
+
+  static tuple_t to_tuple(x264_proto::profile_t value)
+  {
+    return {static_cast<underlying_t>(value)};
+  }
+
+  static x264_proto::profile_t from_tuple(tuple_t tuple)
+  {
+    auto const& value = std::get<0>(tuple);
+    switch(value)
+    {
+    case static_cast<underlying_t>(x264_proto::profile_t::BASELINE):
+    case static_cast<underlying_t>(x264_proto::profile_t::MAIN):
+    case static_cast<underlying_t>(x264_proto::profile_t::HIGH):
+    case static_cast<underlying_t>(x264_proto::profile_t::HIGH10):
+    case static_cast<underlying_t>(x264_proto::profile_t::HIGH422):
+    case static_cast<underlying_t>(x264_proto::profile_t::HIGH444_PREDICTIVE):
+      return static_cast<x264_proto::profile_t>(value);
+    default:
+      throw parse_error_t("bad x264_proto::profile_t value " + std::to_string(value));
+    }
+  }
+};
+
+template<>
+struct X264_PROTO_ABI cuti::tuple_mapping_t<x264_proto::format_t>
+{
+  using underlying_t = std::underlying_type_t<x264_proto::format_t>;
+  using tuple_t = std::tuple<underlying_t>;
+
+  static tuple_t to_tuple(x264_proto::format_t value)
+  {
+    return {static_cast<underlying_t>(value)};
+  }
+
+  static x264_proto::format_t from_tuple(tuple_t tuple)
+  {
+    auto const& value = std::get<0>(tuple);
+    switch(value)
+    {
+    case static_cast<underlying_t>(x264_proto::format_t::NV12):
+      return static_cast<x264_proto::format_t>(value);
+    default:
+      throw parse_error_t("bad x264_proto::format_t value " + std::to_string(value));
+    }
+  }
+};
 
 template<>
 struct X264_PROTO_ABI cuti::tuple_mapping_t<x264_proto::session_params_t>
