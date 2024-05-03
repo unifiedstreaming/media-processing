@@ -17,8 +17,8 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#ifndef CUTI_ENUM_TRAITS_HPP_
-#define CUTI_ENUM_TRAITS_HPP_
+#ifndef CUTI_ENUM_MAPPING_HPP_
+#define CUTI_ENUM_MAPPING_HPP_
 
 #include "linkage.h"
 

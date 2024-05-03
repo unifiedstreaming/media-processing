@@ -17,4 +17,4 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#include "enum_traits.hpp"
+#include "enum_mapping.hpp"

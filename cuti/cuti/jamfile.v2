@@ -41,7 +41,7 @@ lib cuti
   dispatcher.cpp
   echo_handler.cpp
   endpoint.cpp
-  enum_traits.cpp
+  enum_mapping.cpp
   eof_reader.cpp
   epoll_selector.cpp
   error_status.cpp
