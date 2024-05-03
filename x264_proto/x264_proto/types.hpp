@@ -133,7 +133,7 @@ struct X264_PROTO_ABI session_params_t
       && level_idc_ == rhs.level_idc_
       && overscan_appropriate_flag_ == rhs.overscan_appropriate_flag_
       && video_format_ == rhs.video_format_
-      &&   video_full_range_flag_ == rhs.video_full_range_flag_
+      && video_full_range_flag_ == rhs.video_full_range_flag_
       && colour_primaries_ == rhs.colour_primaries_
       && transfer_characteristics_ == rhs.transfer_characteristics_
       && matrix_coefficients_ == rhs.matrix_coefficients_
