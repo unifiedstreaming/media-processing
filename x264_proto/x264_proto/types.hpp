@@ -142,6 +142,7 @@ struct X264_PROTO_ABI sample_t
 template<>
 struct X264_PROTO_ABI cuti::tuple_mapping_t<x264_proto::format_t>
 {
+  // TBD: migrate to serialized_enum_t
   using underlying_t = std::underlying_type_t<x264_proto::format_t>;
   using tuple_t = std::tuple<underlying_t>;
 
@@ -156,6 +157,7 @@ struct X264_PROTO_ABI cuti::tuple_mapping_t<x264_proto::format_t>
 template<>
 struct X264_PROTO_ABI cuti::tuple_mapping_t<x264_proto::profile_t>
 {
+  // TBD: migrate to serialized_enum_t
   using underlying_t = std::underlying_type_t<x264_proto::profile_t>;
   using tuple_t = std::tuple<underlying_t>;
 
@@ -228,6 +230,7 @@ struct X264_PROTO_ABI cuti::tuple_mapping_t<x264_proto::sample_headers_t>
 template<>
 struct X264_PROTO_ABI cuti::tuple_mapping_t<x264_proto::sample_t::type_t>
 {
+  // TBD: migrate to serialized_enum_t
   using underlying_t = std::underlying_type_t<x264_proto::sample_t::type_t>;
   using tuple_t = std::tuple<underlying_t>;
 
