@@ -77,8 +77,6 @@ template<typename UnderlyingType>
 using serialized_underlying_t =
   typename serialized_underlying_type_t<UnderlyingType>::type;
 
-} // detail
-
 template<typename EnumType>
 struct serialized_enum_type_t
 {
@@ -90,6 +88,8 @@ struct serialized_enum_type_t
 template<typename EnumType>
 using serialized_enum_t = typename serialized_enum_type_t<EnumType>::type;
     
+} // detail
+
 } // cuti
 
 #endif
