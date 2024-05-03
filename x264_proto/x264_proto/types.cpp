@@ -92,6 +92,18 @@ bool frame_t::operator==(frame_t const& rhs) const
     && data_ == rhs.data_;
 }
 
+sample_headers_t::sample_headers_t()
+: sps_()
+, pps_()
+{
+}
+
+bool sample_headers_t::operator==(sample_headers_t const& rhs) const
+{
+  return sps_ == rhs.sps_
+    && pps_ == rhs.pps_;
+}
+
 } // x264_proto
 
 x264_proto::format_t
@@ -206,14 +218,16 @@ cuti::tuple_mapping_t<x264_proto::frame_t>::from_tuple(tuple_t tuple)
 cuti::tuple_mapping_t<x264_proto::sample_headers_t>::tuple_t
 cuti::tuple_mapping_t<x264_proto::sample_headers_t>::to_tuple(x264_proto::sample_headers_t value)
 {
-  return tuple_t();
+  return tuple_t(std::move(value.sps_), std::move(value.pps_));
 }
 
 x264_proto::sample_headers_t
 cuti::tuple_mapping_t<x264_proto::sample_headers_t>::from_tuple(tuple_t tuple)
 {
-  return
-    std::make_from_tuple<x264_proto::sample_headers_t>(std::move(tuple));
+  x264_proto::sample_headers_t value;
+  value.sps_ = std::move(std::get<0>(tuple));
+  value.pps_ = std::move(std::get<1>(tuple));
+  return value;
 }
 
 cuti::tuple_mapping_t<x264_proto::sample_t>::tuple_t

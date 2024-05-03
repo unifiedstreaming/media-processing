@@ -61,13 +61,21 @@ frame_t make_example_frame()
   return frame;
 }
 
+sample_headers_t make_example_sample_headers()
+{
+  sample_headers_t headers;
+  headers.sps_.insert(headers.sps_.begin(), 32, 43);
+  headers.pps_.insert(headers.pps_.begin(), 16, 44);
+  return headers;
+}
+
 void test_serialization(
   cuti::logging_context_t const& context,
   std::size_t bufsize)
 {
   cuti::io_test_utils::test_roundtrip(context, bufsize, make_example_session_params());
   cuti::io_test_utils::test_roundtrip(context, bufsize, make_example_frame());
-  cuti::io_test_utils::test_roundtrip(context, bufsize, sample_headers_t());
+  cuti::io_test_utils::test_roundtrip(context, bufsize, make_example_sample_headers());
   cuti::io_test_utils::test_roundtrip(context, bufsize, sample_t());
 }
 

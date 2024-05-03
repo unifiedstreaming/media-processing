@@ -109,10 +109,12 @@ struct X264_PROTO_ABI frame_t
 
 struct X264_PROTO_ABI sample_headers_t
 {
-  // TBD
+  sample_headers_t();
 
-  bool operator==(sample_headers_t const& rhs) const
-  { return true; }
+  std::vector<uint8_t> sps_;
+  std::vector<uint8_t> pps_;
+
+  bool operator==(sample_headers_t const& rhs) const;
 
   bool operator!=(sample_headers_t const& rhs) const
   { return !(*this == rhs); }
@@ -210,7 +212,9 @@ struct X264_PROTO_ABI cuti::tuple_mapping_t<x264_proto::frame_t>
 template<>
 struct X264_PROTO_ABI cuti::tuple_mapping_t<x264_proto::sample_headers_t>
 {
-  using tuple_t = std::tuple<>; // TBD
+  using tuple_t = std::tuple<
+    std::vector<uint8_t>,
+    std::vector<uint8_t>>;
 
   static tuple_t to_tuple(x264_proto::sample_headers_t value);
 
