@@ -104,6 +104,22 @@ bool sample_headers_t::operator==(sample_headers_t const& rhs) const
     && pps_ == rhs.pps_;
 }
 
+sample_t::sample_t()
+: dts_(0)
+, pts_(0)
+, type_(type_t::i)
+, data_()
+{
+}
+
+bool sample_t::operator==(sample_t const& rhs) const
+{
+  return dts_ == rhs.dts_
+    && pts_ == rhs.pts_
+    && type_ == rhs.type_
+    && data_ == rhs.data_;
+}
+
 } // x264_proto
 
 x264_proto::format_t
@@ -230,15 +246,39 @@ cuti::tuple_mapping_t<x264_proto::sample_headers_t>::from_tuple(tuple_t tuple)
   return value;
 }
 
+x264_proto::sample_t::type_t
+cuti::tuple_mapping_t<x264_proto::sample_t::type_t>::from_tuple(tuple_t tuple)
+{
+  auto const& value = std::get<0>(tuple);
+  switch(value)
+  {
+  case static_cast<underlying_t>(x264_proto::sample_t::type_t::i):
+  case static_cast<underlying_t>(x264_proto::sample_t::type_t::p):
+  case static_cast<underlying_t>(x264_proto::sample_t::type_t::b):
+  case static_cast<underlying_t>(x264_proto::sample_t::type_t::b_ref):
+    return static_cast<x264_proto::sample_t::type_t>(value);
+  default:
+    throw parse_error_t("bad x264_proto::sample_t::type_t value " + std::to_string(value));
+  }
+}
+
 cuti::tuple_mapping_t<x264_proto::sample_t>::tuple_t
 cuti::tuple_mapping_t<x264_proto::sample_t>::to_tuple(x264_proto::sample_t value)
 {
-  return tuple_t();
+  return tuple_t(
+    value.dts_,
+    value.pts_,
+    value.type_,
+    std::move(value.data_));
 }
 
 x264_proto::sample_t
 cuti::tuple_mapping_t<x264_proto::sample_t>::from_tuple(tuple_t tuple)
 {
-  return
-    std::make_from_tuple<x264_proto::sample_t>(std::move(tuple));
+  x264_proto::sample_t value;
+  value.dts_ = std::get<0>(tuple);
+  value.pts_ = std::get<1>(tuple);
+  value.type_ = std::get<2>(tuple);
+  value.data_ = std::move(std::get<3>(tuple));
+  return value;
 }

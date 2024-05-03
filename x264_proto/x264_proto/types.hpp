@@ -33,12 +33,12 @@
 namespace x264_proto
 {
 
-enum class format_t : unsigned
+enum class format_t
 {
   NV12,
 };
 
-enum class profile_t : unsigned
+enum class profile_t
 {
   BASELINE = 66,
   MAIN = 77,
@@ -122,10 +122,14 @@ struct X264_PROTO_ABI sample_headers_t
 
 struct X264_PROTO_ABI sample_t
 {
-  // TBD
+  sample_t();
 
-  bool operator==(sample_t const& rhs) const
-  { return true; }
+  int64_t dts_;
+  int64_t pts_;
+  enum class type_t { i, p, b, b_ref } type_;
+  std::vector<uint8_t> data_;
+
+  bool operator==(sample_t const& rhs) const;
 
   bool operator!=(sample_t const& rhs) const
   { return !(*this == rhs); }
@@ -222,9 +226,27 @@ struct X264_PROTO_ABI cuti::tuple_mapping_t<x264_proto::sample_headers_t>
 };
 
 template<>
+struct X264_PROTO_ABI cuti::tuple_mapping_t<x264_proto::sample_t::type_t>
+{
+  using underlying_t = std::underlying_type_t<x264_proto::sample_t::type_t>;
+  using tuple_t = std::tuple<underlying_t>;
+
+  static tuple_t to_tuple(x264_proto::sample_t::type_t value)
+  {
+    return {static_cast<underlying_t>(value)};
+  }
+
+  static x264_proto::sample_t::type_t from_tuple(tuple_t tuple);
+};
+
+template<>
 struct X264_PROTO_ABI cuti::tuple_mapping_t<x264_proto::sample_t>
 {
-  using tuple_t = std::tuple<>; // TBD
+  using tuple_t = std::tuple<
+    int64_t,
+    int64_t,
+    x264_proto::sample_t::type_t,
+    std::vector<uint8_t>>;
 
   static tuple_t to_tuple(x264_proto::sample_t value);
 

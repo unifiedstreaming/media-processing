@@ -69,6 +69,16 @@ sample_headers_t make_example_sample_headers()
   return headers;
 }
 
+sample_t make_example_sample()
+{
+  sample_t sample;
+  sample.dts_ = 1000;
+  sample.pts_ = 1100;
+  sample.type_ = sample_t::type_t::b;
+  sample.data_.insert(sample.data_.begin(), 200, 45);
+  return sample;
+}
+
 void test_serialization(
   cuti::logging_context_t const& context,
   std::size_t bufsize)
@@ -76,7 +86,7 @@ void test_serialization(
   cuti::io_test_utils::test_roundtrip(context, bufsize, make_example_session_params());
   cuti::io_test_utils::test_roundtrip(context, bufsize, make_example_frame());
   cuti::io_test_utils::test_roundtrip(context, bufsize, make_example_sample_headers());
-  cuti::io_test_utils::test_roundtrip(context, bufsize, sample_t());
+  cuti::io_test_utils::test_roundtrip(context, bufsize, make_example_sample());
 }
 
 struct options_t
