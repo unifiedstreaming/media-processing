@@ -24,45 +24,26 @@
 namespace x264_proto
 {
 
-session_params_t::session_params_t(
-  unsigned timescale,
-  unsigned bitrate,
-  unsigned width,
-  unsigned height,
-  unsigned sar_width,
-  unsigned sar_height,
-  format_t format,
-  profile_t profile_idc,
-  unsigned level_idc,
-  std::optional<bool> overscan_appropriate_flag,
-  std::optional<unsigned> video_format,
-  std::optional<bool> video_full_range_flag,
-  std::optional<unsigned> colour_primaries,
-  std::optional<unsigned> transfer_characteristics,
-  std::optional<unsigned> matrix_coefficients,
-  std::optional<unsigned> chroma_sample_loc_type_top_field,
-  std::optional<unsigned> chroma_sample_loc_type_bottom_field,
-  unsigned framerate_num,
-  unsigned framerate_den)
-: timescale_(timescale)
-, bitrate_(bitrate)
-, width_(width)
-, height_(height)
-, sar_width_(sar_width)
-, sar_height_(sar_height)
-, format_(format)
-, profile_idc_(profile_idc)
-, level_idc_(level_idc)
-, overscan_appropriate_flag_(overscan_appropriate_flag)
-, video_format_(video_format)
-, video_full_range_flag_(video_full_range_flag)
-, colour_primaries_(colour_primaries)
-, transfer_characteristics_(transfer_characteristics)
-, matrix_coefficients_(matrix_coefficients)
-, chroma_sample_loc_type_top_field_(chroma_sample_loc_type_top_field)
-, chroma_sample_loc_type_bottom_field_(chroma_sample_loc_type_bottom_field)
-, framerate_num_(framerate_num)
-, framerate_den_(framerate_den)
+session_params_t::session_params_t()
+: timescale_(0)
+, bitrate_(0)
+, width_(0)
+, height_(0)
+, sar_width_(1)
+, sar_height_(1)
+, format_(format_t::NV12)
+, profile_idc_(profile_t::BASELINE)
+, level_idc_(0)
+, overscan_appropriate_flag_(std::nullopt)
+, video_format_(std::nullopt)
+, video_full_range_flag_(std::nullopt)
+, colour_primaries_(std::nullopt)
+, transfer_characteristics_(std::nullopt)
+, matrix_coefficients_(std::nullopt)
+, chroma_sample_loc_type_top_field_(std::nullopt)
+, chroma_sample_loc_type_bottom_field_(std::nullopt)
+, framerate_num_(25)
+, framerate_den_(1)
 {
 }
 
@@ -150,8 +131,27 @@ cuti::tuple_mapping_t<x264_proto::session_params_t>::to_tuple(x264_proto::sessio
 x264_proto::session_params_t
 cuti::tuple_mapping_t<x264_proto::session_params_t>::from_tuple(tuple_t tuple)
 {
-  return
-    std::make_from_tuple<x264_proto::session_params_t>(std::move(tuple));
+  x264_proto::session_params_t value;
+  value.timescale_ = std::get<0>(tuple);
+  value.bitrate_ = std::get<1>(tuple);
+  value.width_ = std::get<2>(tuple);
+  value.height_ = std::get<3>(tuple);
+  value.sar_width_ = std::get<4>(tuple);
+  value.sar_height_ = std::get<5>(tuple);
+  value.format_ = std::get<6>(tuple);
+  value.profile_idc_ = std::get<7>(tuple);
+  value.level_idc_ = std::get<8>(tuple);
+  value.overscan_appropriate_flag_ = std::get<9>(tuple);
+  value.video_format_ = std::get<10>(tuple);
+  value.video_full_range_flag_ = std::get<11>(tuple);
+  value.colour_primaries_ = std::get<12>(tuple);
+  value.transfer_characteristics_ = std::get<13>(tuple);
+  value.matrix_coefficients_ = std::get<14>(tuple);
+  value.chroma_sample_loc_type_top_field_ = std::get<15>(tuple);
+  value.chroma_sample_loc_type_bottom_field_ = std::get<16>(tuple);
+  value.framerate_num_ = std::get<17>(tuple);
+  value.framerate_den_ = std::get<18>(tuple);
+  return value;
 }
 
 cuti::tuple_mapping_t<x264_proto::frame_t>::tuple_t

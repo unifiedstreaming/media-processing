@@ -52,26 +52,7 @@ enum class profile_t : unsigned
 
 struct X264_PROTO_ABI session_params_t
 {
-  session_params_t(
-    unsigned timescale,
-    unsigned bitrate,
-    unsigned width,
-    unsigned height,
-    unsigned sar_width,
-    unsigned sar_height,
-    format_t format,
-    profile_t profile_idc,
-    unsigned level_idc,
-    std::optional<bool> overscan_appropriate_flag,
-    std::optional<unsigned> video_format,
-    std::optional<bool> video_full_range_flag,
-    std::optional<unsigned> colour_primaries,
-    std::optional<unsigned> transfer_characteristics,
-    std::optional<unsigned> matrix_coefficients,
-    std::optional<unsigned> chroma_sample_loc_type_top_field,
-    std::optional<unsigned> chroma_sample_loc_type_bottom_field,
-    unsigned framerate_num,
-    unsigned framerate_den);
+  session_params_t();
 
   // MediaHeaderBox
   unsigned timescale_;

@@ -39,46 +39,15 @@ using namespace x264_proto;
 
 session_params_t make_example_session_params()
 {
-  constexpr unsigned timescale = 25;
-  constexpr unsigned bitrate = 1000000;
-  constexpr unsigned width = 1280;
-  constexpr unsigned height = 720;
-  constexpr unsigned sar_width = 1;
-  constexpr unsigned sar_height = 1;
-  constexpr format_t format = format_t::NV12;
-  constexpr profile_t profile = profile_t::BASELINE;
-  constexpr unsigned level_idc = 30;
-  constexpr std::optional<bool> overscan_appropriate_flag;
-  constexpr std::optional<unsigned> video_format;
-  constexpr std::optional<bool> video_full_range_flag;
-  constexpr std::optional<unsigned> colour_primaries;
-  constexpr std::optional<unsigned> transfer_characteristics;
-  constexpr std::optional<unsigned> matrix_coefficients;
-  constexpr std::optional<unsigned> chroma_sample_loc_type_top_field;
-  constexpr std::optional<unsigned> chroma_sample_loc_type_bottom_field;
-  constexpr unsigned framerate_num = 25;
-  constexpr unsigned framerate_den = 1;
-
-  return session_params_t(
-    timescale,
-    bitrate,
-    width,
-    height,
-    sar_width,
-    sar_height,
-    format,
-    profile,
-    level_idc,
-    overscan_appropriate_flag,
-    video_format,
-    video_full_range_flag,
-    colour_primaries,
-    transfer_characteristics,
-    matrix_coefficients,
-    chroma_sample_loc_type_top_field,
-    chroma_sample_loc_type_bottom_field,
-    framerate_num,
-    framerate_den);
+  session_params_t params;
+  params.timescale_ = 25;
+  params.bitrate_ = 1000000;
+  params.width_ = 1280;
+  params.height_ = 720;
+  params.sar_width_ = 1;
+  params.sar_height_ = 1;
+  params.level_idc_ = 30;
+  return params;
 }
 
 void test_serialization(
