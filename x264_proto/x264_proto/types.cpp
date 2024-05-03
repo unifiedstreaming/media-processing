@@ -70,6 +70,28 @@ bool session_params_t::operator==(session_params_t const& rhs) const
     && framerate_den_ == rhs.framerate_den_;
 }
 
+frame_t::frame_t()
+: width_(0)
+, height_(0)
+, format_(format_t::NV12)
+, pts_(0)
+, timescale_(0)
+, keyframe_(false)
+, data_()
+{
+}
+
+bool frame_t::operator==(frame_t const& rhs) const
+{
+  return width_ == rhs.width_
+    && height_ == rhs.height_
+    && format_ == rhs.format_
+    && pts_ == rhs.pts_
+    && timescale_ == rhs.timescale_
+    && keyframe_ == rhs.keyframe_
+    && data_ == rhs.data_;
+}
+
 } // x264_proto
 
 x264_proto::format_t
@@ -157,14 +179,28 @@ cuti::tuple_mapping_t<x264_proto::session_params_t>::from_tuple(tuple_t tuple)
 cuti::tuple_mapping_t<x264_proto::frame_t>::tuple_t
 cuti::tuple_mapping_t<x264_proto::frame_t>::to_tuple(x264_proto::frame_t value)
 {
-  return tuple_t();
+  return tuple_t(
+    value.width_,
+    value.height_,
+    value.format_,
+    value.pts_,
+    value.timescale_,
+    value.keyframe_,
+    std::move(value.data_));
 }
 
 x264_proto::frame_t
 cuti::tuple_mapping_t<x264_proto::frame_t>::from_tuple(tuple_t tuple)
 {
-  return
-    std::make_from_tuple<x264_proto::frame_t>(std::move(tuple));
+  x264_proto::frame_t value;
+  value.width_ = std::get<0>(tuple);
+  value.height_ = std::get<1>(tuple);
+  value.format_ = std::get<2>(tuple);
+  value.pts_ = std::get<3>(tuple);
+  value.timescale_ = std::get<4>(tuple);
+  value.keyframe_ = std::get<5>(tuple);
+  value.data_ = std::move(std::get<6>(tuple));
+  return value;
 }
 
 cuti::tuple_mapping_t<x264_proto::sample_headers_t>::tuple_t

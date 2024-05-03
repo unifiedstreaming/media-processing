@@ -28,9 +28,7 @@
 #include <cuti/tuple_mapping.hpp>
 
 #include <optional>
-#include <string>
-#include <tuple>
-#include <utility>
+#include <vector>
 
 namespace x264_proto
 {
@@ -93,10 +91,17 @@ struct X264_PROTO_ABI session_params_t
 
 struct X264_PROTO_ABI frame_t
 {
-  // TBD
+  frame_t();
 
-  bool operator==(frame_t const& rhs) const
-  { return true; }
+  uint32_t width_;
+  uint32_t height_;
+  format_t format_;
+  uint64_t pts_;
+  uint32_t timescale_;
+  bool keyframe_;
+  std::vector<uint8_t> data_;
+
+  bool operator==(frame_t const& rhs) const;
 
   bool operator!=(frame_t const& rhs) const
   { return !(*this == rhs); }
@@ -188,7 +193,14 @@ struct X264_PROTO_ABI cuti::tuple_mapping_t<x264_proto::session_params_t>
 template<>
 struct X264_PROTO_ABI cuti::tuple_mapping_t<x264_proto::frame_t>
 {
-  using tuple_t = std::tuple<>; // TBD
+  using tuple_t = std::tuple<
+    uint32_t,
+    uint32_t,
+    x264_proto::format_t,
+    uint64_t,
+    uint32_t,
+    bool,
+    std::vector<uint8_t>>;
 
   static tuple_t to_tuple(x264_proto::frame_t value);
 

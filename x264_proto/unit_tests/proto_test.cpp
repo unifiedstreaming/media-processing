@@ -50,12 +50,23 @@ session_params_t make_example_session_params()
   return params;
 }
 
+frame_t make_example_frame()
+{
+  frame_t frame;
+  frame.width_ = 1280;
+  frame.height_ = 720;
+  frame.pts_ = 1000;
+  frame.timescale_ = 25;
+  frame.data_.insert(frame.data_.begin(), 200, 42);
+  return frame;
+}
+
 void test_serialization(
   cuti::logging_context_t const& context,
   std::size_t bufsize)
 {
   cuti::io_test_utils::test_roundtrip(context, bufsize, make_example_session_params());
-  cuti::io_test_utils::test_roundtrip(context, bufsize, frame_t());
+  cuti::io_test_utils::test_roundtrip(context, bufsize, make_example_frame());
   cuti::io_test_utils::test_roundtrip(context, bufsize, sample_headers_t());
   cuti::io_test_utils::test_roundtrip(context, bufsize, sample_t());
 }
