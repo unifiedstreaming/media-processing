@@ -31,6 +31,7 @@ session_params_t::session_params_t(
   unsigned height,
   unsigned sar_width,
   unsigned sar_height,
+  format_t format,
   profile_t profile_idc,
   unsigned level_idc,
   std::optional<bool> overscan_appropriate_flag,
@@ -49,6 +50,7 @@ session_params_t::session_params_t(
 , height_(height)
 , sar_width_(sar_width)
 , sar_height_(sar_height)
+, format_(format)
 , profile_idc_(profile_idc)
 , level_idc_(level_idc)
 , overscan_appropriate_flag_(overscan_appropriate_flag)
@@ -72,6 +74,7 @@ bool session_params_t::operator==(session_params_t const& rhs) const
     && height_ == rhs.height_
     && sar_width_ == rhs.sar_width_
     && sar_height_ == rhs.sar_height_
+    && format_ == rhs.format_
     && profile_idc_ == rhs.profile_idc_
     && level_idc_ == rhs.level_idc_
     && overscan_appropriate_flag_ == rhs.overscan_appropriate_flag_
@@ -87,6 +90,19 @@ bool session_params_t::operator==(session_params_t const& rhs) const
 }
 
 } // x264_proto
+
+x264_proto::format_t
+cuti::tuple_mapping_t<x264_proto::format_t>::from_tuple(tuple_t tuple)
+{
+  auto const& value = std::get<0>(tuple);
+  switch(value)
+  {
+  case static_cast<underlying_t>(x264_proto::format_t::NV12):
+    return static_cast<x264_proto::format_t>(value);
+  default:
+    throw parse_error_t("bad x264_proto::format_t value " + std::to_string(value));
+  }
+}
 
 x264_proto::profile_t
 cuti::tuple_mapping_t<x264_proto::profile_t>::from_tuple(tuple_t tuple)
@@ -106,19 +122,6 @@ cuti::tuple_mapping_t<x264_proto::profile_t>::from_tuple(tuple_t tuple)
   }
 }
 
-x264_proto::format_t
-cuti::tuple_mapping_t<x264_proto::format_t>::from_tuple(tuple_t tuple)
-{
-  auto const& value = std::get<0>(tuple);
-  switch(value)
-  {
-  case static_cast<underlying_t>(x264_proto::format_t::NV12):
-    return static_cast<x264_proto::format_t>(value);
-  default:
-    throw parse_error_t("bad x264_proto::format_t value " + std::to_string(value));
-  }
-}
-
 cuti::tuple_mapping_t<x264_proto::session_params_t>::tuple_t
 cuti::tuple_mapping_t<x264_proto::session_params_t>::to_tuple(x264_proto::session_params_t value)
 {
@@ -129,6 +132,7 @@ cuti::tuple_mapping_t<x264_proto::session_params_t>::to_tuple(x264_proto::sessio
    value.height_,
    value.sar_width_,
    value.sar_height_,
+   value.format_,
    value.profile_idc_,
    value.level_idc_,
    value.overscan_appropriate_flag_,

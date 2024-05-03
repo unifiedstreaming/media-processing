@@ -35,6 +35,11 @@
 namespace x264_proto
 {
 
+enum class format_t : unsigned
+{
+  NV12,
+};
+
 enum class profile_t : unsigned
 {
   BASELINE = 66,
@@ -43,11 +48,6 @@ enum class profile_t : unsigned
   HIGH10 = 110,
   HIGH422 = 122,
   HIGH444_PREDICTIVE = 244,
-};
-
-enum class format_t : unsigned
-{
-  NV12,
 };
 
 struct X264_PROTO_ABI session_params_t
@@ -59,6 +59,7 @@ struct X264_PROTO_ABI session_params_t
     unsigned height,
     unsigned sar_width,
     unsigned sar_height,
+    format_t format,
     profile_t profile_idc,
     unsigned level_idc,
     std::optional<bool> overscan_appropriate_flag,
@@ -83,6 +84,7 @@ struct X264_PROTO_ABI session_params_t
   unsigned height_;
   unsigned sar_width_;
   unsigned sar_height_;
+  format_t format_;
 
   // AVCSampleEntry
   profile_t profile_idc_;
@@ -146,20 +148,6 @@ struct X264_PROTO_ABI sample_t
 // adapters for cuti serialization
 
 template<>
-struct X264_PROTO_ABI cuti::tuple_mapping_t<x264_proto::profile_t>
-{
-  using underlying_t = std::underlying_type_t<x264_proto::profile_t>;
-  using tuple_t = std::tuple<underlying_t>;
-
-  static tuple_t to_tuple(x264_proto::profile_t value)
-  {
-    return {static_cast<underlying_t>(value)};
-  }
-
-  static x264_proto::profile_t from_tuple(tuple_t tuple);
-};
-
-template<>
 struct X264_PROTO_ABI cuti::tuple_mapping_t<x264_proto::format_t>
 {
   using underlying_t = std::underlying_type_t<x264_proto::format_t>;
@@ -174,6 +162,20 @@ struct X264_PROTO_ABI cuti::tuple_mapping_t<x264_proto::format_t>
 };
 
 template<>
+struct X264_PROTO_ABI cuti::tuple_mapping_t<x264_proto::profile_t>
+{
+  using underlying_t = std::underlying_type_t<x264_proto::profile_t>;
+  using tuple_t = std::tuple<underlying_t>;
+
+  static tuple_t to_tuple(x264_proto::profile_t value)
+  {
+    return {static_cast<underlying_t>(value)};
+  }
+
+  static x264_proto::profile_t from_tuple(tuple_t tuple);
+};
+
+template<>
 struct X264_PROTO_ABI cuti::tuple_mapping_t<x264_proto::session_params_t>
 {
   using tuple_t = std::tuple<
@@ -183,6 +185,7 @@ struct X264_PROTO_ABI cuti::tuple_mapping_t<x264_proto::session_params_t>
     unsigned,
     unsigned,
     unsigned,
+    x264_proto::format_t,
     x264_proto::profile_t,
     unsigned,
     std::optional<bool>,

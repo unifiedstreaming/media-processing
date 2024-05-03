@@ -45,6 +45,7 @@ session_params_t make_example_session_params()
   constexpr unsigned height = 720;
   constexpr unsigned sar_width = 1;
   constexpr unsigned sar_height = 1;
+  constexpr format_t format = format_t::NV12;
   constexpr profile_t profile = profile_t::BASELINE;
   constexpr unsigned level_idc = 30;
   constexpr std::optional<bool> overscan_appropriate_flag;
@@ -65,6 +66,7 @@ session_params_t make_example_session_params()
     height,
     sar_width,
     sar_height,
+    format,
     profile,
     level_idc,
     overscan_appropriate_flag,
