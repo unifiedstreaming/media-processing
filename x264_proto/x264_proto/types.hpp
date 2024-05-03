@@ -55,35 +55,35 @@ struct X264_PROTO_ABI session_params_t
   session_params_t();
 
   // MediaHeaderBox
-  unsigned timescale_;
+  uint32_t timescale_;
 
   // SampleEntry
-  unsigned bitrate_;
+  uint32_t bitrate_;
 
   // VisualSampleEntry
-  unsigned width_;
-  unsigned height_;
-  unsigned sar_width_;
-  unsigned sar_height_;
+  uint32_t width_;
+  uint32_t height_;
+  uint16_t sar_width_;
+  uint16_t sar_height_;
   format_t format_;
 
   // AVCSampleEntry
   profile_t profile_idc_;
-  unsigned level_idc_;
+  uint16_t level_idc_;
 
   // VUI parameters
   std::optional<bool> overscan_appropriate_flag_;
-  std::optional<unsigned> video_format_;
+  std::optional<uint16_t> video_format_;
   std::optional<bool> video_full_range_flag_;
-  std::optional<unsigned> colour_primaries_;
-  std::optional<unsigned> transfer_characteristics_;
-  std::optional<unsigned> matrix_coefficients_;
-  std::optional<unsigned> chroma_sample_loc_type_top_field_;
-  std::optional<unsigned> chroma_sample_loc_type_bottom_field_;
+  std::optional<uint16_t> colour_primaries_;
+  std::optional<uint16_t> transfer_characteristics_;
+  std::optional<uint16_t> matrix_coefficients_;
+  std::optional<uint32_t> chroma_sample_loc_type_top_field_;
+  std::optional<uint32_t> chroma_sample_loc_type_bottom_field_;
 
   // Derived from VUI parameters
-  unsigned framerate_num_;
-  unsigned framerate_den_;
+  uint32_t framerate_num_;
+  uint32_t framerate_den_;
 
   bool operator==(session_params_t const& rhs) const;
 
@@ -160,25 +160,25 @@ template<>
 struct X264_PROTO_ABI cuti::tuple_mapping_t<x264_proto::session_params_t>
 {
   using tuple_t = std::tuple<
-    unsigned,
-    unsigned,
-    unsigned,
-    unsigned,
-    unsigned,
-    unsigned,
+    uint32_t,
+    uint32_t,
+    uint32_t,
+    uint32_t,
+    uint16_t,
+    uint16_t,
     x264_proto::format_t,
     x264_proto::profile_t,
-    unsigned,
+    uint16_t,
     std::optional<bool>,
-    std::optional<unsigned>,
+    std::optional<uint16_t>,
     std::optional<bool>,
-    std::optional<unsigned>,
-    std::optional<unsigned>,
-    std::optional<unsigned>,
-    std::optional<unsigned>,
-    std::optional<unsigned>,
-    unsigned,
-    unsigned>;
+    std::optional<uint16_t>,
+    std::optional<uint16_t>,
+    std::optional<uint16_t>,
+    std::optional<uint32_t>,
+    std::optional<uint32_t>,
+    uint32_t,
+    uint32_t>;
 
   static tuple_t to_tuple(x264_proto::session_params_t value);
 
