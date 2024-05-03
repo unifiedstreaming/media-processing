@@ -201,11 +201,7 @@ struct X264_PROTO_ABI cuti::tuple_mapping_t<x264_proto::session_params_t>
 
   static tuple_t to_tuple(x264_proto::session_params_t value);
 
-  static x264_proto::session_params_t from_tuple(tuple_t tuple)
-  {
-    return
-      std::make_from_tuple<x264_proto::session_params_t>(std::move(tuple));
-  }
+  static x264_proto::session_params_t from_tuple(tuple_t tuple);
 };
 
 template<>
@@ -213,16 +209,9 @@ struct X264_PROTO_ABI cuti::tuple_mapping_t<x264_proto::frame_t>
 {
   using tuple_t = std::tuple<>; // TBD
 
-  static tuple_t to_tuple(x264_proto::frame_t value)
-  {
-    return tuple_t();
-  }
+  static tuple_t to_tuple(x264_proto::frame_t value);
 
-  static x264_proto::frame_t from_tuple(tuple_t tuple)
-  {
-    return
-      std::make_from_tuple<x264_proto::frame_t>(std::move(tuple));
-  }
+  static x264_proto::frame_t from_tuple(tuple_t tuple);
 };
 
 template<>
@@ -230,16 +219,9 @@ struct X264_PROTO_ABI cuti::tuple_mapping_t<x264_proto::sample_headers_t>
 {
   using tuple_t = std::tuple<>; // TBD
 
-  static tuple_t to_tuple(x264_proto::sample_headers_t value)
-  {
-    return tuple_t();
-  }
+  static tuple_t to_tuple(x264_proto::sample_headers_t value);
 
-  static x264_proto::sample_headers_t from_tuple(tuple_t tuple)
-  {
-    return
-      std::make_from_tuple<x264_proto::sample_headers_t>(std::move(tuple));
-  }
+  static x264_proto::sample_headers_t from_tuple(tuple_t tuple);
 };
 
 template<>
@@ -247,16 +229,9 @@ struct X264_PROTO_ABI cuti::tuple_mapping_t<x264_proto::sample_t>
 {
   using tuple_t = std::tuple<>; // TBD
 
-  static tuple_t to_tuple(x264_proto::sample_t value)
-  {
-    return tuple_t();
-  }
+  static tuple_t to_tuple(x264_proto::sample_t value);
 
-  static x264_proto::sample_t from_tuple(tuple_t tuple)
-  {
-    return
-      std::make_from_tuple<x264_proto::sample_t>(std::move(tuple));
-  }
+  static x264_proto::sample_t from_tuple(tuple_t tuple);
 };
 
 #endif
