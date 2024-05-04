@@ -18,3 +18,11 @@
  */
 
 #include "parse_error.hpp"
+
+namespace cuti
+{
+
+parse_error_t::~parse_error_t()
+{ }
+
+} // cuti

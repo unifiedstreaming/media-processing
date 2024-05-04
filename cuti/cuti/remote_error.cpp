@@ -24,6 +24,9 @@
 namespace cuti
 {
 
+remote_error_t::~remote_error_t()
+{ }
+
 std::string remote_error_t::make_message(identifier_t const& type,
                                          std::string const& description)
 {

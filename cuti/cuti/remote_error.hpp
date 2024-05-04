@@ -50,6 +50,8 @@ struct CUTI_ABI remote_error_t : std::runtime_error
   std::string const& description() const noexcept
   { return rep_->description_; }
 
+  ~remote_error_t() override;
+
   friend std::ostream& operator<<(
     std::ostream& os, remote_error_t const& error)
   {
