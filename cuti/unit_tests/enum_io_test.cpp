@@ -131,8 +131,8 @@ struct cuti::enum_mapping_t<signed_char_enum_t>
        value > to_underlying(signed_char_enum_t::one))
     {
       cuti::exception_builder_t<cuti::parse_error_t> builder;
-      builder << "unexpected underlying value " << int(value) <<
-        " for signed_char_enum_t";
+      builder << "unexpected underlying value " <<
+        cuti::to_serialized_underlying(value) << " for signed_char_enum_t";
       builder.explode();
     }
 
@@ -152,8 +152,8 @@ struct cuti::enum_mapping_t<char_enum_t>
        value > to_underlying(char_enum_t::two))
     {
       cuti::exception_builder_t<cuti::parse_error_t> builder;
-      builder << "unexpected underlying value " << int(value) <<
-        " for char_enum_t";
+      builder << "unexpected underlying value " <<
+        cuti::to_serialized_underlying(value) << " for char_enum_t";
       builder.explode();
     }
 
@@ -173,8 +173,8 @@ struct cuti::enum_mapping_t<unsigned_char_enum_t>
        value > to_underlying(unsigned_char_enum_t::two))
     {
       cuti::exception_builder_t<cuti::parse_error_t> builder;
-      builder << "unexpected underlying value " << int(value) <<
-        " for unsigned_char_enum_t";
+      builder << "unexpected underlying value " <<
+        cuti::to_serialized_underlying(value) << " for unsigned_char_enum_t";
       builder.explode();
     }
 
@@ -194,8 +194,8 @@ struct cuti::enum_mapping_t<plain_enum_t>
        value > to_underlying(plain_enum_t::one))
     {
       cuti::exception_builder_t<cuti::parse_error_t> builder;
-      builder << "unexpected underlying value " << value <<
-        " for plain_enum_t";
+      builder << "unexpected underlying value " <<
+        cuti::to_serialized_underlying(value) << " for plain_enum_t";
       builder.explode();
     }
 

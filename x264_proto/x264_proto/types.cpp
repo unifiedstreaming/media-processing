@@ -136,7 +136,8 @@ cuti::enum_mapping_t<x264_proto::format_t>::from_underlying(underlying_t value)
     return x264_proto::format_t{value};
   default:
     exception_builder_t<parse_error_t> builder;
-    builder << "bad x264_proto::format_t value " << value;
+    builder << "bad x264_proto::format_t value " <<
+      to_serialized_underlying(value);
     builder.explode();
   }
 }
@@ -156,7 +157,8 @@ cuti::enum_mapping_t<x264_proto::profile_t>::from_underlying(
     return x264_proto::profile_t{value};
   default:
     exception_builder_t<parse_error_t> builder;
-    builder << "bad x264_proto::profile_t value " << value;
+    builder << "bad x264_proto::profile_t value " <<
+      to_serialized_underlying(value);
     builder.explode();
   }
 }
@@ -269,7 +271,8 @@ cuti::enum_mapping_t<x264_proto::sample_t::type_t>::from_underlying(
     return x264_proto::sample_t::type_t{value};
   default:
     exception_builder_t<parse_error_t> builder;
-    builder << "bad x264_proto::sample_t::type_t value " << value;
+    builder << "bad x264_proto::sample_t::type_t value " <<
+      to_serialized_underlying(value);
     builder.explode();
   }
 }

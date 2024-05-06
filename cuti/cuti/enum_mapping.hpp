@@ -118,22 +118,37 @@ struct serialized_underlying_traits_t<char, false>
   using type = unsigned int;
 };
 
-template<typename UnderlyingType>
-using serialized_underlying_t =
-  typename serialized_underlying_traits_t<UnderlyingType>::type;
-
 template<typename EnumType>
 struct serialized_enum_traits_t
 {
   static_assert(std::is_enum_v<EnumType>);
-  using type =
-    detail::serialized_underlying_t<std::underlying_type_t<EnumType>>;
+  using type = typename detail::serialized_underlying_traits_t<
+      std::underlying_type_t<EnumType>>::type;
 };
 
-template<typename EnumType>
-using serialized_enum_t = typename serialized_enum_traits_t<EnumType>::type;
-    
 } // detail
+
+template<typename UnderlyingType>
+using serialized_underlying_t =
+  typename detail::serialized_underlying_traits_t<UnderlyingType>::type;
+
+template<typename T, typename = std::enable_if_t<!std::is_enum_v<T>>>
+constexpr serialized_underlying_t<T>
+to_serialized_underlying(T value) noexcept
+{
+  return serialized_underlying_t<T>{value};
+}
+
+template<typename EnumType>
+using serialized_enum_t =
+  typename detail::serialized_enum_traits_t<EnumType>::type;
+    
+template<typename T, typename = std::enable_if_t<std::is_enum_v<T>>>
+constexpr serialized_enum_t<T>
+to_serialized_enum(T value) noexcept
+{
+  return to_serialized_underlying(to_underlying(value));
+}
 
 } // cuti
 

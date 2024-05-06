@@ -643,7 +643,7 @@ struct enum_writer_t
   {
     wire_writer_.start(base_marker,
                        &enum_writer_t::on_wire_writer_done,
-                       wire_t{value});
+                       to_serialized_enum(value));
   }
 
 private :
