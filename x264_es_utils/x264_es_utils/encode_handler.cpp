@@ -37,7 +37,7 @@ encode_handler_t::encode_handler_t(cuti::result_t<void>& result,
 , encoder_settings_(std::move(encoder_settings))
 , encoding_session_(std::nullopt)
 , session_params_reader_(*this, result_, inbuf)
-, samples_header_writer_(*this, result_, outbuf)
+, sample_headers_writer_(*this, result_, outbuf)
 , begin_sequence_reader_(*this, result_, inbuf)
 , begin_sequence_writer_(*this, result_, outbuf)
 , end_sequence_checker_(*this, result_, inbuf)
@@ -59,16 +59,16 @@ void encode_handler_t::create_session(
   {
     encoding_session_.emplace(context_, encoder_settings_, session_params);
   }
-  catch (std::exception const& ex)
+  catch(std::exception const& ex)
   {
     result_.fail(marker, ex);
     return;
   }
 
-  samples_header_writer_.start(
+  sample_headers_writer_.start(
     marker,
     &encode_handler_t::read_begin_sequence,
-    encoding_session_->samples_header());
+    encoding_session_->sample_headers());
 }
 
 void encode_handler_t::read_begin_sequence(cuti::stack_marker_t& marker)

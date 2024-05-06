@@ -40,7 +40,7 @@ struct encoding_session_t
   encoding_session_t(encoding_session_t const&) = delete;
   encoding_session_t& operator=(encoding_session_t const&) = delete;
   
-  x264_proto::sample_headers_t samples_header() const;
+  x264_proto::sample_headers_t sample_headers() const;
 
   std::optional<x264_proto::sample_t> encode(x264_proto::frame_t frame);
   std::optional<x264_proto::sample_t> flush();

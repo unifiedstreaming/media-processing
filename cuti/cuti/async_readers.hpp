@@ -23,6 +23,7 @@
 #include "bound_inbuf.hpp"
 #include "charclass.hpp"
 #include "consumer.hpp"
+#include "enum_mapping.hpp"
 #include "exception_builder.hpp"
 #include "flag.hpp"
 #include "identifier.hpp"
@@ -38,10 +39,12 @@
 #include <cassert>
 #include <cstddef>
 #include <exception>
+#include <limits>
 #include <memory>
 #include <optional>
 #include <string>
 #include <tuple>
+#include <typeinfo>
 #include <type_traits>
 #include <utility>
 #include <vector>
@@ -768,23 +771,78 @@ private :
 };
 
 template<typename T>
-struct user_type_reader_t
+struct enum_reader_t
+{
+  using result_value_t = T;
+
+  static_assert(std::is_enum_v<T>);
+  using wire_t = serialized_enum_t<T>;
+  using underlying_t = std::underlying_type_t<T>;
+
+  enum_reader_t(result_t<T>& result, bound_inbuf_t& buf)
+  : result_(result)
+  , wire_reader_(*this, result_, buf)
+  { }
+
+  void start(stack_marker_t& base_marker)
+  {
+    wire_reader_.start(base_marker, &enum_reader_t::on_wire_value);
+  }
+
+private :
+  void on_wire_value(stack_marker_t& base_marker, wire_t wire_value)
+  {
+    if(wire_value < std::numeric_limits<underlying_t>::min() ||
+       wire_value > std::numeric_limits<underlying_t>::max())
+    {
+      exception_builder_t<parse_error_t> builder;
+      builder << "on-the-wire value " << wire_value <<
+        " cannot be represented in underlying type \'" <<
+	typeid(underlying_t).name() << "\' of enum type '" <<
+	typeid(T).name() << "\'";
+      result_.fail(base_marker, builder.exception_object());
+      return;
+    }
+
+    auto underlying_value = static_cast<underlying_t>(wire_value);
+
+    T enum_value;
+    try
+    {
+      enum_value = enum_mapping_t<T>::from_underlying(underlying_value);
+    }
+    catch(std::exception const&)
+    {
+      result_.fail(base_marker, std::current_exception());
+      return;
+    }
+
+    result_.submit(base_marker, enum_value);
+  }
+
+private :
+  result_t<T>& result_;
+  subroutine_t<enum_reader_t, reader_t<wire_t>> wire_reader_;
+};
+  
+template<typename T>
+struct default_reader_t
 {
   using result_value_t = T;
   using mapping_t = tuple_mapping_t<T>;
   using tuple_t = typename mapping_t::tuple_t;
 
-  user_type_reader_t(result_t<T>& result, bound_inbuf_t& buf)
+  default_reader_t(result_t<T>& result, bound_inbuf_t& buf)
   : result_(result)
   , tuple_reader_(*this, result_, buf)
   { }
 
-  user_type_reader_t(user_type_reader_t const&) = delete;
-  user_type_reader_t& operator=(user_type_reader_t const&) = delete;
+  default_reader_t(default_reader_t const&) = delete;
+  default_reader_t& operator=(default_reader_t const&) = delete;
 
   void start(stack_marker_t& base_marker)
   {
-    tuple_reader_.start(base_marker, &user_type_reader_t::on_tuple);
+    tuple_reader_.start(base_marker, &default_reader_t::on_tuple);
   }
 
 private :
@@ -806,8 +864,28 @@ private :
     
 private :
   result_t<T>& result_;
-  subroutine_t<user_type_reader_t, tuple_reader_t<tuple_t>> tuple_reader_;
+  subroutine_t<default_reader_t, tuple_reader_t<tuple_t>> tuple_reader_;
 };
+
+template<typename T, bool IsEnum = std::is_enum_v<T>>
+struct user_type_reader_traits_t;
+
+template<typename T>
+struct user_type_reader_traits_t<T, true>
+{
+  static_assert(std::is_enum_v<T>);
+  using type = enum_reader_t<T>;
+};
+
+template<typename T>
+struct user_type_reader_traits_t<T, false>
+{
+  static_assert(!std::is_enum_v<T>);
+  using type = default_reader_t<T>;
+};
+
+template<typename T>
+using user_type_reader_t = typename user_type_reader_traits_t<T>::type;
 
 struct CUTI_ABI eom_checker_t
 {

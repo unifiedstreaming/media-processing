@@ -24,10 +24,12 @@
 
 #include "linkage.h"
 
+#include <cuti/enum_mapping.hpp>
 #include <cuti/tuple_mapping.hpp>
 
 #include <cstdint>
 #include <optional>
+#include <type_traits>
 #include <vector>
 
 namespace x264_proto
@@ -140,33 +142,19 @@ struct X264_PROTO_ABI sample_t
 // adapters for cuti serialization
 
 template<>
-struct X264_PROTO_ABI cuti::tuple_mapping_t<x264_proto::format_t>
+struct X264_PROTO_ABI cuti::enum_mapping_t<x264_proto::format_t>
 {
-  // TBD: migrate to serialized_enum_t
   using underlying_t = std::underlying_type_t<x264_proto::format_t>;
-  using tuple_t = std::tuple<underlying_t>;
 
-  static tuple_t to_tuple(x264_proto::format_t value)
-  {
-    return {static_cast<underlying_t>(value)};
-  }
-
-  static x264_proto::format_t from_tuple(tuple_t tuple);
+  static x264_proto::format_t from_underlying(underlying_t value);
 };
 
 template<>
-struct X264_PROTO_ABI cuti::tuple_mapping_t<x264_proto::profile_t>
+struct X264_PROTO_ABI cuti::enum_mapping_t<x264_proto::profile_t>
 {
-  // TBD: migrate to serialized_enum_t
   using underlying_t = std::underlying_type_t<x264_proto::profile_t>;
-  using tuple_t = std::tuple<underlying_t>;
 
-  static tuple_t to_tuple(x264_proto::profile_t value)
-  {
-    return {static_cast<underlying_t>(value)};
-  }
-
-  static x264_proto::profile_t from_tuple(tuple_t tuple);
+  static x264_proto::profile_t from_underlying(underlying_t value);
 };
 
 template<>
@@ -228,18 +216,11 @@ struct X264_PROTO_ABI cuti::tuple_mapping_t<x264_proto::sample_headers_t>
 };
 
 template<>
-struct X264_PROTO_ABI cuti::tuple_mapping_t<x264_proto::sample_t::type_t>
+struct X264_PROTO_ABI cuti::enum_mapping_t<x264_proto::sample_t::type_t>
 {
-  // TBD: migrate to serialized_enum_t
   using underlying_t = std::underlying_type_t<x264_proto::sample_t::type_t>;
-  using tuple_t = std::tuple<underlying_t>;
 
-  static tuple_t to_tuple(x264_proto::sample_t::type_t value)
-  {
-    return {static_cast<underlying_t>(value)};
-  }
-
-  static x264_proto::sample_t::type_t from_tuple(tuple_t tuple);
+  static x264_proto::sample_t::type_t from_underlying(underlying_t value);
 };
 
 template<>

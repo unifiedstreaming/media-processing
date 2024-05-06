@@ -51,6 +51,10 @@ unit-test dispatcher_test
 : dispatcher_test.cpp
 ;
 
+unit-test enum_io_test
+: enum_io_test.cpp
+;
+
 unit-test event_pipe_test
 : event_pipe_test.cpp
 ;

@@ -48,7 +48,7 @@ struct exception_builder_t : std::ostream
   }
 
   template<typename... Args>
-  void explode(Args&&... args) const
+  [[noreturn]] void explode(Args&&... args) const
   {
     throw this->exception_object(std::forward<Args>(args)...);
   }

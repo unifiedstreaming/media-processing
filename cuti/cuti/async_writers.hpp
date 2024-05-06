@@ -21,6 +21,7 @@
 #define CUTI_ASYNC_WRITERS_HPP_
 
 #include "bound_outbuf.hpp"
+#include "enum_mapping.hpp"
 #include "flag.hpp"
 #include "flusher.hpp"
 #include "identifier.hpp"
@@ -626,26 +627,57 @@ private :
 };
 
 template<typename T>
-struct user_type_writer_t
+struct enum_writer_t
+{
+  using result_value_t = void;
+
+  static_assert(std::is_enum_v<T>);
+  using wire_t = serialized_enum_t<T>;
+
+  enum_writer_t(result_t<void>& result, bound_outbuf_t& buf)
+  : result_(result)
+  , wire_writer_(*this, result_, buf)
+  { }
+
+  void start(stack_marker_t& base_marker, T value)
+  {
+    wire_writer_.start(base_marker,
+                       &enum_writer_t::on_wire_writer_done,
+                       static_cast<wire_t>(value));
+  }
+
+private :
+  void on_wire_writer_done(stack_marker_t& base_marker)
+  {
+    result_.submit(base_marker);
+  }
+
+private :
+  result_t<void>& result_;
+  subroutine_t<enum_writer_t, writer_t<wire_t>> wire_writer_;
+};
+  
+template<typename T>
+struct default_writer_t
 {
   using result_value_t = void;
   using mapping_t = tuple_mapping_t<T>;
   using tuple_t = typename mapping_t::tuple_t;
 
-  user_type_writer_t(result_t<void>& result, bound_outbuf_t& buf)
+  default_writer_t(result_t<void>& result, bound_outbuf_t& buf)
   : result_(result)
   , tuple_writer_(*this, result_, buf)
   { }
   
-  user_type_writer_t(user_type_writer_t const&) = delete;
-  user_type_writer_t& operator=(user_type_writer_t const&) = delete;
+  default_writer_t(default_writer_t const&) = delete;
+  default_writer_t& operator=(default_writer_t const&) = delete;
   
   template<typename TT>
   void start(stack_marker_t& base_marker, TT&& value)
   {
     tuple_writer_.start(
       base_marker,
-      &user_type_writer_t::on_tuple_writer_done,
+      &default_writer_t::on_tuple_writer_done,
       mapping_t::to_tuple(std::forward<TT>(value)));
   }
 
@@ -657,9 +689,29 @@ private :
     
 private :
   result_t<void>& result_;
-  subroutine_t<user_type_writer_t, tuple_writer_t<tuple_t>> tuple_writer_;
+  subroutine_t<default_writer_t, tuple_writer_t<tuple_t>> tuple_writer_;
 };
-    
+
+template<typename T, bool IsEnum = std::is_enum_v<T>>
+struct user_type_writer_traits_t;
+
+template<typename T>
+struct user_type_writer_traits_t<T, true>
+{
+  static_assert(std::is_enum_v<T>);
+  using type = enum_writer_t<T>;
+};
+
+template<typename T>
+struct user_type_writer_traits_t<T, false>
+{
+  static_assert(!std::is_enum_v<T>);
+  using type = default_writer_t<T>;
+};
+
+template<typename T>
+using user_type_writer_t = typename user_type_writer_traits_t<T>::type;
+
 struct CUTI_ABI exception_writer_t
 {
   using result_value_t = void;

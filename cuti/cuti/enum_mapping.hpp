@@ -22,10 +22,45 @@
 
 #include "linkage.h"
 
+#include <cstddef> // for std::byte
 #include <type_traits>
 
 namespace cuti
 {
+
+/*
+ * Specialize this class template to enable cuti serialization for an
+ * enum type T.
+ *
+ * This specialization must contain a static member function named
+ * from_underlying, taking a std::underlying_type_t<T> and returning
+ * a T.
+ *
+ * Please note that it is the user's responsibility to filter out any
+ * unexpected underlying values by having from_underlying() throw
+ * something derived from std::exception.
+ *
+ * C++ allows us to define a specialization of cuti::enum_mapping_t in
+ * either the cuti namespace or the global namespace, but not in a
+ * user namespace.
+ */
+template<typename T>
+struct enum_mapping_t;
+
+template<>
+struct CUTI_ABI enum_mapping_t<std::byte>
+{
+  /*
+   * This specialization is unusal because it accepts all underlying
+   * values. This is OK for std::byte, but likely disastrous for
+   * most other enum types. You have been warned.
+   */
+  static
+  std::byte from_underlying(std::underlying_type_t<std::byte> underlying)
+  {
+    return std::byte{underlying};
+  }
+};
 
 namespace detail
 {
@@ -36,7 +71,7 @@ namespace detail
  */
 template<typename UnderlyingType,
          bool IsSigned = std::is_signed_v<UnderlyingType>>
-struct serialized_underlying_type_t
+struct serialized_underlying_traits_t
 {
   static_assert(IsSigned == std::is_signed_v<UnderlyingType>);
   using type = UnderlyingType;
@@ -48,37 +83,37 @@ struct serialized_underlying_type_t
  * serialization of char types.
  */
 template<bool IsSigned>
-struct serialized_underlying_type_t<signed char, IsSigned>
+struct serialized_underlying_traits_t<signed char, IsSigned>
 {
   static_assert(IsSigned);
   using type = int;
 };
 
 template<bool IsSigned>
-struct serialized_underlying_type_t<unsigned char, IsSigned>
+struct serialized_underlying_traits_t<unsigned char, IsSigned>
 {
   static_assert(!IsSigned);
   using type = unsigned int;
 };
 
 template<>
-struct CUTI_ABI serialized_underlying_type_t<char, true>
+struct serialized_underlying_traits_t<char, true>
 {
   using type = int;
 };
 
 template<>
-struct CUTI_ABI serialized_underlying_type_t<char, false>
+struct serialized_underlying_traits_t<char, false>
 {
   using type = unsigned int;
 };
 
 template<typename UnderlyingType>
 using serialized_underlying_t =
-  typename serialized_underlying_type_t<UnderlyingType>::type;
+  typename serialized_underlying_traits_t<UnderlyingType>::type;
 
 template<typename EnumType>
-struct serialized_enum_type_t
+struct serialized_enum_traits_t
 {
   static_assert(std::is_enum_v<EnumType>);
   using type =
@@ -86,7 +121,7 @@ struct serialized_enum_type_t
 };
 
 template<typename EnumType>
-using serialized_enum_t = typename serialized_enum_type_t<EnumType>::type;
+using serialized_enum_t = typename serialized_enum_traits_t<EnumType>::type;
     
 } // detail
 

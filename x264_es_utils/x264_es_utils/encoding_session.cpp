@@ -38,7 +38,7 @@ encoding_session_t::encoding_session_t(
   }
 }
 
-x264_proto::sample_headers_t encoding_session_t::samples_header() const
+x264_proto::sample_headers_t encoding_session_t::sample_headers() const
 {
   if(auto msg = context_.message_at(cuti::loglevel_t::info))
   {

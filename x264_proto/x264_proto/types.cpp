@@ -21,6 +21,7 @@
 
 #include "types.hpp"
 
+#include <cuti/exception_builder.hpp>
 #include <cuti/parse_error.hpp>
 
 namespace x264_proto
@@ -66,8 +67,10 @@ bool session_params_t::operator==(session_params_t const& rhs) const
     && colour_primaries_ == rhs.colour_primaries_
     && transfer_characteristics_ == rhs.transfer_characteristics_
     && matrix_coefficients_ == rhs.matrix_coefficients_
-    && chroma_sample_loc_type_top_field_ == rhs.chroma_sample_loc_type_top_field_
-    && chroma_sample_loc_type_bottom_field_ == rhs.chroma_sample_loc_type_bottom_field_
+    && chroma_sample_loc_type_top_field_ ==
+         rhs.chroma_sample_loc_type_top_field_
+    && chroma_sample_loc_type_bottom_field_ ==
+         rhs.chroma_sample_loc_type_bottom_field_
     && framerate_num_ == rhs.framerate_num_
     && framerate_den_ == rhs.framerate_den_;
 }
@@ -125,22 +128,23 @@ bool sample_t::operator==(sample_t const& rhs) const
 } // x264_proto
 
 x264_proto::format_t
-cuti::tuple_mapping_t<x264_proto::format_t>::from_tuple(tuple_t tuple)
+cuti::enum_mapping_t<x264_proto::format_t>::from_underlying(underlying_t value)
 {
-  auto const& value = std::get<0>(tuple);
   switch(value)
   {
   case static_cast<underlying_t>(x264_proto::format_t::NV12):
     return static_cast<x264_proto::format_t>(value);
   default:
-    throw parse_error_t("bad x264_proto::format_t value " + std::to_string(value));
+    exception_builder_t<parse_error_t> builder;
+    builder << "bad x264_proto::format_t value " << value;
+    builder.explode();
   }
 }
 
 x264_proto::profile_t
-cuti::tuple_mapping_t<x264_proto::profile_t>::from_tuple(tuple_t tuple)
+cuti::enum_mapping_t<x264_proto::profile_t>::from_underlying(
+  underlying_t value)
 {
-  auto const& value = std::get<0>(tuple);
   switch(value)
   {
   case static_cast<underlying_t>(x264_proto::profile_t::BASELINE):
@@ -151,12 +155,15 @@ cuti::tuple_mapping_t<x264_proto::profile_t>::from_tuple(tuple_t tuple)
   case static_cast<underlying_t>(x264_proto::profile_t::HIGH444_PREDICTIVE):
     return static_cast<x264_proto::profile_t>(value);
   default:
-    throw parse_error_t("bad x264_proto::profile_t value " + std::to_string(value));
+    exception_builder_t<parse_error_t> builder;
+    builder << "bad x264_proto::profile_t value " << value;
+    builder.explode();
   }
 }
 
 cuti::tuple_mapping_t<x264_proto::session_params_t>::tuple_t
-cuti::tuple_mapping_t<x264_proto::session_params_t>::to_tuple(x264_proto::session_params_t value)
+cuti::tuple_mapping_t<x264_proto::session_params_t>::to_tuple(
+  x264_proto::session_params_t value)
 {
   return tuple_t(
    value.timescale_,
@@ -234,7 +241,8 @@ cuti::tuple_mapping_t<x264_proto::frame_t>::from_tuple(tuple_t tuple)
 }
 
 cuti::tuple_mapping_t<x264_proto::sample_headers_t>::tuple_t
-cuti::tuple_mapping_t<x264_proto::sample_headers_t>::to_tuple(x264_proto::sample_headers_t value)
+cuti::tuple_mapping_t<x264_proto::sample_headers_t>::to_tuple(
+  x264_proto::sample_headers_t value)
 {
   return tuple_t(std::move(value.sps_), std::move(value.pps_));
 }
@@ -249,9 +257,9 @@ cuti::tuple_mapping_t<x264_proto::sample_headers_t>::from_tuple(tuple_t tuple)
 }
 
 x264_proto::sample_t::type_t
-cuti::tuple_mapping_t<x264_proto::sample_t::type_t>::from_tuple(tuple_t tuple)
+cuti::enum_mapping_t<x264_proto::sample_t::type_t>::from_underlying(
+  underlying_t value)
 {
-  auto const& value = std::get<0>(tuple);
   switch(value)
   {
   case static_cast<underlying_t>(x264_proto::sample_t::type_t::i):
@@ -260,12 +268,15 @@ cuti::tuple_mapping_t<x264_proto::sample_t::type_t>::from_tuple(tuple_t tuple)
   case static_cast<underlying_t>(x264_proto::sample_t::type_t::b_ref):
     return static_cast<x264_proto::sample_t::type_t>(value);
   default:
-    throw parse_error_t("bad x264_proto::sample_t::type_t value " + std::to_string(value));
+    exception_builder_t<parse_error_t> builder;
+    builder << "bad x264_proto::sample_t::type_t value " << value;
+    builder.explode();
   }
 }
 
 cuti::tuple_mapping_t<x264_proto::sample_t>::tuple_t
-cuti::tuple_mapping_t<x264_proto::sample_t>::to_tuple(x264_proto::sample_t value)
+cuti::tuple_mapping_t<x264_proto::sample_t>::to_tuple(
+  x264_proto::sample_t value)
 {
   return tuple_t(
     value.dts_,

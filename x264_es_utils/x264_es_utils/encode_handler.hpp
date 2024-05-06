@@ -76,7 +76,7 @@ private :
   cuti::subroutine_t<encode_handler_t,
     cuti::reader_t<x264_proto::session_params_t>> session_params_reader_;
   cuti::subroutine_t<encode_handler_t,
-    cuti::writer_t<x264_proto::sample_headers_t>> samples_header_writer_;
+    cuti::writer_t<x264_proto::sample_headers_t>> sample_headers_writer_;
 
   cuti::subroutine_t<encode_handler_t,
     cuti::begin_sequence_reader_t> begin_sequence_reader_;

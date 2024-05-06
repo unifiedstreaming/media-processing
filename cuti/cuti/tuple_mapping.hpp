@@ -28,7 +28,7 @@ namespace cuti
 
 /*
  * Specialize this class template to enable cuti serialization for a
- * user-defined type T.
+ * user-defined non-enum type T.
  *
  * The specialization must contain:
  *
@@ -47,7 +47,7 @@ namespace cuti
  *
  * Please see remote_error.hpp for an example specialization; C++
  * allows us to define a specialization of cuti::tuple_mapping_t in
- * either the cuti namespaces or the global namespace, but not in a
+ * either the cuti namespace or the global namespace, but not in a
  * user namespace.
  */
 template<typename T>
