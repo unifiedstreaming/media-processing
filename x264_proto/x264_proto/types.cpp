@@ -21,6 +21,8 @@
 
 #include "types.hpp"
 
+#include <cuti/parse_error.hpp>
+
 namespace x264_proto
 {
 
