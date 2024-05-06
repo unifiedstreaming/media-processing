@@ -132,8 +132,8 @@ cuti::enum_mapping_t<x264_proto::format_t>::from_underlying(underlying_t value)
 {
   switch(value)
   {
-  case static_cast<underlying_t>(x264_proto::format_t::NV12):
-    return static_cast<x264_proto::format_t>(value);
+  case to_underlying(x264_proto::format_t::NV12):
+    return x264_proto::format_t{value};
   default:
     exception_builder_t<parse_error_t> builder;
     builder << "bad x264_proto::format_t value " << value;
@@ -147,13 +147,13 @@ cuti::enum_mapping_t<x264_proto::profile_t>::from_underlying(
 {
   switch(value)
   {
-  case static_cast<underlying_t>(x264_proto::profile_t::BASELINE):
-  case static_cast<underlying_t>(x264_proto::profile_t::MAIN):
-  case static_cast<underlying_t>(x264_proto::profile_t::HIGH):
-  case static_cast<underlying_t>(x264_proto::profile_t::HIGH10):
-  case static_cast<underlying_t>(x264_proto::profile_t::HIGH422):
-  case static_cast<underlying_t>(x264_proto::profile_t::HIGH444_PREDICTIVE):
-    return static_cast<x264_proto::profile_t>(value);
+  case to_underlying(x264_proto::profile_t::BASELINE):
+  case to_underlying(x264_proto::profile_t::MAIN):
+  case to_underlying(x264_proto::profile_t::HIGH):
+  case to_underlying(x264_proto::profile_t::HIGH10):
+  case to_underlying(x264_proto::profile_t::HIGH422):
+  case to_underlying(x264_proto::profile_t::HIGH444_PREDICTIVE):
+    return x264_proto::profile_t{value};
   default:
     exception_builder_t<parse_error_t> builder;
     builder << "bad x264_proto::profile_t value " << value;
@@ -262,11 +262,11 @@ cuti::enum_mapping_t<x264_proto::sample_t::type_t>::from_underlying(
 {
   switch(value)
   {
-  case static_cast<underlying_t>(x264_proto::sample_t::type_t::i):
-  case static_cast<underlying_t>(x264_proto::sample_t::type_t::p):
-  case static_cast<underlying_t>(x264_proto::sample_t::type_t::b):
-  case static_cast<underlying_t>(x264_proto::sample_t::type_t::b_ref):
-    return static_cast<x264_proto::sample_t::type_t>(value);
+  case to_underlying(x264_proto::sample_t::type_t::i):
+  case to_underlying(x264_proto::sample_t::type_t::p):
+  case to_underlying(x264_proto::sample_t::type_t::b):
+  case to_underlying(x264_proto::sample_t::type_t::b_ref):
+    return x264_proto::sample_t::type_t{value};
   default:
     exception_builder_t<parse_error_t> builder;
     builder << "bad x264_proto::sample_t::type_t value " << value;

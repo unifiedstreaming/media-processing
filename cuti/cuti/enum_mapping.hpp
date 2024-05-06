@@ -62,6 +62,16 @@ struct CUTI_ABI enum_mapping_t<std::byte>
   }
 };
 
+/*
+ * to_underlying(): ripped from C++23.
+ */
+template<typename T,
+         typename = std::enable_if_t<std::is_enum_v<T>>>
+constexpr std::underlying_type_t<T> to_underlying(T value) noexcept
+{
+  return static_cast<std::underlying_type_t<T>>(value);
+}
+
 namespace detail
 {
 

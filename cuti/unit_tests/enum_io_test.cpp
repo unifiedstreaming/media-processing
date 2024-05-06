@@ -21,6 +21,7 @@
 #include <cuti/async_readers.hpp>
 #include <cuti/async_writers.hpp>
 #include <cuti/cmdline_reader.hpp>
+#include <cuti/enum_mapping.hpp>
 #include <cuti/exception_builder.hpp>
 #include <cuti/io_test_utils.hpp>
 #include <cuti/option_walker.hpp>
@@ -63,9 +64,9 @@ template<>
 struct enum_test_traits_t<signed_char_enum_t>
 {
   static constexpr auto min_value =
-    static_cast<signed char>(signed_char_enum_t::minus_one);
+    cuti::to_underlying(signed_char_enum_t::minus_one);
   static constexpr auto max_value =
-    static_cast<signed char>(signed_char_enum_t::one);
+    cuti::to_underlying(signed_char_enum_t::one);
 };
 
 enum struct char_enum_t : char
@@ -79,9 +80,9 @@ template<>
 struct enum_test_traits_t<char_enum_t>
 {
   static constexpr auto min_value =
-    static_cast<char>(char_enum_t::zero);
+    cuti::to_underlying(char_enum_t::zero);
   static constexpr auto max_value =
-    static_cast<char>(char_enum_t::two);
+    cuti::to_underlying(char_enum_t::two);
 };
 
 enum struct unsigned_char_enum_t : unsigned char
@@ -95,9 +96,9 @@ template<>
 struct enum_test_traits_t<unsigned_char_enum_t>
 {
   static constexpr auto min_value =
-    static_cast<unsigned char>(unsigned_char_enum_t::zero);
+    cuti::to_underlying(unsigned_char_enum_t::zero);
   static constexpr auto max_value =
-    static_cast<unsigned char>(unsigned_char_enum_t::two);
+    cuti::to_underlying(unsigned_char_enum_t::two);
 };
 
 enum struct plain_enum_t
@@ -111,9 +112,9 @@ template<>
 struct enum_test_traits_t<plain_enum_t>
 {
   static constexpr auto min_value =
-    static_cast<int>(plain_enum_t::minus_one);
+    cuti::to_underlying(plain_enum_t::minus_one);
   static constexpr auto max_value =
-    static_cast<int>(plain_enum_t::one);
+    cuti::to_underlying(plain_enum_t::one);
 };
 
 } // anonymous
@@ -126,8 +127,8 @@ struct cuti::enum_mapping_t<signed_char_enum_t>
   static
   signed_char_enum_t from_underlying(value_t value)
   {
-    if(value < static_cast<value_t>(signed_char_enum_t::minus_one) ||
-       value > static_cast<value_t>(signed_char_enum_t::one))
+    if(value < to_underlying(signed_char_enum_t::minus_one) ||
+       value > to_underlying(signed_char_enum_t::one))
     {
       cuti::exception_builder_t<cuti::parse_error_t> builder;
       builder << "unexpected underlying value " << int(value) <<
@@ -147,8 +148,8 @@ struct cuti::enum_mapping_t<char_enum_t>
   static
   char_enum_t from_underlying(value_t value)
   {
-    if(value < static_cast<value_t>(char_enum_t::zero) ||
-       value > static_cast<value_t>(char_enum_t::two))
+    if(value < to_underlying(char_enum_t::zero) ||
+       value > to_underlying(char_enum_t::two))
     {
       cuti::exception_builder_t<cuti::parse_error_t> builder;
       builder << "unexpected underlying value " << int(value) <<
@@ -168,8 +169,8 @@ struct cuti::enum_mapping_t<unsigned_char_enum_t>
   static
   unsigned_char_enum_t from_underlying(value_t value)
   {
-    if(value < static_cast<value_t>(unsigned_char_enum_t::zero) ||
-       value > static_cast<value_t>(unsigned_char_enum_t::two))
+    if(value < to_underlying(unsigned_char_enum_t::zero) ||
+       value > to_underlying(unsigned_char_enum_t::two))
     {
       cuti::exception_builder_t<cuti::parse_error_t> builder;
       builder << "unexpected underlying value " << int(value) <<
@@ -189,8 +190,8 @@ struct cuti::enum_mapping_t<plain_enum_t>
   static
   plain_enum_t from_underlying(value_t value)
   {
-    if(value < static_cast<value_t>(plain_enum_t::minus_one) ||
-       value > static_cast<value_t>(plain_enum_t::one))
+    if(value < to_underlying(plain_enum_t::minus_one) ||
+       value > to_underlying(plain_enum_t::one))
     {
       cuti::exception_builder_t<cuti::parse_error_t> builder;
       builder << "unexpected underlying value " << value <<
