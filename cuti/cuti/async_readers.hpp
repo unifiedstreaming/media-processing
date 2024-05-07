@@ -776,7 +776,7 @@ struct enum_reader_t
   using result_value_t = T;
 
   static_assert(std::is_enum_v<T>);
-  using wire_t = serialized_enum_t<T>;
+  using wire_t = serialized_type_t<T>;
   using underlying_t = std::underlying_type_t<T>;
 
   enum_reader_t(result_t<T>& result, bound_inbuf_t& buf)

@@ -632,7 +632,7 @@ struct enum_writer_t
   using result_value_t = void;
 
   static_assert(std::is_enum_v<T>);
-  using wire_t = serialized_enum_t<T>;
+  using wire_t = serialized_type_t<T>;
 
   enum_writer_t(result_t<void>& result, bound_outbuf_t& buf)
   : result_(result)
@@ -643,7 +643,7 @@ struct enum_writer_t
   {
     wire_writer_.start(base_marker,
                        &enum_writer_t::on_wire_writer_done,
-                       to_serialized_enum(value));
+                       to_serialized(value));
   }
 
 private :

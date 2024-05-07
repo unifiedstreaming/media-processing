@@ -28,6 +28,86 @@
 namespace cuti
 {
 
+namespace detail
+{
+
+/*
+ * Template for getting the serialized type from an enum's
+ * underlying type.
+ */
+template<typename UnderlyingType,
+         bool IsSigned = std::is_signed_v<UnderlyingType>>
+struct serialized_underlying_traits_t;
+
+/*
+ * If the underlying type is one of the three char types we use
+ * (unsigned) int for the serialized type: the cuti protocol does not
+ * support serialization of char types.
+ */
+template<bool IsSigned>
+struct serialized_underlying_traits_t<signed char, IsSigned>
+{
+  static_assert(IsSigned);
+  using type = int;
+};
+
+template<bool IsSigned>
+struct serialized_underlying_traits_t<unsigned char, IsSigned>
+{
+  static_assert(!IsSigned);
+  using type = unsigned int;
+};
+
+template<>
+struct serialized_underlying_traits_t<char, true>
+{
+  using type = int;
+};
+
+template<>
+struct serialized_underlying_traits_t<char, false>
+{
+  using type = unsigned int;
+};
+
+/*
+ * Otherwise, we use an enum's underlying type for serialization
+ * purposes.
+ */
+template<typename UnderlyingType, bool IsSigned>
+struct serialized_underlying_traits_t
+{
+  static_assert(IsSigned == std::is_signed_v<UnderlyingType>);
+  using type = UnderlyingType;
+};
+
+/*
+ * Template for getting the serialized type, given an enum type or an
+ * enum's underlying type.
+ */
+template<typename T, bool IsEnum = std::is_enum_v<T>>
+struct serialized_traits_t;
+
+template<typename T>
+struct serialized_traits_t<T, false>
+{
+  static_assert(!std::is_enum_v<T>);
+
+  using type =
+    typename serialized_underlying_traits_t<T>::type;
+};
+
+template<typename T>
+struct serialized_traits_t<T, true>
+{
+  static_assert(std::is_enum_v<T>);
+
+  using type =
+    typename serialized_underlying_traits_t<std::underlying_type_t<T>>::type;
+};
+
+} // detail
+
 /*
  * Specialize this class template to enable cuti serialization for an
  * enum type T.
@@ -72,82 +152,13 @@ constexpr std::underlying_type_t<T> to_underlying(T value) noexcept
   return static_cast<std::underlying_type_t<T>>(value);
 }
 
-namespace detail
+template<typename T>
+using serialized_type_t = typename detail::serialized_traits_t<T>::type;
+
+template<typename T>
+constexpr serialized_type_t<T> to_serialized(T value) noexcept
 {
-
-/*
- * By default, we use an enum's underlying type for serialization
- * purposes.
- */
-template<typename UnderlyingType,
-         bool IsSigned = std::is_signed_v<UnderlyingType>>
-struct serialized_underlying_traits_t
-{
-  static_assert(IsSigned == std::is_signed_v<UnderlyingType>);
-  using type = UnderlyingType;
-};
-
-/*
- * However, if the underlying type is one of the three char types we
- * use (unsigned) int, since the cuti protocol does not support
- * serialization of char types.
- */
-template<bool IsSigned>
-struct serialized_underlying_traits_t<signed char, IsSigned>
-{
-  static_assert(IsSigned);
-  using type = int;
-};
-
-template<bool IsSigned>
-struct serialized_underlying_traits_t<unsigned char, IsSigned>
-{
-  static_assert(!IsSigned);
-  using type = unsigned int;
-};
-
-template<>
-struct serialized_underlying_traits_t<char, true>
-{
-  using type = int;
-};
-
-template<>
-struct serialized_underlying_traits_t<char, false>
-{
-  using type = unsigned int;
-};
-
-template<typename EnumType>
-struct serialized_enum_traits_t
-{
-  static_assert(std::is_enum_v<EnumType>);
-  using type = typename detail::serialized_underlying_traits_t<
-      std::underlying_type_t<EnumType>>::type;
-};
-
-} // detail
-
-template<typename UnderlyingType>
-using serialized_underlying_t =
-  typename detail::serialized_underlying_traits_t<UnderlyingType>::type;
-
-template<typename T, typename = std::enable_if_t<!std::is_enum_v<T>>>
-constexpr serialized_underlying_t<T>
-to_serialized_underlying(T value) noexcept
-{
-  return serialized_underlying_t<T>{value};
-}
-
-template<typename EnumType>
-using serialized_enum_t =
-  typename detail::serialized_enum_traits_t<EnumType>::type;
-    
-template<typename T, typename = std::enable_if_t<std::is_enum_v<T>>>
-constexpr serialized_enum_t<T>
-to_serialized_enum(T value) noexcept
-{
-  return to_serialized_underlying(to_underlying(value));
+  return static_cast<serialized_type_t<T>>(value);
 }
 
 } // cuti
