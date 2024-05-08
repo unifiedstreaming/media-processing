@@ -22,6 +22,7 @@
 #include <cuti/exception_builder.hpp>
 #include <x264_proto/types.hpp>
 
+#undef NDEBUG
 #include <cassert>
 #include <x264.h>
 
@@ -526,6 +527,118 @@ wrap_x264_param_t::~wrap_x264_param_t()
   x264_param_cleanup(&param_);
 }
 
+std::ostream& operator<<(std::ostream& os, x264_image_t const& rhs)
+{
+  os << "{x264_image_t at " << &rhs << ":"
+    << " i_csp="   << rhs.i_csp
+    << " i_plane=" << rhs.i_plane
+    ;
+  for(int i = 0; i < rhs.i_plane; ++i)
+  {
+    os << " i_stride[" << i << "]=" << rhs.i_stride[i];
+  }
+  for(int i = 0; i < rhs.i_plane; ++i)
+  {
+    os << " plane[" << i << "]=" << static_cast<void const*>(rhs.plane[i]);
+  }
+  os << '}';
+  return os;
+}
+
+std::string x264_type_to_string(int type)
+{
+  switch(type)
+  {
+  case X264_TYPE_AUTO:
+    return "X264_TYPE_AUTO";
+  case X264_TYPE_IDR:
+    return "X264_TYPE_IDR";
+  case X264_TYPE_I:
+    return "X264_TYPE_I";
+  case X264_TYPE_P:
+    return "X264_TYPE_P";
+  case X264_TYPE_BREF:
+    return "X264_TYPE_BREF";
+  case X264_TYPE_B:
+    return "X264_TYPE_B";
+  case X264_TYPE_KEYFRAME:
+    return "X264_TYPE_KEYFRAME";
+  default:
+    return "Unknown x264 type " + std::to_string(type);
+  }
+}
+
+std::ostream& operator<<(std::ostream& os, x264_picture_t const& rhs)
+{
+  os << "{x264_picture_t at " << &rhs << ":"
+    << " i_type="       << x264_type_to_string(rhs.i_type)
+    << " i_qpplus1="    << rhs.i_qpplus1
+    << " i_pic_struct=" << rhs.i_pic_struct
+    << " b_keyframe="   << rhs.b_keyframe
+    << " i_pts="        << rhs.i_pts
+    << " i_dts="        << rhs.i_dts
+    << " param="        << static_cast<void const*>(rhs.param)
+    << " img="          << rhs.img
+//  << " prop="         << rhs.prop
+//  << " hrd_timing="   << rhs.hrd_timing
+//  << " extra_sei="    << rhs.extra_sei
+    << " opaque="       << static_cast<void const*>(rhs.opaque)
+    << '}';
+    ;
+  return os;
+}
+
+input_picture_t::input_picture_t(
+  cuti::logging_context_t const& logging_context,
+  x264_proto::frame_t const& frame)
+: logging_context_(logging_context)
+{
+  // Verify frame. For now we always assume NV12 format.
+  assert(frame.format_ == x264_proto::format_t::NV12);
+  std::size_t img_size =
+    static_cast<std::size_t>(frame.width_) * frame.height_ * 3 / 2;
+  assert(img_size == frame.data_.size());
+
+  if(x264_picture_alloc(&picture_, X264_CSP_NV12,
+                        frame.width_, frame.height_) < 0)
+  {
+    x264_exception_builder_t builder;
+    builder << "libx264 failed to allocate picture of "
+      << frame.width_ << "x" << frame.height_;
+    builder.explode();
+  }
+
+  picture_.i_type = frame.keyframe_ ? X264_TYPE_IDR : X264_TYPE_AUTO;
+  picture_.i_pts = frame.pts_;
+
+  // Copy NV12 format, which is all the Y bytes, followed by all the UV words,
+  // without padding, into x264 format (which is also not padded).
+  std::copy(frame.data_.begin(), frame.data_.end(), picture_.img.plane[0]);
+}
+
+int input_picture_t::encode(x264_t& encoder, x264_output_t& output)
+{
+  int r = x264_encoder_encode(&encoder, &output.nals_, &output.n_nals_,
+    &picture_, &output.pic_);
+  if(r < 0)
+  {
+    x264_exception_builder_t builder;
+    builder << "libx264 failed to encode frame";
+    builder.explode();
+  }
+  return r;
+}
+
+void input_picture_t::print(std::ostream& os) const
+{
+  os << picture_;
+}
+
+input_picture_t::~input_picture_t()
+{
+  x264_picture_clean(&picture_);
+}
+
 } // anonymous namespace
 
 x264_exception_t::x264_exception_t(std::string complaint)
@@ -563,7 +676,7 @@ std::optional<x264_proto::sample_t>
 encoding_session_t::encode(x264_proto::frame_t)
 {
   assert(! flush_called_);
-  
+
   std::optional<x264_proto::sample_t> result = std::nullopt;
 
   if(backlog_ == 3)
@@ -584,7 +697,7 @@ encoding_session_t::encode(x264_proto::frame_t)
         "no sample available";
     }
   }
-  
+
   return result;
 }
 
@@ -592,7 +705,7 @@ std::optional<x264_proto::sample_t>
 encoding_session_t::flush()
 {
   flush_called_ = true;
-  
+
   std::optional<x264_proto::sample_t> result = std::nullopt;
 
   if(backlog_ > 0)
@@ -613,7 +726,7 @@ encoding_session_t::flush()
         "all samples flushed";
     }
   }
-  
+
   return result;
 }
 
