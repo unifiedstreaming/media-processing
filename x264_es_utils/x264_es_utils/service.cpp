@@ -55,7 +55,7 @@ service_t::service_t(
     "subtract", cuti::default_method_factory<cuti::subtract_handler_t>());
 
   // add encode method
-  auto make_encode_handler = [encoder_settings](
+  auto encode_method_factory = [encoder_settings](
     cuti::result_t<void>& result,
     cuti::logging_context_t const& context,
     cuti::bound_inbuf_t& inbuf,
@@ -65,7 +65,7 @@ service_t::service_t(
       result, context, inbuf, outbuf, encoder_settings);
   };
   map_->add_method_factory(
-    "encode", make_encode_handler);
+    "encode", std::move(encode_method_factory));
    
   for(auto const& endpoint : endpoints)
   {
