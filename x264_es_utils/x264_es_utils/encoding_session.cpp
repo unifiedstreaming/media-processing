@@ -140,6 +140,58 @@ private :
   x264_handle_t handle_;
 };
 
+cuti::loglevel_t x264_log_level_to_fmp4(int x264_log_level)
+{
+  switch(x264_log_level)
+  {
+  case X264_LOG_ERROR:
+    return cuti::loglevel_t::error;
+  case X264_LOG_WARNING:
+    return cuti::loglevel_t::warning;
+  case X264_LOG_INFO:
+    return cuti::loglevel_t::info;
+  case X264_LOG_DEBUG:
+    return cuti::loglevel_t::debug;
+  default:
+    // NOTE: since this function will be called from a C callback, throwing
+    // exceptions is not the best idea.
+    return cuti::loglevel_t::debug;
+  }
+}
+
+std::string vstringprintf(char const* format, va_list args)
+{
+  // NOTE: a copy of the incoming va_list must be saved, before the first
+  // vsnprintf() call uses up the arguments, otherwise we cannot retry.
+  va_list retry_args;
+  va_copy(retry_args, args);
+  std::vector<char> buffer(1024);
+  int length = vsnprintf(buffer.data(), buffer.size(), format, args);
+  if(length >= 0 && static_cast<size_t>(length) >= buffer.size())
+  {
+    buffer.resize(length + 1);
+    length = vsnprintf(buffer.data(), buffer.size(), format, retry_args);
+  }
+  va_end(retry_args);
+  return length < 0 ?
+    "vsnprintf() encoding error" :
+    std::string(buffer.data(), length);
+}
+
+void x264_log_callback(void* ctx, int level, char const *format, va_list args)
+{
+  if(ctx != nullptr)
+  {
+    auto const& logging_context =
+      *static_cast<cuti::logging_context_t const*>(ctx);
+    cuti::loglevel_t level = x264_log_level_to_fmp4(level);
+    if(auto msg = logging_context.message_at(level))
+    {
+      *msg << "libx264: " << vstringprintf(format, args);
+    }
+  }
+}
+
 } // anonymous namespace
 
 x264_exception_t::x264_exception_t(std::string complaint)
