@@ -136,7 +136,7 @@ private :
                      x264_proto::session_params_t const& session_params);
 
 private :
-  cuti::logging_context_t const& synchronizer_;
+  cuti::logging_context_t const& logging_context_;
   x264_handle_t handle_;
 };
 
