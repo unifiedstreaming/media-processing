@@ -358,6 +358,174 @@ wrap_x264_param_t::wrap_x264_param_t(
   }
 }
 
+void wrap_x264_param_t::print(std::ostream& os) const
+{
+  os << "{x264_param_t at " << &param_ << ":"
+     << " cpu=0x"                       << std::hex << param_.cpu << std::dec
+     << " i_threads="                   << param_.i_threads
+     << " i_lookahead_threads="         << param_.i_lookahead_threads
+     << " b_sliced_threads="            << param_.b_sliced_threads
+     << " b_deterministic="             << param_.b_deterministic
+     << " b_cpu_independent="           << param_.b_cpu_independent
+     << " i_sync_lookahead="            << param_.i_sync_lookahead
+     << " i_width="                     << param_.i_width
+     << " i_height="                    << param_.i_height
+     << " i_csp="                       << param_.i_csp
+     << " i_level_idc="                 << param_.i_level_idc
+     << " i_frame_total="               << param_.i_frame_total
+     << " i_nal_hrd="                   << param_.i_nal_hrd
+     << " vui.i_sar_height="            << param_.vui.i_sar_height
+     << " vui.i_sar_width="             << param_.vui.i_sar_width
+     << " vui.i_overscan="              << param_.vui.i_overscan
+     << " vui.i_vidformat="             << param_.vui.i_vidformat
+     << " vui.b_fullrange="             << param_.vui.b_fullrange
+     << " vui.i_colorprim="             << param_.vui.i_colorprim
+     << " vui.i_transfer="              << param_.vui.i_transfer
+     << " vui.i_colmatrix="             << param_.vui.i_colmatrix
+     << " vui.i_chroma_loc="            << param_.vui.i_chroma_loc
+     << " i_frame_reference="           << param_.i_frame_reference
+     << " i_dpb_size="                  << param_.i_dpb_size
+     << " i_keyint_max="                << param_.i_keyint_max
+     << " i_keyint_min="                << param_.i_keyint_min
+     << " i_scenecut_threshold="        << param_.i_scenecut_threshold
+     << " b_intra_refresh="             << param_.b_intra_refresh
+     << " i_bframe="                    << param_.i_bframe
+     << " i_bframe_adaptive="           << param_.i_bframe_adaptive
+     << " i_bframe_bias="               << param_.i_bframe_bias
+     << " i_bframe_pyramid="            << param_.i_bframe_pyramid
+     << " b_open_gop="                  << param_.b_open_gop
+     << " b_bluray_compat="             << param_.b_bluray_compat
+     << " b_deblocking_filter="         << param_.b_deblocking_filter
+     << " i_deblocking_filter_alphac0=" << param_.i_deblocking_filter_alphac0
+     << " i_deblocking_filter_beta="    << param_.i_deblocking_filter_beta
+     << " b_cabac="                     << param_.b_cabac
+     << " i_cabac_init_idc="            << param_.i_cabac_init_idc
+     << " b_interlaced="                << param_.b_interlaced
+     << " b_constrained_intra="         << param_.b_constrained_intra
+     << " i_cqm_preset="                << param_.i_cqm_preset
+     << " psz_cqm_file="
+     << static_cast<void const*>(param_.psz_cqm_file)
+     << " pf_log="
+     << reinterpret_cast<void const*>(param_.pf_log)
+     << " p_log_private="
+     << static_cast<void const*>(param_.p_log_private)
+     << " i_log_level="                 << param_.i_log_level
+     << " b_full_recon="                << param_.b_full_recon
+     << " psz_dump_yuv="
+     << static_cast<void const*>(param_.psz_dump_yuv)
+     << " analyse.intra="               << param_.analyse.intra
+     << " analyse.inter="               << param_.analyse.inter
+     << " analyse.b_transform_8x8="     << param_.analyse.b_transform_8x8
+     << " analyse.i_weighted_pred="     << param_.analyse.i_weighted_pred
+     << " analyse.b_weighted_bipred="   << param_.analyse.b_weighted_bipred
+     << " analyse.i_direct_mv_pred="    << param_.analyse.i_direct_mv_pred
+     << " analyse.i_chroma_qp_offset="  << param_.analyse.i_chroma_qp_offset
+     << " analyse.i_me_method="         << param_.analyse.i_me_method
+     << " analyse.i_me_range="          << param_.analyse.i_me_range
+     << " analyse.i_mv_range="          << param_.analyse.i_mv_range
+     << " analyse.i_mv_range_thread="   << param_.analyse.i_mv_range_thread
+     << " analyse.i_subpel_refine="     << param_.analyse.i_subpel_refine
+     << " analyse.b_chroma_me="         << param_.analyse.b_chroma_me
+     << " analyse.b_mixed_references="  << param_.analyse.b_mixed_references
+     << " analyse.i_trellis="           << param_.analyse.i_trellis
+     << " analyse.b_fast_pskip="        << param_.analyse.b_fast_pskip
+     << " analyse.b_dct_decimate="      << param_.analyse.b_dct_decimate
+     << " analyse.i_noise_reduction="   << param_.analyse.i_noise_reduction
+     << " analyse.f_psy_rd="            << param_.analyse.f_psy_rd
+     << " analyse.f_psy_trellis="       << param_.analyse.f_psy_trellis
+     << " analyse.b_psy="               << param_.analyse.b_psy
+     << " analyse.i_luma_deadzone[0]="  << param_.analyse.i_luma_deadzone[0]
+     << " analyse.i_luma_deadzone[1]="  << param_.analyse.i_luma_deadzone[1]
+     << " analyse.b_psnr="              << param_.analyse.b_psnr
+     << " analyse.b_ssim="              << param_.analyse.b_ssim
+     << " rc.i_rc_method="              << param_.rc.i_rc_method
+     << " rc.i_qp_constant="            << param_.rc.i_qp_constant
+     << " rc.i_qp_min="                 << param_.rc.i_qp_min
+     << " rc.i_qp_max="                 << param_.rc.i_qp_max
+     << " rc.i_qp_step="                << param_.rc.i_qp_step
+     << " rc.i_bitrate="                << param_.rc.i_bitrate
+     << " rc.f_rf_constant="            << param_.rc.f_rf_constant
+     << " rc.f_rf_constant_max="        << param_.rc.f_rf_constant_max
+     << " rc.f_rate_tolerance="         << param_.rc.f_rate_tolerance
+     << " rc.i_vbv_max_bitrate="        << param_.rc.i_vbv_max_bitrate
+     << " rc.i_vbv_buffer_size="        << param_.rc.i_vbv_buffer_size
+     << " rc.f_vbv_buffer_init="        << param_.rc.f_vbv_buffer_init
+     << " rc.f_ip_factor="              << param_.rc.f_ip_factor
+     << " rc.f_pb_factor="              << param_.rc.f_pb_factor
+     << " rc.i_aq_mode="                << param_.rc.i_aq_mode
+     << " rc.f_aq_strength="            << param_.rc.f_aq_strength
+     << " rc.b_mb_tree="                << param_.rc.b_mb_tree
+     << " rc.i_lookahead="              << param_.rc.i_lookahead
+     << " rc.b_stat_write="             << param_.rc.b_stat_write
+     << " rc.psz_stat_out="             << param_.rc.psz_stat_out
+     << " rc.b_stat_read="              << param_.rc.b_stat_read
+     << " rc.psz_stat_in="              << param_.rc.psz_stat_in
+     << " rc.f_qcompress="              << param_.rc.f_qcompress
+     << " rc.f_qblur="                  << param_.rc.f_qblur
+     << " rc.f_complexity_blur="        << param_.rc.f_complexity_blur
+     << " rc.zones="
+     << static_cast<void const*>(param_.rc.zones)
+     << " rc.i_zones="                  << param_.rc.i_zones
+     << " rc.psz_zones="
+     << static_cast<void const*>(param_.rc.psz_zones)
+     << " crop_rect.i_left="            << param_.crop_rect.i_left
+     << " crop_rect.i_top="             << param_.crop_rect.i_top
+     << " crop_rect.i_right="           << param_.crop_rect.i_right
+     << " crop_rect.i_bottom="          << param_.crop_rect.i_bottom
+     << " i_frame_packing="             << param_.i_frame_packing
+     << " b_aud="                       << param_.b_aud
+     << " b_repeat_headers="            << param_.b_repeat_headers
+     << " b_annexb="                    << param_.b_annexb
+     << " i_sps_id="                    << param_.i_sps_id
+     << " b_vfr_input="                 << param_.b_vfr_input
+     << " b_pulldown="                  << param_.b_pulldown
+     << " i_fps_num="                   << param_.i_fps_num
+     << " i_fps_den="                   << param_.i_fps_den
+     << " i_timebase_num="              << param_.i_timebase_num
+     << " i_timebase_den="              << param_.i_timebase_den
+     << " b_tff="                       << param_.b_tff
+     << " b_pic_struct="                << param_.b_pic_struct
+     << " b_fake_interlaced="           << param_.b_fake_interlaced
+     << " i_slice_max_size="            << param_.i_slice_max_size
+     << " i_slice_max_mbs="             << param_.i_slice_max_mbs
+     << " i_slice_count="               << param_.i_slice_count
+     << " param_free="
+     << reinterpret_cast<void const *>(param_.param_free)
+     << " nalu_process="
+     << reinterpret_cast<void const *>(param_.nalu_process)
+     << '}'
+     ;
+}
+
+x264_handle_t wrap_x264_param_t::create_x264_handle()
+{
+  if(auto msg = logging_context_.message_at(cuti::loglevel_t::debug))
+  {
+    *msg << "creating x264 encoder, param=" << *this;
+  }
+  x264_handle_t result(x264_encoder_open(&param_));
+  if(result == nullptr)
+  {
+    x264_exception_builder_t builder;
+    builder << "failed to create x264 encoder";
+    builder.explode();
+  }
+
+  // x264 can adjust incoming parameters, so retrieve those.
+  x264_encoder_parameters(result.get(), &param_);
+  if(auto msg = logging_context_.message_at(cuti::loglevel_t::debug))
+  {
+    *msg << "adjusted x264 encoder param=" << *this;
+  }
+
+  return result;
+}
+
+wrap_x264_param_t::~wrap_x264_param_t()
+{
+  x264_param_cleanup(&param_);
+}
+
 } // anonymous namespace
 
 x264_exception_t::x264_exception_t(std::string complaint)
