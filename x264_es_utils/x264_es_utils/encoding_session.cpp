@@ -140,7 +140,7 @@ private :
   x264_handle_t handle_;
 };
 
-cuti::loglevel_t x264_log_level_to_fmp4(int x264_log_level)
+cuti::loglevel_t x264_log_level_to_cuti(int x264_log_level)
 {
   switch(x264_log_level)
   {
@@ -159,36 +159,56 @@ cuti::loglevel_t x264_log_level_to_fmp4(int x264_log_level)
   }
 }
 
-std::string vstringprintf(char const* format, va_list args)
+std::string vstringprintf(char const* fmt, va_list args)
 {
   // NOTE: a copy of the incoming va_list must be saved, before the first
   // vsnprintf() call uses up the arguments, otherwise we cannot retry.
   va_list retry_args;
   va_copy(retry_args, args);
   std::vector<char> buffer(1024);
-  int length = vsnprintf(buffer.data(), buffer.size(), format, args);
+  int length = vsnprintf(buffer.data(), buffer.size(), fmt, args);
   if(length >= 0 && static_cast<size_t>(length) >= buffer.size())
   {
-    buffer.resize(length + 1);
-    length = vsnprintf(buffer.data(), buffer.size(), format, retry_args);
+    buffer.resize(static_cast<size_t>(length) + 1);
+    length = vsnprintf(buffer.data(), buffer.size(), fmt, retry_args);
   }
   va_end(retry_args);
-  return length < 0 ?
-    "vsnprintf() encoding error" :
-    std::string(buffer.data(), length);
+  assert(length >= 0);
+  return {buffer.data(), static_cast<size_t>(length)};
 }
 
-void x264_log_callback(void* ctx, int level, char const *format, va_list args)
+void x264_log_callback(void* ctx, int x264_level, char const *fmt, va_list args)
 {
-  if(ctx != nullptr)
+  assert(ctx != nullptr);
+  auto const& logging_context =
+    *static_cast<cuti::logging_context_t const*>(ctx);
+  cuti::loglevel_t cuti_level = x264_log_level_to_cuti(x264_level);
+  if(auto msg = logging_context.message_at(cuti_level))
   {
-    auto const& logging_context =
-      *static_cast<cuti::logging_context_t const*>(ctx);
-    cuti::loglevel_t level = x264_log_level_to_fmp4(level);
-    if(auto msg = logging_context.message_at(level))
-    {
-      *msg << "libx264: " << vstringprintf(format, args);
-    }
+    *msg << "libx264: " << vstringprintf(fmt, args);
+  }
+}
+
+char const* x264_profile_name(x264_proto::profile_t profile)
+{
+  switch(profile)
+  {
+  case x264_proto::profile_t::BASELINE:
+    return "baseline";
+  case x264_proto::profile_t::MAIN:
+    return "main";
+  case x264_proto::profile_t::HIGH:
+    return "high";
+  case x264_proto::profile_t::HIGH10:
+    return "high10";
+  case x264_proto::profile_t::HIGH422:
+    return "high422";
+  case x264_proto::profile_t::HIGH444_PREDICTIVE:
+    return "high444";
+  default:
+    x264_exception_builder_t builder;
+    builder << "bad x264_proto::profile_t value " << cuti::to_serialized(profile);
+    builder.explode();
   }
 }
 
