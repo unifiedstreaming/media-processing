@@ -90,7 +90,7 @@ struct x264_output_t
 struct input_picture_t
 {
 public:
-  input_picture_t(cuti::logging_context_t const& context,
+  input_picture_t(cuti::logging_context_t const& logging_context,
                   x264_proto::frame_t const& frame);
 
   input_picture_t(input_picture_t const&) = delete;
@@ -132,7 +132,7 @@ struct wrap_x264_encoder_t
 
 private :
   static x264_handle_t
-  create_x264_handle(cuti::logging_context_t const& synchronizer,
+  create_x264_handle(cuti::logging_context_t const& logging_context,
                      x264_proto::session_params_t const& session_params);
 
 private :
