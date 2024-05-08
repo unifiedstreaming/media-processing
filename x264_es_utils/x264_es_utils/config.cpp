@@ -242,6 +242,8 @@ void config_t::read_options(cuti::args_reader_t& reader,
       !walker.match("--dry-run", dry_run_) &&
       !walker.match("--endpoint", endpoints_) &&
       !walker.match("--deterministic", encoder_settings_.deterministic_) &&
+      !walker.match("--preset", encoder_settings_.preset_) &&
+      !walker.match("--tune", encoder_settings_.tune_) &&
 #ifndef _WIN32
       !walker.match("--group", group_) &&
 #endif

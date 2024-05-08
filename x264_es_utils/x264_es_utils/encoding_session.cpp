@@ -44,7 +44,8 @@ using x264_handle_t = std::unique_ptr<x264_t, x264_deleter_t>;
 struct wrap_x264_param_t
 {
   wrap_x264_param_t(cuti::logging_context_t const& logging_context,
-                    x264_proto::session_params_t const& session_params);
+                    x264_proto::session_params_t const& session_params,
+                    std::string preset, std::string tune);
 
   wrap_x264_param_t(wrap_x264_param_t const&) = delete;
   wrap_x264_param_t operator=(wrap_x264_param_t const&) = delete;
@@ -56,7 +57,8 @@ struct wrap_x264_param_t
   ~wrap_x264_param_t();
 
 private :
-  explicit wrap_x264_param_t(cuti::logging_context_t const& logging_context);
+  explicit wrap_x264_param_t(cuti::logging_context_t const& logging_context,
+                             std::string preset, std::string tune);
 
 private :
   cuti::logging_context_t const& logging_context_;

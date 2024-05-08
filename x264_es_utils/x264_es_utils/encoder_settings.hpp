@@ -22,6 +22,8 @@
 
 #include <cuti/flag.hpp>
 
+#include <string>
+
 namespace x264_es_utils
 {
 
@@ -29,9 +31,13 @@ struct encoder_settings_t
 {
   encoder_settings_t()
   : deterministic_()
+  , preset_()
+  , tune_()
   { }
 
   cuti::flag_t deterministic_;
+  std::string preset_;
+  std::string tune_;
 };
 
 } // x264_es_utils
