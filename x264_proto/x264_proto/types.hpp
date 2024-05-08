@@ -29,6 +29,7 @@
 
 #include <cstdint>
 #include <optional>
+#include <string>
 #include <type_traits>
 #include <vector>
 
@@ -40,6 +41,8 @@ enum class format_t
   NV12,
 };
 
+std::string to_string(format_t format);
+
 enum class profile_t
 {
   BASELINE = 66,
@@ -49,6 +52,8 @@ enum class profile_t
   HIGH422 = 122,
   HIGH444_PREDICTIVE = 244,
 };
+
+std::string to_string(profile_t profile);
 
 struct X264_PROTO_ABI session_params_t
 {
@@ -136,6 +141,8 @@ struct X264_PROTO_ABI sample_t
   bool operator!=(sample_t const& rhs) const
   { return !(*this == rhs); }
 };
+
+std::string to_string(sample_t::type_t type);
 
 } // x264_proto
 

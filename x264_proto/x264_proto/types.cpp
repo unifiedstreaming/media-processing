@@ -27,6 +27,40 @@
 namespace x264_proto
 {
 
+std::string to_string(format_t format)
+{
+  switch(format)
+  {
+  case format_t::NV12:
+    return "NV12";
+  default:
+    return "bad x264_proto::format_t value " +
+      std::to_string(cuti::to_underlying(format));
+  }
+}
+
+std::string to_string(profile_t profile)
+{
+  switch(profile)
+  {
+  case profile_t::BASELINE:
+    return "BASELINE";
+  case profile_t::MAIN:
+    return "MAIN";
+  case profile_t::HIGH:
+    return "HIGH";
+  case profile_t::HIGH10:
+    return "HIGH10";
+  case profile_t::HIGH422:
+    return "HIGH422";
+  case profile_t::HIGH444_PREDICTIVE:
+    return "HIGH444_PREDICTIVE";
+  default:
+    return "unknown x264_proto::profile_t value " +
+      std::to_string(cuti::to_underlying(profile));
+  }
+}
+
 session_params_t::session_params_t()
 : timescale_(0)
 , bitrate_(0)
@@ -125,6 +159,23 @@ bool sample_t::operator==(sample_t const& rhs) const
     && data_ == rhs.data_;
 }
 
+std::string to_string(sample_t::type_t type)
+{
+  switch(type)
+  {
+  case sample_t::type_t::i:
+    return "I";
+  case sample_t::type_t::p:
+    return "P";
+  case sample_t::type_t::b:
+    return "B";
+  case sample_t::type_t::b_ref:
+    return "B_ref";
+  default:
+    return "unknown x264_proto::sample_t::type_t value " +
+      std::to_string(cuti::to_underlying(type));
+  }
+}
 } // x264_proto
 
 x264_proto::format_t
