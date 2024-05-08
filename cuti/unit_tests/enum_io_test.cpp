@@ -209,9 +209,6 @@ namespace // anonymous
 using namespace cuti;
 using namespace cuti::io_test_utils;
 
-constexpr auto max_byte_value =
-  std::numeric_limits<std::underlying_type_t<std::byte>>::max();
-
 template<typename EnumT>
 void test_failing_enum_reads(
   logging_context_t const& context, std::size_t bufsize)
