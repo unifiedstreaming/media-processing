@@ -45,7 +45,7 @@ struct wrap_x264_param_t
 {
   wrap_x264_param_t(cuti::logging_context_t const& logging_context,
                     x264_proto::session_params_t const& session_params,
-                    std::string preset, std::string tune);
+                    encoder_settings_t const& encoder_settings);
 
   wrap_x264_param_t(wrap_x264_param_t const&) = delete;
   wrap_x264_param_t operator=(wrap_x264_param_t const&) = delete;
@@ -58,7 +58,7 @@ struct wrap_x264_param_t
 
 private :
   explicit wrap_x264_param_t(cuti::logging_context_t const& logging_context,
-                             std::string preset, std::string tune);
+                             encoder_settings_t const& encoder_settings);
 
 private :
   cuti::logging_context_t const& logging_context_;
@@ -210,6 +210,150 @@ char const* x264_profile_name(x264_proto::profile_t profile)
   default:
     x264_exception_builder_t builder;
     builder << "bad x264_proto::profile_t value " << cuti::to_serialized(profile);
+    builder.explode();
+  }
+}
+
+// delegate ctor; ensures dtor is called when throwing in delegating ctor
+wrap_x264_param_t::wrap_x264_param_t(
+  cuti::logging_context_t const& logging_context,
+  encoder_settings_t const& encoder_settings)
+: logging_context_(logging_context)
+{
+  auto const& preset = encoder_settings.preset_;
+  auto const& tune = encoder_settings.tune_;
+  if(x264_param_default_preset(&param_,
+    preset.empty() ? nullptr : preset.c_str(),
+    tune.empty() ? nullptr : tune.c_str()) < 0)
+  {
+    x264_exception_builder_t builder;
+    builder << "libx264 failed to apply preset: " <<
+      (preset.empty() ? "default" : preset);
+    if(!tune.empty())
+    {
+      builder << ", with tune: " << tune;
+    }
+    builder.explode();
+  }
+}
+
+// delegating ctor
+wrap_x264_param_t::wrap_x264_param_t(
+  cuti::logging_context_t const& logging_context,
+  x264_proto::session_params_t const& session_params,
+  encoder_settings_t const& encoder_settings)
+: wrap_x264_param_t(logging_context, encoder_settings) // -> dtor called on further exceptions
+{
+  assert(session_params.bitrate_ != 0);
+
+  if(auto msg = logging_context_.message_at(cuti::loglevel_t::info))
+  {
+    *msg << "encoding to avc profile=" << to_string(session_params.profile_idc_)
+      << " level=" << session_params.level_idc_
+      << " bitrate=" << session_params.bitrate_
+      << " width=" << session_params.width_
+      << " height=" << session_params.height_;
+  }
+
+  // CPU flags
+  param_.b_deterministic = encoder_settings.deterministic_ ? 1 : 0;
+  param_.b_cpu_independent = 1;
+
+  // Video properties
+  param_.i_width  = session_params.width_;
+  param_.i_height = session_params.height_;
+  param_.i_csp = X264_CSP_NV12;
+  param_.i_bitdepth = 8;
+  param_.i_level_idc = session_params.level_idc_;
+
+  // VUI parameters
+  param_.vui.i_sar_width = session_params.sar_width_;
+  param_.vui.i_sar_height = session_params.sar_height_;
+
+  if(session_params.overscan_appropriate_flag_)
+  {
+    // 0=undef, 1=no overscan, 2=overscan
+    param_.vui.i_overscan = *session_params.overscan_appropriate_flag_ ? 2 : 1;
+  }
+  if(session_params.video_format_)
+  {
+    param_.vui.i_vidformat = *session_params.video_format_;
+  }
+  if(session_params.video_full_range_flag_)
+  {
+    param_.vui.b_fullrange =
+      *session_params.video_full_range_flag_;
+  }
+  if(session_params.colour_primaries_)
+  {
+    param_.vui.i_colorprim = *session_params.colour_primaries_;
+  }
+  if(session_params.transfer_characteristics_)
+  {
+    param_.vui.i_transfer = *session_params.transfer_characteristics_;
+  }
+  if(session_params.matrix_coefficients_)
+  {
+    param_.vui.i_colmatrix = *session_params.matrix_coefficients_;
+  }
+  if(session_params.chroma_sample_loc_type_top_field_ !=
+    session_params.chroma_sample_loc_type_bottom_field_)
+  {
+    x264_exception_builder_t builder;
+    builder << "libx264 does not support different chroma sample locations for "
+      "top and bottom fields";
+    builder.explode();
+  }
+  else if(session_params.chroma_sample_loc_type_top_field_)
+  {
+    param_.vui.i_chroma_loc =
+      *session_params.chroma_sample_loc_type_top_field_;
+  }
+
+  // Bitstream parameters
+#ifndef ALLOW_ENTROPY_CODING
+  // To suppress entropy coding, and force use of CAVLC, turn off CABAC.
+  param_.b_cabac = 0;
+#endif // ALLOW_ENTROPY_CODING
+
+  // Logging parameters
+  param_.pf_log = x264_log_callback;
+  param_.p_log_private = const_cast<cuti::logging_context_t*>(&logging_context_);
+  param_.i_log_level = X264_LOG_DEBUG;
+
+  // Rate control parameters
+  param_.rc.i_rc_method = X264_RC_ABR;
+  param_.rc.i_bitrate = (session_params.bitrate_ + 500) / 1000;
+
+  // Muxing parameters
+  param_.b_repeat_headers = 0;
+  param_.b_annexb = 1;
+  param_.b_vfr_input = 1;
+
+  assert(session_params.framerate_num_ != 0);
+  assert(session_params.framerate_den_ != 0);
+  param_.i_fps_num = session_params.framerate_num_;
+  param_.i_fps_den = session_params.framerate_den_;
+  param_.i_timebase_num = 1;
+  param_.i_timebase_den = session_params.timescale_;
+
+  // Adjust keyint_{min,max} based on fps
+  param_.i_keyint_min =
+    session_params.framerate_num_ / session_params.framerate_den_;
+  param_.i_keyint_max = 10 * param_.i_keyint_min;
+
+  // Turn off automatic insertion of keyframes on scenecuts.
+  param_.i_scenecut_threshold = 0;
+
+  auto const* profile_name = x264_profile_name(session_params.profile_idc_);
+  if(auto msg = logging_context_.message_at(cuti::loglevel_t::debug))
+  {
+    *msg << "applying x264 profile " << profile_name;
+  }
+  if(x264_param_apply_profile(&param_, profile_name) < 0)
+  {
+    x264_exception_builder_t builder;
+    builder << "libx264 failed to apply the " << profile_name << " profile";
     builder.explode();
   }
 }
