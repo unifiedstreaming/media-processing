@@ -19,11 +19,15 @@
 
 #include "service.hpp"
 
+#include "encode_handler.hpp"
+#include "encoder_settings.hpp"
+
 #include <x264.h>
 
 #include <cuti/dispatcher.hpp>
 #include <cuti/add_handler.hpp>
 #include <cuti/echo_handler.hpp>
+#include <cuti/method.hpp>
 #include <cuti/method_map.hpp>
 #include <cuti/subtract_handler.hpp>
 
@@ -35,6 +39,7 @@ namespace x264_es_utils
 service_t::service_t(
   cuti::logging_context_t const& context,
   cuti::dispatcher_config_t const& dispatcher_config,
+  encoder_settings_t const& encoder_settings,
   std::vector<cuti::endpoint_t> const& endpoints)
 : map_(std::make_unique<cuti::method_map_t>())
 , dispatcher_(std::make_unique<cuti::dispatcher_t>(
@@ -49,6 +54,19 @@ service_t::service_t(
   map_->add_method_factory(
     "subtract", cuti::default_method_factory<cuti::subtract_handler_t>());
 
+  // add encode method
+  auto make_encode_handler = [encoder_settings](
+    cuti::result_t<void>& result,
+    cuti::logging_context_t const& context,
+    cuti::bound_inbuf_t& inbuf,
+    cuti::bound_outbuf_t& outbuf)
+  {
+    return cuti::make_method<encode_handler_t>(
+      result, context, inbuf, outbuf, encoder_settings);
+  };
+  map_->add_method_factory(
+    "encode", make_encode_handler);
+   
   for(auto const& endpoint : endpoints)
   {
     auto bound_endpoint = dispatcher_->add_listener(endpoint, *map_);

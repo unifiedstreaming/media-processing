@@ -67,6 +67,7 @@ config_t::config_t(int argc, char const* const argv[])
 , directory_()
 , dry_run_(false)
 , endpoints_()
+, encoder_settings_()
 #ifndef _WIN32
 , group_()
 #endif
@@ -163,7 +164,7 @@ config_t::create_service(cuti::logging_context_t& context) const
   }
 
   auto result = std::make_unique<service_t>(
-    context, dispatcher_config_, endpoints);
+    context, dispatcher_config_, encoder_settings_, endpoints);
   if(dry_run_)
   {
     result.reset();
@@ -240,6 +241,7 @@ void config_t::read_options(cuti::args_reader_t& reader,
       !walker.match("--directory", directory_) &&
       !walker.match("--dry-run", dry_run_) &&
       !walker.match("--endpoint", endpoints_) &&
+      !walker.match("--deterministic", encoder_settings_.deterministic_) &&
 #ifndef _WIN32
       !walker.match("--group", group_) &&
 #endif
@@ -290,6 +292,8 @@ void config_t::print_usage(std::ostream& os)
   os << "  --daemon                 " <<
     "run as daemon" << std::endl;
 #endif
+  os << "  --deterministic          " <<
+    "use deterministic encoding" << std::endl;
   os << "  --directory <path>       " <<
     "change directory to <path> (default: no change)" << std::endl;
   os << "  --dry-run                " <<

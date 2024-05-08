@@ -20,6 +20,8 @@
 #ifndef X264_ES_UTILS_SERVICE_HPP_
 #define X264_ES_UTILS_SERVICE_HPP_
 
+#include "encoder_settings.hpp"
+
 #include <cuti/dispatcher.hpp>
 #include <cuti/endpoint.hpp>
 #include <cuti/service.hpp>
@@ -42,6 +44,7 @@ struct service_t : cuti::service_t
 {
   service_t(cuti::logging_context_t const& context,
             cuti::dispatcher_config_t const& dispatcher_config,
+            encoder_settings_t const& encoder_settings,
             std::vector<cuti::endpoint_t> const& endpoints);
 
   std::vector<cuti::endpoint_t> const& endpoints() const

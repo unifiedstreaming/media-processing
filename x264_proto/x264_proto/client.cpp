@@ -50,4 +50,16 @@ int client_t::subtract(int arg1, int arg2)
   return result;
 }
 
+void client_t::encode(sample_headers_t& sample_headers,
+                      std::vector<sample_t>& samples,
+                      session_params_t session_params,
+                      std::vector<frame_t> frames)
+{
+  auto inputs = cuti::make_input_list<sample_headers_t, samples_t>(
+    sample_headers, samples);
+  auto outputs = cuti::make_output_list<session_params_t, frames_t>(
+    std::move(session_params), std::move(frames));
+  rpc_client_("encode", inputs, outputs);
+}
+  
 } // x264_proto

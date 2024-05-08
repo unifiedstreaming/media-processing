@@ -52,11 +52,15 @@ void test_service(cuti::logging_context_t const& client_context,
   }
 
   cuti::dispatcher_config_t dispatcher_config;
+
+  x264_es_utils::encoder_settings_t encoder_settings;
+  encoder_settings.deterministic_ = true;
+
   auto interfaces = cuti::local_interfaces(cuti::any_port);
 
   {
-    x264_es_utils::service_t service(server_context, dispatcher_config,
-      interfaces);
+    x264_es_utils::service_t service(
+      server_context, dispatcher_config, encoder_settings, interfaces);
 
     cuti::scoped_thread_t server_thread([&] { service.run(); });
     cuti::scoped_guard_t stop_guard([&] { service.stop(SIGINT); });
@@ -70,6 +74,16 @@ void test_service(cuti::logging_context_t const& client_context,
 
     result = client.subtract(4753, 42);
     assert(result == 4711);
+
+    x264_proto::sample_headers_t sample_headers;
+    std::vector<x264_proto::sample_t> samples;
+    x264_proto::session_params_t session_params;
+    std::vector<x264_proto::frame_t> frames;
+    frames.resize(42);
+
+    client.encode(sample_headers, samples,
+      std::move(session_params), std::move(frames));
+    assert(samples.size() == 42);
   }
 
   if(auto msg = client_context.message_at(cuti::loglevel_t::info))

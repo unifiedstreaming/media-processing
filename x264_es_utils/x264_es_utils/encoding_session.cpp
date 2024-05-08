@@ -216,7 +216,7 @@ encoding_session_t::flush()
     if(auto msg = context_.message_at(cuti::loglevel_t::info))
     {
       *msg << "encoding_session[" << this << "]: flush: " <<
-        "returning encode sample";
+        "returning encoded sample";
     }
   }
   else

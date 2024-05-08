@@ -20,6 +20,8 @@
 #ifndef X264_ES_UTILS_CONFIG_HPP_
 #define X264_ES_UTILS_CONFIG_HPP_
 
+#include "encoder_settings.hpp"
+
 #include <cuti/dispatcher.hpp>
 #include <cuti/endpoint.hpp>
 #include <cuti/flag.hpp>
@@ -84,6 +86,7 @@ private :
   std::string directory_;
   cuti::flag_t dry_run_;
   std::vector<cuti::endpoint_t> endpoints_;
+  encoder_settings_t encoder_settings_;
 #ifndef _WIN32
   std::optional<cuti::group_id_t> group_;
 #endif
