@@ -41,7 +41,7 @@ enum class format_t
   NV12,
 };
 
-std::string to_string(format_t format);
+X264_PROTO_ABI std::string to_string(format_t format);
 
 enum class profile_t
 {
@@ -53,7 +53,7 @@ enum class profile_t
   HIGH444_PREDICTIVE = 244,
 };
 
-std::string to_string(profile_t profile);
+X264_PROTO_ABI std::string to_string(profile_t profile);
 
 struct X264_PROTO_ABI session_params_t
 {
@@ -142,7 +142,7 @@ struct X264_PROTO_ABI sample_t
   { return !(*this == rhs); }
 };
 
-std::string to_string(sample_t::type_t type);
+X264_PROTO_ABI std::string to_string(sample_t::type_t type);
 
 } // x264_proto
 
