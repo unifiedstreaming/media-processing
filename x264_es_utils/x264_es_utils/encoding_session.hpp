@@ -22,6 +22,7 @@
 
 #include "encoder_settings.hpp"
 
+#include <cuti/exception_builder.hpp>
 #include <cuti/logging_context.hpp>
 
 #include <x264_proto/types.hpp>
@@ -30,6 +31,14 @@
 
 namespace x264_es_utils
 {
+
+struct x264_exception_t : std::runtime_error
+{
+  explicit x264_exception_t(std::string complaint);
+  ~x264_exception_t() override;
+};
+
+using x264_exception_builder_t = cuti::exception_builder_t<x264_exception_t>;
 
 struct encoding_session_t
 {
