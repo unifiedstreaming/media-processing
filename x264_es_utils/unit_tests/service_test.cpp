@@ -43,6 +43,87 @@
 namespace // anonymous
 {
 
+x264_proto::session_params_t make_test_session_params(
+  uint32_t timescale, uint32_t bitrate,
+  uint32_t width, uint32_t height)
+{
+  x264_proto::session_params_t session_params;
+
+  session_params.timescale_ = timescale;
+  session_params.bitrate_ = bitrate;
+  session_params.width_ = width;
+  session_params.height_ = height;
+
+  return session_params;
+}
+
+constexpr uint8_t black_y = 0x10;
+constexpr uint8_t black_u = 0x80;
+constexpr uint8_t black_v = 0x80;
+
+std::vector<uint8_t> make_test_frame_data(
+  uint32_t width, uint32_t height,
+  uint8_t y, uint8_t u, uint8_t v)
+{
+  std::vector<uint8_t> data;
+
+  uint32_t size_y = width * height;
+  uint32_t size_uv = width * height / 2;
+
+  data.insert(data.end(), size_y, y);
+  if(u == v)
+  {
+    data.insert(data.end(), size_uv, u);
+  }
+  else
+  {
+    for(uint32_t i = 0; i < size_uv; i +=2)
+    {
+      data.insert(data.end(), u);
+      data.insert(data.end(), v);
+    }
+  }
+
+  return data;
+}
+
+x264_proto::frame_t make_test_frame(
+  uint32_t width, uint32_t height,
+  uint64_t pts, uint32_t timescale,
+  bool keyframe,
+  uint8_t y, uint8_t u, uint8_t v)
+{
+  x264_proto::frame_t frame;
+
+  frame.width_ = width;
+  frame.height_ = height;
+  frame.pts_ = pts;
+  frame.timescale_ = timescale;
+  frame.keyframe_ = keyframe;
+  frame.data_ = make_test_frame_data(width, height, y, u, v);
+
+  return frame;
+}
+
+std::vector<x264_proto::frame_t> make_test_frames(
+  size_t count, size_t gop_size,
+  uint32_t width, uint32_t height,
+  uint32_t timescale, uint32_t duration,
+  uint8_t y, uint8_t u, uint8_t v)
+{
+  std::vector<x264_proto::frame_t> frames;
+
+  uint64_t pts = 0;
+  for(size_t i = 0; i < count; ++i, pts += duration)
+  {
+    bool keyframe = i % gop_size == 0;
+    frames.push_back(
+      make_test_frame(width, height, pts, timescale, keyframe, y, u, v));
+  }
+
+  return frames;
+}
+
 void test_service(cuti::logging_context_t const& client_context,
                   cuti::logging_context_t const& server_context)
 {
@@ -77,13 +158,23 @@ void test_service(cuti::logging_context_t const& client_context,
 
     x264_proto::sample_headers_t sample_headers;
     std::vector<x264_proto::sample_t> samples;
-    x264_proto::session_params_t session_params;
-    std::vector<x264_proto::frame_t> frames;
-    frames.resize(42);
+
+    constexpr uint32_t timescale = 600;
+    constexpr uint32_t bitrate = 400000;
+    constexpr uint32_t width = 640;
+    constexpr uint32_t height = 480;
+    auto session_params = make_test_session_params(
+      timescale, bitrate, width, height);
+
+    constexpr size_t count = 42;
+    constexpr size_t gop_size = 12;
+    constexpr uint32_t duration = 25;
+    auto frames = make_test_frames(count, gop_size,
+      width, height, timescale, duration, black_y, black_u, black_v);
 
     client.encode(sample_headers, samples,
       std::move(session_params), std::move(frames));
-    assert(samples.size() == 42);
+    assert(samples.size() == count);
   }
 
   if(auto msg = client_context.message_at(cuti::loglevel_t::info))

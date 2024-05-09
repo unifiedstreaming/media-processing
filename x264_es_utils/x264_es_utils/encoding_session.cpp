@@ -818,7 +818,7 @@ struct encoding_session_t::impl_t
       {
         if(i > 0)
         {
-          *msg << ", ";
+          *msg << '\n';
         }
         *msg << "nal[" << i << "]=" << headers[i];
       }
