@@ -268,8 +268,14 @@ wrap_x264_param_t::wrap_x264_param_t(
   }
 
   // CPU flags
-  param_.b_deterministic = encoder_settings.deterministic_ ? 1 : 0;
-  param_.b_cpu_independent = 1;
+  if(encoder_settings.deterministic_)
+  {
+    param_.i_threads = 1;
+    param_.i_lookahead_threads = 1;
+    param_.b_sliced_threads = 0;
+    param_.b_deterministic = 1;
+    param_.b_cpu_independent = 1;
+  }
 
   // Video properties
   param_.i_width  = session_params.width_;
