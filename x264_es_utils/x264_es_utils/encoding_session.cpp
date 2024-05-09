@@ -24,6 +24,7 @@
 
 #undef NDEBUG
 #include <cassert>
+#include <iomanip>
 #include <x264.h>
 
 namespace x264_es_utils
@@ -44,9 +45,10 @@ using x264_handle_t = std::unique_ptr<x264_t, x264_deleter_t>;
 
 struct wrap_x264_param_t
 {
-  wrap_x264_param_t(cuti::logging_context_t const& logging_context,
-                    x264_proto::session_params_t const& session_params,
-                    encoder_settings_t const& encoder_settings);
+  wrap_x264_param_t(
+    cuti::logging_context_t const& logging_context,
+    encoder_settings_t const& encoder_settings,
+    x264_proto::session_params_t const& session_params);
 
   wrap_x264_param_t(wrap_x264_param_t const&) = delete;
   wrap_x264_param_t operator=(wrap_x264_param_t const&) = delete;
@@ -58,8 +60,9 @@ struct wrap_x264_param_t
   ~wrap_x264_param_t();
 
 private :
-  explicit wrap_x264_param_t(cuti::logging_context_t const& logging_context,
-                             encoder_settings_t const& encoder_settings);
+  explicit wrap_x264_param_t(
+    cuti::logging_context_t const& logging_context,
+    encoder_settings_t const& encoder_settings);
 
 private :
   cuti::logging_context_t const& logging_context_;
@@ -93,13 +96,17 @@ struct x264_output_t
 struct input_picture_t
 {
 public:
-  input_picture_t(cuti::logging_context_t const& logging_context,
-                  x264_proto::frame_t const& frame);
+  input_picture_t(
+    cuti::logging_context_t const& logging_context,
+    x264_proto::frame_t const& frame);
 
   input_picture_t(input_picture_t const&) = delete;
   input_picture_t& operator=(input_picture_t const&) = delete;
 
-  int encode(x264_t& encoder, x264_output_t& output);
+  x264_picture_t* get()
+  {
+    return &picture_;
+  }
 
   void print(std::ostream& os) const;
 
@@ -119,24 +126,28 @@ std::ostream& operator<<(std::ostream& os, input_picture_t const& rhs)
 
 struct wrap_x264_encoder_t
 {
-  wrap_x264_encoder_t(cuti::logging_context_t const& logging_context,
-                      x264_proto::session_params_t const& session_params);
+  wrap_x264_encoder_t(
+    cuti::logging_context_t const& logging_context,
+    encoder_settings_t const& encoder_settings,
+    x264_proto::session_params_t const& session_params);
 
   wrap_x264_encoder_t(const wrap_x264_encoder_t&) = delete;
   wrap_x264_encoder_t& operator=(const wrap_x264_encoder_t&) = delete;
 
+  int headers(x264_nal_t** headers_out, int *bytes_out) const;
+
+  int encode(x264_output_t& output, input_picture_t& pic_in) const;
+
   int delayed_frames() const;
 
-  int encode(x264_output_t& output, input_picture_t& pic_in);
-
-  int flush(x264_output_t& output);
-
-  ~wrap_x264_encoder_t();
+  int flush(x264_output_t& output) const;
 
 private :
   static x264_handle_t
-  create_x264_handle(cuti::logging_context_t const& logging_context,
-                     x264_proto::session_params_t const& session_params);
+  create_x264_handle(
+    cuti::logging_context_t const& logging_context,
+    encoder_settings_t const& encoder_settings,
+    x264_proto::session_params_t const& session_params);
 
 private :
   cuti::logging_context_t const& logging_context_;
@@ -241,8 +252,8 @@ wrap_x264_param_t::wrap_x264_param_t(
 // delegating ctor
 wrap_x264_param_t::wrap_x264_param_t(
   cuti::logging_context_t const& logging_context,
-  x264_proto::session_params_t const& session_params,
-  encoder_settings_t const& encoder_settings)
+  encoder_settings_t const& encoder_settings,
+  x264_proto::session_params_t const& session_params)
 : wrap_x264_param_t(logging_context, encoder_settings) // -> dtor called on further exceptions
 {
   assert(session_params.bitrate_ != 0);
@@ -564,7 +575,7 @@ std::string x264_type_to_string(int type)
   case X264_TYPE_KEYFRAME:
     return "X264_TYPE_KEYFRAME";
   default:
-    return "Unknown x264 type " + std::to_string(type);
+    return std::to_string(type);
   }
 }
 
@@ -595,8 +606,7 @@ input_picture_t::input_picture_t(
 {
   // Verify frame. For now we always assume NV12 format.
   assert(frame.format_ == x264_proto::format_t::NV12);
-  std::size_t img_size =
-    static_cast<std::size_t>(frame.width_) * frame.height_ * 3 / 2;
+  size_t img_size = static_cast<size_t>(frame.width_) * frame.height_ * 3 / 2;
   assert(img_size == frame.data_.size());
 
   if(x264_picture_alloc(&picture_, X264_CSP_NV12,
@@ -616,19 +626,6 @@ input_picture_t::input_picture_t(
   std::copy(frame.data_.begin(), frame.data_.end(), picture_.img.plane[0]);
 }
 
-int input_picture_t::encode(x264_t& encoder, x264_output_t& output)
-{
-  int r = x264_encoder_encode(&encoder, &output.nals_, &output.n_nals_,
-    &picture_, &output.pic_);
-  if(r < 0)
-  {
-    x264_exception_builder_t builder;
-    builder << "libx264 failed to encode frame";
-    builder.explode();
-  }
-  return r;
-}
-
 void input_picture_t::print(std::ostream& os) const
 {
   os << picture_;
@@ -637,6 +634,133 @@ void input_picture_t::print(std::ostream& os) const
 input_picture_t::~input_picture_t()
 {
   x264_picture_clean(&picture_);
+}
+
+// Utility class for easy hex dumping
+struct hexdump_t
+{
+  static constexpr size_t default_columns = 16;
+
+  hexdump_t(uint8_t const* data, size_t size,
+            size_t columns = default_columns)
+  : data_(data)
+  , size_(size)
+  , columns_(columns)
+  {
+  }
+
+  hexdump_t(std::vector<uint8_t> const& blob,
+            size_t columns = default_columns)
+  : data_(blob.data())
+  , size_(blob.size())
+  , columns_(columns)
+  {
+  }
+
+  uint8_t const* data_;
+  size_t size_;
+  size_t columns_;
+};
+
+std::ostream& operator<<(std::ostream& os, hexdump_t const& hex)
+{
+  std::ios_base::fmtflags fmtflags = os.flags();
+  for(size_t i = 0; i < hex.size_; i += hex.columns_)
+  {
+    if(i > 0)
+    {
+      os << '\n';
+    }
+    os << std::hex << std::setfill('0') << std::setw(8) << i << ':';
+    for(size_t j = i, k = i + hex.columns_; j < k; ++j)
+    {
+      if(j < hex.size_)
+      {
+        unsigned char ch = hex.data_[j];
+        os << ' ' << std::hex << std::setfill('0') << std::setw(2)
+           << static_cast<unsigned>(ch);
+      }
+      else
+      {
+        os << "   ";
+      }
+    }
+    os << "  |";
+    for(size_t j = i, k = i + hex.columns_; j < k; ++j)
+    {
+      if(j < hex.size_)
+      {
+        unsigned char ch = hex.data_[j];
+        os << (std::isprint(ch) != 0 ? ch : static_cast<unsigned char>('.'));
+      }
+      else
+      {
+        break;
+      }
+    }
+    os << '|';
+  }
+  os.flags(fmtflags);
+  return os;
+}
+
+std::ostream& operator<<(std::ostream& os, x264_nal_t const& rhs)
+{
+  os << "{x264_nal_t at "    << &rhs << ":"
+     << " i_ref_idc="        << rhs.i_ref_idc
+     << " i_type="           << rhs.i_type
+     << " b_long_startcode=" << rhs.b_long_startcode;
+  if(rhs.i_type >= NAL_SLICE && rhs.i_type <= NAL_SLICE_IDR)
+  {
+    os << " i_first_mb="     << rhs.i_first_mb
+       << " i_last_mb="      << rhs.i_last_mb;
+  }
+  os << " i_payload="        << rhs.i_payload
+     << " p_payload:\n"
+     << hexdump_t(rhs.p_payload, std::min(64, rhs.i_payload))
+     << '}';
+  return os;
+}
+
+wrap_x264_encoder_t::wrap_x264_encoder_t(
+  cuti::logging_context_t const& logging_context,
+  encoder_settings_t const& encoder_settings,
+  x264_proto::session_params_t const& session_params)
+: logging_context_(logging_context)
+, handle_(create_x264_handle(logging_context_, encoder_settings, session_params))
+{
+}
+
+int wrap_x264_encoder_t::headers(x264_nal_t** headers, int* num_headers) const
+{
+  return x264_encoder_headers(handle_.get(), headers, num_headers);
+}
+
+int wrap_x264_encoder_t::encode(x264_output_t& output, input_picture_t& pic_in) const
+{
+  return x264_encoder_encode(handle_.get(),
+    &output.nals_, &output.n_nals_, pic_in.get(), &output.pic_);
+}
+
+int wrap_x264_encoder_t::delayed_frames() const
+{
+  return x264_encoder_delayed_frames(handle_.get());
+}
+
+int wrap_x264_encoder_t::flush(x264_output_t& output) const
+{
+  return x264_encoder_encode(handle_.get(),
+    &output.nals_, &output.n_nals_, nullptr, &output.pic_);
+}
+
+x264_handle_t
+wrap_x264_encoder_t::create_x264_handle(
+  cuti::logging_context_t const& logging_context,
+  encoder_settings_t const& encoder_settings,
+  x264_proto::session_params_t const& session_params)
+{
+  wrap_x264_param_t param(logging_context, encoder_settings, session_params);
+  return param.create_x264_handle();
 }
 
 } // anonymous namespace
@@ -648,94 +772,249 @@ x264_exception_t::x264_exception_t(std::string complaint)
 x264_exception_t::~x264_exception_t()
 { }
 
-encoding_session_t::encoding_session_t(
-  cuti::logging_context_t const& context,
-  encoder_settings_t const&,
-  x264_proto::session_params_t const&)
-: context_(context)
-, backlog_(0)
-, flush_called_(false)
+struct encoding_session_t::impl_t
 {
-  if(auto msg = context_.message_at(cuti::loglevel_t::info))
+  impl_t(cuti::logging_context_t const& logging_context,
+         encoder_settings_t const& encoder_settings,
+         x264_proto::session_params_t const& session_params)
+  : logging_context_(logging_context)
+  , encoder_(logging_context_, encoder_settings, session_params)
+  , flush_called_(false)
+  , sample_count_(0)
   {
-    *msg << "encoding_session[" << this << "]: created";
+    if(auto msg = logging_context_.message_at(cuti::loglevel_t::info))
+    {
+      *msg << "encoding_session[" << this << "]: created";
+    }
   }
+
+  ~impl_t()
+  {
+    if(auto msg = logging_context_.message_at(cuti::loglevel_t::info))
+    {
+      *msg << "encoding_session[" << this << "]: destroying";
+    }
+  }
+
+  x264_proto::sample_headers_t sample_headers() const
+  {
+    if(auto msg = logging_context_.message_at(cuti::loglevel_t::info))
+    {
+      *msg << "encoding_session[" << this << "]: retrieving sample headers";
+    }
+
+    x264_nal_t* headers;
+    int num_headers;
+    int num_bytes = encoder_.headers(&headers, &num_headers);
+    if(num_bytes < 0)
+    {
+      x264_exception_builder_t builder;
+      builder << "libx264 failed to retrieve sample headers";
+      builder.explode();
+    }
+    if(auto msg = logging_context_.message_at(cuti::loglevel_t::debug))
+    {
+      for(int i = 0; i < num_headers; ++i)
+      {
+        if(i > 0)
+        {
+          *msg << ", ";
+        }
+        *msg << "nal[" << i << "]=" << headers[i];
+      }
+    }
+
+    // Sanity checks: libx264 is supposed to return SPS, PPS and SEI
+    // (disposable, containing libx264 copyleft and parameter text).
+    assert(num_headers == 3);
+
+    assert(headers[0].i_type == NAL_SPS);
+    assert(headers[0].i_payload > 4);
+    assert(headers[0].p_payload[0] == 0x00);
+    assert(headers[0].p_payload[1] == 0x00);
+    assert(headers[0].p_payload[2] == 0x00);
+    assert(headers[0].p_payload[3] == 0x01);
+    assert((headers[0].p_payload[4] & 0x1f) == NAL_SPS);
+
+    assert(headers[1].i_type == NAL_PPS);
+    assert(headers[1].i_payload > 4);
+    assert(headers[1].p_payload[0] == 0x00);
+    assert(headers[1].p_payload[1] == 0x00);
+    assert(headers[1].p_payload[2] == 0x00);
+    assert(headers[1].p_payload[3] == 0x01);
+    assert((headers[1].p_payload[4] & 0x1f) == NAL_PPS);
+
+    assert(headers[2].i_type == NAL_SEI);
+    assert(headers[2].i_payload > 4);
+    assert(headers[2].p_payload[0] == 0x00);
+    assert(headers[2].p_payload[1] == 0x00);
+    assert(headers[2].p_payload[2] == 0x01);
+    assert((headers[2].p_payload[3] & 0x1f) == NAL_SEI);
+
+    x264_proto::sample_headers_t sample_headers;
+    sample_headers.sps_.insert(sample_headers.sps_.end(),
+      headers[0].p_payload, headers[0].p_payload + headers[0].i_payload);
+    sample_headers.pps_.insert(sample_headers.pps_.end(),
+      headers[1].p_payload, headers[1].p_payload + headers[1].i_payload);
+
+    return sample_headers;
+  }
+
+  std::optional<x264_proto::sample_t> encode(x264_proto::frame_t frame)
+  {
+    assert(! flush_called_);
+
+    if(auto msg = logging_context_.message_at(cuti::loglevel_t::info))
+    {
+      *msg << "encoding_session[" << this << "]: encoding frame";
+    }
+
+    x264_output_t output;
+    input_picture_t pic_in(logging_context_, frame);
+    int num_bytes = encoder_.encode(output, pic_in);
+    if(num_bytes < 0)
+    {
+      x264_exception_builder_t builder;
+      builder << "libx264 failed to encode frame";
+      builder.explode();
+    }
+    else if(num_bytes == 0)
+    {
+      // No sample has been produced yet.
+      return std::nullopt;
+    }
+
+    return generate_sample(num_bytes, output);
+  }
+
+  std::optional<x264_proto::sample_t> flush()
+  {
+    flush_called_ = true;
+
+    if(auto msg = logging_context_.message_at(cuti::loglevel_t::info))
+    {
+      *msg << "encoding_session[" << this << "]: flushing sample";
+    }
+
+    int delayed_frames = encoder_.delayed_frames();
+    assert(delayed_frames >= 0);
+    if(delayed_frames == 0)
+    {
+      // End of samples.
+      return std::nullopt;
+    }
+
+    x264_output_t output;
+    int num_bytes;
+    while((num_bytes = encoder_.flush(output)) == 0)
+    {
+      // Unfortunately, x264 requires a busy loop here.
+    }
+
+    if(num_bytes < 0)
+    {
+      x264_exception_builder_t builder;
+      builder << "libx264 failed to flush sample";
+      builder.explode();
+    }
+
+    return generate_sample(num_bytes, output);
+  }
+
+private :
+  static x264_handle_t create_x264_handle(
+    cuti::logging_context_t const& logging_context,
+    encoder_settings_t const& encoder_settings,
+    x264_proto::session_params_t const& session_params)
+  {
+    wrap_x264_param_t param(logging_context, encoder_settings, session_params);
+    return param.create_x264_handle();
+  }
+
+  x264_proto::sample_t generate_sample(
+    int frame_size, x264_output_t const& output)
+  {
+    assert(output.nals_ != nullptr);
+    assert(output.n_nals_ == 1);
+    assert(output.nals_[0].i_payload == frame_size);
+
+    if(auto msg = logging_context_.message_at(cuti::loglevel_t::debug))
+    {
+      *msg << "sample[" << sample_count_ << "]"
+        << " dts=" << output.pic_.i_dts
+        << " pts=" << output.pic_.i_pts
+        << " size=" << frame_size
+        << " pic type=" << x264_type_to_string(output.pic_.i_type)
+        << " nal type=" << output.nals_[0].i_type;
+    }
+    ++sample_count_;
+
+    x264_proto::sample_t sample;
+    sample.dts_ = output.pic_.i_dts;
+    sample.pts_ = output.pic_.i_pts;
+    switch(output.pic_.i_type)
+    {
+    case X264_TYPE_IDR:
+      sample.type_ = x264_proto::sample_t::type_t::i;
+      break;
+    case X264_TYPE_I:
+    case X264_TYPE_P:
+      sample.type_ = x264_proto::sample_t::type_t::p;
+      break;
+    case X264_TYPE_B:
+      sample.type_ = x264_proto::sample_t::type_t::b;
+      break;
+    case X264_TYPE_BREF:
+      sample.type_ = x264_proto::sample_t::type_t::b_ref;
+      break;
+    default:
+      x264_exception_builder_t builder;
+      builder << "unexpected x264 picture type "
+        << x264_type_to_string(output.pic_.i_type);
+      builder.explode();
+    }
+    sample.data_.insert(sample.data_.end(),
+      output.nals_[0].p_payload,
+      output.nals_[0].p_payload + output.nals_[0].i_payload);
+
+    return sample;
+  }
+
+private :
+  cuti::logging_context_t const& logging_context_;
+  wrap_x264_encoder_t encoder_;
+  bool flush_called_;
+  uint64_t sample_count_;
+};
+
+encoding_session_t::encoding_session_t(
+  cuti::logging_context_t const& logging_context,
+  encoder_settings_t const& encoder_settings,
+  x264_proto::session_params_t const& session_params)
+: impl_(std::make_unique<impl_t>(logging_context, encoder_settings, session_params))
+{
 }
 
 x264_proto::sample_headers_t encoding_session_t::sample_headers() const
 {
-  if(auto msg = context_.message_at(cuti::loglevel_t::info))
-  {
-    *msg << "encoding_session[" << this << "]: returning samples header";
-  }
-
-  return x264_proto::sample_headers_t();
+  return impl_->sample_headers();
 }
 
 std::optional<x264_proto::sample_t>
-encoding_session_t::encode(x264_proto::frame_t)
+encoding_session_t::encode(x264_proto::frame_t frame)
 {
-  assert(! flush_called_);
+  return impl_->encode(std::move(frame));
 
-  std::optional<x264_proto::sample_t> result = std::nullopt;
-
-  if(backlog_ == 3)
-  {
-    result.emplace();
-    if(auto msg = context_.message_at(cuti::loglevel_t::info))
-    {
-      *msg << "encoding_session[" << this << "]: encode: " <<
-        "returning encoded sample";
-    }
-  }
-  else
-  {
-    ++backlog_;
-    if(auto msg = context_.message_at(cuti::loglevel_t::info))
-    {
-      *msg << "encoding_session[" << this << "]: encode: " <<
-        "no sample available";
-    }
-  }
-
-  return result;
 }
 
 std::optional<x264_proto::sample_t>
 encoding_session_t::flush()
 {
-  flush_called_ = true;
-
-  std::optional<x264_proto::sample_t> result = std::nullopt;
-
-  if(backlog_ > 0)
-  {
-    result.emplace();
-    --backlog_;
-    if(auto msg = context_.message_at(cuti::loglevel_t::info))
-    {
-      *msg << "encoding_session[" << this << "]: flush: " <<
-        "returning encoded sample";
-    }
-  }
-  else
-  {
-    if(auto msg = context_.message_at(cuti::loglevel_t::info))
-    {
-      *msg << "encoding_session[" << this << "]: flush: " <<
-        "all samples flushed";
-    }
-  }
-
-  return result;
+  return impl_->flush();
 }
 
 encoding_session_t::~encoding_session_t()
 {
-  if(auto msg = context_.message_at(cuti::loglevel_t::info))
-  {
-    *msg << "encoding_session[" << this << "]: destroying";
-  }
 }
 
 } // x264_es_utils
