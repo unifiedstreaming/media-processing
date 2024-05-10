@@ -256,8 +256,6 @@ wrap_x264_param_t::wrap_x264_param_t(
   x264_proto::session_params_t const& session_params)
 : wrap_x264_param_t(logging_context, encoder_settings) // -> dtor called on further exceptions
 {
-  assert(session_params.bitrate_ != 0);
-
   if(auto msg = logging_context_.message_at(cuti::loglevel_t::info))
   {
     *msg << "encoding to avc profile=" << to_string(session_params.profile_idc_)
@@ -265,6 +263,14 @@ wrap_x264_param_t::wrap_x264_param_t(
       << " bitrate=" << session_params.bitrate_
       << " width=" << session_params.width_
       << " height=" << session_params.height_;
+  }
+
+  if(session_params.bitrate_ == 0)
+  {
+    x264_exception_builder_t builder;
+    builder << "bad x264_proto::session_params.bitrate_ value " <<
+      session_params.bitrate_;
+    builder.explode();
   }
 
   // CPU flags
@@ -348,10 +354,24 @@ wrap_x264_param_t::wrap_x264_param_t(
   param_.b_annexb = 1;
   param_.b_vfr_input = 1;
 
-  assert(session_params.framerate_num_ != 0);
-  assert(session_params.framerate_den_ != 0);
+  if(session_params.framerate_num_ == 0)
+  {
+    x264_exception_builder_t builder;
+    builder << "bad x264_proto::session_params.framerate_num_ value " <<
+      session_params.framerate_num_;
+    builder.explode();
+  }
   param_.i_fps_num = session_params.framerate_num_;
+    
+  if(session_params.framerate_den_ == 0)
+  {
+    x264_exception_builder_t builder;
+    builder << "bad x264_proto::session_params.framerate_den_ value " <<
+      session_params.framerate_den_;
+    builder.explode();
+  }
   param_.i_fps_den = session_params.framerate_den_;
+    
   param_.i_timebase_num = 1;
   param_.i_timebase_den = session_params.timescale_;
 
@@ -611,9 +631,22 @@ input_picture_t::input_picture_t(
 : logging_context_(logging_context)
 {
   // Verify frame. For now we always assume NV12 format.
-  assert(frame.format_ == x264_proto::format_t::NV12);
+  if(frame.format_ != x264_proto::format_t::NV12)
+  {
+    x264_exception_builder_t builder;
+    builder << "unsupported x264_proto::frame.format_ value " <<
+      cuti::to_serialized(frame.format_);
+    builder.explode();
+  }
+
   size_t img_size = static_cast<size_t>(frame.width_) * frame.height_ * 3 / 2;
-  assert(img_size == frame.data_.size());
+  if(frame.data_.size() != img_size)
+  {
+    x264_exception_builder_t builder;
+    builder << "unexpected x264_proto::frame.data_ size " <<
+      frame.data_.size();
+    builder.explode();
+  }
 
   if(x264_picture_alloc(&picture_, X264_CSP_NV12,
                         frame.width_, frame.height_) < 0)
