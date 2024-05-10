@@ -9,7 +9,8 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 #
 
-x264-src-dir := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))
+x264-uspmakefile := $(abspath $(lastword $(MAKEFILE_LIST)))
+x264-src-dir := $(abspath $(dir $(x264-uspmakefile)))
 
 include usp-builder/USPCommon.mki
 
@@ -36,8 +37,9 @@ ifneq ($(build-x264),)
 
   extra-cflags := $(strip \
     $(if $(filter msvc%,$(toolset)), \
-      $(if $(filter debug,$(variant)),-MDd,-MD -Z7), \
-      $(if $(filter debug,$(variant)),,-g) \
+      $(if $(filter debug,$(variant)),-MDd,-MD -Z7) \
+    , \
+      $(if $(filter debug,$(variant)),,-g) -pthread \
     ) \
     $(sanitizer-flags) \
   )
@@ -83,6 +85,7 @@ ifneq ($(build-x264),)
   #
   $(work-dir)/config.mak: \
     $(addprefix $(x264-src-dir)/,configure config.guess config.sub) \
+    $(x264-uspmakefile) \
     | $(work-dir)
 	cd $(work-dir) && CC=$(compiler) $(x264-src-dir)/configure $(configure-options)
 
