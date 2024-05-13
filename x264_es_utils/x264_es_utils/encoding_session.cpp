@@ -25,6 +25,7 @@
 #undef NDEBUG
 #include <cassert>
 #include <iomanip>
+#include <thread>
 #include <x264.h>
 
 namespace x264_es_utils
@@ -958,6 +959,7 @@ struct encoding_session_t::impl_t
     while((num_bytes = encoder_.flush(output)) == 0)
     {
       // Unfortunately, x264 requires a busy loop here.
+      std::this_thread::yield();
     }
 
     if(num_bytes < 0)
