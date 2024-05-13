@@ -197,9 +197,19 @@ void x264_log_callback(void* ctx, int x264_level, char const *fmt, va_list args)
   auto const& logging_context =
     *static_cast<cuti::logging_context_t const*>(ctx);
   cuti::loglevel_t cuti_level = x264_log_level_to_cuti(x264_level);
+
   if(auto msg = logging_context.message_at(cuti_level))
   {
-    *msg << "libx264: " << vstringprintf(fmt, args);
+    auto text = vstringprintf(fmt, args);
+    if(!text.empty() && text.back() == '\n')
+    {
+      text.pop_back();
+      if(!text.empty() && text.back() == '\r')
+      {
+        text.pop_back();
+      }
+    }
+    *msg << "libx264: " << text;
   }
 }
 
