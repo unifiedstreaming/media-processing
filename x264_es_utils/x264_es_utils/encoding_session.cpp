@@ -144,14 +144,8 @@ struct wrap_x264_encoder_t
   int flush(x264_output_t& output) const;
 
 private :
-  static x264_handle_t
-  create_x264_handle(
-    cuti::logging_context_t const& logging_context,
-    encoder_settings_t const& encoder_settings,
-    x264_proto::session_params_t const& session_params);
-
-private :
   cuti::logging_context_t const& logging_context_;
+  wrap_x264_param_t param_;
   x264_handle_t handle_;
 };
 
@@ -777,7 +771,8 @@ wrap_x264_encoder_t::wrap_x264_encoder_t(
   encoder_settings_t const& encoder_settings,
   x264_proto::session_params_t const& session_params)
 : logging_context_(logging_context)
-, handle_(create_x264_handle(logging_context_, encoder_settings, session_params))
+, param_(logging_context, encoder_settings, session_params)
+, handle_(param_.create_x264_handle())
 {
 }
 
@@ -801,16 +796,6 @@ int wrap_x264_encoder_t::flush(x264_output_t& output) const
 {
   return x264_encoder_encode(handle_.get(),
     &output.nals_, &output.n_nals_, nullptr, &output.pic_);
-}
-
-x264_handle_t
-wrap_x264_encoder_t::create_x264_handle(
-  cuti::logging_context_t const& logging_context,
-  encoder_settings_t const& encoder_settings,
-  x264_proto::session_params_t const& session_params)
-{
-  wrap_x264_param_t param(logging_context, encoder_settings, session_params);
-  return param.create_x264_handle();
 }
 
 } // anonymous namespace
@@ -930,8 +915,18 @@ struct encoding_session_t::impl_t
     }
     else if(num_bytes == 0)
     {
+      if(auto msg = logging_context_.message_at(cuti::loglevel_t::info))
+      {
+        *msg << "encoding_session[" << this << "]: no sample available yet";
+      }
+
       // No sample has been produced yet.
       return std::nullopt;
+    }
+
+    if(auto msg = logging_context_.message_at(cuti::loglevel_t::info))
+    {
+      *msg << "encoding_session[" << this << "]: returning sample";
     }
 
     return generate_sample(num_bytes, output);
@@ -941,17 +936,22 @@ struct encoding_session_t::impl_t
   {
     flush_called_ = true;
 
-    if(auto msg = logging_context_.message_at(cuti::loglevel_t::info))
-    {
-      *msg << "encoding_session[" << this << "]: flushing sample";
-    }
-
     int delayed_frames = encoder_.delayed_frames();
     assert(delayed_frames >= 0);
     if(delayed_frames == 0)
     {
+      if(auto msg = logging_context_.message_at(cuti::loglevel_t::info))
+      {
+        *msg << "encoding_session[" << this << "]: no more samples";
+      }
+
       // End of samples.
       return std::nullopt;
+    }
+
+    if(auto msg = logging_context_.message_at(cuti::loglevel_t::info))
+    {
+      *msg << "encoding_session[" << this << "]: flushing sample";
     }
 
     x264_output_t output;
