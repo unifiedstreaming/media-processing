@@ -824,8 +824,9 @@ struct encoding_session_t::impl_t
          x264_proto::session_params_t const& session_params)
   : logging_context_(logging_context)
   , encoder_(logging_context_, encoder_settings, session_params)
-  , flush_called_(false)
+  , frame_count_(0)
   , sample_count_(0)
+  , flush_called_(false)
   {
     if(auto msg = logging_context_.message_at(cuti::loglevel_t::info))
     {
@@ -911,8 +912,9 @@ struct encoding_session_t::impl_t
 
     if(auto msg = logging_context_.message_at(cuti::loglevel_t::info))
     {
-      *msg << "encoding_session[" << this << "]: encoding frame";
+      *msg << "encoding_session[" << this << "]: encoding frame " << frame_count_;
     }
+    ++frame_count_;
 
     x264_output_t output;
     input_picture_t pic_in(logging_context_, frame);
@@ -1049,8 +1051,9 @@ private :
 private :
   cuti::logging_context_t const& logging_context_;
   wrap_x264_encoder_t encoder_;
-  bool flush_called_;
+  uint64_t frame_count_;
   uint64_t sample_count_;
+  bool flush_called_;
 };
 
 encoding_session_t::encoding_session_t(
