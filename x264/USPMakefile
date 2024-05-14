@@ -42,6 +42,8 @@ ifneq ($(build-x264),)
       $(if $(filter debug,$(variant)),,-g) -pthread \
     ) \
     $(sanitizer-flags) \
+    $(call REM, turn off stack protector, otherwise we run into a bug with gcc's handling of alignment: https://bugs.launchpad.net/ubuntu/+source/gcc-13/+bug/2023424) \
+    $(if $(strip $(sanitizer-flags)),-fno-stack-protector) \
   )
 
   configure-options := \
