@@ -29,9 +29,9 @@ project
   <library>$(lib-dir)/jamfiles/cuti//cuti
 ;
 
-# unit-test encoding_session_test
-# : encoding_session_test.cpp
-# ;
+unit-test encoding_session_test
+: encoding_session_test.cpp
+;
 
 unit-test service_test
 : service_test.cpp
