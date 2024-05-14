@@ -89,6 +89,16 @@ struct x264_output_t
   x264_output_t(x264_output_t const&) = delete;
   x264_output_t& operator=(x264_output_t const&) = delete;
 
+  int size() const
+  {
+    int result = 0;
+    for(int i = 0; i < n_nals_; ++i)
+    {
+      result += nals_[i].i_payload;
+    }
+    return result;
+  }
+
   x264_nal_t* nals_;
   int n_nals_;
   x264_picture_t pic_;
@@ -983,20 +993,23 @@ private :
   }
 
   x264_proto::sample_t generate_sample(
-    int frame_size, x264_output_t const& output)
+    int size, x264_output_t const& output)
   {
     assert(output.nals_ != nullptr);
-    assert(output.n_nals_ == 1);
-    assert(output.nals_[0].i_payload == frame_size);
+    assert(output.n_nals_ > 0);
+    assert(output.size() == size);
 
     if(auto msg = logging_context_.message_at(cuti::loglevel_t::debug))
     {
       *msg << "sample[" << sample_count_ << "]"
         << " dts=" << output.pic_.i_dts
         << " pts=" << output.pic_.i_pts
-        << " size=" << frame_size
-        << " pic type=" << x264_type_to_string(output.pic_.i_type)
-        << " nal type=" << output.nals_[0].i_type;
+        << " size=" << size
+        << " pic type=" << x264_type_to_string(output.pic_.i_type);
+      for(int i = 0; i < output.n_nals_; ++i)
+      {
+        *msg << " nal[" << i << "] type=" << output.nals_[i].i_type;
+      }
     }
     ++sample_count_;
 
@@ -1024,9 +1037,11 @@ private :
         << x264_type_to_string(output.pic_.i_type);
       builder.explode();
     }
+    // x264_encoder_encode's documentation says: the payloads of all output NALs
+    // are guaranteed to be sequential in memory.
     sample.data_.insert(sample.data_.end(),
       output.nals_[0].p_payload,
-      output.nals_[0].p_payload + output.nals_[0].i_payload);
+      output.nals_[0].p_payload + size);
 
     return sample;
   }
