@@ -19,6 +19,7 @@
 
 #include "streambuf_backend.hpp"
 #include "format.hpp"
+#include "membuf.hpp"
 
 #include <ostream>
 
@@ -41,12 +42,17 @@ void streambuf_backend_t::report(loglevel_t level,
     return;
   }
 
-  auto now = cuti_clock_t::now();
+  membuf_t membuf;
 
-  format_time_point(*sb_, now);
-  sb_->sputc(' ');
-  format_loglevel(*sb_, level);
-  sb_->sputc(' ');
+  auto now = cuti_clock_t::now();
+  format_time_point(membuf, now);
+
+  membuf.sputc(' ');
+  format_loglevel(membuf, level);
+
+  membuf.sputc(' ');
+  sb_->sputn(membuf.begin(), membuf.end() - membuf.begin());
+
   sb_->sputn(begin_msg, end_msg - begin_msg);
   sb_->sputc('\n');
 
