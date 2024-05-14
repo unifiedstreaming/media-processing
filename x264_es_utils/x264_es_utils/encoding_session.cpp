@@ -938,7 +938,7 @@ struct encoding_session_t::impl_t
 
     if(auto msg = logging_context_.message_at(cuti::loglevel_t::info))
     {
-      *msg << "encoding_session[" << this << "]: returning sample";
+      *msg << "encoding_session[" << this << "]: returning sample " << sample_count_;
     }
 
     return generate_sample(num_bytes, output);
@@ -963,7 +963,7 @@ struct encoding_session_t::impl_t
 
     if(auto msg = logging_context_.message_at(cuti::loglevel_t::info))
     {
-      *msg << "encoding_session[" << this << "]: flushing sample";
+      *msg << "encoding_session[" << this << "]: flushing sample " << sample_count_;
     }
 
     x264_output_t output;
