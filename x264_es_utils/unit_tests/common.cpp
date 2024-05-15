@@ -21,7 +21,6 @@
 
 #undef NDEBUG
 #include <cassert>
-#include <cmath>
 
 x264_proto::session_params_t make_test_session_params(
   uint32_t timescale, uint32_t bitrate,
@@ -109,10 +108,11 @@ using rgb_t = std::tuple<uint8_t, uint8_t, uint8_t>;
 constexpr yuv_t rgb2yuv_bt601(rgb_t rgb)
 {
   auto const& [r, g, b] = rgb;
+  auto round = [](double d) { return static_cast<uint8_t>(d + 0.5); };
   return {
-    std::round( 0.257 * r + 0.504 * g + 0.098 * b + 16 ),
-    std::round(-0.148 * r - 0.291 * g + 0.439 * b + 128),
-    std::round( 0.439 * r - 0.368 * g - 0.071 * b + 128)
+    round( 0.257 * r + 0.504 * g + 0.098 * b + 16 ),
+    round(-0.148 * r - 0.291 * g + 0.439 * b + 128),
+    round( 0.439 * r - 0.368 * g - 0.071 * b + 128)
   };
 }
 
