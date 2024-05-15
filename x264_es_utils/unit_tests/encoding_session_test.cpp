@@ -28,6 +28,8 @@
 
 #include <x264_proto/client.hpp>
 
+#include "fnv1a32_hash.hpp"
+
 #include <csignal>
 #include <exception>
 #include <iostream>
@@ -141,6 +143,21 @@ void run_session(cuti::logging_context_t const& context)
     context, encoder_settings, session_params);
 
   auto sample_headers = session.sample_headers();
+  if(auto msg = context.message_at(cuti::loglevel_t::warning))
+  {
+    auto hash =
+      fnv1a32::hash(sample_headers.sps_.data(), sample_headers.sps_.size());
+    *msg << __func__ << ": sps size=" << sample_headers.sps_.size() <<
+      " hash=0x" << std::hex << hash;
+  }
+  if(auto msg = context.message_at(cuti::loglevel_t::warning))
+  {
+    auto hash =
+      fnv1a32::hash(sample_headers.pps_.data(), sample_headers.pps_.size());
+    *msg << __func__ << ": pps size=" << sample_headers.pps_.size() <<
+      " hash=0x" << std::hex << hash;
+  }
+
   std::vector<x264_proto::sample_t> samples;
 
   for(auto& frame : frames)
@@ -155,8 +172,20 @@ void run_session(cuti::logging_context_t const& context)
   {
     samples.push_back(std::move(*opt_sample));
   }
-    
+
   assert(samples.size() == count);
+
+  unsigned idx = 0;
+  for(auto const& sample : samples)
+  {
+    if(auto msg = context.message_at(cuti::loglevel_t::warning))
+    {
+      auto hash = fnv1a32::hash(sample.data_.data(), sample.data_.size());
+      *msg << __func__ << ": sample[" << idx << "] size=" <<
+        sample.data_.size() << " hash=" << std::hex << hash;
+    }
+    idx++;
+  }
 }
 
 void test_session_in_main_thread(cuti::logging_context_t const& context)
@@ -172,7 +201,7 @@ void test_session_in_main_thread(cuti::logging_context_t const& context)
   {
     *msg << __func__ << ": done";
   }
-}  
+}
 
 void test_session_in_separate_thread(cuti::logging_context_t const& context)
 {
@@ -189,12 +218,12 @@ void test_session_in_separate_thread(cuti::logging_context_t const& context)
   {
     *msg << __func__ << ": done";
   }
-}  
+}
 
 struct options_t
 {
   static cuti::loglevel_t constexpr default_loglevel =
-    cuti::loglevel_t::error;
+    cuti::loglevel_t::warning;
 
   options_t()
   : loglevel_(default_loglevel)
