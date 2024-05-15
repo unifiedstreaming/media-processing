@@ -51,11 +51,10 @@ void streambuf_backend_t::report(loglevel_t level,
   format_loglevel(membuf, level);
 
   membuf.sputc(' ');
+  membuf.sputn(begin_msg, end_msg - begin_msg);
+  membuf.sputc('\n');
+
   sb_->sputn(membuf.begin(), membuf.end() - membuf.begin());
-
-  sb_->sputn(begin_msg, end_msg - begin_msg);
-  sb_->sputc('\n');
-
   sb_->pubsync();
 }
 
