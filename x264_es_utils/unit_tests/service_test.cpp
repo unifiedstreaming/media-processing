@@ -219,6 +219,7 @@ void test_streaming_encode(cuti::logging_context_t const& context,
   bool sample_headers_received = false;
   auto sample_headers_consumer = [&](x264_proto::sample_headers_t headers)
   {
+    assert(!sample_headers_received);
     if(auto msg = context.message_at(cuti::loglevel_t::info))
     {
       *msg << "received sample headers";
@@ -229,6 +230,7 @@ void test_streaming_encode(cuti::logging_context_t const& context,
 
   auto samples_consumer = [&](std::optional<x264_proto::sample_t> opt_sample)
   {
+    assert(sample_headers_received);
     if(opt_sample != std::nullopt)
     {
       if(auto msg = context.message_at(cuti::loglevel_t::info))
@@ -280,7 +282,6 @@ void test_streaming_encode(cuti::logging_context_t const& context,
         
   client.encode_streaming(sample_headers_consumer, samples_consumer,
     session_params_producer, frames_producer);
-  assert(sample_headers_received);
   assert(samples.size() == count);
 
   if(auto msg = context.message_at(cuti::loglevel_t::info))
