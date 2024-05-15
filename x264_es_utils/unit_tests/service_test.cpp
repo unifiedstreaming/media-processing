@@ -33,6 +33,8 @@
 
 #include <x264_es_utils/service.hpp>
 
+#include "common.hpp"
+
 #include <csignal>
 #include <exception>
 #include <iostream>
@@ -42,87 +44,6 @@
 
 namespace // anonymous
 {
-
-x264_proto::session_params_t make_test_session_params(
-  uint32_t timescale, uint32_t bitrate,
-  uint32_t width, uint32_t height)
-{
-  x264_proto::session_params_t session_params;
-
-  session_params.timescale_ = timescale;
-  session_params.bitrate_ = bitrate;
-  session_params.width_ = width;
-  session_params.height_ = height;
-
-  return session_params;
-}
-
-constexpr uint8_t black_y = 0x10;
-constexpr uint8_t black_u = 0x80;
-constexpr uint8_t black_v = 0x80;
-
-std::vector<uint8_t> make_test_frame_data(
-  uint32_t width, uint32_t height,
-  uint8_t y, uint8_t u, uint8_t v)
-{
-  std::vector<uint8_t> data;
-
-  uint32_t size_y = width * height;
-  uint32_t size_uv = width * height / 2;
-
-  data.insert(data.end(), size_y, y);
-  if(u == v)
-  {
-    data.insert(data.end(), size_uv, u);
-  }
-  else
-  {
-    for(uint32_t i = 0; i < size_uv; i +=2)
-    {
-      data.insert(data.end(), u);
-      data.insert(data.end(), v);
-    }
-  }
-
-  return data;
-}
-
-x264_proto::frame_t make_test_frame(
-  uint32_t width, uint32_t height,
-  uint64_t pts, uint32_t timescale,
-  bool keyframe,
-  uint8_t y, uint8_t u, uint8_t v)
-{
-  x264_proto::frame_t frame;
-
-  frame.width_ = width;
-  frame.height_ = height;
-  frame.pts_ = pts;
-  frame.timescale_ = timescale;
-  frame.keyframe_ = keyframe;
-  frame.data_ = make_test_frame_data(width, height, y, u, v);
-
-  return frame;
-}
-
-std::vector<x264_proto::frame_t> make_test_frames(
-  size_t count, size_t gop_size,
-  uint32_t width, uint32_t height,
-  uint32_t timescale, uint32_t duration,
-  uint8_t y, uint8_t u, uint8_t v)
-{
-  std::vector<x264_proto::frame_t> frames;
-
-  uint64_t pts = 0;
-  for(size_t i = 0; i < count; ++i, pts += duration)
-  {
-    bool keyframe = i % gop_size == 0;
-    frames.push_back(
-      make_test_frame(width, height, pts, timescale, keyframe, y, u, v));
-  }
-
-  return frames;
-}
 
 void test_add(cuti::logging_context_t const& context,
               x264_proto::client_t& client)

@@ -31,10 +31,12 @@ project
 
 unit-test encoding_session_test
 : encoding_session_test.cpp
+  common.cpp
 ;
 
 unit-test service_test
 : service_test.cpp
+  common.cpp
 ;
 
 explicit uspb-all ;
