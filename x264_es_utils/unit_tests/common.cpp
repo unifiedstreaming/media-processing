@@ -21,6 +21,7 @@
 
 #undef NDEBUG
 #include <cassert>
+#include <cmath>
 
 x264_proto::session_params_t make_test_session_params(
   uint32_t timescale, uint32_t bitrate,
