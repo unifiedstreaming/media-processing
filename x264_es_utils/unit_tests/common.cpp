@@ -19,6 +19,9 @@
 
 #include "common.hpp"
 
+#undef NDEBUG
+#include <cassert>
+
 x264_proto::session_params_t make_test_session_params(
   uint32_t timescale, uint32_t bitrate,
   uint32_t width, uint32_t height)
@@ -89,6 +92,91 @@ std::vector<x264_proto::frame_t> make_test_frames(
   for(size_t i = 0; i < count; ++i, pts += duration)
   {
     bool keyframe = i % gop_size == 0;
+    frames.push_back(
+      make_test_frame(width, height, pts, timescale, keyframe, y, u, v));
+  }
+
+  return frames;
+}
+
+namespace // anonymous
+{
+
+using yuv_t = std::tuple<uint8_t, uint8_t, uint8_t>;
+using rgb_t = std::tuple<uint8_t, uint8_t, uint8_t>;
+
+constexpr yuv_t rgb2yuv_bt601(rgb_t rgb)
+{
+  auto const& [r, g, b] = rgb;
+  return {
+    std::round( 0.257 * r + 0.504 * g + 0.098 * b + 16 ),
+    std::round(-0.148 * r - 0.291 * g + 0.439 * b + 128),
+    std::round( 0.439 * r - 0.368 * g - 0.071 * b + 128)
+  };
+}
+
+static_assert(rgb2yuv_bt601({0x00, 0x00, 0x00}) == yuv_t{0x10, 0x80, 0x80});
+static_assert(rgb2yuv_bt601({0x80, 0x80, 0x80}) == yuv_t{0x7e, 0x80, 0x80});
+static_assert(rgb2yuv_bt601({0xff, 0xff, 0xff}) == yuv_t{0xeb, 0x80, 0x80});
+
+static_assert(rgb2yuv_bt601({0x80, 0x00, 0x00}) == yuv_t{0x31, 0x6d, 0xb8});
+static_assert(rgb2yuv_bt601({0x00, 0x80, 0x00}) == yuv_t{0x51, 0x5b, 0x51});
+static_assert(rgb2yuv_bt601({0x00, 0x00, 0x80}) == yuv_t{0x1d, 0xb8, 0x77});
+
+rgb_t hsv2rgb(double h, double s, double v)
+{
+  assert(h >= 0.0 && h <= 1.0);
+  assert(s >= 0.0 && s <= 1.0);
+  assert(v >= 0.0 && v <= 1.0);
+
+  double h6 = h * 6;
+  long i = static_cast<long>(h6);
+  double f = h6 - i;
+  double p = v * (1 - s);
+  double q = v * (1 - f * s);
+  double t = v * (1 - (1 - f) * s);
+
+  double r, g, b;
+  switch(i % 6)
+  {
+  case 0:  r = v; g = t; b = p; break;
+  case 1:  r = q; g = v; b = p; break;
+  case 2:  r = p; g = v; b = t; break;
+  case 3:  r = p; g = q; b = v; break;
+  case 4:  r = t; g = p; b = v; break;
+  default: r = v; g = p; b = q; break;
+  }
+
+  assert(r >= 0.0 && r <= 1.0);
+  assert(g >= 0.0 && g <= 1.0);
+  assert(b >= 0.0 && b <= 1.0);
+  return {r * 255, g * 255, b * 255};
+}
+
+yuv_t hsv2yuv(double h, double s, double v)
+{
+  return rgb2yuv_bt601(hsv2rgb(h, s, v));
+}
+
+} // anonymous
+
+std::vector<x264_proto::frame_t> make_test_rainbow_frames(
+  size_t count, size_t gop_size,
+  uint32_t width, uint32_t height,
+  uint32_t timescale, uint32_t duration)
+{
+  std::vector<x264_proto::frame_t> frames;
+
+  uint64_t pts = 0;
+  double hue = 0;
+  const double hue_inc = 1.0 / count;
+  const double sat = 1.0;
+  const double val = 1.0;
+
+  for(size_t i = 0; i < count; ++i, pts += duration, hue += hue_inc)
+  {
+    bool keyframe = i % gop_size == 0;
+    auto [y, u, v] = hsv2yuv(hue, sat, val);
     frames.push_back(
       make_test_frame(width, height, pts, timescale, keyframe, y, u, v));
   }

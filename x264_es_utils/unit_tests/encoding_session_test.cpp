@@ -32,6 +32,7 @@
 
 #include <csignal>
 #include <exception>
+#include <fstream>
 #include <iostream>
 
 #undef NDEBUG
@@ -39,6 +40,14 @@
 
 namespace // anonymous
 {
+
+#ifdef ENCODING_SESSION_TEST_WRITE_RESULT
+std::ostream& operator<<(std::ostream& os, std::vector<uint8_t> rhs)
+{
+  os.write(reinterpret_cast<char const*>(rhs.data()), rhs.size());
+  return os;
+}
+#endif
 
 void run_session(cuti::logging_context_t const& context)
 {
@@ -55,8 +64,13 @@ void run_session(cuti::logging_context_t const& context)
   constexpr size_t count = 42;
   constexpr size_t gop_size = 12;
   constexpr uint32_t duration = 25;
+#ifdef ENCODING_SESSION_TEST_USE_RAINBOW
+  auto frames = make_test_rainbow_frames(count, gop_size,
+    width, height, timescale, duration);
+#else
   auto frames = make_test_frames(count, gop_size,
     width, height, timescale, duration, black_y, black_u, black_v);
+#endif
 
   x264_es_utils::encoding_session_t session(
     context, encoder_settings, session_params);
@@ -105,6 +119,16 @@ void run_session(cuti::logging_context_t const& context)
     }
     idx++;
   }
+
+#ifdef ENCODING_SESSION_TEST_WRITE_RESULT
+  std::ofstream ofs("encoding_session_test.264", std::ios::binary);
+  ofs << sample_headers.sps_;
+  ofs << sample_headers.pps_;
+  for(auto const& sample : samples)
+  {
+    ofs << sample.data_;
+  }
+#endif
 }
 
 void test_session_in_main_thread(cuti::logging_context_t const& context)
