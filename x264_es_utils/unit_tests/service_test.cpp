@@ -80,7 +80,8 @@ void test_subtract(cuti::logging_context_t const& context,
 }
 
 void test_encode(cuti::logging_context_t const& context,
-                 x264_proto::client_t& client)
+                 x264_proto::client_t& client,
+                 std::size_t count)
 {
   if(auto msg = context.message_at(cuti::loglevel_t::info))
   {
@@ -97,7 +98,6 @@ void test_encode(cuti::logging_context_t const& context,
   auto session_params = make_test_session_params(
     timescale, bitrate, width, height);
 
-  constexpr size_t count = 42;
   constexpr size_t gop_size = 12;
   constexpr uint32_t duration = 25;
   auto frames = make_test_frames(count, gop_size,
@@ -114,7 +114,8 @@ void test_encode(cuti::logging_context_t const& context,
 }
 
 void test_streaming_encode(cuti::logging_context_t const& context,
-                           x264_proto::client_t& client)
+                           x264_proto::client_t& client,
+                           std::size_t count)
 {
   if(auto msg = context.message_at(cuti::loglevel_t::info))
   {
@@ -131,7 +132,6 @@ void test_streaming_encode(cuti::logging_context_t const& context,
   auto session_params = make_test_session_params(
     timescale, bitrate, width, height);
 
-  constexpr size_t count = 42;
   constexpr size_t gop_size = 12;
   constexpr uint32_t duration = 25;
   auto frames = make_test_frames(count, gop_size,
@@ -212,7 +212,8 @@ void test_streaming_encode(cuti::logging_context_t const& context,
 }
 
 void test_service(cuti::logging_context_t const& client_context,
-                  cuti::logging_context_t const& server_context)
+                  cuti::logging_context_t const& server_context,
+                  std::size_t frame_count)
 {
   if(auto msg = client_context.message_at(cuti::loglevel_t::info))
   {
@@ -239,8 +240,8 @@ void test_service(cuti::logging_context_t const& client_context,
 
     test_add(client_context, client);
     test_subtract(client_context, client);
-    test_encode(client_context, client);
-    test_streaming_encode(client_context, client);
+    test_encode(client_context, client, frame_count);
+    test_streaming_encode(client_context, client, frame_count);
   }
 
   if(auto msg = client_context.message_at(cuti::loglevel_t::info))
@@ -253,13 +254,16 @@ struct options_t
 {
   static cuti::loglevel_t constexpr default_loglevel =
     cuti::loglevel_t::error;
+  static std::size_t constexpr default_frame_count = 42;
 
   options_t()
   : enable_server_logging_(false)
+  , frame_count_(default_frame_count)
   , loglevel_(default_loglevel)
   { }
 
   cuti::flag_t enable_server_logging_;
+  std::size_t frame_count_;
   cuti::loglevel_t loglevel_;
 };
 
@@ -268,6 +272,8 @@ void print_usage(std::ostream& os, char const* argv0)
   os << "usage: " << argv0 << " [<option> ...]\n";
   os << "options are:\n";
   os << "  --enable-server-logging  enable server-side logging\n";
+  os << "  --frame-count <count>    set frame count " <<
+    "(default: " << options_t::default_frame_count << ")\n";
   os << "  --loglevel <level>       set loglevel " <<
     "(default: " << cuti::loglevel_string(options_t::default_loglevel) <<
     ")\n";
@@ -280,6 +286,8 @@ void read_options(options_t& options, cuti::option_walker_t& walker)
   {
     if(!walker.match(
          "--enable-server-logging", options.enable_server_logging_) &&
+       !walker.match(
+         "--frame-count", options.frame_count_) &&
        !walker.match(
          "--loglevel", options.loglevel_))
     {
@@ -309,7 +317,7 @@ int run_tests(int argc, char const* const* argv)
     options.enable_server_logging_ ? cerr_logger : null_logger,
     options.loglevel_);
 
-  test_service(client_context, server_context);
+  test_service(client_context, server_context, options.frame_count_);
 
   return 0;
 }
