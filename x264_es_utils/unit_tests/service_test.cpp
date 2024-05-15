@@ -124,6 +124,171 @@ std::vector<x264_proto::frame_t> make_test_frames(
   return frames;
 }
 
+void test_add(cuti::logging_context_t const& context,
+              x264_proto::client_t& client)
+{
+  if(auto msg = context.message_at(cuti::loglevel_t::info))
+  {
+    *msg << __func__ << ": starting";
+  }
+
+  int result = client.add(42, 4711);
+  assert(result == 4753);
+
+  if(auto msg = context.message_at(cuti::loglevel_t::info))
+  {
+    *msg << __func__ << ": done";
+  }
+}
+
+void test_subtract(cuti::logging_context_t const& context,
+                   x264_proto::client_t& client)
+{
+  if(auto msg = context.message_at(cuti::loglevel_t::info))
+  {
+    *msg << __func__ << ": starting";
+  }
+
+  int result = client.subtract(4753, 42);
+  assert(result == 4711);
+
+  if(auto msg = context.message_at(cuti::loglevel_t::info))
+  {
+    *msg << __func__ << ": done";
+  }
+}
+
+void test_encode(cuti::logging_context_t const& context,
+                 x264_proto::client_t& client)
+{
+  if(auto msg = context.message_at(cuti::loglevel_t::info))
+  {
+    *msg << __func__ << ": starting";
+  }
+
+  x264_proto::sample_headers_t sample_headers;
+  std::vector<x264_proto::sample_t> samples;
+
+  constexpr uint32_t timescale = 600;
+  constexpr uint32_t bitrate = 400000;
+  constexpr uint32_t width = 640;
+  constexpr uint32_t height = 480;
+  auto session_params = make_test_session_params(
+    timescale, bitrate, width, height);
+
+  constexpr size_t count = 42;
+  constexpr size_t gop_size = 12;
+  constexpr uint32_t duration = 25;
+  auto frames = make_test_frames(count, gop_size,
+    width, height, timescale, duration, black_y, black_u, black_v);
+
+  client.encode(sample_headers, samples,
+    std::move(session_params), std::move(frames));
+  assert(samples.size() == count);
+
+  if(auto msg = context.message_at(cuti::loglevel_t::info))
+  {
+    *msg << __func__ << ": done";
+  }
+}
+
+void test_streaming_encode(cuti::logging_context_t const& context,
+                           x264_proto::client_t& client)
+{
+  if(auto msg = context.message_at(cuti::loglevel_t::info))
+  {
+    *msg << __func__ << ": starting";
+  }
+
+  x264_proto::sample_headers_t sample_headers;
+  std::vector<x264_proto::sample_t> samples;
+
+  constexpr uint32_t timescale = 600;
+  constexpr uint32_t bitrate = 400000;
+  constexpr uint32_t width = 640;
+  constexpr uint32_t height = 480;
+  auto session_params = make_test_session_params(
+    timescale, bitrate, width, height);
+
+  constexpr size_t count = 42;
+  constexpr size_t gop_size = 12;
+  constexpr uint32_t duration = 25;
+  auto frames = make_test_frames(count, gop_size,
+    width, height, timescale, duration, black_y, black_u, black_v);
+  
+  bool sample_headers_received = false;
+  auto sample_headers_consumer = [&](x264_proto::sample_headers_t headers)
+  {
+    if(auto msg = context.message_at(cuti::loglevel_t::info))
+    {
+      *msg << "received sample headers";
+    }
+    sample_headers = std::move(headers);
+    sample_headers_received = true;
+  };
+
+  auto samples_consumer = [&](std::optional<x264_proto::sample_t> opt_sample)
+  {
+    if(opt_sample != std::nullopt)
+    {
+      if(auto msg = context.message_at(cuti::loglevel_t::info))
+      {
+        *msg << "received sample #" << samples.size();
+      }
+      samples.push_back(std::move(*opt_sample));
+    }
+    else
+    {
+      if(auto msg = context.message_at(cuti::loglevel_t::info))
+      {
+        *msg << samples.size() << " samples received";
+      }
+    }
+  };
+
+  auto session_params_producer = [&]
+  {
+    if(auto msg = context.message_at(cuti::loglevel_t::info))
+    {
+      *msg << "sending session params";
+    }
+    return std::move(session_params);
+  };
+
+  std::size_t frame_index = 0;
+  auto frames_producer = [&]
+  {
+    std::optional<x264_proto::frame_t> result = std::nullopt;
+    if(frame_index != frames.size())
+    {
+      if(auto msg = context.message_at(cuti::loglevel_t::info))
+      {
+        *msg << "sending frame #" << frame_index;
+      }
+      result = std::move(frames[frame_index]);
+      ++frame_index;
+    }
+    else
+    {
+      if(auto msg = context.message_at(cuti::loglevel_t::info))
+      {
+        *msg << frame_index << " frames sent";
+      }
+    }
+    return result;
+  };
+        
+  client.encode_streaming(sample_headers_consumer, samples_consumer,
+    session_params_producer, frames_producer);
+  assert(sample_headers_received);
+  assert(samples.size() == count);
+
+  if(auto msg = context.message_at(cuti::loglevel_t::info))
+  {
+    *msg << __func__ << ": done";
+  }
+}
+
 void test_service(cuti::logging_context_t const& client_context,
                   cuti::logging_context_t const& server_context)
 {
@@ -150,31 +315,10 @@ void test_service(cuti::logging_context_t const& client_context,
     assert(!endpoints.empty());
     x264_proto::client_t client(endpoints.front());
 
-    int result = client.add(42, 4711);
-    assert(result == 4753);
-
-    result = client.subtract(4753, 42);
-    assert(result == 4711);
-
-    x264_proto::sample_headers_t sample_headers;
-    std::vector<x264_proto::sample_t> samples;
-
-    constexpr uint32_t timescale = 600;
-    constexpr uint32_t bitrate = 400000;
-    constexpr uint32_t width = 640;
-    constexpr uint32_t height = 480;
-    auto session_params = make_test_session_params(
-      timescale, bitrate, width, height);
-
-    constexpr size_t count = 42;
-    constexpr size_t gop_size = 12;
-    constexpr uint32_t duration = 25;
-    auto frames = make_test_frames(count, gop_size,
-      width, height, timescale, duration, black_y, black_u, black_v);
-
-    client.encode(sample_headers, samples,
-      std::move(session_params), std::move(frames));
-    assert(samples.size() == count);
+    test_add(client_context, client);
+    test_subtract(client_context, client);
+    test_encode(client_context, client);
+    test_streaming_encode(client_context, client);
   }
 
   if(auto msg = client_context.message_at(cuti::loglevel_t::info))

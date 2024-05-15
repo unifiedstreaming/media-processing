@@ -28,6 +28,7 @@
 #include <cuti/endpoint.hpp>
 #include <cuti/rpc_client.hpp>
 
+#include <utility>
 #include <vector>
 
 namespace x264_proto
@@ -52,6 +53,34 @@ struct X264_PROTO_ABI client_t
               session_params_t session_params,
               frames_t frames);
 
+  template<typename SampleHeadersConsumer,
+           typename SamplesConsumer,
+           typename SessionParamsProducer,
+           typename FramesProducer>
+  void encode_streaming(SampleHeadersConsumer&& sample_headers_consumer,
+                        SamplesConsumer&& samples_consumer,
+                        SessionParamsProducer&& session_params_producer,
+                        FramesProducer&& frames_producer)
+  {
+    auto inputs = cuti::make_input_list<
+      sample_headers_t,
+      cuti::streaming_tag_t<sample_t>
+    >(
+      std::forward<SampleHeadersConsumer>(sample_headers_consumer),
+      std::forward<SamplesConsumer>(samples_consumer)
+    );
+
+    auto outputs = cuti::make_output_list<
+      session_params_t,
+      cuti::streaming_tag_t<frame_t>
+    >(
+      std::forward<SessionParamsProducer>(session_params_producer),
+      std::forward<FramesProducer>(frames_producer)
+    );
+
+    rpc_client_("encode", inputs, outputs);
+  }
+   
 private :
   cuti::rpc_client_t rpc_client_;
 };
