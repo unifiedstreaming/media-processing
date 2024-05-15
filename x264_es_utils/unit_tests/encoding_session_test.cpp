@@ -182,7 +182,7 @@ void run_session(cuti::logging_context_t const& context)
     {
       auto hash = fnv1a32::hash(sample.data_.data(), sample.data_.size());
       *msg << __func__ << ": sample[" << idx << "] size=" <<
-        sample.data_.size() << " hash=" << std::hex << hash;
+        sample.data_.size() << " hash=0x" << std::hex << hash;
     }
     idx++;
   }
