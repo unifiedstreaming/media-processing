@@ -136,14 +136,7 @@ private :
 
     if(output_state_ == output_done)
     {
-      if(ex_ != nullptr)
-      {
-        result_.fail(base_marker, std::move(ex_));
-      }
-      else
-      {
-        result_.submit(base_marker);
-      }
+      this->on_done(base_marker);
     }
   }
 
@@ -184,17 +177,41 @@ private :
 
     if(input_state_ == input_done)
     {
-      if(ex_ != nullptr)
-      {
-        result_.fail(base_marker, std::move(ex_));
-      }
-      else
-      {
-        result_.submit(base_marker);
-      }
+      this->on_done(base_marker);
     }
   }
 
+  void on_done(stack_marker_t& base_marker)
+  {
+    assert(input_state_ == input_done);
+    assert(output_state_ == output_done);
+
+    if(auto status = outbuf_.error_status())
+    {
+      // Low-level I/O error on outbuf_: report root cause
+      system_exception_builder_t builder;
+      builder <<
+        "output error on " << outbuf_ << ": " << error_status_t(status);
+      result_.fail(base_marker, builder.exception_object());
+    }
+    else if(auto status = inbuf_.error_status())
+    {
+      // Low-level I/O error on inbuf_: report root cause
+      system_exception_builder_t builder;
+      builder <<
+        "input error on " << inbuf_ << ": " << error_status_t(status);
+      result_.fail(base_marker, builder.exception_object());
+    }
+    else if(ex_ != nullptr)
+    {
+      result_.fail(base_marker, std::move(ex_));
+    }
+    else
+    {
+      result_.submit(base_marker);
+    }
+  }
+    
 private :
   result_t<void>& result_;
   bound_inbuf_t& inbuf_;

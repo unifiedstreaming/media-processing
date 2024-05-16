@@ -119,22 +119,6 @@ struct CUTI_ABI rpc_client_t
     }
     assert(scheduler_.wait() == nullptr);
 
-    if(auto status = bound_outbuf.error_status())
-    {
-      // Failed to write full request
-      system_exception_builder_t builder;
-      builder << "output error: " << error_status_t(status);
-      builder.explode();
-    }
-
-    if(auto status = bound_inbuf.error_status())
-    {
-      // Failed to read full reply
-      system_exception_builder_t builder;
-      builder << "input error: " << error_status_t(status);
-      builder.explode();
-    }
-
     // Throws on protocol (and remotely generated) errors
     result.value();
   }
