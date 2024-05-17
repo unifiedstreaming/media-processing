@@ -76,14 +76,14 @@ void run_session(cuti::logging_context_t const& context)
     context, encoder_settings, session_params);
 
   auto sample_headers = session.sample_headers();
-  if(auto msg = context.message_at(cuti::loglevel_t::warning))
+  if(auto msg = context.message_at(cuti::loglevel_t::debug))
   {
     auto hash =
       fnv1a32::hash(sample_headers.sps_.data(), sample_headers.sps_.size());
     *msg << __func__ << ": sps size=" << sample_headers.sps_.size() <<
       " hash=0x" << std::hex << hash;
   }
-  if(auto msg = context.message_at(cuti::loglevel_t::warning))
+  if(auto msg = context.message_at(cuti::loglevel_t::debug))
   {
     auto hash =
       fnv1a32::hash(sample_headers.pps_.data(), sample_headers.pps_.size());
@@ -111,7 +111,7 @@ void run_session(cuti::logging_context_t const& context)
   unsigned idx = 0;
   for(auto const& sample : samples)
   {
-    if(auto msg = context.message_at(cuti::loglevel_t::warning))
+    if(auto msg = context.message_at(cuti::loglevel_t::debug))
     {
       auto hash = fnv1a32::hash(sample.data_.data(), sample.data_.size());
       *msg << __func__ << ": sample[" << idx << "] size=" <<
@@ -166,7 +166,7 @@ void test_session_in_separate_thread(cuti::logging_context_t const& context)
 struct options_t
 {
   static cuti::loglevel_t constexpr default_loglevel =
-    cuti::loglevel_t::warning;
+    cuti::loglevel_t::error;
 
   options_t()
   : loglevel_(default_loglevel)
