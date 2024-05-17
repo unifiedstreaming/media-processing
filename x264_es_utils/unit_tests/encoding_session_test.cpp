@@ -55,19 +55,30 @@ void run_session(cuti::logging_context_t const& context)
   encoder_settings.deterministic_ = true;
 
   constexpr uint32_t timescale = 600;
+#if defined(ENCODING_SESSION_TEST_USE_FILE)
+  constexpr uint32_t bitrate = 800000;
+  constexpr uint32_t width = 1280; // resolution of tears_of_steel_720p video
+  constexpr uint32_t height = 534;
+#else
   constexpr uint32_t bitrate = 400000;
   constexpr uint32_t width = 640;
   constexpr uint32_t height = 480;
+#endif
   auto session_params = make_test_session_params(
     timescale, bitrate, width, height);
 
-  constexpr size_t count = 42;
   constexpr size_t gop_size = 12;
   constexpr uint32_t duration = 25;
-#ifdef ENCODING_SESSION_TEST_USE_RAINBOW
+#if defined(ENCODING_SESSION_TEST_USE_FILE)
+  auto frames = make_test_frames_from_file("encoding_session_test_input.nv12",
+    gop_size, width, height, timescale, duration);
+  auto count = frames.size();
+#elif defined(ENCODING_SESSION_TEST_USE_RAINBOW)
+  constexpr size_t count = 42;
   auto frames = make_test_rainbow_frames(count, gop_size,
     width, height, timescale, duration);
 #else
+  constexpr size_t count = 42;
   auto frames = make_test_frames(count, gop_size,
     width, height, timescale, duration, black_y, black_u, black_v);
 #endif
@@ -120,7 +131,7 @@ void run_session(cuti::logging_context_t const& context)
     idx++;
   }
 
-#ifdef ENCODING_SESSION_TEST_WRITE_RESULT
+#if defined(ENCODING_SESSION_TEST_WRITE_RESULT)
   std::ofstream ofs("encoding_session_test.264", std::ios::binary);
   ofs << sample_headers.sps_;
   ofs << sample_headers.pps_;

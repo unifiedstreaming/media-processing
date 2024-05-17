@@ -97,4 +97,9 @@ std::vector<x264_proto::frame_t> make_test_rainbow_frames(
   uint32_t width, uint32_t height,
   uint32_t timescale, uint32_t duration);
 
+std::vector<x264_proto::frame_t> make_test_frames_from_file(
+  std::string filename, size_t gop_size,
+  uint32_t width, uint32_t height,
+  uint32_t timescale, uint32_t duration);
+
 #endif //  X264_ES_UTILS_UNIT_TESTS_COMMON_HPP_

@@ -19,8 +19,11 @@
 
 #include "common.hpp"
 
+#include <cuti/system_error.hpp>
+
 #undef NDEBUG
 #include <cassert>
+#include <fstream>
 
 x264_proto::session_params_t make_test_session_params(
   uint32_t timescale, uint32_t bitrate,
@@ -42,8 +45,8 @@ std::vector<uint8_t> make_test_frame_data(
 {
   std::vector<uint8_t> data;
 
-  uint32_t size_y = width * height;
-  uint32_t size_uv = width * height / 2;
+  uint32_t const size_y = width * height;
+  uint32_t const size_uv = width * height / 2;
 
   data.insert(data.end(), size_y, y);
   if(u == v)
@@ -66,7 +69,7 @@ x264_proto::frame_t make_test_frame(
   uint32_t width, uint32_t height,
   uint64_t pts, uint32_t timescale,
   bool keyframe,
-  uint8_t y, uint8_t u, uint8_t v)
+  std::vector<uint8_t>&& data)
 {
   x264_proto::frame_t frame;
 
@@ -75,9 +78,19 @@ x264_proto::frame_t make_test_frame(
   frame.pts_ = pts;
   frame.timescale_ = timescale;
   frame.keyframe_ = keyframe;
-  frame.data_ = make_test_frame_data(width, height, y, u, v);
+  frame.data_ = std::move(data);
 
   return frame;
+}
+
+x264_proto::frame_t make_test_frame(
+  uint32_t width, uint32_t height,
+  uint64_t pts, uint32_t timescale,
+  bool keyframe,
+  uint8_t y, uint8_t u, uint8_t v)
+{
+  return make_test_frame(width, height, pts, timescale, keyframe,
+    make_test_frame_data(width, height, y, u, v));
 }
 
 std::vector<x264_proto::frame_t> make_test_frames(
@@ -180,6 +193,53 @@ std::vector<x264_proto::frame_t> make_test_rainbow_frames(
     auto [y, u, v] = hsv2yuv(hue, sat, val);
     frames.push_back(
       make_test_frame(width, height, pts, timescale, keyframe, y, u, v));
+  }
+
+  return frames;
+}
+
+std::vector<x264_proto::frame_t> make_test_frames_from_file(
+  std::string filename, size_t gop_size,
+  uint32_t width, uint32_t height,
+  uint32_t timescale, uint32_t duration)
+{
+  std::ifstream ifs(filename, std::ios::binary);
+  if(ifs.fail())
+  {
+    cuti::system_exception_builder_t builder;
+    builder << "cannot open file " << filename;
+    builder.explode();
+  }
+
+  std::vector<x264_proto::frame_t> frames;
+  uint32_t const frame_size = width * height * 3 / 2;
+
+  uint64_t pts = 0;
+  for(size_t i = 0; ; ++i, pts += duration)
+  {
+    bool keyframe = i % gop_size == 0;
+    std::vector<uint8_t> data(frame_size);
+    ifs.read(reinterpret_cast<char*>(data.data()), frame_size);
+    if(ifs.bad())
+    {
+      cuti::system_exception_builder_t builder;
+      builder << "cannot read file " << filename;
+      builder.explode();
+    }
+    auto count = ifs.gcount();
+    if(count == 0)
+    {
+      break;
+    }
+    else if(count != frame_size)
+    {
+      cuti::system_exception_builder_t builder;
+      builder << "could only read " << count << " bytes from " << filename <<
+        ", expected to read " << frame_size;
+      builder.explode();
+    }
+    frames.push_back(make_test_frame(width, height, pts, timescale, keyframe,
+      std::move(data)));
   }
 
   return frames;
