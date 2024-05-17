@@ -39,7 +39,7 @@ lib x264_es_utils
   <include>..
 ;
 
-explicit usbp-all ;
+explicit uspb-all ;
 alias uspb-all : x264_es_utils ;
 
 explicit upsb-stage ;
