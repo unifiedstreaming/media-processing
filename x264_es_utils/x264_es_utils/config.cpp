@@ -33,7 +33,7 @@
 #include <cassert>
 #include <fstream>
 
-namespace // anuonymous
+namespace // anonymous
 {
 
 std::vector<cuti::endpoint_t>
