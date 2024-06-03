@@ -118,10 +118,14 @@ namespace // anonymous
 using yuv_t = std::tuple<uint8_t, uint8_t, uint8_t>;
 using rgb_t = std::tuple<uint8_t, uint8_t, uint8_t>;
 
+constexpr uint8_t round(double d)
+{
+  return static_cast<uint8_t>(d + 0.5);
+}
+
 constexpr yuv_t rgb2yuv_bt601(rgb_t rgb)
 {
   auto const& [r, g, b] = rgb;
-  auto round = [](double d) { return static_cast<uint8_t>(d + 0.5); };
   return {
     round( 0.257 * r + 0.504 * g + 0.098 * b + 16 ),
     round(-0.148 * r - 0.291 * g + 0.439 * b + 128),
@@ -164,7 +168,8 @@ rgb_t hsv2rgb(double h, double s, double v)
   assert(r >= 0.0 && r <= 1.0);
   assert(g >= 0.0 && g <= 1.0);
   assert(b >= 0.0 && b <= 1.0);
-  return {r * 255, g * 255, b * 255};
+
+  return {round(r * 255), round(g * 255), round(b * 255)};
 }
 
 yuv_t hsv2yuv(double h, double s, double v)
