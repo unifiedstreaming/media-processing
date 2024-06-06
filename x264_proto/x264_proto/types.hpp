@@ -77,18 +77,17 @@ struct X264_PROTO_ABI session_params_t
   uint16_t level_idc_;
 
   // VUI parameters
-  std::optional<bool> overscan_appropriate_flag_;
-  std::optional<uint16_t> video_format_;
-  std::optional<bool> video_full_range_flag_;
-  std::optional<uint16_t> colour_primaries_;
-  std::optional<uint16_t> transfer_characteristics_;
-  std::optional<uint16_t> matrix_coefficients_;
-  std::optional<uint32_t> chroma_sample_loc_type_top_field_;
-  std::optional<uint32_t> chroma_sample_loc_type_bottom_field_;
-
-  // Derived from VUI parameters
-  uint32_t framerate_num_;
-  uint32_t framerate_den_;
+  std::optional<bool> vui_overscan_appropriate_flag_;
+  std::optional<uint16_t> vui_video_format_;
+  std::optional<bool> vui_video_full_range_flag_;
+  std::optional<uint16_t> vui_colour_primaries_;
+  std::optional<uint16_t> vui_transfer_characteristics_;
+  std::optional<uint16_t> vui_matrix_coefficients_;
+  std::optional<uint32_t> vui_chroma_sample_loc_type_top_field_;
+  std::optional<uint32_t> vui_chroma_sample_loc_type_bottom_field_;
+  std::optional<uint32_t> vui_num_units_in_tick_;
+  std::optional<uint32_t> vui_time_scale_;
+  std::optional<bool> vui_fixed_frame_rate_flag_;
 
   bool operator==(session_params_t const& rhs) const;
 
@@ -185,8 +184,9 @@ struct X264_PROTO_ABI cuti::tuple_mapping_t<x264_proto::session_params_t>
     std::optional<uint16_t>,
     std::optional<uint32_t>,
     std::optional<uint32_t>,
-    uint32_t,
-    uint32_t>;
+    std::optional<uint32_t>,
+    std::optional<uint32_t>,
+    std::optional<bool>>;
 
   static tuple_t to_tuple(x264_proto::session_params_t value);
 

@@ -71,16 +71,17 @@ session_params_t::session_params_t()
 , format_(format_t::NV12)
 , profile_idc_(profile_t::BASELINE)
 , level_idc_(30)
-, overscan_appropriate_flag_(std::nullopt)
-, video_format_(std::nullopt)
-, video_full_range_flag_(std::nullopt)
-, colour_primaries_(std::nullopt)
-, transfer_characteristics_(std::nullopt)
-, matrix_coefficients_(std::nullopt)
-, chroma_sample_loc_type_top_field_(std::nullopt)
-, chroma_sample_loc_type_bottom_field_(std::nullopt)
-, framerate_num_(25)
-, framerate_den_(1)
+, vui_overscan_appropriate_flag_(std::nullopt)
+, vui_video_format_(std::nullopt)
+, vui_video_full_range_flag_(std::nullopt)
+, vui_colour_primaries_(std::nullopt)
+, vui_transfer_characteristics_(std::nullopt)
+, vui_matrix_coefficients_(std::nullopt)
+, vui_chroma_sample_loc_type_top_field_(std::nullopt)
+, vui_chroma_sample_loc_type_bottom_field_(std::nullopt)
+, vui_num_units_in_tick_(std::nullopt)
+, vui_time_scale_(std::nullopt)
+, vui_fixed_frame_rate_flag_(std::nullopt)
 {
 }
 
@@ -95,18 +96,19 @@ bool session_params_t::operator==(session_params_t const& rhs) const
     && format_ == rhs.format_
     && profile_idc_ == rhs.profile_idc_
     && level_idc_ == rhs.level_idc_
-    && overscan_appropriate_flag_ == rhs.overscan_appropriate_flag_
-    && video_format_ == rhs.video_format_
-    && video_full_range_flag_ == rhs.video_full_range_flag_
-    && colour_primaries_ == rhs.colour_primaries_
-    && transfer_characteristics_ == rhs.transfer_characteristics_
-    && matrix_coefficients_ == rhs.matrix_coefficients_
-    && chroma_sample_loc_type_top_field_ ==
-         rhs.chroma_sample_loc_type_top_field_
-    && chroma_sample_loc_type_bottom_field_ ==
-         rhs.chroma_sample_loc_type_bottom_field_
-    && framerate_num_ == rhs.framerate_num_
-    && framerate_den_ == rhs.framerate_den_;
+    && vui_overscan_appropriate_flag_ == rhs.vui_overscan_appropriate_flag_
+    && vui_video_format_ == rhs.vui_video_format_
+    && vui_video_full_range_flag_ == rhs.vui_video_full_range_flag_
+    && vui_colour_primaries_ == rhs.vui_colour_primaries_
+    && vui_transfer_characteristics_ == rhs.vui_transfer_characteristics_
+    && vui_matrix_coefficients_ == rhs.vui_matrix_coefficients_
+    && vui_chroma_sample_loc_type_top_field_ ==
+         rhs.vui_chroma_sample_loc_type_top_field_
+    && vui_chroma_sample_loc_type_bottom_field_ ==
+         rhs.vui_chroma_sample_loc_type_bottom_field_
+    && vui_num_units_in_tick_ == rhs.vui_num_units_in_tick_
+    && vui_time_scale_ == rhs.vui_time_scale_
+    && vui_fixed_frame_rate_flag_ == rhs.vui_fixed_frame_rate_flag_;
 }
 
 frame_t::frame_t()
@@ -226,16 +228,17 @@ cuti::tuple_mapping_t<x264_proto::session_params_t>::to_tuple(
    value.format_,
    value.profile_idc_,
    value.level_idc_,
-   value.overscan_appropriate_flag_,
-   value.video_format_,
-   value.video_full_range_flag_,
-   value.colour_primaries_,
-   value.transfer_characteristics_,
-   value.matrix_coefficients_,
-   value.chroma_sample_loc_type_top_field_,
-   value.chroma_sample_loc_type_bottom_field_,
-   value.framerate_num_,
-   value.framerate_den_);
+   value.vui_overscan_appropriate_flag_,
+   value.vui_video_format_,
+   value.vui_video_full_range_flag_,
+   value.vui_colour_primaries_,
+   value.vui_transfer_characteristics_,
+   value.vui_matrix_coefficients_,
+   value.vui_chroma_sample_loc_type_top_field_,
+   value.vui_chroma_sample_loc_type_bottom_field_,
+   value.vui_num_units_in_tick_,
+   value.vui_time_scale_,
+   value.vui_fixed_frame_rate_flag_);
 }
 
 x264_proto::session_params_t
@@ -251,16 +254,17 @@ cuti::tuple_mapping_t<x264_proto::session_params_t>::from_tuple(tuple_t tuple)
   value.format_ = std::get<6>(tuple);
   value.profile_idc_ = std::get<7>(tuple);
   value.level_idc_ = std::get<8>(tuple);
-  value.overscan_appropriate_flag_ = std::get<9>(tuple);
-  value.video_format_ = std::get<10>(tuple);
-  value.video_full_range_flag_ = std::get<11>(tuple);
-  value.colour_primaries_ = std::get<12>(tuple);
-  value.transfer_characteristics_ = std::get<13>(tuple);
-  value.matrix_coefficients_ = std::get<14>(tuple);
-  value.chroma_sample_loc_type_top_field_ = std::get<15>(tuple);
-  value.chroma_sample_loc_type_bottom_field_ = std::get<16>(tuple);
-  value.framerate_num_ = std::get<17>(tuple);
-  value.framerate_den_ = std::get<18>(tuple);
+  value.vui_overscan_appropriate_flag_ = std::get<9>(tuple);
+  value.vui_video_format_ = std::get<10>(tuple);
+  value.vui_video_full_range_flag_ = std::get<11>(tuple);
+  value.vui_colour_primaries_ = std::get<12>(tuple);
+  value.vui_transfer_characteristics_ = std::get<13>(tuple);
+  value.vui_matrix_coefficients_ = std::get<14>(tuple);
+  value.vui_chroma_sample_loc_type_top_field_ = std::get<15>(tuple);
+  value.vui_chroma_sample_loc_type_bottom_field_ = std::get<16>(tuple);
+  value.vui_num_units_in_tick_ = std::get<17>(tuple);
+  value.vui_time_scale_ = std::get<18>(tuple);
+  value.vui_fixed_frame_rate_flag_ = std::get<19>(tuple);
   return value;
 }
 

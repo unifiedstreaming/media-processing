@@ -309,44 +309,44 @@ wrap_x264_param_t::wrap_x264_param_t(
   param_.vui.i_sar_width = session_params.sar_width_;
   param_.vui.i_sar_height = session_params.sar_height_;
 
-  if(session_params.overscan_appropriate_flag_)
+  if(session_params.vui_overscan_appropriate_flag_)
   {
     // 0=undef, 1=no overscan, 2=overscan
-    param_.vui.i_overscan = *session_params.overscan_appropriate_flag_ ? 2 : 1;
+    param_.vui.i_overscan = *session_params.vui_overscan_appropriate_flag_ ? 2 : 1;
   }
-  if(session_params.video_format_)
+  if(session_params.vui_video_format_)
   {
-    param_.vui.i_vidformat = *session_params.video_format_;
+    param_.vui.i_vidformat = *session_params.vui_video_format_;
   }
-  if(session_params.video_full_range_flag_)
+  if(session_params.vui_video_full_range_flag_)
   {
     param_.vui.b_fullrange =
-      *session_params.video_full_range_flag_;
+      *session_params.vui_video_full_range_flag_;
   }
-  if(session_params.colour_primaries_)
+  if(session_params.vui_colour_primaries_)
   {
-    param_.vui.i_colorprim = *session_params.colour_primaries_;
+    param_.vui.i_colorprim = *session_params.vui_colour_primaries_;
   }
-  if(session_params.transfer_characteristics_)
+  if(session_params.vui_transfer_characteristics_)
   {
-    param_.vui.i_transfer = *session_params.transfer_characteristics_;
+    param_.vui.i_transfer = *session_params.vui_transfer_characteristics_;
   }
-  if(session_params.matrix_coefficients_)
+  if(session_params.vui_matrix_coefficients_)
   {
-    param_.vui.i_colmatrix = *session_params.matrix_coefficients_;
+    param_.vui.i_colmatrix = *session_params.vui_matrix_coefficients_;
   }
-  if(session_params.chroma_sample_loc_type_top_field_ !=
-    session_params.chroma_sample_loc_type_bottom_field_)
+  if(session_params.vui_chroma_sample_loc_type_top_field_ !=
+    session_params.vui_chroma_sample_loc_type_bottom_field_)
   {
     x264_exception_builder_t builder;
     builder << "libx264 does not support different chroma sample locations for "
       "top and bottom fields";
     builder.explode();
   }
-  else if(session_params.chroma_sample_loc_type_top_field_)
+  else if(session_params.vui_chroma_sample_loc_type_top_field_)
   {
     param_.vui.i_chroma_loc =
-      *session_params.chroma_sample_loc_type_top_field_;
+      *session_params.vui_chroma_sample_loc_type_top_field_;
   }
 
   // Bitstream parameters
@@ -367,33 +367,48 @@ wrap_x264_param_t::wrap_x264_param_t(
   // Muxing parameters
   param_.b_repeat_headers = 0;
   param_.b_annexb = 1;
-  param_.b_vfr_input = 1;
 
-  if(session_params.framerate_num_ == 0)
-  {
-    x264_exception_builder_t builder;
-    builder << "bad x264_proto::session_params.framerate_num_ value " <<
-      session_params.framerate_num_;
-    builder.explode();
-  }
-  param_.i_fps_num = session_params.framerate_num_;
-    
-  if(session_params.framerate_den_ == 0)
-  {
-    x264_exception_builder_t builder;
-    builder << "bad x264_proto::session_params.framerate_den_ value " <<
-      session_params.framerate_den_;
-    builder.explode();
-  }
-  param_.i_fps_den = session_params.framerate_den_;
-    
-  param_.i_timebase_num = 1;
-  param_.i_timebase_den = session_params.timescale_;
+  // Assume Variable Frame Rate (VFR) input, if the VUI timing_info_present_flag
+  // is not there are all, hence the fixed_frame_rate_flag is also not there.
+  // Otherwise, VFR is true when the fixed_frame_rate_flag is false.
+  param_.b_vfr_input =
+    session_params.vui_fixed_frame_rate_flag_.value_or(false) ? 0 : 1;
 
-  // Adjust keyint_{min,max} based on fps
-  param_.i_keyint_min =
-    session_params.framerate_num_ / session_params.framerate_den_;
-  param_.i_keyint_max = 10 * param_.i_keyint_min;
+  if(session_params.vui_num_units_in_tick_)
+  {
+    auto vui_num_units_in_tick = *session_params.vui_num_units_in_tick_;
+    if(vui_num_units_in_tick == 0)
+    {
+      x264_exception_builder_t builder;
+      builder << "bad x264_proto::session_params.num_units_in_tick value " <<
+        vui_num_units_in_tick;
+      builder.explode();
+    }
+
+    auto vui_time_scale = session_params.vui_time_scale_.value_or(0);
+    // NOTE: vui_time_scale MUST be even.
+    if(vui_time_scale == 0 || vui_time_scale % 2 != 0)
+    {
+      x264_exception_builder_t builder;
+      builder << "bad x264_proto::session_params.time_scale value " <<
+        vui_time_scale;
+      builder.explode();
+    }
+
+    param_.i_timebase_num = vui_num_units_in_tick;
+    param_.i_timebase_den = vui_time_scale / 2;
+    if(!param_.b_vfr_input)
+    {
+      // NOTE: x264's "fps" is reversed, similar to FFmpeg. That means: 25 fps
+      // is represented as 25/1, 29.97 fps is 30000/1001, etc.
+      param_.i_fps_num = param_.i_timebase_den;
+      param_.i_fps_den = param_.i_timebase_num;
+    }
+
+    // Adjust keyint_{min,max} based on fps
+    param_.i_keyint_min = param_.i_timebase_num / param_.i_timebase_den;
+    param_.i_keyint_max = 10 * param_.i_keyint_min;
+  }
 
   // Turn off automatic insertion of keyframes on scenecuts.
   param_.i_scenecut_threshold = 0;
