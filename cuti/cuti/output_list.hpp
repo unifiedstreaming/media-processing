@@ -70,15 +70,15 @@ struct output_impl_t : output_t<Value>
 
   Value get() override
   {
-    if constexpr(std::is_convertible_v<Source, Value>)
-    {
-      // assume a value was captured
-      return std::move(source_);
-    }
-    else
+    if constexpr(std::is_invocable_r_v<Value, Source>)
     {
       // assume a callable was captured
       return source_();
+    }
+    else
+    {
+      // assume a value was captured
+      return std::move(source_);
     }
   }
 
