@@ -25,6 +25,7 @@
 #include "streaming_tag.hpp"
 #include "type_list.hpp"
 
+#include <memory>
 #include <optional>
 #include <type_traits>
 #include <utility>
@@ -231,9 +232,11 @@ struct make_input_list_t
   template<typename... Sinks>
   auto operator()(Sinks&&... sinks) const
   {
-    return input_list_impl_t<type_list_t<Values...>,
-                             type_list_t<std::decay_t<Sinks>...>>(
-      std::forward<Sinks>(sinks)...);
+    using impl_t = input_list_impl_t<
+      type_list_t<Values...>,
+      type_list_t<std::decay_t<Sinks>...>
+    >;
+    return impl_t(std::forward<Sinks>(sinks)...);
   }
 };
     
@@ -244,6 +247,32 @@ struct make_input_list_t
  */
 template<typename... Values>
 auto constexpr make_input_list = make_input_list_t<Values...>();
+
+/*
+ * Helper functor template for building an abstract input list.
+ */
+template<typename... Values>
+struct make_input_list_ptr_t
+{
+  template<typename... Sinks>
+  std::unique_ptr<input_list_t<Values...>>
+  operator()(Sinks&&... sinks) const
+  {
+    using impl_t = input_list_impl_t<
+      type_list_t<Values...>,
+      type_list_t<std::decay_t<Sinks>...>
+    >;
+    return std::make_unique<impl_t>(std::forward<Sinks>(sinks)...);
+  }
+};
+    
+/*
+ * Function-like object for building an abstract input list.  It takes
+ * the value types as template arguments; the actual sink types are
+ * determined from the run-time arguments it is invoked with.
+ */
+template<typename... Values>
+auto constexpr make_input_list_ptr = make_input_list_ptr_t<Values...>();
 
 } // cuti
 

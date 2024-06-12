@@ -25,6 +25,7 @@
 #include "streaming_tag.hpp"
 #include "type_list.hpp"
 
+#include <memory>
 #include <optional>
 #include <type_traits>
 #include <utility>
@@ -211,9 +212,11 @@ struct make_output_list_t
   template<typename... Sources>
   auto operator()(Sources&&... sources) const
   {
-    return output_list_impl_t<type_list_t<Values...>,
-                              type_list_t<std::decay_t<Sources>...>>(
-      std::forward<Sources>(sources)...);
+    using impl_t = output_list_impl_t<
+      type_list_t<Values...>,
+      type_list_t<std::decay_t<Sources>...>
+    >;
+    return impl_t(std::forward<Sources>(sources)...);
   }
 };
     
@@ -224,6 +227,33 @@ struct make_output_list_t
  */
 template<typename... Values>
 auto constexpr make_output_list = make_output_list_t<Values...>();
+
+/*
+ * Helper functor template for building an abstract output list.
+ */
+template<typename... Values>
+struct make_output_list_ptr_t
+{
+  template<typename... Sources>
+  std::unique_ptr<output_list_t<Values...>>
+  operator()(Sources&&... sources) const
+  {
+    using impl_t = output_list_impl_t<
+      type_list_t<Values...>,
+      type_list_t<std::decay_t<Sources>...>
+    >;
+    return std::make_unique<impl_t>(std::forward<Sources>(sources)...);
+  }
+};
+    
+/*
+ * Function-like object for building an abstract output list.  It
+ * takes the value types as template arguments; the actual source
+ * types are determined from the run-time arguments it is invoked
+ * with.
+ */
+template<typename... Values>
+auto constexpr make_output_list_ptr = make_output_list_ptr_t<Values...>();
 
 } // cuti
 
