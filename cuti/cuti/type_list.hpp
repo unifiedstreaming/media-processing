@@ -27,6 +27,19 @@ template<typename... Types>
 struct type_list_t
 { };
 
+template<template<typename...> typename ClassTemplate, typename TypeList>
+struct bind_to_type_list_helper_t;
+
+template<template<typename...> typename ClassTemplate, typename... Args>
+struct bind_to_type_list_helper_t<ClassTemplate, type_list_t<Args...>>
+{
+  using type = ClassTemplate<Args...>;
+};
+
+template<template<typename...> typename ClassTemplate, typename TypeList>
+using bind_to_type_list_t =
+  typename bind_to_type_list_helper_t<ClassTemplate, TypeList>::type;
+
 } // cuti
 
 #endif
