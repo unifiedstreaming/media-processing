@@ -221,9 +221,27 @@ struct make_output_list_t
 };
     
 /*
+ * Specialization for building an output list from a type list.
+ */
+template<typename... Values>
+struct make_output_list_t<type_list_t<Values...>>
+{
+  template<typename... Sources>
+  auto operator()(Sources&&... sources) const
+  {
+    using impl_t = output_list_impl_t<
+      type_list_t<Values...>,
+      type_list_t<std::decay_t<Sources>...>
+    >;
+    return impl_t(std::forward<Sources>(sources)...);
+  }
+};
+    
+/*
  * Function-like object for building an output list.  It takes the
- * value types as template arguments; the actual source types are
- * determined from the run-time arguments it is invoked with.
+ * value types (or a type list) as template arguments; the actual
+ * source types are determined from the run-time arguments it is
+ * invoked with.
  */
 template<typename... Values>
 auto constexpr make_output_list = make_output_list_t<Values...>();
@@ -247,10 +265,28 @@ struct make_output_list_ptr_t
 };
     
 /*
+ * Specialization for building an abstract output list from a type list.
+ */
+template<typename... Values>
+struct make_output_list_ptr_t<type_list_t<Values...>>
+{
+  template<typename... Sources>
+  std::unique_ptr<output_list_t<Values...>>
+  operator()(Sources&&... sources) const
+  {
+    using impl_t = output_list_impl_t<
+      type_list_t<Values...>,
+      type_list_t<std::decay_t<Sources>...>
+    >;
+    return std::make_unique<impl_t>(std::forward<Sources>(sources)...);
+  }
+};
+    
+/*
  * Function-like object for building an abstract output list.  It
- * takes the value types as template arguments; the actual source
- * types are determined from the run-time arguments it is invoked
- * with.
+ * takes the value types (or a type list) as template arguments; the
+ * actual source types are determined from the run-time arguments it
+ * is invoked with.
  */
 template<typename... Values>
 auto constexpr make_output_list_ptr = make_output_list_ptr_t<Values...>();

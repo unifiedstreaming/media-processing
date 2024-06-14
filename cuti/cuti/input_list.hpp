@@ -241,9 +241,27 @@ struct make_input_list_t
 };
     
 /*
+ * Specialization for building an input list from a type list.
+ */
+template<typename... Values>
+struct make_input_list_t<type_list_t<Values...>>
+{
+  template<typename... Sinks>
+  auto operator()(Sinks&&... sinks) const
+  {
+    using impl_t = input_list_impl_t<
+      type_list_t<Values...>,
+      type_list_t<std::decay_t<Sinks>...>
+    >;
+    return impl_t(std::forward<Sinks>(sinks)...);
+  }
+};
+    
+/*
  * Function-like object for building an input list.  It takes the
- * value types as template arguments; the actual sink types are
- * determined from the run-time arguments it is invoked with.
+ * value types (or a type list) as template arguments; the actual sink
+ * types are determined from the run-time arguments it is invoked
+ * with.
  */
 template<typename... Values>
 auto constexpr make_input_list = make_input_list_t<Values...>();
@@ -267,9 +285,28 @@ struct make_input_list_ptr_t
 };
     
 /*
+ * Specialization for building an abstract input list from a type list.
+ */
+template<typename... Values>
+struct make_input_list_ptr_t<type_list_t<Values...>>
+{
+  template<typename... Sinks>
+  std::unique_ptr<input_list_t<Values...>>
+  operator()(Sinks&&... sinks) const
+  {
+    using impl_t = input_list_impl_t<
+      type_list_t<Values...>,
+      type_list_t<std::decay_t<Sinks>...>
+    >;
+    return std::make_unique<impl_t>(std::forward<Sinks>(sinks)...);
+  }
+};
+    
+/*
  * Function-like object for building an abstract input list.  It takes
- * the value types as template arguments; the actual sink types are
- * determined from the run-time arguments it is invoked with.
+ * the value types (or a type list) as template arguments; the actual
+ * sink types are determined from the run-time arguments it is invoked
+ * with.
  */
 template<typename... Values>
 auto constexpr make_input_list_ptr = make_input_list_ptr_t<Values...>();
