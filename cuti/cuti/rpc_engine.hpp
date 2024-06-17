@@ -36,11 +36,15 @@
 
 #include <cassert>
 #include <exception>
+#include <optional>
 #include <utility>
 
 namespace cuti
 {
 
+/*
+ * Client side state machine for a single remote procedure call.
+ */
 template<typename InputArgsList, typename OutputArgsList>
 struct rpc_engine_t;
 
@@ -51,19 +55,24 @@ struct rpc_engine_t<type_list_t<InputArgs...>,
   using result_value_t = void;
 
   rpc_engine_t(result_t<void>& result,
-               bound_inbuf_t& inbuf,
-               bound_outbuf_t& outbuf)
+               scheduler_t& scheduler,
+               nb_inbuf_t& nb_inbuf,
+               nb_outbuf_t& nb_outbuf,
+               throughput_settings_t settings = throughput_settings_t())
   : result_(result)
-  , inbuf_(inbuf)
-  , outbuf_(outbuf)
-  , reply_reader_(*this, &rpc_engine_t::on_reply_error, inbuf_)
-  , message_drainer_(*this, result_, inbuf_)
+  , bound_inbuf_(nb_inbuf, scheduler)
+  , bound_outbuf_(nb_outbuf, scheduler)
+  , reply_reader_(*this, &rpc_engine_t::on_reply_error, bound_inbuf_)
+  , message_drainer_(*this, result_, bound_inbuf_)
   , input_state_(input_not_started)
-  , request_writer_(*this, &rpc_engine_t::on_request_error, outbuf_)
-  , eom_writer_(*this, result_, outbuf_)
+  , request_writer_(*this, &rpc_engine_t::on_request_error, bound_outbuf_)
+  , eom_writer_(*this, result_, bound_outbuf_)
   , output_state_(output_not_started)
   , ex_(nullptr)
-  { }
+  {
+    bound_inbuf_.enable_throughput_checking(settings);
+    bound_outbuf_.enable_throughput_checking(settings);
+  }
 
   rpc_engine_t(rpc_engine_t const&) = delete;
   rpc_engine_t& operator=(rpc_engine_t const&) = delete;
@@ -119,7 +128,7 @@ private :
     if(output_state_ == output_not_started || output_state_ == writing_request)
     {
       // Skip or cancel request writing
-      outbuf_.cancel_when_writable();
+      bound_outbuf_.cancel_when_writable();
       output_state_ = writing_eom;
       eom_writer_.start(base_marker, &rpc_engine_t::on_eom_written);
     }
@@ -160,7 +169,7 @@ private :
     if(input_state_ == input_not_started || input_state_ == reading_reply)
     {
       // Skip or cancel reply reading
-      inbuf_.cancel_when_readable();
+      bound_inbuf_.cancel_when_readable();
       input_state_ = draining_message;
       message_drainer_.start(base_marker, &rpc_engine_t::on_message_drained);
     }
@@ -186,20 +195,20 @@ private :
     assert(input_state_ == input_done);
     assert(output_state_ == output_done);
 
-    if(auto status = outbuf_.error_status())
+    if(auto status = bound_outbuf_.error_status())
     {
-      // Low-level I/O error on outbuf_: report root cause
+      // Low-level I/O error on bound_outbuf_: report root cause
       system_exception_builder_t builder;
       builder <<
-        "output error on " << outbuf_ << ": " << error_status_t(status);
+        "output error on " << bound_outbuf_ << ": " << error_status_t(status);
       result_.fail(base_marker, builder.exception_object());
     }
-    else if(auto status = inbuf_.error_status())
+    else if(auto status = bound_inbuf_.error_status())
     {
-      // Low-level I/O error on inbuf_: report root cause
+      // Low-level I/O error on bound_inbuf_: report root cause
       system_exception_builder_t builder;
       builder <<
-        "input error on " << inbuf_ << ": " << error_status_t(status);
+        "input error on " << bound_inbuf_ << ": " << error_status_t(status);
       result_.fail(base_marker, builder.exception_object());
     }
     else if(ex_ != nullptr)
@@ -214,8 +223,8 @@ private :
     
 private :
   result_t<void>& result_;
-  bound_inbuf_t& inbuf_;
-  bound_outbuf_t& outbuf_;
+  bound_inbuf_t bound_inbuf_;
+  bound_outbuf_t bound_outbuf_;
 
   subroutine_t<rpc_engine_t, reply_reader_t<InputArgs...>,
     failure_mode_t::handle_in_parent> reply_reader_;

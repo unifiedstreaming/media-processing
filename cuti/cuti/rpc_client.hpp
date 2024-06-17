@@ -41,6 +41,7 @@
 
 #include <cassert>
 #include <cstddef>
+#include <optional>
 #include <ostream>
 #include <memory>
 #include <utility>
@@ -97,15 +98,10 @@ struct CUTI_ABI rpc_client_t
   {
     assert(method.is_valid());
 
-    bound_inbuf_t bound_inbuf(*inbuf_, scheduler_);
-    bound_inbuf.enable_throughput_checking(settings_);
-  
-    bound_outbuf_t bound_outbuf(*outbuf_, scheduler_);
-    bound_outbuf.enable_throughput_checking(settings_);
-  
     final_result_t<void> result;
+
     rpc_engine_t<type_list_t<InputArgs...>, type_list_t<OutputArgs...>>
-      rpc_engine(result, bound_inbuf, bound_outbuf);
+      rpc_engine(result, scheduler_, *inbuf_, *outbuf_, settings_);
 
     stack_marker_t base_marker;
 
@@ -131,7 +127,7 @@ struct CUTI_ABI rpc_client_t
 private :
   std::unique_ptr<nb_inbuf_t> inbuf_;
   std::unique_ptr<nb_outbuf_t> outbuf_;
-  throughput_settings_t const settings_;
+  throughput_settings_t settings_;
   default_scheduler_t scheduler_;
 };
 
