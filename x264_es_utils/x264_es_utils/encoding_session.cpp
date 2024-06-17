@@ -439,6 +439,7 @@ void wrap_x264_param_t::print(std::ostream& os) const
      << " i_width="                     << param_.i_width
      << " i_height="                    << param_.i_height
      << " i_csp="                       << param_.i_csp
+     << " i_bitdepth="                  << param_.i_bitdepth
      << " i_level_idc="                 << param_.i_level_idc
      << " i_frame_total="               << param_.i_frame_total
      << " i_nal_hrd="                   << param_.i_nal_hrd
@@ -463,6 +464,8 @@ void wrap_x264_param_t::print(std::ostream& os) const
      << " i_bframe_pyramid="            << param_.i_bframe_pyramid
      << " b_open_gop="                  << param_.b_open_gop
      << " b_bluray_compat="             << param_.b_bluray_compat
+     << " i_avcintra_class="            << param_.i_avcintra_class
+     << " i_avcintra_flavor="           << param_.i_avcintra_flavor
      << " b_deblocking_filter="         << param_.b_deblocking_filter
      << " i_deblocking_filter_alphac0=" << param_.i_deblocking_filter_alphac0
      << " i_deblocking_filter_beta="    << param_.i_deblocking_filter_beta
@@ -502,6 +505,8 @@ void wrap_x264_param_t::print(std::ostream& os) const
      << " analyse.f_psy_rd="            << param_.analyse.f_psy_rd
      << " analyse.f_psy_trellis="       << param_.analyse.f_psy_trellis
      << " analyse.b_psy="               << param_.analyse.b_psy
+     << " analyse.b_mb_info="           << param_.analyse.b_mb_info
+     << " analyse.b_mb_info_update="    << param_.analyse.b_mb_info_update
      << " analyse.i_luma_deadzone[0]="  << param_.analyse.i_luma_deadzone[0]
      << " analyse.i_luma_deadzone[1]="  << param_.analyse.i_luma_deadzone[1]
      << " analyse.b_psnr="              << param_.analyse.b_psnr
@@ -520,6 +525,7 @@ void wrap_x264_param_t::print(std::ostream& os) const
      << " rc.f_vbv_buffer_init="        << param_.rc.f_vbv_buffer_init
      << " rc.f_ip_factor="              << param_.rc.f_ip_factor
      << " rc.f_pb_factor="              << param_.rc.f_pb_factor
+     << " rc.b_filler="                 << param_.rc.b_filler
      << " rc.i_aq_mode="                << param_.rc.i_aq_mode
      << " rc.f_aq_strength="            << param_.rc.f_aq_strength
      << " rc.b_mb_tree="                << param_.rc.b_mb_tree
@@ -541,6 +547,7 @@ void wrap_x264_param_t::print(std::ostream& os) const
      << " crop_rect.i_right="           << param_.crop_rect.i_right
      << " crop_rect.i_bottom="          << param_.crop_rect.i_bottom
      << " i_frame_packing="             << param_.i_frame_packing
+     << " i_alternative_transfer="      << param_.i_alternative_transfer
      << " b_aud="                       << param_.b_aud
      << " b_repeat_headers="            << param_.b_repeat_headers
      << " b_annexb="                    << param_.b_annexb
@@ -554,13 +561,22 @@ void wrap_x264_param_t::print(std::ostream& os) const
      << " b_tff="                       << param_.b_tff
      << " b_pic_struct="                << param_.b_pic_struct
      << " b_fake_interlaced="           << param_.b_fake_interlaced
+     << " b_stitchable="                << param_.b_stitchable
+     << " b_opencl="                    << param_.b_opencl
+     << " i_opencl_device="             << param_.i_opencl_device
+     << " opencl_device_id="            << param_.opencl_device_id
+     << " psz_clbin_file="              << param_.psz_clbin_file
      << " i_slice_max_size="            << param_.i_slice_max_size
      << " i_slice_max_mbs="             << param_.i_slice_max_mbs
+     << " i_slice_min_mbs="             << param_.i_slice_min_mbs
      << " i_slice_count="               << param_.i_slice_count
+     << " i_slice_count_max="           << param_.i_slice_count_max
      << " param_free="
      << reinterpret_cast<void const *>(param_.param_free)
      << " nalu_process="
      << reinterpret_cast<void const *>(param_.nalu_process)
+     << " opaque="                      << param_.opaque
+     << reinterpret_cast<void const *>(param_.opaque)
      << '}'
      ;
 }
