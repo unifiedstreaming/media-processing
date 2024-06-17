@@ -413,6 +413,9 @@ wrap_x264_param_t::wrap_x264_param_t(
   // Turn off automatic insertion of keyframes on scenecuts.
   param_.i_scenecut_threshold = 0;
 
+  // Turn on constant PPS (do not "optimize headers based on video content").
+  param_.b_stitchable = 1;
+
   auto const* profile_name = x264_profile_name(session_params.profile_idc_);
   if(auto msg = logging_context_.message_at(cuti::loglevel_t::debug))
   {
