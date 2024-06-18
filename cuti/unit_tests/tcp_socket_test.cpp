@@ -28,10 +28,17 @@
 #undef NDEBUG
 #include <cassert>
 
-#ifdef __clang__
-// Clang needlessly complains about the two self-moves below, but these are
-// intended, so silence the warning.
+// Suppress complaints about the two self-moves below; these are intended
+#if defined(__clang__)
+
+#pragma clang diagnostic ignored "-Wpragmas"
 #pragma clang diagnostic ignored "-Wself-move"
+
+#elif defined(__GNUC__)
+
+#pragma GCC diagnostic ignored "-Wpragmas"
+#pragma GCC diagnostic ignored "-Wself-move"
+
 #endif
 
 namespace // anonymous
