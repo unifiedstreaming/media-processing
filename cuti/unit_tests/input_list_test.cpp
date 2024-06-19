@@ -113,7 +113,18 @@ void test_multiple_lambdas()
   assert(s == "Charlie");
 }
 
-void test_streaming_tag()
+void test_streaming_vector()
+{
+  std::vector<int> src_vector = {17, 42, 4711};
+  std::vector<int> dst_vector;
+
+  auto inputs = make_input_list<streaming_tag_t<int>>(dst_vector);
+  put_inputs(inputs, src_vector);
+
+  assert(dst_vector == src_vector);
+}
+  
+void test_streaming_lambda()
 {
   std::vector<int> src_vector = {17, 42, 4711};
   std::vector<int> dst_vector;
@@ -139,7 +150,6 @@ void test_streaming_tag()
   assert(at_end_stream);
 }
   
-
 void test_mixed()
 {
   bool b = false;
@@ -148,7 +158,8 @@ void test_mixed()
   int i = 42;
 
   std::vector<int> src_vector = {17, 42, 4711};
-  std::vector<int> dst_vector;
+  std::vector<int> dst_vector_1;
+  std::vector<int> dst_vector_2;
   bool at_end_stream = false;
 
   auto vlambda = [&](std::optional<int> opt_value)
@@ -156,7 +167,7 @@ void test_mixed()
     assert(!at_end_stream);
     if(opt_value)
     {
-      dst_vector.push_back(*opt_value);
+      dst_vector_2.push_back(*opt_value);
     }
     else
     {
@@ -167,13 +178,15 @@ void test_mixed()
   std::string s = "Buster";
   auto slambda = [&](std::string value) { s = std::move(value); };
 
-  auto inputs = make_input_list<bool, int, streaming_tag_t<int>, std::string>(
-      blambda, i, vlambda, slambda);
-  put_inputs(inputs, true, 4711, src_vector, "Charlie");
+  auto inputs = make_input_list<
+    bool, int, streaming_tag_t<int>, streaming_tag_t<int>, std::string>(
+      blambda, i, dst_vector_1, vlambda, slambda);
+  put_inputs(inputs, true, 4711, src_vector, src_vector, "Charlie");
 
   assert(b == true);
   assert(i == 4711);
-  assert(dst_vector == src_vector);
+  assert(dst_vector_1 == src_vector);
+  assert(dst_vector_2 == src_vector);
   assert(at_end_stream);
   assert(s == "Charlie");
 }
@@ -186,7 +199,8 @@ int main()
   test_multiple_values();
   test_single_lambda();
   test_multiple_lambdas();
-  test_streaming_tag();
+  test_streaming_vector();
+  test_streaming_lambda();
   test_mixed();
 
   return 0;

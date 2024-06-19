@@ -29,6 +29,7 @@
 #include <optional>
 #include <type_traits>
 #include <utility>
+#include <vector>
 
 namespace cuti
 {
@@ -89,6 +90,44 @@ private :
 
 /*
  * Template for implementing output_t<streaming_tag_t<Value>>.
+ *
+ * If the Source is a std::vector<Value>, we capture its value and
+ * produce its elements one at a time.
+ */
+template<typename Value>
+struct output_impl_t<streaming_tag_t<Value>, std::vector<Value>>
+: output_t<streaming_tag_t<Value>>
+{
+  template<typename SSource>
+  explicit output_impl_t(SSource&& source)
+  : source_(std::forward<SSource>(source))
+  , first_(source_.begin())
+  , last_(source_.end())
+  { }
+
+  std::optional<Value> get() override
+  {
+    std::optional<Value> result = std::nullopt;
+
+    auto pos = first_;
+    if(pos != last_)
+    {
+      ++first_;
+      result.emplace(std::move(*pos));
+    }
+
+    return result;
+  }
+
+private :
+  std::vector<Value> source_;
+  typename std::vector<Value>::iterator first_;
+  typename std::vector<Value>::iterator last_;
+};
+    
+/*
+ * Otherwise, we assume that we captured a callable and simply
+ * invoke it.
  */
 template<typename Value, typename Source>
 struct output_impl_t<streaming_tag_t<Value>, Source>

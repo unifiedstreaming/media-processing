@@ -102,7 +102,15 @@ void test_multiple_lambdas()
   check_outputs(outputs, true, 4711, "Charlie");
 }
 
-void test_streaming_tag()
+void test_streaming_vector()
+{
+  std::vector<int> const vect = {17, 42, 4711};
+
+  auto outputs = make_output_list<streaming_tag_t<int>>(vect);
+  check_outputs(outputs, vect);
+}
+
+void test_streaming_lambda()
 {
   std::vector<int> const vect = {17, 42, 4711};
   auto lambda = [ first = vect.begin(), last = vect.end() ] () mutable
@@ -129,9 +137,10 @@ void test_mixed()
   auto slambda = [&] { return std::move(s); };
 
   auto outputs =
-    make_output_list<bool, int, streaming_tag_t<int>, std::string>(
-      blambda, 42, vlambda, slambda);
-  check_outputs(outputs, true, 42, vect, "Charlie");
+    make_output_list<
+      bool, int, streaming_tag_t<int>, streaming_tag_t<int>, std::string>(
+      blambda, 42, vect, vlambda, slambda);
+  check_outputs(outputs, true, 42, vect, vect, "Charlie");
 }
   
 } // anonymous
@@ -142,7 +151,8 @@ int main()
   test_multiple_values();
   test_single_lambda();
   test_multiple_lambdas();
-  test_streaming_tag();
+  test_streaming_vector();
+  test_streaming_lambda();
   test_mixed();
 
   return 0;

@@ -29,6 +29,7 @@
 #include <optional>
 #include <type_traits>
 #include <utility>
+#include <vector>
 
 namespace cuti
 {
@@ -108,7 +109,33 @@ private :
 /*
  * Template for implementing input_t<streaming_tag_t<Value>>.
  *
- * Here, we always assume the sink is a callable taking an optional
+ * If the Sink is a std::vector<Value>, we take an lvalue reference to
+ * it, clear it, and append the values to consume.
+ */
+template<typename Value>
+struct input_impl_t<streaming_tag_t<Value>, std::vector<Value>>
+: input_t<streaming_tag_t<Value>>
+{
+  explicit input_impl_t(std::vector<Value>& sink)
+  : sink_(sink)
+  {
+    sink_.clear();
+  }
+
+  void put(std::optional<Value> value) override
+  {
+    if(value != std::nullopt)
+    {
+      sink_.push_back(std::move(*value));
+    }
+  }
+
+private :
+  std::vector<Value>& sink_;
+};
+  
+/*
+ * Otherwise, we assume the sink is a callable taking an optional
  * value and invoke it.
  */
 template<typename Value, typename Sink>
