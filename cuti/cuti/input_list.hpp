@@ -22,7 +22,7 @@
 
 #include "consumer.hpp"
 #include "linkage.h"
-#include "streaming_tag.hpp"
+#include "sequence.hpp"
 #include "type_list.hpp"
 
 #include <memory>
@@ -56,7 +56,7 @@ struct input_t
  * Interface type consuming a stream of inputs of type Value.
  */
 template<typename Value>
-struct input_t<streaming_tag_t<Value>> : consumer_t<Value>
+struct input_t<sequence_t<Value>> : consumer_t<Value>
 { };
 
 /*
@@ -107,14 +107,14 @@ private :
 };
 
 /*
- * Template for implementing input_t<streaming_tag_t<Value>>.
+ * Template for implementing input_t<sequence_t<Value>>.
  *
  * If the Sink is a std::vector<Value>, we take an lvalue reference to
  * it, clear it, and append the values to consume.
  */
 template<typename Value>
-struct input_impl_t<streaming_tag_t<Value>, std::vector<Value>>
-: input_t<streaming_tag_t<Value>>
+struct input_impl_t<sequence_t<Value>, std::vector<Value>>
+: input_t<sequence_t<Value>>
 {
   explicit input_impl_t(std::vector<Value>& sink)
   : sink_(sink)
@@ -139,8 +139,8 @@ private :
  * value and invoke it.
  */
 template<typename Value, typename Sink>
-struct input_impl_t<streaming_tag_t<Value>, Sink>
-: input_t<streaming_tag_t<Value>>
+struct input_impl_t<sequence_t<Value>, Sink>
+: input_t<sequence_t<Value>>
 {
   template<typename SSink>
   explicit input_impl_t(SSink&& sink)

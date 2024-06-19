@@ -487,7 +487,7 @@ void streaming_vector(logging_context_t const& context,
     }
   };
 
-  auto inputs = make_input_list<streaming_tag_t<int>>(input_handler);
+  auto inputs = make_input_list<sequence_t<int>>(input_handler);
 
   std::vector<int> src_vector;
   src_vector.reserve(5000);
@@ -502,7 +502,7 @@ void streaming_vector(logging_context_t const& context,
     return first != last ? std::make_optional(*first++) : std::nullopt;
   };
 
-  auto outputs = make_output_list<streaming_tag_t<int>>(output_handler);
+  auto outputs = make_output_list<sequence_t<int>>(output_handler);
 
   perform_rpc(context, inputs, inbuf, outputs, outbuf);
 
@@ -539,7 +539,7 @@ void streaming_output_error(logging_context_t const& context,
     }
   };
 
-  auto inputs = make_input_list<streaming_tag_t<int>>(input_handler);
+  auto inputs = make_input_list<sequence_t<int>>(input_handler);
 
   std::vector<int> src_vector;
   src_vector.reserve(5000);
@@ -558,7 +558,7 @@ void streaming_output_error(logging_context_t const& context,
     return first != last ? std::make_optional(*first++) : std::nullopt;
   };
 
-  auto outputs = make_output_list<streaming_tag_t<int>>(output_handler);
+  auto outputs = make_output_list<sequence_t<int>>(output_handler);
 
   bool caught = false;
   try
@@ -606,7 +606,7 @@ void streaming_input_error(logging_context_t const& context,
     }
   };
 
-  auto inputs = make_input_list<streaming_tag_t<int>>(input_handler);
+  auto inputs = make_input_list<sequence_t<int>>(input_handler);
 
   std::vector<int> src_vector;
   src_vector.reserve(5000);
@@ -621,7 +621,7 @@ void streaming_input_error(logging_context_t const& context,
     return first != last ? std::make_optional(*first++) : std::nullopt;
   };
 
-  auto outputs = make_output_list<streaming_tag_t<int>>(output_handler);
+  auto outputs = make_output_list<sequence_t<int>>(output_handler);
 
   bool caught = false;
   try
@@ -669,7 +669,7 @@ void double_streaming_error(logging_context_t const& context,
     }
   };
 
-  auto inputs = make_input_list<streaming_tag_t<int>>(input_handler);
+  auto inputs = make_input_list<sequence_t<int>>(input_handler);
 
   std::vector<int> src_vector;
   src_vector.reserve(5000);
@@ -688,7 +688,7 @@ void double_streaming_error(logging_context_t const& context,
     return first != last ? std::make_optional(*first++) : std::nullopt;
   };
 
-  auto outputs = make_output_list<streaming_tag_t<int>>(output_handler);
+  auto outputs = make_output_list<sequence_t<int>>(output_handler);
 
   bool caught = false;
   try

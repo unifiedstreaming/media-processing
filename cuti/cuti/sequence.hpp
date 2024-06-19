@@ -17,4 +17,19 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#include "streaming_tag.hpp"
+#ifndef CUTI_SEQUENCE_HPP_
+#define CUTI_SEQUENCE_HPP_
+
+namespace cuti
+{
+
+/*
+ * Tag type for incremental, per-element sequence transfer.
+ */
+template<typename T>
+struct sequence_t
+{ };
+
+} // cuti
+
+#endif

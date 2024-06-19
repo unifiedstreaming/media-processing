@@ -64,7 +64,7 @@ struct X264_PROTO_ABI client_t
   {
     auto inputs = cuti::make_input_list<
       sample_headers_t,
-      cuti::streaming_tag_t<sample_t>
+      cuti::sequence_t<sample_t>
     >(
       std::forward<SampleHeadersConsumer>(sample_headers_consumer),
       std::forward<SamplesConsumer>(samples_consumer)
@@ -72,7 +72,7 @@ struct X264_PROTO_ABI client_t
 
     auto outputs = cuti::make_output_list<
       session_params_t,
-      cuti::streaming_tag_t<frame_t>
+      cuti::sequence_t<frame_t>
     >(
       std::forward<SessionParamsProducer>(session_params_producer),
       std::forward<FramesProducer>(frames_producer)

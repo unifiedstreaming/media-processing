@@ -99,12 +99,12 @@ lib cuti
   select_selector.cpp
   selector.cpp
   selector_factory.cpp
+  sequence.cpp
   service.cpp
   signal_handler.cpp
   socket_nifty.cpp
   stack_marker.cpp
   streambuf_backend.cpp
-  streaming_tag.cpp
   subresult.cpp
   subroutine.cpp
   subtract_handler.cpp

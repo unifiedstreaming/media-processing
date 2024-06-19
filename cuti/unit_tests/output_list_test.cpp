@@ -39,7 +39,7 @@ void check_single_output(output_t<T>& output, Value const& value)
 }
 
 template<typename T, typename Values>
-void check_single_output(output_t<streaming_tag_t<T>>& output,
+void check_single_output(output_t<sequence_t<T>>& output,
                          Values const& values)
 {
   for(auto const& value : values)
@@ -106,7 +106,7 @@ void test_streaming_vector()
 {
   std::vector<int> const vect = {17, 42, 4711};
 
-  auto outputs = make_output_list<streaming_tag_t<int>>(vect);
+  auto outputs = make_output_list<sequence_t<int>>(vect);
   check_outputs(outputs, vect);
 }
 
@@ -118,7 +118,7 @@ void test_streaming_lambda()
     return first != last ? std::make_optional(*first++) : std::nullopt;
   };
 
-  auto outputs = make_output_list<streaming_tag_t<int>>(lambda);
+  auto outputs = make_output_list<sequence_t<int>>(lambda);
   check_outputs(outputs, vect);
 }
 
@@ -138,7 +138,7 @@ void test_mixed()
 
   auto outputs =
     make_output_list<
-      bool, int, streaming_tag_t<int>, streaming_tag_t<int>, std::string>(
+      bool, int, sequence_t<int>, sequence_t<int>, std::string>(
       blambda, 42, vect, vlambda, slambda);
   check_outputs(outputs, true, 42, vect, vect, "Charlie");
 }

@@ -364,10 +364,10 @@ void test_streaming_echo(logging_context_t const& context,
   }
 
   std::vector<std::string> reply;
-  auto input_args = make_input_list<streaming_tag_t<std::string>>(
+  auto input_args = make_input_list<sequence_t<std::string>>(
     string_sink_t(context, reply));
 
-  auto output_args = make_output_list<streaming_tag_t<std::string>>(
+  auto output_args = make_output_list<sequence_t<std::string>>(
     string_source_t(context));
 
   client("echo", input_args, output_args);
@@ -389,10 +389,10 @@ void test_streaming_censored_echo(logging_context_t const& context,
   }
 
   std::vector<std::string> reply;
-  auto input_args = make_input_list<streaming_tag_t<std::string>>(
+  auto input_args = make_input_list<sequence_t<std::string>>(
     string_sink_t(context, reply));
 
-  auto output_args = make_output_list<streaming_tag_t<std::string>>(
+  auto output_args = make_output_list<sequence_t<std::string>>(
     string_source_t(context));
 
   check_rpc_failure(context, client, "censored_echo", input_args, output_args);
@@ -412,10 +412,10 @@ void test_streaming_output_error(logging_context_t const& context,
   }
 
   std::vector<std::string> reply;
-  auto input_args = make_input_list<streaming_tag_t<std::string>>(
+  auto input_args = make_input_list<sequence_t<std::string>>(
     string_sink_t(context, reply));
 
-  auto output_args = make_output_list<streaming_tag_t<std::string>>(
+  auto output_args = make_output_list<sequence_t<std::string>>(
     string_source_t(context, n_echo_args / 2));
 
   check_rpc_failure(context, client, "echo", input_args, output_args);
@@ -435,10 +435,10 @@ void test_streaming_input_error(logging_context_t const& context,
   }
 
   std::vector<std::string> reply;
-  auto input_args = make_input_list<streaming_tag_t<std::string>>(
+  auto input_args = make_input_list<sequence_t<std::string>>(
     string_sink_t(context, reply, n_echo_args / 2));
 
-  auto output_args = make_output_list<streaming_tag_t<std::string>>(
+  auto output_args = make_output_list<sequence_t<std::string>>(
     string_source_t(context));
 
   check_rpc_failure(context, client, "echo", input_args, output_args);
@@ -458,10 +458,10 @@ void test_streaming_multiple_errors(logging_context_t const& context,
   }
 
   std::vector<std::string> reply;
-  auto input_args = make_input_list<streaming_tag_t<std::string>>(
+  auto input_args = make_input_list<sequence_t<std::string>>(
     string_sink_t(context, reply, n_echo_args / 4));
 
-  auto output_args = make_output_list<streaming_tag_t<std::string>>(
+  auto output_args = make_output_list<sequence_t<std::string>>(
     string_source_t(context, 3 * (n_echo_args / 4)));
 
   check_rpc_failure(context, client, "censored_echo", input_args, output_args);

@@ -22,7 +22,7 @@
 
 #include "linkage.h"
 #include "producer.hpp"
-#include "streaming_tag.hpp"
+#include "sequence.hpp"
 #include "type_list.hpp"
 
 #include <memory>
@@ -56,7 +56,7 @@ struct output_t
  * Interface type producing a stream of outputs of type Value.
  */
 template<typename Value>
-struct output_t<streaming_tag_t<Value>> : producer_t<Value>
+struct output_t<sequence_t<Value>> : producer_t<Value>
 { };
 
 /*
@@ -89,14 +89,14 @@ private :
 };
 
 /*
- * Template for implementing output_t<streaming_tag_t<Value>>.
+ * Template for implementing output_t<sequence_t<Value>>.
  *
  * If the Source is a std::vector<Value>, we capture its value and
  * produce its elements one at a time.
  */
 template<typename Value>
-struct output_impl_t<streaming_tag_t<Value>, std::vector<Value>>
-: output_t<streaming_tag_t<Value>>
+struct output_impl_t<sequence_t<Value>, std::vector<Value>>
+: output_t<sequence_t<Value>>
 {
   template<typename SSource>
   explicit output_impl_t(SSource&& source)
@@ -130,8 +130,8 @@ private :
  * invoke it.
  */
 template<typename Value, typename Source>
-struct output_impl_t<streaming_tag_t<Value>, Source>
-: output_t<streaming_tag_t<Value>>
+struct output_impl_t<sequence_t<Value>, Source>
+: output_t<sequence_t<Value>>
 {
   template<typename SSource>
   explicit output_impl_t(SSource&& source)

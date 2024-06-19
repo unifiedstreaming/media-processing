@@ -39,7 +39,7 @@ void put_single_input(input_t<T>& input, Value&& value)
 }
 
 template<typename T, typename Values>
-void put_single_input(input_t<streaming_tag_t<T>>& input, Values values)
+void put_single_input(input_t<sequence_t<T>>& input, Values values)
 {
   for(auto& value : values)
   {
@@ -118,7 +118,7 @@ void test_streaming_vector()
   std::vector<int> src_vector = {17, 42, 4711};
   std::vector<int> dst_vector;
 
-  auto inputs = make_input_list<streaming_tag_t<int>>(dst_vector);
+  auto inputs = make_input_list<sequence_t<int>>(dst_vector);
   put_inputs(inputs, src_vector);
 
   assert(dst_vector == src_vector);
@@ -143,7 +143,7 @@ void test_streaming_lambda()
     }
   };
 
-  auto inputs = make_input_list<streaming_tag_t<int>>(lambda);
+  auto inputs = make_input_list<sequence_t<int>>(lambda);
   put_inputs(inputs, src_vector);
 
   assert(dst_vector == src_vector);
@@ -179,7 +179,7 @@ void test_mixed()
   auto slambda = [&](std::string value) { s = std::move(value); };
 
   auto inputs = make_input_list<
-    bool, int, streaming_tag_t<int>, streaming_tag_t<int>, std::string>(
+    bool, int, sequence_t<int>, sequence_t<int>, std::string>(
       blambda, i, dst_vector_1, vlambda, slambda);
   put_inputs(inputs, true, 4711, src_vector, src_vector, "Charlie");
 

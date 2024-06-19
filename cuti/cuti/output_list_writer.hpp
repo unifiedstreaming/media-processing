@@ -25,7 +25,7 @@
 #include "linkage.h"
 #include "output_list.hpp"
 #include "result.hpp"
-#include "streaming_tag.hpp"
+#include "sequence.hpp"
 #include "subroutine.hpp"
 
 #include <cassert>
@@ -78,7 +78,7 @@ private :
 };
 
 template<typename Value>
-struct output_writer_t<streaming_tag_t<Value>>
+struct output_writer_t<sequence_t<Value>>
 {
   using result_value_t = void;
 
@@ -91,7 +91,7 @@ struct output_writer_t<streaming_tag_t<Value>>
   output_writer_t& operator=(output_writer_t const&) = delete;
   
   void start(stack_marker_t& base_marker,
-             output_t<streaming_tag_t<Value>>& value)
+             output_t<sequence_t<Value>>& value)
   {
     sequence_writer_.start(
       base_marker, &output_writer_t::on_sequence_written, value);

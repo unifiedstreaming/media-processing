@@ -25,8 +25,8 @@
 #include "input_list.hpp"
 #include "linkage.h"
 #include "result.hpp"
+#include "sequence.hpp"
 #include "stack_marker.hpp"
-#include "streaming_tag.hpp"
 #include "subroutine.hpp"
 
 #include <cassert>
@@ -83,7 +83,7 @@ private :
 };
 
 template<typename Value>
-struct input_reader_t<streaming_tag_t<Value>>
+struct input_reader_t<sequence_t<Value>>
 {
   using result_value_t = void;
 
@@ -93,7 +93,7 @@ struct input_reader_t<streaming_tag_t<Value>>
   { }
 
   void start(stack_marker_t& base_marker,
-             input_t<streaming_tag_t<Value>>& input)
+             input_t<sequence_t<Value>>& input)
   {
     sequence_reader_.start(
       base_marker, &input_reader_t::on_sequence_read, input);
