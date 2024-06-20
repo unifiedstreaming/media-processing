@@ -30,6 +30,7 @@
 
 #include <cassert>
 #include <exception>
+#include <memory>
 #include <utility>
 
 namespace cuti
@@ -42,20 +43,25 @@ struct reply_reader_t
 
   reply_reader_t(result_t<void>& result, bound_inbuf_t& buf)
   : result_(result)
-  , args_reader_(*this, result_, buf)
+  , inputs_reader_(*this, result_, buf)
   , eom_checker_(*this, result_, buf)
+  , inputs_(nullptr)
   { }
 
   reply_reader_t(reply_reader_t const&) = delete;
   reply_reader_t operator=(reply_reader_t const&) = delete;
 
-  void start(stack_marker_t& base_marker, input_list_t<Args...>& args)
+  void start(stack_marker_t& base_marker,
+             std::unique_ptr<input_list_t<Args...>> inputs)
   {
-    args_reader_.start(base_marker, &reply_reader_t::on_args_read, args);
+    assert(inputs != nullptr);
+    inputs_ = std::move(inputs);
+    inputs_reader_.start(
+      base_marker, &reply_reader_t::on_inputs_read, *inputs_);
   }
 
 private :
-  void on_args_read(stack_marker_t& base_marker)
+  void on_inputs_read(stack_marker_t& base_marker)
   {
     eom_checker_.start(base_marker, &reply_reader_t::on_eom_checked);
   }
@@ -67,8 +73,9 @@ private :
 
 private :
   result_t<void>& result_;
-  subroutine_t<reply_reader_t, input_list_reader_t<Args...>> args_reader_;
+  subroutine_t<reply_reader_t, input_list_reader_t<Args...>> inputs_reader_;
   subroutine_t<reply_reader_t, eom_checker_t> eom_checker_;
+  std::unique_ptr<input_list_t<Args...>> inputs_; 
 };
 
 } // cuti

@@ -36,6 +36,7 @@
 
 #include <cassert>
 #include <exception>
+#include <memory>
 #include <optional>
 #include <utility>
 
@@ -79,10 +80,12 @@ struct rpc_engine_t<type_list_t<InputArgs...>,
   
   void start(stack_marker_t& base_marker,
              identifier_t method,
-             input_list_t<InputArgs...>& reply_args,
-             output_list_t<OutputArgs...>& request_args)
+             std::unique_ptr<input_list_t<InputArgs...>> inputs,
+             std::unique_ptr<output_list_t<OutputArgs...>> outputs)
   {
     assert(method.is_valid());
+    assert(inputs != nullptr);
+    assert(outputs != nullptr);
 
     input_state_ = input_not_started;
     output_state_ = output_not_started;
@@ -93,7 +96,7 @@ struct rpc_engine_t<type_list_t<InputArgs...>,
     {
       input_state_ = reading_reply;
       reply_reader_.start(
-        base_marker, &rpc_engine_t::on_reply_read, reply_args);
+        base_marker, &rpc_engine_t::on_reply_read, std::move(inputs));
     }
 
     // ...but be careful here: input engine may have changed output state
@@ -103,7 +106,7 @@ struct rpc_engine_t<type_list_t<InputArgs...>,
       request_writer_.start(base_marker,
                             &rpc_engine_t::on_request_written,
                             std::move(method),
-                            request_args);
+                            std::move(outputs));
     }
   }
 

@@ -31,6 +31,7 @@
 
 #include <cassert>
 #include <exception>
+#include <memory>
 #include <utility>
 
 namespace cuti
@@ -44,8 +45,8 @@ struct request_writer_t
   request_writer_t(result_t<void>& result, bound_outbuf_t& buf)
   : result_(result)
   , method_writer_(*this, result_, buf)
-  , args_writer_(*this, result_, buf)
-  , args_()
+  , outputs_writer_(*this, result_, buf)
+  , outputs_(nullptr)
   { }
 
   request_writer_t(request_writer_t const&) = delete;
@@ -53,9 +54,10 @@ struct request_writer_t
   
   void start(stack_marker_t& base_marker,
              identifier_t method,
-             output_list_t<Args...>& args)
+             std::unique_ptr<output_list_t<Args...>> outputs)
   {
-    args_ = &args;
+    assert(outputs != nullptr);
+    outputs_ = std::move(outputs);
     method_writer_.start(
       base_marker, &request_writer_t::on_method_written, std::move(method));
   }
@@ -63,12 +65,12 @@ struct request_writer_t
 private :
   void on_method_written(stack_marker_t& base_marker)
   {
-    assert(args_ != nullptr);
-    args_writer_.start(
-      base_marker, &request_writer_t::on_args_written, *args_);
+    assert(outputs_ != nullptr);
+    outputs_writer_.start(
+      base_marker, &request_writer_t::on_outputs_written, *outputs_);
   }
 
-  void on_args_written(stack_marker_t& base_marker)
+  void on_outputs_written(stack_marker_t& base_marker)
   {
     result_.submit(base_marker);
   }
@@ -76,9 +78,9 @@ private :
 private :
   result_t<void>& result_;
   subroutine_t<request_writer_t, writer_t<identifier_t>> method_writer_;
-  subroutine_t<request_writer_t, output_list_writer_t<Args...>> args_writer_;
-
-  output_list_t<Args...>* args_;
+  subroutine_t<request_writer_t, output_list_writer_t<Args...>>
+    outputs_writer_;
+  std::unique_ptr<output_list_t<Args...>> outputs_;
 };
 
 } // cuti

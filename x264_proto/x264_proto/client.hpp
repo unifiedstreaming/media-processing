@@ -62,15 +62,14 @@ struct X264_PROTO_ABI client_t
                         SessionParamsProducer&& session_params_producer,
                         FramesProducer&& frames_producer)
   {
-    auto inputs = cuti::make_input_list<
-      sample_headers_t,
-      cuti::sequence_t<sample_t>
+    auto inputs = cuti::make_input_list_ptr<
+      sample_headers_t, cuti::sequence_t<sample_t>
     >(
       std::forward<SampleHeadersConsumer>(sample_headers_consumer),
       std::forward<SamplesConsumer>(samples_consumer)
     );
 
-    auto outputs = cuti::make_output_list<
+    auto outputs = cuti::make_output_list_ptr<
       session_params_t,
       cuti::sequence_t<frame_t>
     >(
@@ -78,7 +77,7 @@ struct X264_PROTO_ABI client_t
       std::forward<FramesProducer>(frames_producer)
     );
 
-    rpc_client_("encode", inputs, outputs);
+    rpc_client_("encode", std::move(inputs), std::move(outputs));
   }
    
 private :

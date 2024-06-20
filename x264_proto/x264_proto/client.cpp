@@ -32,9 +32,9 @@ int client_t::add(int arg1, int arg2)
 {
   int result;
 
-  auto inputs = cuti::make_input_list<int>(result);
-  auto outputs = cuti::make_output_list<int, int>(arg1, arg2);
-  rpc_client_("add", inputs, outputs);
+  auto inputs = cuti::make_input_list_ptr<int>(result);
+  auto outputs = cuti::make_output_list_ptr<int, int>(arg1, arg2);
+  rpc_client_("add", std::move(inputs), std::move(outputs));
 
   return result;
 }
@@ -43,9 +43,9 @@ int client_t::subtract(int arg1, int arg2)
 {
   int result;
 
-  auto inputs = cuti::make_input_list<int>(result);
-  auto outputs = cuti::make_output_list<int, int>(arg1, arg2);
-  rpc_client_("subtract", inputs, outputs);
+  auto inputs = cuti::make_input_list_ptr<int>(result);
+  auto outputs = cuti::make_output_list_ptr<int, int>(arg1, arg2);
+  rpc_client_("subtract", std::move(inputs), std::move(outputs));
 
   return result;
 }
@@ -55,11 +55,11 @@ void client_t::encode(sample_headers_t& sample_headers,
                       session_params_t session_params,
                       std::vector<frame_t> frames)
 {
-  auto inputs = cuti::make_input_list<sample_headers_t, samples_t>(
+  auto inputs = cuti::make_input_list_ptr<sample_headers_t, samples_t>(
     sample_headers, samples);
-  auto outputs = cuti::make_output_list<session_params_t, frames_t>(
+  auto outputs = cuti::make_output_list_ptr<session_params_t, frames_t>(
     std::move(session_params), std::move(frames));
-  rpc_client_("encode", inputs, outputs);
+  rpc_client_("encode", std::move(inputs), std::move(outputs));
 }
   
 } // x264_proto

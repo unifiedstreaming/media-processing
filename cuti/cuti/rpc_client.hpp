@@ -93,10 +93,12 @@ struct CUTI_ABI rpc_client_t
   
   template<typename... InputArgs, typename... OutputArgs>
   void operator()(identifier_t method,
-                  input_list_t<InputArgs...>& input_args,
-                  output_list_t<OutputArgs...>& output_args)
+                  std::unique_ptr<input_list_t<InputArgs...>> inputs,
+                  std::unique_ptr<output_list_t<OutputArgs...>> outputs)
   {
     assert(method.is_valid());
+    assert(inputs != nullptr);
+    assert(outputs != nullptr);
 
     final_result_t<void> result;
 
@@ -105,7 +107,8 @@ struct CUTI_ABI rpc_client_t
 
     stack_marker_t base_marker;
 
-    rpc_engine.start(base_marker, std::move(method), input_args, output_args);
+    rpc_engine.start(
+      base_marker, std::move(method), std::move(inputs), std::move(outputs));
 
     while(!result.available())
     {

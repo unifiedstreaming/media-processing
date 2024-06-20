@@ -39,6 +39,7 @@
 #include <iostream>
 #include <list>
 #include <thread>
+#include <utility>
 #include <vector>
 
 #undef NDEBUG
@@ -187,10 +188,10 @@ void echo_strings(rpc_client_t& client,
                   std::vector<std::string>& inputs,
                   std::vector<std::string> const& outputs)
 {
-  auto input_list = make_input_list<std::vector<std::string>>(inputs);
-  auto output_list = make_output_list<std::vector<std::string>>(outputs);
+  auto input_list = make_input_list_ptr<std::vector<std::string>>(inputs);
+  auto output_list = make_output_list_ptr<std::vector<std::string>>(outputs);
 
-  client("echo", input_list, output_list);
+  client("echo", std::move(input_list), std::move(output_list));
 }
 
 void echo_nothing(rpc_client_t& client)
@@ -210,10 +211,10 @@ void echo_some_strings(rpc_client_t& client)
   
 void remote_sleep(rpc_client_t& client, unsigned int msecs)
 {
-  auto input_args = make_input_list<>();
-  auto output_args = make_output_list<unsigned int>(msecs);
+  auto inputs = make_input_list_ptr<>();
+  auto outputs = make_output_list_ptr<unsigned int>(msecs);
 
-  client("sleep", input_args, output_args);
+  client("sleep", std::move(inputs), std::move(outputs));
 }
 
 void test_deaf_client(logging_context_t const& client_context,
