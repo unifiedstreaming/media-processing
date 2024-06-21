@@ -30,19 +30,15 @@
 #include "linkage.h"
 #include "nb_inbuf.hpp"
 #include "nb_outbuf.hpp"
-#include "nb_tcp_buffers.hpp"
 #include "output_list.hpp"
 #include "rpc_engine.hpp"
 #include "stack_marker.hpp"
-#include "system_error.hpp"
-#include "tcp_connection.hpp"
 #include "throughput_checker.hpp"
 #include "type_list.hpp"
 
 #include <cassert>
 #include <cstddef>
-#include <optional>
-#include <ostream>
+#include <iosfwd>
 #include <memory>
 #include <utility>
 
@@ -53,85 +49,143 @@ struct CUTI_ABI rpc_client_t
 {
   rpc_client_t(std::unique_ptr<nb_inbuf_t> inbuf,
                std::unique_ptr<nb_outbuf_t> outbuf,
-               throughput_settings_t settings = throughput_settings_t())
-  : inbuf_((assert(inbuf != nullptr), std::move(inbuf)))
-  , outbuf_((assert(outbuf != nullptr), std::move(outbuf)))
-  , settings_(std::move(settings))
-  , scheduler_()
-  { }
+               throughput_settings_t settings = throughput_settings_t());
 
   explicit
-  rpc_client_t(std::pair<std::unique_ptr<nb_inbuf_t>,
-                         std::unique_ptr<nb_outbuf_t>> buffers, 
-               throughput_settings_t settings = throughput_settings_t())
-  : rpc_client_t(std::move(buffers.first),
-                 std::move(buffers.second),
-                 std::move(settings))
-  { }
+  rpc_client_t(std::pair<
+                 std::unique_ptr<nb_inbuf_t>,
+                 std::unique_ptr<nb_outbuf_t>> buffers, 
+               throughput_settings_t settings = throughput_settings_t());
 
   rpc_client_t(endpoint_t const& server_address,
                std::size_t inbufsize,
                std::size_t outbufsize,
-               throughput_settings_t settings = throughput_settings_t())
-  : rpc_client_t(make_nb_tcp_buffers(
-                   std::make_unique<tcp_connection_t>(server_address),
-                   inbufsize,
-                   outbufsize),
-                 std::move(settings))
-  { }
+               throughput_settings_t settings = throughput_settings_t());
 
   explicit
   rpc_client_t(endpoint_t const& server_address,
-               throughput_settings_t settings = throughput_settings_t())
-  : rpc_client_t(make_nb_tcp_buffers(
-                   std::make_unique<tcp_connection_t>(server_address)),
-                 std::move(settings))
-  { }
+               throughput_settings_t settings = throughput_settings_t());
 
   rpc_client_t(rpc_client_t const&) = delete;
   rpc_client_t& operator=(rpc_client_t const&) = delete;
-  
+
+  /*
+   * Starts an RPC call.
+   * PRE: !this->busy()
+   */
+  template<typename... InputArgs, typename... OutputArgs>
+  void start(identifier_t method, 
+             std::unique_ptr<input_list_t<InputArgs...>> inputs,
+             std::unique_ptr<output_list_t<OutputArgs...>> outputs)
+  {
+    assert(!this->busy());
+
+    assert(method.is_valid());
+    assert(inputs != nullptr);
+    assert(outputs != nullptr);
+
+    curr_call_ = std::make_unique<
+      call_inst_t<type_list_t<InputArgs...>, type_list_t<OutputArgs...>>>(
+        scheduler_, *inbuf_, *outbuf_, settings_,
+        std::move(method), std::move(inputs), std::move(outputs));
+  }
+
+  /*
+   * Tells if there is a currently active RPC call.
+   */
+  bool busy() const
+  { return curr_call_ != nullptr; }
+
+  /*
+   * Have the currently active RPC call make some progress; may throw
+   * to report errors detected by the RPC engine.
+   * PRE: this->busy().
+   */
+  void step();
+
+  /*
+   * Performs a full RPC call.
+   * PRE: !this->busy()
+   */
   template<typename... InputArgs, typename... OutputArgs>
   void operator()(identifier_t method,
                   std::unique_ptr<input_list_t<InputArgs...>> inputs,
                   std::unique_ptr<output_list_t<OutputArgs...>> outputs)
   {
-    assert(method.is_valid());
-    assert(inputs != nullptr);
-    assert(outputs != nullptr);
-
-    final_result_t<void> result;
-
-    rpc_engine_t<type_list_t<InputArgs...>, type_list_t<OutputArgs...>>
-      rpc_engine(result, scheduler_, *inbuf_, *outbuf_, settings_);
-
-    stack_marker_t base_marker;
-
-    rpc_engine.start(
-      base_marker, std::move(method), std::move(inputs), std::move(outputs));
-
-    while(!result.available())
+    this->start(std::move(method), std::move(inputs), std::move(outputs));
+    while(this->busy())
     {
-      auto callback = scheduler_.wait();
-      assert(callback != nullptr);
-      callback(base_marker);
+      this->step();
     }
-    assert(scheduler_.wait() == nullptr);
-
-    // Throws on protocol (and remotely generated) errors
-    result.value();
   }
 
-  friend std::ostream& operator<<(std::ostream& os, rpc_client_t const& client)
-  {
-    return os << *client.inbuf_;
-  }
+  friend CUTI_ABI
+  std::ostream& operator<<(std::ostream& os, rpc_client_t const& client);
                    
 private :
+  struct CUTI_ABI call_t
+  {
+    explicit call_t(default_scheduler_t& scheduler);
+
+    call_t(call_t const&) = delete;
+    call_t& operator=(call_t const&) = delete;
+
+    bool busy() const
+    { return !done_; }
+
+    // step() throws on exceptions detected by the RPC engine
+    // PRE: this->busy();
+    void step();
+
+    virtual ~call_t() = 0;
+
+  protected :
+    result_t<void>& result()
+    { return result_; }
+
+  private :
+    default_scheduler_t& scheduler_;
+    final_result_t<void> result_;
+    bool done_;    
+  };
+
+  template<typename ReplyTypes, typename RequestTypes>
+  struct call_inst_t : call_t
+  {
+    using input_list_ptr_t = std::unique_ptr<
+      bind_to_type_list_t<input_list_t, ReplyTypes>>;
+    using output_list_ptr_t = std::unique_ptr<
+      bind_to_type_list_t<output_list_t, RequestTypes>>;
+
+    call_inst_t(default_scheduler_t& scheduler,
+                nb_inbuf_t& inbuf,
+                nb_outbuf_t& outbuf,
+                throughput_settings_t settings,
+                identifier_t method,
+                input_list_ptr_t inputs,
+                output_list_ptr_t outputs)   
+    : call_t(scheduler)
+    , engine_(call_t::result(), scheduler, inbuf, outbuf, std::move(settings))
+    {
+      assert(method.is_valid());
+      assert(inputs != nullptr);
+      assert(outputs != nullptr);
+
+      stack_marker_t base_marker;
+      engine_.start(base_marker,
+        std::move(method), std::move(inputs), std::move(outputs));
+    }
+
+  private :
+    rpc_engine_t<ReplyTypes, RequestTypes> engine_;
+  };
+  
+private :
+  default_scheduler_t scheduler_;
   std::unique_ptr<nb_inbuf_t> inbuf_;
   std::unique_ptr<nb_outbuf_t> outbuf_;
   throughput_settings_t settings_;
-  default_scheduler_t scheduler_;
+  std::unique_ptr<call_t> curr_call_;
 };
 
 } // cuti
