@@ -104,6 +104,18 @@ struct CUTI_ABI rpc_client_t
   void step();
 
   /*
+   * Completes any currently running call.
+   * POST: !this->busy()
+   */
+  void complete_current_call()
+  {
+    while(this->busy())
+    {
+      this->step();
+    }
+  }
+
+  /*
    * Performs a full RPC call.
    * PRE: !this->busy()
    */
@@ -113,10 +125,7 @@ struct CUTI_ABI rpc_client_t
                   std::unique_ptr<output_list_t<OutputArgs...>> outputs)
   {
     this->start(std::move(method), std::move(inputs), std::move(outputs));
-    while(this->busy())
-    {
-      this->step();
-    }
+    this->complete_current_call();
   }
 
   friend CUTI_ABI

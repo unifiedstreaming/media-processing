@@ -24,42 +24,51 @@
 namespace x264_proto
 {
 
-client_t::client_t(cuti::endpoint_t const& server_address)
-: rpc_client_(server_address)
+client_t::client_t(cuti::endpoint_t const& server_address,
+                   cuti::throughput_settings_t settings)
+: rpc_client_(server_address, std::move(settings))
 { }
 
 int client_t::add(int arg1, int arg2)
 {
   int result;
 
-  auto inputs = cuti::make_input_list_ptr<int>(result);
-  auto outputs = cuti::make_output_list_ptr<int, int>(arg1, arg2);
-  rpc_client_("add", std::move(inputs), std::move(outputs));
+  this->start_add(result, arg1, arg2);
+  this->complete_current_call();
 
   return result;
 }
 
+std::vector<std::string> client_t::echo(std::vector<std::string> strings)
+{
+  std::vector<std::string> result;
+
+  this->start_echo(result, std::move(strings));
+  this->complete_current_call();
+
+  return result;
+}
+
+std::pair<sample_headers_t, std::vector<sample_t>>
+client_t::encode(session_params_t session_params, std::vector<frame_t> frames)
+{
+  std::pair<sample_headers_t, std::vector<sample_t>> result;
+
+  this->start_encode(result.first, result.second,
+    std::move(session_params), std::move(frames));
+  this->complete_current_call();
+
+  return result;
+}    
+  
 int client_t::subtract(int arg1, int arg2)
 {
   int result;
 
-  auto inputs = cuti::make_input_list_ptr<int>(result);
-  auto outputs = cuti::make_output_list_ptr<int, int>(arg1, arg2);
-  rpc_client_("subtract", std::move(inputs), std::move(outputs));
+  this->start_subtract(result, arg1, arg2);
+  this->complete_current_call();
 
   return result;
 }
 
-void client_t::encode(sample_headers_t& sample_headers,
-                      std::vector<sample_t>& samples,
-                      session_params_t session_params,
-                      std::vector<frame_t> frames)
-{
-  auto inputs = cuti::make_input_list_ptr<sample_headers_t, samples_t>(
-    sample_headers, samples);
-  auto outputs = cuti::make_output_list_ptr<session_params_t, frames_t>(
-    std::move(session_params), std::move(frames));
-  rpc_client_("encode", std::move(inputs), std::move(outputs));
-}
-  
 } // x264_proto

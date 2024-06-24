@@ -79,6 +79,24 @@ void test_subtract(cuti::logging_context_t const& context,
   }
 }
 
+void test_echo(cuti::logging_context_t const& context,
+               x264_proto::client_t& client)
+{
+  if(auto msg = context.message_at(cuti::loglevel_t::info))
+  {
+    *msg << __func__ << ": starting";
+  }
+
+  std::vector<std::string> input{ "Fred", "Jim", "Sheila" };
+  auto output = client.echo(input);
+  assert(output == input);
+
+  if(auto msg = context.message_at(cuti::loglevel_t::info))
+  {
+    *msg << __func__ << ": done";
+  }
+}
+
 void test_encode(cuti::logging_context_t const& context,
                  x264_proto::client_t& client,
                  std::size_t count)
@@ -87,9 +105,6 @@ void test_encode(cuti::logging_context_t const& context,
   {
     *msg << __func__ << ": starting";
   }
-
-  x264_proto::sample_headers_t sample_headers;
-  std::vector<x264_proto::sample_t> samples;
 
   constexpr uint32_t timescale = 600;
   constexpr uint32_t bitrate = 400000;
@@ -103,7 +118,7 @@ void test_encode(cuti::logging_context_t const& context,
   auto frames = make_test_frames(count, gop_size,
     width, height, timescale, duration, black_y, black_u, black_v);
 
-  client.encode(sample_headers, samples,
+  auto [sample_headers, samples] = client.encode(
     std::move(session_params), std::move(frames));
   assert(samples.size() == count);
 
@@ -201,8 +216,10 @@ void test_streaming_encode(cuti::logging_context_t const& context,
     return result;
   };
         
-  client.encode_streaming(sample_headers_consumer, samples_consumer,
+  client.start_encode(sample_headers_consumer, samples_consumer,
     session_params_producer, frames_producer);
+  client.complete_current_call();
+  
   assert(samples.size() == count);
 
   if(auto msg = context.message_at(cuti::loglevel_t::info))
@@ -240,6 +257,7 @@ void test_service(cuti::logging_context_t const& client_context,
 
     test_add(client_context, client);
     test_subtract(client_context, client);
+    test_echo(client_context, client);
     test_encode(client_context, client, frame_count);
     test_streaming_encode(client_context, client, frame_count);
   }

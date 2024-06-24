@@ -26,8 +26,13 @@
 #include "types.hpp"
 
 #include <cuti/endpoint.hpp>
+#include <cuti/input_list.hpp>
+#include <cuti/output_list.hpp>
 #include <cuti/rpc_client.hpp>
+#include <cuti/throughput_checker.hpp>
+#include <cuti/type_list.hpp>
 
+#include <string>
 #include <utility>
 #include <vector>
 
@@ -36,49 +41,115 @@ namespace x264_proto
 
 struct X264_PROTO_ABI client_t
 {
-  using samples_t = std::vector<sample_t>;
-  using frames_t = std::vector<frame_t>;
+  // 'add' is for testing purposes
+  using add_reply_types_t =
+    cuti::type_list_t<int>;
+  using add_request_types_t =
+    cuti::type_list_t<int, int>;
 
-  explicit client_t(cuti::endpoint_t const& server_address);
+  // 'echo' is for testing purposes
+  using echo_reply_types_t =
+    cuti::type_list_t<cuti::sequence_t<std::string>>;
+  using echo_request_types_t =
+    cuti::type_list_t<cuti::sequence_t<std::string>>;
 
+  using encode_reply_types_t =
+    cuti::type_list_t<sample_headers_t, cuti::sequence_t<sample_t>>;
+  using encode_request_types_t =
+    cuti::type_list_t<session_params_t, cuti::sequence_t<frame_t>>;
+    
+  // 'subtract' is for testing purposes
+  using subtract_reply_types_t =
+    cuti::type_list_t<int>;
+  using subtract_request_types_t =
+    cuti::type_list_t<int, int>;
+    
+  explicit client_t(cuti::endpoint_t const& server_address ,
+                    cuti::throughput_settings_t settings =
+                      cuti::throughput_settings_t());
+ 
   client_t(client_t const&) = delete;
   client_t& operator=(client_t const&) = delete;
 
-  // for testing purposes
-  int add(int arg1, int arg2);
-  int subtract(int arg1, int arg2);
+  /*
+   * Streaming interface
+   */
+  bool busy() const
+  { return rpc_client_.busy(); }
 
-  void encode(sample_headers_t& sample_headers,
-              samples_t& samples,
-              session_params_t session_params,
-              frames_t frames);
+  void step() // throws on RPC exceptions
+  { rpc_client_.step(); }
 
-  template<typename SampleHeadersConsumer,
-           typename SamplesConsumer,
-           typename SessionParamsProducer,
-           typename FramesProducer>
-  void encode_streaming(SampleHeadersConsumer&& sample_headers_consumer,
-                        SamplesConsumer&& samples_consumer,
-                        SessionParamsProducer&& session_params_producer,
-                        FramesProducer&& frames_producer)
+  void complete_current_call()
   {
-    auto inputs = cuti::make_input_list_ptr<
-      sample_headers_t, cuti::sequence_t<sample_t>
-    >(
-      std::forward<SampleHeadersConsumer>(sample_headers_consumer),
-      std::forward<SamplesConsumer>(samples_consumer)
-    );
-
-    auto outputs = cuti::make_output_list_ptr<
-      session_params_t,
-      cuti::sequence_t<frame_t>
-    >(
-      std::forward<SessionParamsProducer>(session_params_producer),
-      std::forward<FramesProducer>(frames_producer)
-    );
-
-    rpc_client_("encode", std::move(inputs), std::move(outputs));
+    rpc_client_.complete_current_call();
   }
+
+  template<typename Result, typename Arg1, typename Arg2>
+  void start_add(Result&& result, Arg1&& arg1, Arg2&& arg2)
+  {
+    auto inputs = cuti::make_input_list_ptr<add_reply_types_t>(
+      std::forward<Result>(result));
+
+    auto outputs = cuti::make_output_list_ptr<add_request_types_t>(
+      std::forward<Arg1>(arg1), std::forward<Arg2>(arg2));
+
+    rpc_client_.start("add", std::move(inputs), std::move(outputs));
+  }
+
+  template<typename Consumer, typename Producer>
+  void start_echo(Consumer&& consumer, Producer&& producer)
+  {
+    auto inputs = cuti::make_input_list_ptr<echo_reply_types_t>(
+      std::forward<Consumer>(consumer));
+
+    auto outputs = cuti::make_output_list_ptr<echo_request_types_t>(
+      std::forward<Producer>(producer));
+
+    rpc_client_.start("echo", std::move(inputs), std::move(outputs));
+  }
+
+  template<typename SampleHeadersConsumer, typename SampleConsumer,
+           typename SessionParamsProducer, typename FrameProducer>
+  void start_encode(SampleHeadersConsumer&& sample_headers_consumer,
+                    SampleConsumer&& sample_consumer,
+                    SessionParamsProducer&& session_params_producer,
+                    FrameProducer&& frame_producer)
+  {
+    auto inputs = cuti::make_input_list_ptr<encode_reply_types_t>(
+      std::forward<SampleHeadersConsumer>(sample_headers_consumer),
+      std::forward<SampleConsumer>(sample_consumer));
+
+    auto outputs = cuti::make_output_list_ptr<encode_request_types_t>(
+      std::forward<SessionParamsProducer>(session_params_producer),
+      std::forward<FrameProducer>(frame_producer));
+    
+    rpc_client_.start("encode", std::move(inputs), std::move(outputs));
+  }
+
+  template<typename Result, typename Arg1, typename Arg2>
+  void start_subtract(Result&& result, Arg1&& arg1, Arg2&& arg2)
+  {
+    auto inputs = cuti::make_input_list_ptr<subtract_reply_types_t>(
+      std::forward<Result>(result));
+
+    auto outputs = cuti::make_output_list_ptr<subtract_request_types_t>(
+      std::forward<Arg1>(arg1), std::forward<Arg2>(arg2));
+
+    rpc_client_.start("subtract", std::move(inputs), std::move(outputs));
+  }
+
+  /*
+   * Convenience interface
+   */
+  int add(int arg1, int arg2);
+
+  std::vector<std::string> echo(std::vector<std::string> strings);
+
+  std::pair<sample_headers_t, std::vector<sample_t>>
+  encode(session_params_t session_params, std::vector<frame_t> frames);
+  
+  int subtract(int arg1, int arg2);
    
 private :
   cuti::rpc_client_t rpc_client_;
