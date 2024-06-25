@@ -69,6 +69,7 @@ lib cuti
   method.cpp
   method_map.cpp
   method_runner.cpp
+  nb_client.cpp
   nb_inbuf.cpp
   nb_outbuf.cpp
   nb_sink.cpp

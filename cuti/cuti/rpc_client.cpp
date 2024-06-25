@@ -29,26 +29,19 @@
 namespace cuti
 {
 
-rpc_client_t::rpc_client_t(endpoint_t const& server_address,
+rpc_client_t::rpc_client_t(endpoint_t server_address,
                            std::size_t inbufsize,
                            std::size_t outbufsize,
                            throughput_settings_t settings)
 : scheduler_()
-, inbuf_()
-, outbuf_()
+, nb_client_(std::move(server_address), inbufsize, outbufsize)
 , settings_(std::move(settings))
 , curr_call_(nullptr)
-{
-  std::tie(inbuf_, outbuf_) = make_nb_tcp_buffers(
-    std::make_unique<tcp_connection_t>(server_address),
-    inbufsize,
-    outbufsize
-  );
-}
+{ }
     
-rpc_client_t::rpc_client_t(endpoint_t const& server_address,
+rpc_client_t::rpc_client_t(endpoint_t server_address,
                            throughput_settings_t settings)
-: rpc_client_t(server_address,
+: rpc_client_t(std::move(server_address),
                nb_inbuf_t::default_bufsize,
                nb_outbuf_t::default_bufsize,
                std::move(settings))
@@ -99,7 +92,7 @@ rpc_client_t::call_t::~call_t()
 
 std::ostream& operator<<(std::ostream& os, rpc_client_t const& client)
 {
-  return os << *client.inbuf_;
+  return os << client.nb_client_.nb_inbuf();
 }
 
 } // namespace cuti

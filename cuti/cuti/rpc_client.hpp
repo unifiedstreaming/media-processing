@@ -28,8 +28,7 @@
 #include "identifier.hpp"
 #include "input_list.hpp"
 #include "linkage.h"
-#include "nb_inbuf.hpp"
-#include "nb_outbuf.hpp"
+#include "nb_client.hpp"
 #include "output_list.hpp"
 #include "rpc_engine.hpp"
 #include "stack_marker.hpp"
@@ -47,13 +46,13 @@ namespace cuti
 
 struct CUTI_ABI rpc_client_t
 {
-  rpc_client_t(endpoint_t const& server_address,
+  rpc_client_t(endpoint_t server_address,
                std::size_t inbufsize,
                std::size_t outbufsize,
                throughput_settings_t settings = throughput_settings_t());
 
   explicit
-  rpc_client_t(endpoint_t const& server_address,
+  rpc_client_t(endpoint_t server_address,
                throughput_settings_t settings = throughput_settings_t());
 
   rpc_client_t(rpc_client_t const&) = delete;
@@ -76,7 +75,7 @@ struct CUTI_ABI rpc_client_t
 
     curr_call_ = std::make_unique<
       call_inst_t<type_list_t<InputArgs...>, type_list_t<OutputArgs...>>>(
-        scheduler_, *inbuf_, *outbuf_, settings_,
+        scheduler_, nb_client_.nb_inbuf(), nb_client_.nb_outbuf(), settings_,
         std::move(method), std::move(inputs), std::move(outputs));
   }
 
@@ -181,8 +180,7 @@ private :
   
 private :
   default_scheduler_t scheduler_;
-  std::unique_ptr<nb_inbuf_t> inbuf_;
-  std::unique_ptr<nb_outbuf_t> outbuf_;
+  nb_client_t nb_client_;
   throughput_settings_t settings_;
   std::unique_ptr<call_t> curr_call_;
 };
