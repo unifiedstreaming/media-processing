@@ -24,45 +24,34 @@
 #include "tcp_connection.hpp"
 
 #include <ostream>
+#include <tuple>
 
 namespace cuti
 {
-
-rpc_client_t::rpc_client_t(std::unique_ptr<nb_inbuf_t> inbuf,
-                           std::unique_ptr<nb_outbuf_t> outbuf,
-                           throughput_settings_t settings)
-: scheduler_()
-, inbuf_((assert(inbuf != nullptr), std::move(inbuf)))
-, outbuf_((assert(outbuf != nullptr), std::move(outbuf)))
-, settings_(std::move(settings))
-, curr_call_(nullptr)
-{ }
-
-rpc_client_t::rpc_client_t(std::pair<
-                             std::unique_ptr<nb_inbuf_t>,
-                             std::unique_ptr<nb_outbuf_t>> buffers, 
-                           throughput_settings_t settings)
-: rpc_client_t(
-    std::move(buffers.first),
-    std::move(buffers.second),
-    std::move(settings))
-{ }
 
 rpc_client_t::rpc_client_t(endpoint_t const& server_address,
                            std::size_t inbufsize,
                            std::size_t outbufsize,
                            throughput_settings_t settings)
-: rpc_client_t(
-    make_nb_tcp_buffers(std::make_unique<tcp_connection_t>(server_address),
-      inbufsize, outbufsize),
-    std::move(settings))
-{ }
+: scheduler_()
+, inbuf_()
+, outbuf_()
+, settings_(std::move(settings))
+, curr_call_(nullptr)
+{
+  std::tie(inbuf_, outbuf_) = make_nb_tcp_buffers(
+    std::make_unique<tcp_connection_t>(server_address),
+    inbufsize,
+    outbufsize
+  );
+}
     
 rpc_client_t::rpc_client_t(endpoint_t const& server_address,
                            throughput_settings_t settings)
-: rpc_client_t(
-    make_nb_tcp_buffers(std::make_unique<tcp_connection_t>(server_address)),
-    std::move(settings))
+: rpc_client_t(server_address,
+               nb_inbuf_t::default_bufsize,
+               nb_outbuf_t::default_bufsize,
+               std::move(settings))
 { }
     
 void rpc_client_t::step()

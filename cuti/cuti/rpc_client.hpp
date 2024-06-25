@@ -47,16 +47,6 @@ namespace cuti
 
 struct CUTI_ABI rpc_client_t
 {
-  rpc_client_t(std::unique_ptr<nb_inbuf_t> inbuf,
-               std::unique_ptr<nb_outbuf_t> outbuf,
-               throughput_settings_t settings = throughput_settings_t());
-
-  explicit
-  rpc_client_t(std::pair<
-                 std::unique_ptr<nb_inbuf_t>,
-                 std::unique_ptr<nb_outbuf_t>> buffers, 
-               throughput_settings_t settings = throughput_settings_t());
-
   rpc_client_t(endpoint_t const& server_address,
                std::size_t inbufsize,
                std::size_t outbufsize,
