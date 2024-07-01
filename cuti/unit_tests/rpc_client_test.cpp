@@ -30,6 +30,7 @@
 #include <cuti/resolver.hpp>
 #include <cuti/rpc_client.hpp>
 #include <cuti/scoped_thread.hpp>
+#include <cuti/simple_nb_client_cache.hpp>
 #include <cuti/streambuf_backend.hpp>
 #include <cuti/subtract_handler.hpp>
 #include <cuti/tcp_connection.hpp>
@@ -522,7 +523,10 @@ void run_logic_tests(logging_context_t const& client_context,
     dispatcher_t dispatcher(server_context, dispatcher_config);
     endpoint_t server_endpoint = dispatcher.add_listener(
       local_interfaces(any_port).front(), map);
-    rpc_client_t client(server_endpoint, bufsize, bufsize);
+
+    simple_nb_client_cache_t cache(
+      simple_nb_client_cache_t::default_max_cachesize, bufsize, bufsize);
+    rpc_client_t client(client_context, cache, server_endpoint);
 
     {
       scoped_thread_t dispatcher_thread([&] { dispatcher.run(); });
@@ -560,7 +564,9 @@ void throughput_echo_client(logging_context_t const& context,
     *msg << __func__ << ": starting";
   }
 
-  rpc_client_t client(endpoint, bufsize, bufsize, settings);
+  simple_nb_client_cache_t cache(
+    simple_nb_client_cache_t::default_max_cachesize, bufsize, bufsize);
+  rpc_client_t client(context, cache, endpoint, settings);
 
   std::vector<std::string> reply;
   auto inputs = make_input_list_ptr<std::vector<std::string>>(reply);

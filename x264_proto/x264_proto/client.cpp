@@ -24,9 +24,12 @@
 namespace x264_proto
 {
 
-client_t::client_t(cuti::endpoint_t const& server_address,
+client_t::client_t(cuti::logging_context_t const& context,
+                   cuti::nb_client_cache_t& client_cache,
+                   cuti::endpoint_t server_address,
                    cuti::throughput_settings_t settings)
-: rpc_client_(server_address, std::move(settings))
+: rpc_client_(
+    context, client_cache, std::move(server_address), std::move(settings))
 { }
 
 int client_t::add(int arg1, int arg2)

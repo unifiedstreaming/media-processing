@@ -27,8 +27,10 @@
 #include "final_result.hpp"
 #include "identifier.hpp"
 #include "input_list.hpp"
+#include "logging_context.hpp"
 #include "linkage.h"
 #include "nb_client.hpp"
+#include "nb_client_cache.hpp"
 #include "output_list.hpp"
 #include "rpc_engine.hpp"
 #include "stack_marker.hpp"
@@ -46,13 +48,9 @@ namespace cuti
 
 struct CUTI_ABI rpc_client_t
 {
-  rpc_client_t(endpoint_t server_address,
-               std::size_t inbufsize,
-               std::size_t outbufsize,
-               throughput_settings_t settings = throughput_settings_t());
-
-  explicit
-  rpc_client_t(endpoint_t server_address,
+  rpc_client_t(logging_context_t const& context,
+               nb_client_cache_t& client_cache,
+               endpoint_t server_address,
                throughput_settings_t settings = throughput_settings_t());
 
   rpc_client_t(rpc_client_t const&) = delete;
@@ -75,7 +73,7 @@ struct CUTI_ABI rpc_client_t
 
     curr_call_ = std::make_unique<
       call_inst_t<type_list_t<InputArgs...>, type_list_t<OutputArgs...>>>(
-        scheduler_, nb_client_.nb_inbuf(), nb_client_.nb_outbuf(), settings_,
+        context_, scheduler_, client_cache_, server_address_, settings_,
         std::move(method), std::move(inputs), std::move(outputs));
   }
 
@@ -117,13 +115,13 @@ struct CUTI_ABI rpc_client_t
     this->complete_current_call();
   }
 
-  friend CUTI_ABI
-  std::ostream& operator<<(std::ostream& os, rpc_client_t const& client);
-                   
 private :
   struct CUTI_ABI call_t
   {
-    explicit call_t(default_scheduler_t& scheduler);
+    explicit call_t(logging_context_t const& context,
+                    default_scheduler_t& scheduler,
+                    nb_client_cache_t& client_cache,
+                    endpoint_t const& server_address);
 
     call_t(call_t const&) = delete;
     call_t& operator=(call_t const&) = delete;
@@ -141,10 +139,19 @@ private :
     result_t<void>& result()
     { return result_; }
 
+    nb_inbuf_t& nb_inbuf()
+    { return nb_client_->nb_inbuf(); }
+
+    nb_outbuf_t& nb_outbuf()
+    { return nb_client_->nb_outbuf(); }
+
   private :
+    logging_context_t const& context_;
     default_scheduler_t& scheduler_;
     final_result_t<void> result_;
     bool done_;    
+    nb_client_cache_t& client_cache_;
+    std::unique_ptr<nb_client_t> nb_client_;
   };
 
   template<typename ReplyTypes, typename RequestTypes>
@@ -155,15 +162,17 @@ private :
     using output_list_ptr_t = std::unique_ptr<
       bind_to_type_list_t<output_list_t, RequestTypes>>;
 
-    call_inst_t(default_scheduler_t& scheduler,
-                nb_inbuf_t& inbuf,
-                nb_outbuf_t& outbuf,
+    call_inst_t(logging_context_t const& context,
+                default_scheduler_t& scheduler,
+                nb_client_cache_t& client_cache,
+                endpoint_t const& server_address,
                 throughput_settings_t settings,
                 identifier_t method,
                 input_list_ptr_t inputs,
                 output_list_ptr_t outputs)   
-    : call_t(scheduler)
-    , engine_(call_t::result(), scheduler, inbuf, outbuf, std::move(settings))
+    : call_t(context, scheduler, client_cache, server_address)
+    , engine_(call_t::result(), scheduler,
+        call_t::nb_inbuf(), call_t::nb_outbuf(), std::move(settings))
     {
       assert(method.is_valid());
       assert(inputs != nullptr);
@@ -179,8 +188,10 @@ private :
   };
   
 private :
+  logging_context_t const& context_;
   default_scheduler_t scheduler_;
-  nb_client_t nb_client_;
+  nb_client_cache_t& client_cache_;
+  endpoint_t server_address_;
   throughput_settings_t settings_;
   std::unique_ptr<call_t> curr_call_;
 };

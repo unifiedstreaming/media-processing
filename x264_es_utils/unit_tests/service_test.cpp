@@ -28,6 +28,7 @@
 #include <cuti/rpc_client.hpp>
 #include <cuti/scoped_guard.hpp>
 #include <cuti/scoped_thread.hpp>
+#include <cuti/simple_nb_client_cache.hpp>
 #include <cuti/streambuf_backend.hpp>
 #include <x264_proto/client.hpp>
 
@@ -253,7 +254,9 @@ void test_service(cuti::logging_context_t const& client_context,
 
     auto const& endpoints = service.endpoints();
     assert(!endpoints.empty());
-    x264_proto::client_t client(endpoints.front());
+
+    cuti::simple_nb_client_cache_t cache;
+    x264_proto::client_t client(client_context, cache, endpoints.front());
 
     test_add(client_context, client);
     test_subtract(client_context, client);

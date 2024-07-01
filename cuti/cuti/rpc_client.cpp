@@ -23,30 +23,25 @@
 #include "scoped_guard.hpp"
 #include "tcp_connection.hpp"
 
+#include <cassert>
 #include <ostream>
 #include <tuple>
 
 namespace cuti
 {
 
-rpc_client_t::rpc_client_t(endpoint_t server_address,
-                           std::size_t inbufsize,
-                           std::size_t outbufsize,
-                           throughput_settings_t settings)
-: scheduler_()
-, nb_client_(std::move(server_address), inbufsize, outbufsize)
+rpc_client_t::rpc_client_t(
+  logging_context_t const& context,
+  nb_client_cache_t& client_cache,
+  endpoint_t server_address,
+  throughput_settings_t settings)
+: context_(context)
+, client_cache_(client_cache)
+, server_address_((assert(!server_address.empty()), std::move(server_address)))
 , settings_(std::move(settings))
 , curr_call_(nullptr)
 { }
-    
-rpc_client_t::rpc_client_t(endpoint_t server_address,
-                           throughput_settings_t settings)
-: rpc_client_t(std::move(server_address),
-               nb_inbuf_t::default_bufsize,
-               nb_outbuf_t::default_bufsize,
-               std::move(settings))
-{ }
-    
+
 void rpc_client_t::step()
 {
   assert(this->busy());
@@ -62,11 +57,20 @@ void rpc_client_t::step()
   }
 }
 
-rpc_client_t::call_t::call_t(default_scheduler_t& scheduler)
-: scheduler_(scheduler)
+rpc_client_t::call_t::call_t(
+  logging_context_t const& context,
+  default_scheduler_t& scheduler,
+  nb_client_cache_t& client_cache,
+  endpoint_t const& server_address)
+: context_(context)
+, scheduler_(scheduler)
 , result_()
 , done_(false)
-{ }
+, client_cache_(client_cache)
+, nb_client_(client_cache_.obtain(context_, server_address)) 
+{
+  assert(nb_client_ != nullptr);
+}
 
 void rpc_client_t::call_t::step()
 {
@@ -88,11 +92,20 @@ void rpc_client_t::call_t::step()
 }
 
 rpc_client_t::call_t::~call_t()
-{ }
-
-std::ostream& operator<<(std::ostream& os, rpc_client_t const& client)
 {
-  return os << client.nb_client_.nb_inbuf();
+  if(done_ && result_.exception() == nullptr)
+  {
+    // No RPC errors detected: connection reusable
+    client_cache_.store(context_, std::move(nb_client_));
+  }
+  else
+  {
+    if (auto msg = context_.message_at(loglevel_t::info))
+    {
+      *msg << "rpc_client: closing connection " << *nb_client_;
+    }
+    nb_client_.reset();
+  }
 }
 
 } // namespace cuti

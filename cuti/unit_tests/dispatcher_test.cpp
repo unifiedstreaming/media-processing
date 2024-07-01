@@ -31,6 +31,7 @@
 #include <cuti/rpc_client.hpp>
 #include <cuti/scoped_guard.hpp>
 #include <cuti/scoped_thread.hpp>
+#include <cuti/simple_nb_client_cache.hpp>
 #include <cuti/stack_marker.hpp>
 #include <cuti/streambuf_backend.hpp>
 #include <cuti/tcp_connection.hpp>
@@ -353,27 +354,19 @@ void test_eviction(logging_context_t const& client_context,
     scoped_thread_t server_thread([&] { dispatcher.run(); });
     auto stop_guard = make_scoped_guard([&] { dispatcher.stop(SIGINT); });
 
-    rpc_client_t client1(server_address, bufsize, bufsize);
-    if(auto msg = client_context.message_at(loglevel_t::info))
-    {
-      *msg << __func__ << ": using connection " << client1;
-    }
+    simple_nb_client_cache_t cache1(
+      simple_nb_client_cache_t::default_max_cachesize, bufsize, bufsize);
+    rpc_client_t client1(client_context, cache1, server_address);
     echo_nothing(client1);
 
-    rpc_client_t client2(server_address, bufsize, bufsize);
-    if(auto msg = client_context.message_at(loglevel_t::info))
-    {
-      *msg << __func__ << ": using connection " << client2;
-    }
+    simple_nb_client_cache_t cache2(
+      simple_nb_client_cache_t::default_max_cachesize, bufsize, bufsize);
+    rpc_client_t client2(client_context, cache2, server_address);
     echo_nothing(client2);
 
     bool caught = false;
     try
     {
-      if(auto msg = client_context.message_at(loglevel_t::info))
-      {
-        *msg << __func__ << ": re-using connection " << client1;
-      }
       echo_nothing(client1);
     }
     catch(const std::exception& ex)
@@ -421,10 +414,13 @@ void test_remote_sleeps(logging_context_t const& client_context,
     scoped_thread_t server_thread([&] { dispatcher.run(); });
     auto stop_guard = make_scoped_guard([&] { dispatcher.stop(SIGINT); });
 
+    simple_nb_client_cache_t cache(
+      simple_nb_client_cache_t::default_max_cachesize, bufsize, bufsize);
+
     std::list<rpc_client_t> clients;
     while(clients.size() != n_clients)
     {
-      clients.emplace_back(server_address, bufsize, bufsize);
+      clients.emplace_back(client_context, cache, server_address);
     }
 
     std::list<scoped_thread_t> client_threads;
@@ -510,6 +506,9 @@ void do_test_interrupted_server(logging_context_t const& client_context,
     endpoint_t server_address = dispatcher->add_listener(
       local_interfaces(any_port).front(), map);
 
+    simple_nb_client_cache_t cache(
+      simple_nb_client_cache_t::default_max_cachesize, bufsize, bufsize);
+
     std::list<scoped_thread_t> client_threads;
     for(std::size_t i = 0; i != n_clients; ++i)
     {
@@ -518,7 +517,7 @@ void do_test_interrupted_server(logging_context_t const& client_context,
         unsigned int n_calls = 0;
         try
         {
-          rpc_client_t client(server_address, bufsize, bufsize);
+          rpc_client_t client(client_context, cache, server_address);
           for(;;)
           {
             echo_some_strings(client);
@@ -621,11 +620,15 @@ void test_restart(logging_context_t const& client_context,
      */
     for(int i = 0; i != 2; ++i)
     {
+      simple_nb_client_cache_t cache(
+        simple_nb_client_cache_t::default_max_cachesize, bufsize, bufsize);
+
       scoped_thread_t runner(
         [&dispatcher] { dispatcher.run(); });
       auto stop_guard = make_scoped_guard(
         [&dispatcher] { dispatcher.stop(SIGINT); });
-      rpc_client_t client(server_address, bufsize, bufsize);
+
+      rpc_client_t client(client_context, cache, server_address);
       echo_nothing(client);
     }
   }

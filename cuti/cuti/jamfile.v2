@@ -70,6 +70,7 @@ lib cuti
   method_map.cpp
   method_runner.cpp
   nb_client.cpp
+  nb_client_cache.cpp
   nb_inbuf.cpp
   nb_outbuf.cpp
   nb_sink.cpp
@@ -103,6 +104,7 @@ lib cuti
   sequence.cpp
   service.cpp
   signal_handler.cpp
+  simple_nb_client_cache.cpp
   socket_nifty.cpp
   stack_marker.cpp
   streambuf_backend.cpp

@@ -27,6 +27,8 @@
 
 #include <cuti/endpoint.hpp>
 #include <cuti/input_list.hpp>
+#include <cuti/nb_client_cache.hpp>
+#include <cuti/logging_context.hpp>
 #include <cuti/output_list.hpp>
 #include <cuti/rpc_client.hpp>
 #include <cuti/throughput_checker.hpp>
@@ -64,10 +66,12 @@ struct X264_PROTO_ABI client_t
   using subtract_request_types_t =
     cuti::type_list_t<int, int>;
     
-  explicit client_t(cuti::endpoint_t const& server_address ,
-                    cuti::throughput_settings_t settings =
-                      cuti::throughput_settings_t());
- 
+  client_t(cuti::logging_context_t const& context,
+           cuti::nb_client_cache_t& client_cache,
+           cuti::endpoint_t server_address,
+           cuti::throughput_settings_t settings =
+             cuti::throughput_settings_t());
+    
   client_t(client_t const&) = delete;
   client_t& operator=(client_t const&) = delete;
 
