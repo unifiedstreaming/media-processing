@@ -100,11 +100,13 @@ rpc_client_t::call_t::~call_t()
   }
   else
   {
+    // Clear (possibly) bad cache entries
+    client_cache_.invalidate_entries(context_, nb_client_->server_address());
+
     if (auto msg = context_.message_at(loglevel_t::info))
     {
       *msg << "rpc_client: closing connection " << *nb_client_;
     }
-    nb_client_.reset();
   }
 }
 

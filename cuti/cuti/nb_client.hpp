@@ -45,12 +45,6 @@ struct CUTI_ABI nb_client_t
   nb_client_t(nb_client_t const&) = delete;
   nb_client_t& operator=(nb_client_t const&) = delete;
 
-  bool disconnect_detected() const
-  {
-    return (nb_inbuf_->readable() && nb_inbuf_->peek() == eof) ||
-      nb_outbuf_->error_status();
-  }
-  
   endpoint_t const& server_address() const
   { return server_address_; }
 

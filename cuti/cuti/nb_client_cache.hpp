@@ -56,6 +56,12 @@ struct CUTI_ABI nb_client_cache_t
     logging_context_t const& context,
     std::unique_ptr<nb_client_t> client) = 0;
 
+  /*
+   * Removes all stored cache entries for a specific server address.
+   */
+  virtual void invalidate_entries(logging_context_t const& context,
+    endpoint_t const& server_address) = 0;
+
   virtual ~nb_client_cache_t();
 };
 

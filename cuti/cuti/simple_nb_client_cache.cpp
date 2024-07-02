@@ -68,8 +68,16 @@ simple_nb_client_cache_t::obtain(logging_context_t const& context,
   }
   else
   {
-    result = std::make_unique<nb_client_t>(
-      server_address, inbufsize_, outbufsize_);
+    try
+    {
+      result = std::make_unique<nb_client_t>(
+        server_address, inbufsize_, outbufsize_);
+    }
+    catch(std::exception const&)
+    {
+      this->invalidate_entries(context, server_address);
+      throw;
+    }
 
     if(auto msg = context.message_at(loglevel_t::info))
     {
@@ -111,7 +119,46 @@ void simple_nb_client_cache_t::store(logging_context_t const& context,
       *msg << *this <<
         ": max cache size reached: closing connection " << *evict;
     }
-    evict.reset();
+  }
+}
+
+void
+simple_nb_client_cache_t::invalidate_entries(logging_context_t const& context,
+                                             endpoint_t const& server_address)
+{
+  if(auto msg = context.message_at(loglevel_t::info))
+  {
+    *msg << *this <<
+        ": invalidating connections to " << server_address;
+  }
+
+  std::list<std::unique_ptr<nb_client_t>> invalidated;
+  {
+    std::lock_guard<std::mutex> guard(mut_);
+
+    auto next = clients_.begin();
+    while(next != clients_.end())
+    {
+      auto cur = next;
+      ++next;
+      
+      assert(*cur != nullptr);
+      if((*cur)->server_address() == server_address)
+      {
+        invalidated.splice(invalidated.end(), clients_, cur);
+      }
+    }
+  }
+
+  while(!invalidated.empty())
+  {
+    if(auto msg = context.message_at(loglevel_t::info))
+    {
+      *msg << *this <<
+        ": closing invalidated connection " << *invalidated.front();
+    }
+
+    invalidated.pop_front();
   }
 }
 

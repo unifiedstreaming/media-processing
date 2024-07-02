@@ -60,6 +60,9 @@ struct CUTI_ABI simple_nb_client_cache_t : nb_client_cache_t
     logging_context_t const& context,
     std::unique_ptr<nb_client_t> client) override;
 
+  void invalidate_entries(logging_context_t const& context,
+    endpoint_t const& server_address) override;
+
   friend CUTI_ABI
   std::ostream& operator<<(
     std::ostream& os, simple_nb_client_cache_t const& cache);
