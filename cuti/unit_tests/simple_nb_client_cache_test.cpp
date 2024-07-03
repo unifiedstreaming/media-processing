@@ -50,20 +50,20 @@ struct dummy_server_t
   explicit dummy_server_t()
   : acceptor_(local_interfaces(any_port).front())
   , connections_()
-  , signal_server_(nullptr)
-  , signal_client_(nullptr)
+  , stop_reader_(nullptr)
+  , stop_writer_(nullptr)
   , scheduler_()
-  , shutting_down_(false)
-  , serving_thread_()
+  , stopping_(false)
+  , serving_thread_(nullptr)
   {
     acceptor_.set_nonblocking();
     acceptor_.call_when_ready(scheduler_,
       [this](stack_marker_t&) { this->on_acceptor(); });
 
-    std::tie(signal_server_, signal_client_) = make_connected_pair();
-    signal_server_->set_nonblocking();
-    signal_server_->call_when_readable(scheduler_,
-      [this](stack_marker_t&) { this->on_signal_server(); });
+    std::tie(stop_reader_, stop_writer_) = make_connected_pair();
+    stop_reader_->set_nonblocking();
+    stop_reader_->call_when_readable(scheduler_,
+      [this](stack_marker_t&) { this->on_stop_reader(); });
 
     serving_thread_ = std::make_unique<scoped_thread_t>(
       [this] { this->serve(); });
@@ -77,8 +77,8 @@ struct dummy_server_t
     
   ~dummy_server_t()
   {
-    // trigger server shutdown
-    signal_client_.reset();
+    // tell serving thread to stop
+    stop_writer_.reset();
   }
 
 private :
@@ -96,27 +96,27 @@ private :
       [this](stack_marker_t&) { this->on_acceptor(); });
   }
     
-  void on_signal_server()
+  void on_stop_reader()
   {
     char buf[1];
     char *next;
-    signal_server_->read(buf, buf + 1, next);
+    stop_reader_->read(buf, buf + 1, next);
 
     if(next == nullptr)
     {
-      signal_server_->call_when_readable(scheduler_,
-        [this](stack_marker_t&) { this->on_signal_server(); });
+      stop_reader_->call_when_readable(scheduler_,
+        [this](stack_marker_t&) { this->on_stop_reader(); });
       return;
     }
 
-    shutting_down_ = true;
+    stopping_ = true;
   }
     
   void serve()
   {
     stack_marker_t base_marker;
 
-    while(!shutting_down_)
+    while(!stopping_)
     {
       auto cb = scheduler_.wait();
       assert(cb != nullptr);
@@ -127,10 +127,10 @@ private :
 private :
   tcp_acceptor_t acceptor_;
   std::vector<std::unique_ptr<tcp_connection_t>> connections_;
-  std::unique_ptr<tcp_connection_t> signal_server_;
-  std::unique_ptr<tcp_connection_t> signal_client_;
+  std::unique_ptr<tcp_connection_t> stop_reader_;
+  std::unique_ptr<tcp_connection_t> stop_writer_;
   default_scheduler_t scheduler_;
-  bool shutting_down_;
+  bool stopping_;
   std::unique_ptr<scoped_thread_t> serving_thread_;
 };
 
