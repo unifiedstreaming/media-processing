@@ -27,7 +27,8 @@
 
 x264_proto::session_params_t make_test_session_params(
   uint32_t timescale, uint32_t bitrate,
-  uint32_t width, uint32_t height)
+  uint32_t width, uint32_t height,
+  x264_proto::format_t format)
 {
   x264_proto::session_params_t session_params;
 
@@ -35,6 +36,7 @@ x264_proto::session_params_t make_test_session_params(
   session_params.bitrate_ = bitrate;
   session_params.width_ = width;
   session_params.height_ = height;
+  session_params.format_ = format;
 
   return session_params;
 }

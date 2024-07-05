@@ -68,16 +68,18 @@ inline uint32_t hash(uint8_t const* first, size_t size)
 
 } // fnv1a32
 
-constexpr uint8_t black_y = 0x10;
-constexpr uint8_t black_u = 0x80;
-constexpr uint8_t black_v = 0x80;
+constexpr uint8_t black_y = 0x10; // 0x100 / 16
+constexpr uint8_t black_u = 0x80; // 0x100 / 2
+constexpr uint8_t black_v = 0x80; // 0x100 / 2
 
 x264_proto::session_params_t make_test_session_params(
   uint32_t timescale, uint32_t bitrate,
-  uint32_t width, uint32_t height);
+  uint32_t width, uint32_t height,
+  x264_proto::format_t format);
 
 std::vector<uint8_t> make_test_frame_data(
   uint32_t width, uint32_t height,
+  x264_proto::format_t format,
   uint8_t y, uint8_t u, uint8_t v);
 
 x264_proto::frame_t make_test_frame(

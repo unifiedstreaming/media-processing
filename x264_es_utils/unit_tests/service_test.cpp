@@ -111,8 +111,9 @@ void test_encode(cuti::logging_context_t const& context,
   constexpr uint32_t bitrate = 400000;
   constexpr uint32_t width = 640;
   constexpr uint32_t height = 480;
+  constexpr auto format = x264_proto::format_t::NV12;
   auto session_params = make_test_session_params(
-    timescale, bitrate, width, height);
+    timescale, bitrate, width, height, format);
 
   constexpr size_t gop_size = 12;
   constexpr uint32_t duration = 25;
@@ -145,8 +146,9 @@ void test_streaming_encode(cuti::logging_context_t const& context,
   constexpr uint32_t bitrate = 400000;
   constexpr uint32_t width = 640;
   constexpr uint32_t height = 480;
+  constexpr auto format = x264_proto::format_t::NV12;
   auto session_params = make_test_session_params(
-    timescale, bitrate, width, height);
+    timescale, bitrate, width, height, format);
 
   constexpr size_t gop_size = 12;
   constexpr uint32_t duration = 25;
