@@ -264,6 +264,41 @@ wrap_x264_param_t::wrap_x264_param_t(
   }
 }
 
+int to_x264_csp(x264_proto::format_t format)
+{
+  switch(format)
+  {
+  case x264_proto::format_t::NV12:
+    return X264_CSP_NV12;
+  case x264_proto::format_t::YUV420P:
+    return X264_CSP_I420;
+  case x264_proto::format_t::YUV420P10LE:
+    return X264_CSP_I420 | X264_CSP_HIGH_DEPTH;
+  default:
+    x264_exception_builder_t builder;
+    builder << "unsupported x264_proto::frame.format_ value " <<
+      cuti::to_serialized(format);
+    builder.explode();
+  }
+}
+
+int to_x264_bitdepth(x264_proto::format_t format)
+{
+  switch(format)
+  {
+  case x264_proto::format_t::NV12:
+  case x264_proto::format_t::YUV420P:
+    return 8;
+  case x264_proto::format_t::YUV420P10LE:
+    return 10;
+  default:
+    x264_exception_builder_t builder;
+    builder << "unsupported x264_proto::frame.format_ value " <<
+      cuti::to_serialized(format);
+    builder.explode();
+  }
+}
+
 // delegating ctor
 wrap_x264_param_t::wrap_x264_param_t(
   cuti::logging_context_t const& logging_context,
@@ -277,7 +312,8 @@ wrap_x264_param_t::wrap_x264_param_t(
       << " level=" << session_params.level_idc_
       << " bitrate=" << session_params.bitrate_
       << " width=" << session_params.width_
-      << " height=" << session_params.height_;
+      << " height=" << session_params.height_
+      << " format=" << to_string(session_params.format_);
   }
 
   if(session_params.bitrate_ == 0)
@@ -301,8 +337,8 @@ wrap_x264_param_t::wrap_x264_param_t(
   // Video properties
   param_.i_width  = session_params.width_;
   param_.i_height = session_params.height_;
-  param_.i_csp = X264_CSP_NV12;
-  param_.i_bitdepth = 8;
+  param_.i_csp = to_x264_csp(session_params.format_);
+  param_.i_bitdepth = to_x264_bitdepth(session_params.format_);
   param_.i_level_idc = session_params.level_idc_;
 
   // VUI parameters
@@ -674,30 +710,12 @@ std::ostream& operator<<(std::ostream& os, x264_picture_t const& rhs)
   return os;
 }
 
-int format_to_x264_csp(x264_proto::format_t format)
-{
-  switch(format)
-  {
-  case x264_proto::format_t::NV12:
-    return X264_CSP_NV12;
-  case x264_proto::format_t::YUV420P:
-    return X264_CSP_I420;
-  case x264_proto::format_t::YUV420P10LE:
-    return X264_CSP_I420 | X264_CSP_HIGH_DEPTH;
-  default:
-    x264_exception_builder_t builder;
-    builder << "unsupported x264_proto::frame.format_ value " <<
-      cuti::to_serialized(format);
-    builder.explode();
-  }
-}
-
 input_picture_t::input_picture_t(
   cuti::logging_context_t const& logging_context,
   x264_proto::frame_t const& frame)
 : logging_context_(logging_context)
 {
-  int x264_csp = format_to_x264_csp(frame.format_);
+  int x264_csp = to_x264_csp(frame.format_);
 
   size_t img_size = static_cast<size_t>(frame.width_) * frame.height_ * 3 / 2;
   if(frame.format_ == x264_proto::format_t::YUV420P10LE)
