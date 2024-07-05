@@ -64,24 +64,26 @@ void run_session(cuti::logging_context_t const& context)
   constexpr uint32_t width = 640;
   constexpr uint32_t height = 480;
 #endif
-  constexpr auto format = x264_proto::format_t::YUV420P;
-  auto session_params = make_test_session_params(
+  constexpr auto format = x264_proto::format_t::YUV420P10LE;
+  auto session_params = common::make_test_session_params(
     timescale, bitrate, width, height, format);
 
   constexpr size_t gop_size = 12;
   constexpr uint32_t duration = 25;
 #if defined(ENCODING_SESSION_TEST_USE_FILE)
-  auto frames = make_test_frames_from_file("encoding_session_test_input.nv12",
-    gop_size, width, height, format, timescale, duration);
+  auto frames = common::make_test_frames_from_file(
+    "encoding_session_test_input.nv12", gop_size, width, height, format,
+    timescale, duration);
   auto count = frames.size();
 #elif defined(ENCODING_SESSION_TEST_USE_RAINBOW)
   constexpr size_t count = 42;
-  auto frames = make_test_rainbow_frames(count, gop_size,
+  auto frames = common::make_test_rainbow_frames(count, gop_size,
     width, height, format, timescale, duration);
 #else
   constexpr size_t count = 42;
-  auto frames = make_test_frames(count, gop_size,
-    width, height, format, timescale, duration, black_y_8, black_u_8, black_v_8);
+  auto frames = common::make_test_frames(count, gop_size,
+    width, height, format, timescale, duration,
+    common::black_y_10, common::black_u_10, common::black_v_10);
 #endif
 
   x264_es_utils::encoding_session_t session(
@@ -90,15 +92,15 @@ void run_session(cuti::logging_context_t const& context)
   auto sample_headers = session.sample_headers();
   if(auto msg = context.message_at(cuti::loglevel_t::debug))
   {
-    auto hash =
-      fnv1a32::hash(sample_headers.sps_.data(), sample_headers.sps_.size());
+    auto hash = common::fnv1a32::hash(sample_headers.sps_.data(),
+      sample_headers.sps_.size());
     *msg << __func__ << ": sps size=" << sample_headers.sps_.size() <<
       " hash=0x" << std::hex << hash;
   }
   if(auto msg = context.message_at(cuti::loglevel_t::debug))
   {
-    auto hash =
-      fnv1a32::hash(sample_headers.pps_.data(), sample_headers.pps_.size());
+    auto hash = common::fnv1a32::hash(sample_headers.pps_.data(),
+      sample_headers.pps_.size());
     *msg << __func__ << ": pps size=" << sample_headers.pps_.size() <<
       " hash=0x" << std::hex << hash;
   }
@@ -125,7 +127,8 @@ void run_session(cuti::logging_context_t const& context)
   {
     if(auto msg = context.message_at(cuti::loglevel_t::debug))
     {
-      auto hash = fnv1a32::hash(sample.data_.data(), sample.data_.size());
+      auto hash = common::fnv1a32::hash(sample.data_.data(),
+        sample.data_.size());
       *msg << __func__ << ": sample[" << idx << "] size=" <<
         sample.data_.size() << " hash=0x" << std::hex << hash;
     }

@@ -22,6 +22,9 @@
 
 #include <x264_proto/types.hpp>
 
+namespace common
+{
+
 namespace fnv1a32
 {
 
@@ -113,5 +116,7 @@ std::vector<x264_proto::frame_t> make_test_frames_from_file(
   uint32_t width, uint32_t height,
   x264_proto::format_t format,
   uint32_t timescale, uint32_t duration);
+
+} // common
 
 #endif //  X264_ES_UTILS_UNIT_TESTS_COMMON_HPP_

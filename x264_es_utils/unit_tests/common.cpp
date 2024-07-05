@@ -26,6 +26,9 @@
 #include <fstream>
 #include <limits>
 
+namespace common
+{
+
 x264_proto::session_params_t make_test_session_params(
   uint32_t timescale, uint32_t bitrate,
   uint32_t width, uint32_t height,
@@ -43,6 +46,9 @@ x264_proto::session_params_t make_test_session_params(
 
   return session_params;
 }
+
+namespace // anonymous
+{
 
 std::vector<uint8_t> make_test_frame_data_nv12(
   uint32_t width, uint32_t height,
@@ -154,6 +160,8 @@ uint8_t to_8bit(component_t component)
   assert(component <= std::numeric_limits<uint8_t>::max());
   return static_cast<uint8_t>(component);
 }
+
+} // anonymous
 
 std::vector<uint8_t> make_test_frame_data(
   uint32_t width, uint32_t height,
@@ -368,3 +376,5 @@ std::vector<x264_proto::frame_t> make_test_frames_from_file(
 
   return frames;
 }
+
+} // common
