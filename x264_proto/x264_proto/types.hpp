@@ -39,6 +39,8 @@ namespace x264_proto
 enum class format_t
 {
   NV12,
+  YUV420P,
+  YUV420P10LE,
 };
 
 X264_PROTO_ABI std::string to_string(format_t format);

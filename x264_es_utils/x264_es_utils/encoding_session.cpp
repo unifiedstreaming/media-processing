@@ -674,21 +674,37 @@ std::ostream& operator<<(std::ostream& os, x264_picture_t const& rhs)
   return os;
 }
 
+int format_to_x264_csp(x264_proto::format_t format)
+{
+  switch(format)
+  {
+  case x264_proto::format_t::NV12:
+    return X264_CSP_NV12;
+  case x264_proto::format_t::YUV420P:
+    return X264_CSP_I420;
+  case x264_proto::format_t::YUV420P10LE:
+    return X264_CSP_I420 | X264_CSP_HIGH_DEPTH;
+  default:
+    x264_exception_builder_t builder;
+    builder << "unsupported x264_proto::frame.format_ value " <<
+      cuti::to_serialized(format);
+    builder.explode();
+  }
+}
+
 input_picture_t::input_picture_t(
   cuti::logging_context_t const& logging_context,
   x264_proto::frame_t const& frame)
 : logging_context_(logging_context)
 {
-  // Verify frame. For now we always assume NV12 format.
-  if(frame.format_ != x264_proto::format_t::NV12)
-  {
-    x264_exception_builder_t builder;
-    builder << "unsupported x264_proto::frame.format_ value " <<
-      cuti::to_serialized(frame.format_);
-    builder.explode();
-  }
+  int x264_csp = format_to_x264_csp(frame.format_);
 
   size_t img_size = static_cast<size_t>(frame.width_) * frame.height_ * 3 / 2;
+  if(frame.format_ == x264_proto::format_t::YUV420P10LE)
+  {
+    // This format uses uint16_t for each Y, U and V pixel.
+    img_size *= 2;
+  }
   if(frame.data_.size() != img_size)
   {
     x264_exception_builder_t builder;
@@ -697,8 +713,7 @@ input_picture_t::input_picture_t(
     builder.explode();
   }
 
-  if(x264_picture_alloc(&picture_, X264_CSP_NV12,
-                        frame.width_, frame.height_) < 0)
+  if(x264_picture_alloc(&picture_, x264_csp, frame.width_, frame.height_) < 0)
   {
     x264_exception_builder_t builder;
     builder << "libx264 failed to allocate picture of "
@@ -709,8 +724,10 @@ input_picture_t::input_picture_t(
   picture_.i_type = frame.keyframe_ ? X264_TYPE_IDR : X264_TYPE_AUTO;
   picture_.i_pts = frame.pts_;
 
-  // Copy NV12 format, which is all the Y bytes, followed by all the UV words,
-  // without padding, into x264 format (which is also not padded).
+  // Copy our frame data into x264 picture plane. This assumes the pixel format
+  // is identical, i.e. our frame_t's NV12 is the same as x264's X264_CSP_NV12,
+  // YUV420P is the same as x264's X264_CSP_I420, and YUV420P10LE is the same as
+  // X264_CSP_I420 combined with X264_CSP_HIGH_DEPTH.
   std::copy(frame.data_.begin(), frame.data_.end(), picture_.img.plane[0]);
 }
 

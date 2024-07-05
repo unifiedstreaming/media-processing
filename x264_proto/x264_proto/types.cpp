@@ -33,6 +33,10 @@ std::string to_string(format_t format)
   {
   case format_t::NV12:
     return "NV12";
+  case format_t::YUV420P:
+    return "YUV420P";
+  case format_t::YUV420P10LE:
+    return "YUV420P10LE";
   default:
     return "bad x264_proto::format_t value " +
       std::to_string(cuti::to_underlying(format));
@@ -186,6 +190,8 @@ cuti::enum_mapping_t<x264_proto::format_t>::from_underlying(underlying_t value)
   switch(value)
   {
   case to_underlying(x264_proto::format_t::NV12):
+  case to_underlying(x264_proto::format_t::YUV420P):
+  case to_underlying(x264_proto::format_t::YUV420P10LE):
     return x264_proto::format_t{value};
   default:
     exception_builder_t<parse_error_t> builder;
