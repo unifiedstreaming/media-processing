@@ -38,6 +38,8 @@ x264_proto::session_params_t make_test_session_params(
   session_params.width_ = width;
   session_params.height_ = height;
   session_params.format_ = format;
+  session_params.profile_idc_ = format == x264_proto::format_t::YUV420P10LE ?
+    x264_proto::profile_t::HIGH10 : x264_proto::profile_t::MAIN;
 
   return session_params;
 }
@@ -46,25 +48,29 @@ std::vector<uint8_t> make_test_frame_data_nv12(
   uint32_t width, uint32_t height,
   uint8_t y, uint8_t u, uint8_t v)
 {
+  assert(width % 2 == 0 && height % 2 == 0);
+  std::size_t const num_y = width * height;
+  std::size_t const num_uv = (width / 2) * (height / 2);
+  std::size_t const size = (num_y + num_uv * 2) * sizeof(uint8_t);
+
   std::vector<uint8_t> data;
+  data.reserve(size);
 
-  uint32_t const size_y = width * height;
-  uint32_t const size_uv = width * height / 2;
-
-  data.insert(data.end(), size_y, y);
+  data.insert(data.end(), num_y, y);
   if(u == v)
   {
-    data.insert(data.end(), size_uv, u);
+    data.insert(data.end(), num_uv * 2, u);
   }
   else
   {
-    for(uint32_t i = 0; i < size_uv; i +=2)
+    for(std::size_t i = 0; i < num_uv; ++i)
     {
       data.insert(data.end(), u);
       data.insert(data.end(), v);
     }
   }
 
+  assert(data.size() == size);
   return data;
 }
 
@@ -72,45 +78,74 @@ std::vector<uint8_t> make_test_frame_data_yuv420p(
   uint32_t width, uint32_t height,
   uint8_t y, uint8_t u, uint8_t v)
 {
+  assert(width % 2 == 0 && height % 2 == 0);
+  std::size_t const num_y = width * height;
+  std::size_t const num_uv = (width / 2) * (height / 2);
+  std::size_t const size = (num_y + num_uv * 2) * sizeof(uint8_t);
+
   std::vector<uint8_t> data;
+  data.reserve(size);
 
-  uint32_t const size_y = width * height;
-  uint32_t const size_uv = width * height / 2;
-
-  data.insert(data.end(), size_y, y);
+  data.insert(data.end(), num_y, y);
   if(u == v)
   {
-    data.insert(data.end(), size_uv, u);
+    data.insert(data.end(), num_uv * 2, u);
   }
   else
   {
-    data.insert(data.end(), size_uv / 2, u);
-    data.insert(data.end(), size_uv / 2, v);
+    data.insert(data.end(), num_uv, u);
+    data.insert(data.end(), num_uv, v);
   }
 
+  assert(data.size() == size);
   return data;
+}
+
+std::pair<uint8_t, uint8_t> split(uint16_t v)
+{
+  return {v & 0xff, v >> 8};
 }
 
 std::vector<uint8_t> make_test_frame_data_yuv420p10le(
   uint32_t width, uint32_t height,
   uint16_t y, uint16_t u, uint16_t v)
 {
+  assert(width % 2 == 0 && height % 2 == 0);
+  std::size_t const num_y = width * height;
+  std::size_t const num_uv = (width / 2) * (height / 2);
+  std::size_t const size = (num_y + num_uv * 2) * sizeof(uint16_t);
+
   std::vector<uint8_t> data;
+  data.reserve(size);
 
-  uint32_t const size_y = width * height;
-  uint32_t const size_uv = width * height / 2;
-
-  data.insert(data.end(), size_y, y);
-  if(u == v)
   {
-    data.insert(data.end(), size_uv, u);
-  }
-  else
-  {
-    data.insert(data.end(), size_uv / 2, u);
-    data.insert(data.end(), size_uv / 2, v);
+    auto [y_lo, y_hi] = split(y);
+    for(std::size_t i = 0; i < num_y; ++i)
+    {
+      data.push_back(y_lo);
+      data.push_back(y_hi);
+    }
   }
 
+  {
+    auto [u_lo, u_hi] = split(u);
+    for(std::size_t i = 0; i < num_uv; ++i)
+    {
+      data.push_back(u_lo);
+      data.push_back(u_hi);
+    }
+  }
+
+  {
+    auto [v_lo, v_hi] = split(v);
+    for(std::size_t i = 0; i < num_uv; ++i)
+    {
+      data.push_back(v_lo);
+      data.push_back(v_hi);
+    }
+  }
+
+  assert(data.size() == size);
   return data;
 }
 
@@ -175,7 +210,7 @@ x264_proto::frame_t make_test_frame(
 }
 
 std::vector<x264_proto::frame_t> make_test_frames(
-  size_t count, size_t gop_size,
+  std::size_t count, std::size_t gop_size,
   uint32_t width, uint32_t height,
   x264_proto::format_t format,
   uint32_t timescale, uint32_t duration,
@@ -184,7 +219,7 @@ std::vector<x264_proto::frame_t> make_test_frames(
   std::vector<x264_proto::frame_t> frames;
 
   uint64_t pts = 0;
-  for(size_t i = 0; i < count; ++i, pts += duration)
+  for(std::size_t i = 0; i < count; ++i, pts += duration)
   {
     bool keyframe = i % gop_size == 0;
     frames.push_back(
@@ -262,7 +297,7 @@ yuv_t hsv2yuv(double h, double s, double v)
 } // anonymous
 
 std::vector<x264_proto::frame_t> make_test_rainbow_frames(
-  size_t count, size_t gop_size,
+  std::size_t count, std::size_t gop_size,
   uint32_t width, uint32_t height,
   x264_proto::format_t format,
   uint32_t timescale, uint32_t duration)
@@ -275,7 +310,7 @@ std::vector<x264_proto::frame_t> make_test_rainbow_frames(
   const double sat = 1.0;
   const double val = 1.0;
 
-  for(size_t i = 0; i < count; ++i, pts += duration, hue += hue_inc)
+  for(std::size_t i = 0; i < count; ++i, pts += duration, hue += hue_inc)
   {
     bool keyframe = i % gop_size == 0;
     auto [y, u, v] = hsv2yuv(hue, sat, val);
@@ -287,7 +322,7 @@ std::vector<x264_proto::frame_t> make_test_rainbow_frames(
 }
 
 std::vector<x264_proto::frame_t> make_test_frames_from_file(
-  std::string filename, size_t gop_size,
+  std::string filename, std::size_t gop_size,
   uint32_t width, uint32_t height,
   x264_proto::format_t format,
   uint32_t timescale, uint32_t duration)
@@ -301,10 +336,10 @@ std::vector<x264_proto::frame_t> make_test_frames_from_file(
   }
 
   std::vector<x264_proto::frame_t> frames;
-  size_t frame_size = x264_proto::frame_size(width, height, format);
+  std::size_t frame_size = x264_proto::frame_size(width, height, format);
 
   uint64_t pts = 0;
-  for(size_t i = 0; ; ++i, pts += duration)
+  for(std::size_t i = 0; ; ++i, pts += duration)
   {
     bool keyframe = i % gop_size == 0;
     std::vector<uint8_t> data(frame_size);
@@ -320,7 +355,7 @@ std::vector<x264_proto::frame_t> make_test_frames_from_file(
     {
       break;
     }
-    else if(static_cast<size_t>(count) != frame_size)
+    else if(static_cast<std::size_t>(count) != frame_size)
     {
       cuti::system_exception_builder_t builder;
       builder << "could only read " << count << " bytes from " << filename <<
