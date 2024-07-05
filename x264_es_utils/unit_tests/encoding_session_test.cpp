@@ -49,7 +49,7 @@ std::ostream& operator<<(std::ostream& os, std::vector<uint8_t> rhs)
 }
 #endif
 
-void run_session(cuti::logging_context_t const& context)
+void run_session(cuti::logging_context_t const& context, x264_proto::format_t format)
 {
   x264_es_utils::encoder_settings_t encoder_settings;
   encoder_settings.deterministic_ = true;
@@ -64,7 +64,6 @@ void run_session(cuti::logging_context_t const& context)
   constexpr uint32_t width = 640;
   constexpr uint32_t height = 480;
 #endif
-  constexpr auto format = x264_proto::format_t::YUV420P10LE;
   auto session_params = common::make_test_session_params(
     timescale, bitrate, width, height, format);
 
@@ -82,7 +81,7 @@ void run_session(cuti::logging_context_t const& context)
 #else
   constexpr size_t count = 42;
   auto frames = common::make_test_frames(count, gop_size,
-    width, height, format, timescale, duration, common::black_10);
+    width, height, format, timescale, duration, common::black(format));
 #endif
 
   x264_es_utils::encoding_session_t session(
@@ -152,7 +151,13 @@ void test_session_in_main_thread(cuti::logging_context_t const& context)
     *msg << __func__ << ": starting";
   }
 
-  run_session(context);
+  for(auto format : {
+    x264_proto::format_t::NV12,
+    x264_proto::format_t::YUV420P,
+    x264_proto::format_t::YUV420P10LE })
+  {
+    run_session(context, format);
+  }
 
   if(auto msg = context.message_at(cuti::loglevel_t::info))
   {
@@ -167,8 +172,12 @@ void test_session_in_separate_thread(cuti::logging_context_t const& context)
     *msg << __func__ << ": starting";
   }
 
+  for(auto format : {
+    x264_proto::format_t::NV12,
+    x264_proto::format_t::YUV420P,
+    x264_proto::format_t::YUV420P10LE })
   {
-    cuti::scoped_thread_t runner([&] { run_session(context); });
+    cuti::scoped_thread_t runner([&] { run_session(context, format); });
   }
 
   if(auto msg = context.message_at(cuti::loglevel_t::info))

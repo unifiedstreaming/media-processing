@@ -96,6 +96,11 @@ struct yuv_t
 constexpr yuv_t black_8{0x10, 0x80, 0x80}; // (1<<8)/16, (1<<8)/2
 constexpr yuv_t black_10{0x40, 0x200, 0x200}; // (1<<10)/16, (1<<10)/2
 
+inline yuv_t black(x264_proto::format_t format)
+{
+  return format == x264_proto::format_t::YUV420P10LE ? black_10 : black_8;
+}
+
 x264_proto::session_params_t make_test_session_params(
   uint32_t timescale, uint32_t bitrate,
   uint32_t width, uint32_t height,
