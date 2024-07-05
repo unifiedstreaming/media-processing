@@ -165,19 +165,19 @@ uint8_t to_8bit(component_t component)
 
 std::vector<uint8_t> make_test_frame_data(
   uint32_t width, uint32_t height,
-  x264_proto::format_t format,
-  component_t y, component_t u, component_t v)
+  x264_proto::format_t format, yuv_t yuv)
 {
   switch(format)
   {
   case x264_proto::format_t::NV12:
     return make_test_frame_data_nv12(width, height,
-      to_8bit(y), to_8bit(v), to_8bit(v));
+      to_8bit(yuv.y_), to_8bit(yuv.u_), to_8bit(yuv.v_));
   case x264_proto::format_t::YUV420P:
     return make_test_frame_data_yuv420p(width, height,
-      to_8bit(y), to_8bit(v), to_8bit(v));
+      to_8bit(yuv.y_), to_8bit(yuv.u_), to_8bit(yuv.v_));
   case x264_proto::format_t::YUV420P10LE:
-    return make_test_frame_data_yuv420p10le(width, height, y, u, v);
+    return make_test_frame_data_yuv420p10le(width, height,
+      yuv.y_, yuv.u_, yuv.v_);
   default:
     cuti::system_exception_builder_t builder;
     builder << "bad x264_proto::format_t value " <<
@@ -211,10 +211,10 @@ x264_proto::frame_t make_test_frame(
   x264_proto::format_t format,
   uint64_t pts, uint32_t timescale,
   bool keyframe,
-  component_t y, component_t u, component_t v)
+  yuv_t yuv)
 {
   return make_test_frame(width, height, format, pts, timescale, keyframe,
-    make_test_frame_data(width, height, format, y, u, v));
+    make_test_frame_data(width, height, format, yuv));
 }
 
 std::vector<x264_proto::frame_t> make_test_frames(
@@ -222,7 +222,7 @@ std::vector<x264_proto::frame_t> make_test_frames(
   uint32_t width, uint32_t height,
   x264_proto::format_t format,
   uint32_t timescale, uint32_t duration,
-  component_t y, component_t u, component_t v)
+  yuv_t yuv)
 {
   std::vector<x264_proto::frame_t> frames;
 
@@ -231,7 +231,7 @@ std::vector<x264_proto::frame_t> make_test_frames(
   {
     bool keyframe = i % gop_size == 0;
     frames.push_back(
-      make_test_frame(width, height, format, pts, timescale, keyframe, y, u, v));
+      make_test_frame(width, height, format, pts, timescale, keyframe, yuv));
   }
 
   return frames;
@@ -240,7 +240,6 @@ std::vector<x264_proto::frame_t> make_test_frames(
 namespace // anonymous
 {
 
-using yuv_t = std::tuple<uint8_t, uint8_t, uint8_t>;
 using rgb_t = std::tuple<uint8_t, uint8_t, uint8_t>;
 
 constexpr uint8_t round(double d)
@@ -321,9 +320,9 @@ std::vector<x264_proto::frame_t> make_test_rainbow_frames(
   for(std::size_t i = 0; i < count; ++i, pts += duration, hue += hue_inc)
   {
     bool keyframe = i % gop_size == 0;
-    auto [y, u, v] = hsv2yuv(hue, sat, val);
+    auto yuv = hsv2yuv(hue, sat, val);
     frames.push_back(
-      make_test_frame(width, height, format, pts, timescale, keyframe, y, u, v));
+      make_test_frame(width, height, format, pts, timescale, keyframe, yuv));
   }
 
   return frames;

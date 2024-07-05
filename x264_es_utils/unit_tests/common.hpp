@@ -73,13 +73,28 @@ inline uint32_t hash(uint8_t const* first, size_t size)
 
 using component_t = uint16_t;
 
-constexpr component_t black_y_8 = 0x10; // (1 << 8) / 16
-constexpr component_t black_u_8 = 0x80; // (1 << 8) / 2
-constexpr component_t black_v_8 = 0x80; // (1 << 8) / 2
+struct yuv_t
+{
+  yuv_t() = delete;
+  constexpr yuv_t(component_t y, component_t u, component_t v)
+  : y_(y)
+  , u_(u)
+  , v_(v)
+  {}
 
-constexpr component_t black_y_10 = 0x0040; // (1 << 10) / 16
-constexpr component_t black_u_10 = 0x0200; // (1 << 10) / 2
-constexpr component_t black_v_10 = 0x0200; // (1 << 10) / 2
+  constexpr bool operator==(yuv_t const& rhs) const
+  { return y_ == rhs.y_ && u_ == rhs.u_ && v_ == rhs.v_; }
+
+  constexpr bool operator!=(yuv_t const& rhs) const
+  { return !(*this == rhs); }
+
+  component_t y_;
+  component_t u_;
+  component_t v_;
+};
+
+constexpr yuv_t black_8{0x10, 0x80, 0x80}; // (1<<8)/16, (1<<8)/2
+constexpr yuv_t black_10{0x40, 0x200, 0x200}; // (1<<10)/16, (1<<10)/2
 
 x264_proto::session_params_t make_test_session_params(
   uint32_t timescale, uint32_t bitrate,
@@ -89,21 +104,21 @@ x264_proto::session_params_t make_test_session_params(
 std::vector<uint8_t> make_test_frame_data(
   uint32_t width, uint32_t height,
   x264_proto::format_t format,
-  component_t y, component_t u, component_t v);
+  yuv_t yuv);
 
 x264_proto::frame_t make_test_frame(
   uint32_t width, uint32_t height,
   x264_proto::format_t format,
   uint64_t pts, uint32_t timescale,
   bool keyframe,
-  component_t y, component_t u, component_t v);
+  yuv_t yuv);
 
 std::vector<x264_proto::frame_t> make_test_frames(
   size_t count, size_t gop_size,
   uint32_t width, uint32_t height,
   x264_proto::format_t format,
   uint32_t timescale, uint32_t duration,
-  component_t y, component_t u, component_t v);
+  yuv_t yuv);
 
 std::vector<x264_proto::frame_t> make_test_rainbow_frames(
   size_t count, size_t gop_size,

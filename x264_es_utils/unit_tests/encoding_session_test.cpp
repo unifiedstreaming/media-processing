@@ -72,7 +72,7 @@ void run_session(cuti::logging_context_t const& context)
   constexpr uint32_t duration = 25;
 #if defined(ENCODING_SESSION_TEST_USE_FILE)
   auto frames = common::make_test_frames_from_file(
-    "encoding_session_test_input.nv12", gop_size, width, height, format,
+    "encoding_session_test_input.raw", gop_size, width, height, format,
     timescale, duration);
   auto count = frames.size();
 #elif defined(ENCODING_SESSION_TEST_USE_RAINBOW)
@@ -82,8 +82,7 @@ void run_session(cuti::logging_context_t const& context)
 #else
   constexpr size_t count = 42;
   auto frames = common::make_test_frames(count, gop_size,
-    width, height, format, timescale, duration,
-    common::black_y_10, common::black_u_10, common::black_v_10);
+    width, height, format, timescale, duration, common::black_10);
 #endif
 
   x264_es_utils::encoding_session_t session(
