@@ -137,6 +137,12 @@ bool frame_t::operator==(frame_t const& rhs) const
     && data_ == rhs.data_;
 }
 
+std::size_t frame_size(uint32_t width, uint32_t height, format_t format)
+{
+  return static_cast<std::size_t>(width) * height * 3 /
+    (format == format_t::YUV420P10LE ? 1 : 2);
+}
+
 sample_headers_t::sample_headers_t()
 : sps_()
 , pps_()

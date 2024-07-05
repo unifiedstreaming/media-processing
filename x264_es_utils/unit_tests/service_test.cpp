@@ -111,14 +111,14 @@ void test_encode(cuti::logging_context_t const& context,
   constexpr uint32_t bitrate = 400000;
   constexpr uint32_t width = 640;
   constexpr uint32_t height = 480;
-  constexpr auto format = x264_proto::format_t::NV12;
+  constexpr auto format = x264_proto::format_t::YUV420P;
   auto session_params = make_test_session_params(
     timescale, bitrate, width, height, format);
 
   constexpr size_t gop_size = 12;
   constexpr uint32_t duration = 25;
   auto frames = make_test_frames(count, gop_size,
-    width, height, timescale, duration, black_y, black_u, black_v);
+    width, height, format, timescale, duration, black_y_8, black_u_8, black_v_8);
 
   auto [sample_headers, samples] = client.encode(
     std::move(session_params), std::move(frames));
@@ -153,7 +153,7 @@ void test_streaming_encode(cuti::logging_context_t const& context,
   constexpr size_t gop_size = 12;
   constexpr uint32_t duration = 25;
   auto frames = make_test_frames(count, gop_size,
-    width, height, timescale, duration, black_y, black_u, black_v);
+    width, height, format, timescale, duration, black_y_8, black_u_8, black_v_8);
   
   bool sample_headers_received = false;
   auto sample_headers_consumer = [&](x264_proto::sample_headers_t headers)

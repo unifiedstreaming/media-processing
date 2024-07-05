@@ -24,6 +24,7 @@
 #undef NDEBUG
 #include <cassert>
 #include <fstream>
+#include <limits>
 
 x264_proto::session_params_t make_test_session_params(
   uint32_t timescale, uint32_t bitrate,
@@ -41,7 +42,7 @@ x264_proto::session_params_t make_test_session_params(
   return session_params;
 }
 
-std::vector<uint8_t> make_test_frame_data(
+std::vector<uint8_t> make_test_frame_data_nv12(
   uint32_t width, uint32_t height,
   uint8_t y, uint8_t u, uint8_t v)
 {
@@ -67,8 +68,84 @@ std::vector<uint8_t> make_test_frame_data(
   return data;
 }
 
+std::vector<uint8_t> make_test_frame_data_yuv420p(
+  uint32_t width, uint32_t height,
+  uint8_t y, uint8_t u, uint8_t v)
+{
+  std::vector<uint8_t> data;
+
+  uint32_t const size_y = width * height;
+  uint32_t const size_uv = width * height / 2;
+
+  data.insert(data.end(), size_y, y);
+  if(u == v)
+  {
+    data.insert(data.end(), size_uv, u);
+  }
+  else
+  {
+    data.insert(data.end(), size_uv / 2, u);
+    data.insert(data.end(), size_uv / 2, v);
+  }
+
+  return data;
+}
+
+std::vector<uint8_t> make_test_frame_data_yuv420p10le(
+  uint32_t width, uint32_t height,
+  uint16_t y, uint16_t u, uint16_t v)
+{
+  std::vector<uint8_t> data;
+
+  uint32_t const size_y = width * height;
+  uint32_t const size_uv = width * height / 2;
+
+  data.insert(data.end(), size_y, y);
+  if(u == v)
+  {
+    data.insert(data.end(), size_uv, u);
+  }
+  else
+  {
+    data.insert(data.end(), size_uv / 2, u);
+    data.insert(data.end(), size_uv / 2, v);
+  }
+
+  return data;
+}
+
+uint8_t to_8bit(component_t component)
+{
+  assert(component <= std::numeric_limits<uint8_t>::max());
+  return static_cast<uint8_t>(component);
+}
+
+std::vector<uint8_t> make_test_frame_data(
+  uint32_t width, uint32_t height,
+  x264_proto::format_t format,
+  component_t y, component_t u, component_t v)
+{
+  switch(format)
+  {
+  case x264_proto::format_t::NV12:
+    return make_test_frame_data_nv12(width, height,
+      to_8bit(y), to_8bit(v), to_8bit(v));
+  case x264_proto::format_t::YUV420P:
+    return make_test_frame_data_yuv420p(width, height,
+      to_8bit(y), to_8bit(v), to_8bit(v));
+  case x264_proto::format_t::YUV420P10LE:
+    return make_test_frame_data_yuv420p10le(width, height, y, u, v);
+  default:
+    cuti::system_exception_builder_t builder;
+    builder << "bad x264_proto::format_t value " <<
+      std::to_string(cuti::to_underlying(format));
+    builder.explode();
+  }
+}
+
 x264_proto::frame_t make_test_frame(
   uint32_t width, uint32_t height,
+  x264_proto::format_t format,
   uint64_t pts, uint32_t timescale,
   bool keyframe,
   std::vector<uint8_t>&& data)
@@ -77,6 +154,7 @@ x264_proto::frame_t make_test_frame(
 
   frame.width_ = width;
   frame.height_ = height;
+  frame.format_ = format;
   frame.pts_ = pts;
   frame.timescale_ = timescale;
   frame.keyframe_ = keyframe;
@@ -87,19 +165,21 @@ x264_proto::frame_t make_test_frame(
 
 x264_proto::frame_t make_test_frame(
   uint32_t width, uint32_t height,
+  x264_proto::format_t format,
   uint64_t pts, uint32_t timescale,
   bool keyframe,
-  uint8_t y, uint8_t u, uint8_t v)
+  component_t y, component_t u, component_t v)
 {
-  return make_test_frame(width, height, pts, timescale, keyframe,
-    make_test_frame_data(width, height, y, u, v));
+  return make_test_frame(width, height, format, pts, timescale, keyframe,
+    make_test_frame_data(width, height, format, y, u, v));
 }
 
 std::vector<x264_proto::frame_t> make_test_frames(
   size_t count, size_t gop_size,
   uint32_t width, uint32_t height,
+  x264_proto::format_t format,
   uint32_t timescale, uint32_t duration,
-  uint8_t y, uint8_t u, uint8_t v)
+  component_t y, component_t u, component_t v)
 {
   std::vector<x264_proto::frame_t> frames;
 
@@ -108,7 +188,7 @@ std::vector<x264_proto::frame_t> make_test_frames(
   {
     bool keyframe = i % gop_size == 0;
     frames.push_back(
-      make_test_frame(width, height, pts, timescale, keyframe, y, u, v));
+      make_test_frame(width, height, format, pts, timescale, keyframe, y, u, v));
   }
 
   return frames;
@@ -184,6 +264,7 @@ yuv_t hsv2yuv(double h, double s, double v)
 std::vector<x264_proto::frame_t> make_test_rainbow_frames(
   size_t count, size_t gop_size,
   uint32_t width, uint32_t height,
+  x264_proto::format_t format,
   uint32_t timescale, uint32_t duration)
 {
   std::vector<x264_proto::frame_t> frames;
@@ -199,7 +280,7 @@ std::vector<x264_proto::frame_t> make_test_rainbow_frames(
     bool keyframe = i % gop_size == 0;
     auto [y, u, v] = hsv2yuv(hue, sat, val);
     frames.push_back(
-      make_test_frame(width, height, pts, timescale, keyframe, y, u, v));
+      make_test_frame(width, height, format, pts, timescale, keyframe, y, u, v));
   }
 
   return frames;
@@ -208,6 +289,7 @@ std::vector<x264_proto::frame_t> make_test_rainbow_frames(
 std::vector<x264_proto::frame_t> make_test_frames_from_file(
   std::string filename, size_t gop_size,
   uint32_t width, uint32_t height,
+  x264_proto::format_t format,
   uint32_t timescale, uint32_t duration)
 {
   std::ifstream ifs(filename, std::ios::binary);
@@ -219,7 +301,7 @@ std::vector<x264_proto::frame_t> make_test_frames_from_file(
   }
 
   std::vector<x264_proto::frame_t> frames;
-  uint32_t const frame_size = width * height * 3 / 2;
+  size_t frame_size = x264_proto::frame_size(width, height, format);
 
   uint64_t pts = 0;
   for(size_t i = 0; ; ++i, pts += duration)
@@ -234,19 +316,19 @@ std::vector<x264_proto::frame_t> make_test_frames_from_file(
       builder.explode();
     }
     auto count = ifs.gcount();
-    if(count == 0)
+    if(count <= 0)
     {
       break;
     }
-    else if(count != frame_size)
+    else if(static_cast<size_t>(count) != frame_size)
     {
       cuti::system_exception_builder_t builder;
       builder << "could only read " << count << " bytes from " << filename <<
         ", expected to read " << frame_size;
       builder.explode();
     }
-    frames.push_back(make_test_frame(width, height, pts, timescale, keyframe,
-      std::move(data)));
+    frames.push_back(make_test_frame(width, height, format, pts, timescale,
+      keyframe, std::move(data)));
   }
 
   return frames;

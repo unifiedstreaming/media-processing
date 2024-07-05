@@ -115,6 +115,9 @@ struct X264_PROTO_ABI frame_t
   { return !(*this == rhs); }
 };
 
+X264_PROTO_ABI std::size_t frame_size(uint32_t width, uint32_t height,
+  format_t format);
+
 struct X264_PROTO_ABI sample_headers_t
 {
   sample_headers_t();

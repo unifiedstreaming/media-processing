@@ -64,7 +64,7 @@ void run_session(cuti::logging_context_t const& context)
   constexpr uint32_t width = 640;
   constexpr uint32_t height = 480;
 #endif
-  constexpr auto format = x264_proto::format_t::NV12;
+  constexpr auto format = x264_proto::format_t::YUV420P;
   auto session_params = make_test_session_params(
     timescale, bitrate, width, height, format);
 
@@ -72,16 +72,16 @@ void run_session(cuti::logging_context_t const& context)
   constexpr uint32_t duration = 25;
 #if defined(ENCODING_SESSION_TEST_USE_FILE)
   auto frames = make_test_frames_from_file("encoding_session_test_input.nv12",
-    gop_size, width, height, timescale, duration);
+    gop_size, width, height, format, timescale, duration);
   auto count = frames.size();
 #elif defined(ENCODING_SESSION_TEST_USE_RAINBOW)
   constexpr size_t count = 42;
   auto frames = make_test_rainbow_frames(count, gop_size,
-    width, height, timescale, duration);
+    width, height, format, timescale, duration);
 #else
   constexpr size_t count = 42;
   auto frames = make_test_frames(count, gop_size,
-    width, height, timescale, duration, black_y, black_u, black_v);
+    width, height, format, timescale, duration, black_y_8, black_u_8, black_v_8);
 #endif
 
   x264_es_utils::encoding_session_t session(

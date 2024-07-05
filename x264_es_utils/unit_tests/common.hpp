@@ -68,9 +68,15 @@ inline uint32_t hash(uint8_t const* first, size_t size)
 
 } // fnv1a32
 
-constexpr uint8_t black_y = 0x10; // 0x100 / 16
-constexpr uint8_t black_u = 0x80; // 0x100 / 2
-constexpr uint8_t black_v = 0x80; // 0x100 / 2
+using component_t = uint16_t;
+
+constexpr component_t black_y_8 = 0x10; // (1 << 8) / 16
+constexpr component_t black_u_8 = 0x80; // (1 << 8) / 2
+constexpr component_t black_v_8 = 0x80; // (1 << 8) / 2
+
+constexpr component_t black_y_10 = 0x0040; // (1 << 10) / 16
+constexpr component_t black_u_10 = 0x0200; // (1 << 10) / 2
+constexpr component_t black_v_10 = 0x0200; // (1 << 10) / 2
 
 x264_proto::session_params_t make_test_session_params(
   uint32_t timescale, uint32_t bitrate,
@@ -80,28 +86,32 @@ x264_proto::session_params_t make_test_session_params(
 std::vector<uint8_t> make_test_frame_data(
   uint32_t width, uint32_t height,
   x264_proto::format_t format,
-  uint8_t y, uint8_t u, uint8_t v);
+  component_t y, component_t u, component_t v);
 
 x264_proto::frame_t make_test_frame(
   uint32_t width, uint32_t height,
+  x264_proto::format_t format,
   uint64_t pts, uint32_t timescale,
   bool keyframe,
-  uint8_t y, uint8_t u, uint8_t v);
+  component_t y, component_t u, component_t v);
 
 std::vector<x264_proto::frame_t> make_test_frames(
   size_t count, size_t gop_size,
   uint32_t width, uint32_t height,
+  x264_proto::format_t format,
   uint32_t timescale, uint32_t duration,
-  uint8_t y, uint8_t u, uint8_t v);
+  component_t y, component_t u, component_t v);
 
 std::vector<x264_proto::frame_t> make_test_rainbow_frames(
   size_t count, size_t gop_size,
   uint32_t width, uint32_t height,
+  x264_proto::format_t format,
   uint32_t timescale, uint32_t duration);
 
 std::vector<x264_proto::frame_t> make_test_frames_from_file(
   std::string filename, size_t gop_size,
   uint32_t width, uint32_t height,
+  x264_proto::format_t format,
   uint32_t timescale, uint32_t duration);
 
 #endif //  X264_ES_UTILS_UNIT_TESTS_COMMON_HPP_

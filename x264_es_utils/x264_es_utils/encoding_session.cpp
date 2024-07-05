@@ -717,12 +717,7 @@ input_picture_t::input_picture_t(
 {
   int x264_csp = to_x264_csp(frame.format_);
 
-  size_t img_size = static_cast<size_t>(frame.width_) * frame.height_ * 3 / 2;
-  if(frame.format_ == x264_proto::format_t::YUV420P10LE)
-  {
-    // This format uses uint16_t for each Y, U and V pixel.
-    img_size *= 2;
-  }
+  size_t img_size = frame_size(frame.width_, frame.height_, frame.format_);
   if(frame.data_.size() != img_size)
   {
     x264_exception_builder_t builder;
