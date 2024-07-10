@@ -81,7 +81,7 @@ void run_session(cuti::logging_context_t const& context, x264_proto::format_t fo
 #else
   constexpr size_t count = 42;
   auto frames = common::make_test_frames(count, gop_size,
-    width, height, format, timescale, duration, common::black(format));
+    width, height, format, timescale, duration, common::yuv_black(format));
 #endif
 
   x264_es_utils::encoding_session_t session(

@@ -342,7 +342,7 @@ static_assert(rgb2yuv_bt709({0x3ff, 0x000, 0x000}) == yuv_t{0x0fa, 0x199, 0x3c0}
 static_assert(rgb2yuv_bt709({0x000, 0x3ff, 0x000}) == yuv_t{0x2b3, 0x0a7, 0x069}); // green
 static_assert(rgb2yuv_bt709({0x000, 0x000, 0x3ff}) == yuv_t{0x07f, 0x3c0, 0x1d7}); // blue
 
-rgb_t hsv2rgb(double h, double s, double v)
+rgb_t hsv2rgb(double h, double s, double v, double full)
 {
   assert(h >= 0.0 && h <= 1.0);
   assert(s >= 0.0 && s <= 1.0);
@@ -370,12 +370,14 @@ rgb_t hsv2rgb(double h, double s, double v)
   assert(g >= 0.0 && g <= 1.0);
   assert(b >= 0.0 && b <= 1.0);
 
-  return {round(r * 0xff), round(g * 0xff), round(b * 0xff)};
+  return {round(r * full), round(g * full), round(b * full)};
 }
 
-yuv_t hsv2yuv(double h, double s, double v)
+yuv_t hsv2yuv(double h, double s, double v, x264_proto::format_t format)
 {
-  return rgb2yuv_bt601(hsv2rgb(h, s, v));
+  return format == x264_proto::format_t::YUV420P10LE ?
+    rgb2yuv_bt709(hsv2rgb(h, s, v, 0x3ff)) :
+    rgb2yuv_bt601(hsv2rgb(h, s, v, 0xff));
 }
 
 } // anonymous
@@ -397,7 +399,7 @@ std::vector<x264_proto::frame_t> make_test_rainbow_frames(
   for(std::size_t i = 0; i < count; ++i, pts += duration, hue += hue_inc)
   {
     bool keyframe = i % gop_size == 0;
-    auto yuv = hsv2yuv(hue, sat, val);
+    auto yuv = hsv2yuv(hue, sat, val, format);
     frames.push_back(
       make_test_frame(width, height, format, pts, timescale, keyframe, yuv));
   }

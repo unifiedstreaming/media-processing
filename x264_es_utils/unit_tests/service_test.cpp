@@ -118,7 +118,7 @@ void test_encode(cuti::logging_context_t const& context,
   constexpr size_t gop_size = 12;
   constexpr uint32_t duration = 25;
   auto frames = common::make_test_frames(count, gop_size,
-    width, height, format, timescale, duration, common::black_8);
+    width, height, format, timescale, duration, common::yuv_black_8);
 
   auto [sample_headers, samples] = client.encode(
     std::move(session_params), std::move(frames));
@@ -153,7 +153,7 @@ void test_streaming_encode(cuti::logging_context_t const& context,
   constexpr size_t gop_size = 12;
   constexpr uint32_t duration = 25;
   auto frames = common::make_test_frames(count, gop_size,
-    width, height, format, timescale, duration, common::black_8);
+    width, height, format, timescale, duration, common::yuv_black_8);
   
   bool sample_headers_received = false;
   auto sample_headers_consumer = [&](x264_proto::sample_headers_t headers)
