@@ -22,6 +22,7 @@
 #include <cuti/system_error.hpp>
 
 #undef NDEBUG
+#include <array>
 #include <cassert>
 #include <fstream>
 #include <limits>
@@ -242,53 +243,104 @@ namespace // anonymous
 
 using rgb_t = std::tuple<component_t, component_t, component_t>;
 
+using coeff_matrix_t = std::array<std::array<double, 3>, 3>;
+
+constexpr coeff_matrix_t raw_matrix(double Kr, double Kg, double Kb)
+{
+  return {{
+    { Kr, Kg, Kb },
+    { -0.5 * (Kr / (1 - Kb)), -0.5 * (Kg / (1 - Kb)), 0.5 },
+    { 0.5, -0.5 * (Kg / (1 - Kr)), -0.5 * (Kb / (1 - Kr)) },
+  }};
+}
+
+constexpr coeff_matrix_t norm_matrix(coeff_matrix_t const& coeff_raw,
+                                     double norm_y, double norm_c)
+{
+  return {{
+    { coeff_raw[0][0] * norm_y, coeff_raw[0][1] * norm_y, coeff_raw[0][2] * norm_y },
+    { coeff_raw[1][0] * norm_c, coeff_raw[1][1] * norm_c, coeff_raw[1][2] * norm_c },
+    { coeff_raw[2][0] * norm_c, coeff_raw[2][1] * norm_c, coeff_raw[2][2] * norm_c },
+  }};
+}
+
 constexpr component_t round(double d)
 {
   return static_cast<component_t>(d + 0.5);
 }
 
+constexpr yuv_t adjust(coeff_matrix_t const& coeff_norm,
+                       component_t r, component_t g, component_t b,
+                       component_t base_y, component_t base_c)
+{
+  return {
+    round(coeff_norm[0][0] * r + coeff_norm[0][1] * g + coeff_norm[0][2] * b + base_y),
+    round(coeff_norm[1][0] * r + coeff_norm[1][1] * g + coeff_norm[1][2] * b + base_c),
+    round(coeff_norm[2][0] * r + coeff_norm[2][1] * g + coeff_norm[2][2] * b + base_c)
+  };
+}
+
 constexpr yuv_t rgb2yuv_bt601(rgb_t rgb)
 {
-  auto const& [r, g, b] = rgb;
-
   // from Rec. ITU-R BT.601-7
   constexpr double Kr = 0.299;
   constexpr double Kg = 0.587;
-  constexpr double Kb = 0.114;
+  constexpr double Kb = 0.114; // 1 - Kr - Kg
 
-  constexpr double coeff_raw[3][3] = {
-    { Kr, Kg, Kb },
-    { -0.5 * (Kr / (1 - Kb)), -0.5 * (Kg / (1 - Kb)), 0.5 },
-    { 0.5, -0.5 * (Kg / (1 - Kr)), -0.5 * (Kb / (1 - Kr)) },
-  };
+  constexpr auto coeff_raw = raw_matrix(Kr, Kg, Kb);
 
-  constexpr double levels_y = 235 - 16; // 219 quantization levels
-  constexpr double levels_c = 240 - 16; // 224 quantization levels
-  constexpr double full = 255; // full 8-bit quantization levels
+  constexpr double levels_y = 235 - 0x10; // 219 quantization levels
+  constexpr double levels_c = 240 - 0x10; // 224 quantization levels
+  constexpr double full = 0xff; // full 8-bit quantization levels
 
   constexpr double norm_y = levels_y / full; // normalization ratio
   constexpr double norm_c = levels_c / full; // normalization ratio
 
-  constexpr double coeff_norm[3][3] = {
-    { coeff_raw[0][0] * norm_y, coeff_raw[0][1] * norm_y, coeff_raw[0][2] * norm_y },
-    { coeff_raw[1][0] * norm_c, coeff_raw[1][1] * norm_c, coeff_raw[1][2] * norm_c },
-    { coeff_raw[2][0] * norm_c, coeff_raw[2][1] * norm_c, coeff_raw[2][2] * norm_c },
-  };
-
-  return {
-    round(coeff_norm[0][0] * r + coeff_norm[0][1] * g + coeff_norm[0][2] * b + 16 ),
-    round(coeff_norm[1][0] * r + coeff_norm[1][1] * g + coeff_norm[1][2] * b + 128),
-    round(coeff_norm[2][0] * r + coeff_norm[2][1] * g + coeff_norm[2][2] * b + 128)
-  };
+  constexpr auto coeff_norm = norm_matrix(coeff_raw, norm_y, norm_c);
+  auto const& [r, g, b] = rgb;
+  constexpr double base_y = 0x10;
+  constexpr double base_c = 0x80;
+  return adjust(coeff_norm, r, g, b, base_y, base_c);
 }
 
-static_assert(rgb2yuv_bt601({0x00, 0x00, 0x00}) == yuv_t{0x10, 0x80, 0x80});
-static_assert(rgb2yuv_bt601({0x80, 0x80, 0x80}) == yuv_t{0x7e, 0x80, 0x80});
-static_assert(rgb2yuv_bt601({0xff, 0xff, 0xff}) == yuv_t{0xeb, 0x80, 0x80});
+static_assert(rgb2yuv_bt601({0x00, 0x00, 0x00}) == yuv_t{0x10, 0x80, 0x80}); // black
+static_assert(rgb2yuv_bt601({0x80, 0x80, 0x80}) == yuv_t{0x7e, 0x80, 0x80}); // gray
+static_assert(rgb2yuv_bt601({0xff, 0xff, 0xff}) == yuv_t{0xeb, 0x80, 0x80}); // white
 
-static_assert(rgb2yuv_bt601({0x80, 0x00, 0x00}) == yuv_t{0x31, 0x6d, 0xb8});
-static_assert(rgb2yuv_bt601({0x00, 0x80, 0x00}) == yuv_t{0x51, 0x5b, 0x51});
-static_assert(rgb2yuv_bt601({0x00, 0x00, 0x80}) == yuv_t{0x1d, 0xb8, 0x77});
+static_assert(rgb2yuv_bt601({0x80, 0x00, 0x00}) == yuv_t{0x31, 0x6d, 0xb8}); // red
+static_assert(rgb2yuv_bt601({0x00, 0x80, 0x00}) == yuv_t{0x51, 0x5b, 0x51}); // green
+static_assert(rgb2yuv_bt601({0x00, 0x00, 0x80}) == yuv_t{0x1d, 0xb8, 0x77}); // blue
+
+constexpr yuv_t rgb2yuv_bt709(rgb_t rgb)
+{
+  // from Rec. ITU-R BT.709-6
+  constexpr double Kr = 0.2126;
+  constexpr double Kg = 0.7152;
+  constexpr double Kb = 0.0722; // 1 - Kr - Kg
+
+  constexpr auto coeff_raw = raw_matrix(Kr, Kg, Kb);
+
+  constexpr double levels_y = 940 - 0x40; // 876 quantization levels
+  constexpr double levels_c = 960 - 0x40; // 896 quantization levels
+  constexpr double full = 0x3ff; // full 10-bit quantization levels
+
+  constexpr double norm_y = levels_y / full; // normalization ratio
+  constexpr double norm_c = levels_c / full; // normalization ratio
+
+  constexpr auto coeff_norm = norm_matrix(coeff_raw, norm_y, norm_c);
+  auto const& [r, g, b] = rgb;
+  constexpr double base_y = 0x40;
+  constexpr double base_c = 0x200;
+  return adjust(coeff_norm, r, g, b, base_y, base_c);
+}
+
+static_assert(rgb2yuv_bt709({0x000, 0x000, 0x000}) == yuv_t{0x040, 0x200, 0x200}); // black
+static_assert(rgb2yuv_bt709({0x200, 0x200, 0x200}) == yuv_t{0x1f6, 0x200, 0x200}); // gray
+static_assert(rgb2yuv_bt709({0x3ff, 0x3ff, 0x3ff}) == yuv_t{0x3ac, 0x200, 0x200}); // white
+
+static_assert(rgb2yuv_bt709({0x3ff, 0x000, 0x000}) == yuv_t{0x0fa, 0x199, 0x3c0}); // red
+static_assert(rgb2yuv_bt709({0x000, 0x3ff, 0x000}) == yuv_t{0x2b3, 0x0a7, 0x069}); // green
+static_assert(rgb2yuv_bt709({0x000, 0x000, 0x3ff}) == yuv_t{0x07f, 0x3c0, 0x1d7}); // blue
 
 rgb_t hsv2rgb(double h, double s, double v)
 {
@@ -318,7 +370,7 @@ rgb_t hsv2rgb(double h, double s, double v)
   assert(g >= 0.0 && g <= 1.0);
   assert(b >= 0.0 && b <= 1.0);
 
-  return {round(r * 255), round(g * 255), round(b * 255)};
+  return {round(r * 0xff), round(g * 0xff), round(b * 0xff)};
 }
 
 yuv_t hsv2yuv(double h, double s, double v)
