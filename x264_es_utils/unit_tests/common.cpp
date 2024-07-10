@@ -240,20 +240,45 @@ std::vector<x264_proto::frame_t> make_test_frames(
 namespace // anonymous
 {
 
-using rgb_t = std::tuple<uint8_t, uint8_t, uint8_t>;
+using rgb_t = std::tuple<component_t, component_t, component_t>;
 
-constexpr uint8_t round(double d)
+constexpr component_t round(double d)
 {
-  return static_cast<uint8_t>(d + 0.5);
+  return static_cast<component_t>(d + 0.5);
 }
 
 constexpr yuv_t rgb2yuv_bt601(rgb_t rgb)
 {
   auto const& [r, g, b] = rgb;
+
+  // from Rec. ITU-R BT.601-7
+  constexpr double Kr = 0.299;
+  constexpr double Kg = 0.587;
+  constexpr double Kb = 0.114;
+
+  constexpr double coeff_raw[3][3] = {
+    { Kr, Kg, Kb },
+    { -0.5 * (Kr / (1 - Kb)), -0.5 * (Kg / (1 - Kb)), 0.5 },
+    { 0.5, -0.5 * (Kg / (1 - Kr)), -0.5 * (Kb / (1 - Kr)) },
+  };
+
+  constexpr double levels_y = 235 - 16; // 219 quantization levels
+  constexpr double levels_c = 240 - 16; // 224 quantization levels
+  constexpr double full = 255; // full 8-bit quantization levels
+
+  constexpr double norm_y = levels_y / full; // normalization ratio
+  constexpr double norm_c = levels_c / full; // normalization ratio
+
+  constexpr double coeff_norm[3][3] = {
+    { coeff_raw[0][0] * norm_y, coeff_raw[0][1] * norm_y, coeff_raw[0][2] * norm_y },
+    { coeff_raw[1][0] * norm_c, coeff_raw[1][1] * norm_c, coeff_raw[1][2] * norm_c },
+    { coeff_raw[2][0] * norm_c, coeff_raw[2][1] * norm_c, coeff_raw[2][2] * norm_c },
+  };
+
   return {
-    round( 0.257 * r + 0.504 * g + 0.098 * b + 16 ),
-    round(-0.148 * r - 0.291 * g + 0.439 * b + 128),
-    round( 0.439 * r - 0.368 * g - 0.071 * b + 128)
+    round(coeff_norm[0][0] * r + coeff_norm[0][1] * g + coeff_norm[0][2] * b + 16 ),
+    round(coeff_norm[1][0] * r + coeff_norm[1][1] * g + coeff_norm[1][2] * b + 128),
+    round(coeff_norm[2][0] * r + coeff_norm[2][1] * g + coeff_norm[2][2] * b + 128)
   };
 }
 
