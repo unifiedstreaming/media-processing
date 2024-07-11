@@ -298,8 +298,8 @@ constexpr yuv_t rgb2yuv_bt601(rgb_t rgb)
 
   constexpr auto coeff_norm = norm_matrix(coeff_raw, norm_y, norm_c);
   auto const& [r, g, b] = rgb;
-  constexpr double base_y = 0x10;
-  constexpr double base_c = 0x80;
+  constexpr component_t base_y = 0x10;
+  constexpr component_t base_c = 0x80;
   return adjust(coeff_norm, r, g, b, base_y, base_c);
 }
 
@@ -329,8 +329,8 @@ constexpr yuv_t rgb2yuv_bt709(rgb_t rgb)
 
   constexpr auto coeff_norm = norm_matrix(coeff_raw, norm_y, norm_c);
   auto const& [r, g, b] = rgb;
-  constexpr double base_y = 0x40;
-  constexpr double base_c = 0x200;
+  constexpr component_t base_y = 0x40;
+  constexpr component_t base_c = 0x200;
   return adjust(coeff_norm, r, g, b, base_y, base_c);
 }
 
