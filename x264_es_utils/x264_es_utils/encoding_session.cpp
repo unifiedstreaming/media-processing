@@ -108,7 +108,6 @@ struct input_picture_t
 {
 public:
   input_picture_t(
-    cuti::logging_context_t const& logging_context,
     x264_proto::frame_t const& frame);
 
   input_picture_t(input_picture_t const&) = delete;
@@ -124,11 +123,10 @@ public:
   ~input_picture_t();
 
 private :
-  cuti::logging_context_t const& logging_context_;
   x264_picture_t picture_;
 };
 
-inline
+[[maybe_unused]]
 std::ostream& operator<<(std::ostream& os, input_picture_t const& rhs)
 {
   rhs.print(os);
@@ -154,7 +152,6 @@ struct wrap_x264_encoder_t
   int flush(x264_output_t& output) const;
 
 private :
-  cuti::logging_context_t const& logging_context_;
   wrap_x264_param_t param_;
   x264_handle_t handle_;
 };
@@ -465,6 +462,31 @@ wrap_x264_param_t::wrap_x264_param_t(
   }
 }
 
+template<typename P, typename = std::enable_if_t<std::is_pointer_v<P>>>
+struct ptr_repr_t
+{
+  explicit ptr_repr_t(P const& p) : p_(p) {}
+  P const& p_;
+};
+
+template<typename P, typename = std::enable_if_t<std::is_pointer_v<P>>>
+std::ostream& operator<<(std::ostream& os, ptr_repr_t<P> const& rhs)
+{
+  if(rhs.p_ == nullptr)
+  {
+    os << "(null)";
+  }
+  else if constexpr(std::is_same_v<char, std::remove_cv_t<std::remove_pointer_t<P>>>)
+  {
+    os << rhs.p_;
+  }
+  else
+  {
+    os << reinterpret_cast<void const*>(rhs.p_);
+  }
+  return os;
+}
+
 void wrap_x264_param_t::print(std::ostream& os) const
 {
   os << "{x264_param_t at " << &param_ << ":"
@@ -513,16 +535,12 @@ void wrap_x264_param_t::print(std::ostream& os) const
      << " b_interlaced="                << param_.b_interlaced
      << " b_constrained_intra="         << param_.b_constrained_intra
      << " i_cqm_preset="                << param_.i_cqm_preset
-     << " psz_cqm_file="
-     << static_cast<void const*>(param_.psz_cqm_file)
-     << " pf_log="
-     << reinterpret_cast<void const*>(param_.pf_log)
-     << " p_log_private="
-     << static_cast<void const*>(param_.p_log_private)
+     << " psz_cqm_file="                << ptr_repr_t(param_.psz_cqm_file)
+     << " pf_log="                      << ptr_repr_t(param_.pf_log)
+     << " p_log_private="               << ptr_repr_t(param_.p_log_private)
      << " i_log_level="                 << param_.i_log_level
      << " b_full_recon="                << param_.b_full_recon
-     << " psz_dump_yuv="
-     << static_cast<void const*>(param_.psz_dump_yuv)
+     << " psz_dump_yuv="                << ptr_repr_t(param_.psz_dump_yuv)
      << " analyse.intra="               << param_.analyse.intra
      << " analyse.inter="               << param_.analyse.inter
      << " analyse.b_transform_8x8="     << param_.analyse.b_transform_8x8
@@ -570,17 +588,15 @@ void wrap_x264_param_t::print(std::ostream& os) const
      << " rc.b_mb_tree="                << param_.rc.b_mb_tree
      << " rc.i_lookahead="              << param_.rc.i_lookahead
      << " rc.b_stat_write="             << param_.rc.b_stat_write
-     << " rc.psz_stat_out="             << param_.rc.psz_stat_out
+     << " rc.psz_stat_out="             << ptr_repr_t(param_.rc.psz_stat_out)
      << " rc.b_stat_read="              << param_.rc.b_stat_read
-     << " rc.psz_stat_in="              << param_.rc.psz_stat_in
+     << " rc.psz_stat_in="              << ptr_repr_t(param_.rc.psz_stat_in)
      << " rc.f_qcompress="              << param_.rc.f_qcompress
      << " rc.f_qblur="                  << param_.rc.f_qblur
      << " rc.f_complexity_blur="        << param_.rc.f_complexity_blur
-     << " rc.zones="
-     << static_cast<void const*>(param_.rc.zones)
+     << " rc.zones="                    << ptr_repr_t(param_.rc.zones)
      << " rc.i_zones="                  << param_.rc.i_zones
-     << " rc.psz_zones="
-     << static_cast<void const*>(param_.rc.psz_zones)
+     << " rc.psz_zones="                << ptr_repr_t(param_.rc.psz_zones)
      << " crop_rect.i_left="            << param_.crop_rect.i_left
      << " crop_rect.i_top="             << param_.crop_rect.i_top
      << " crop_rect.i_right="           << param_.crop_rect.i_right
@@ -603,19 +619,16 @@ void wrap_x264_param_t::print(std::ostream& os) const
      << " b_stitchable="                << param_.b_stitchable
      << " b_opencl="                    << param_.b_opencl
      << " i_opencl_device="             << param_.i_opencl_device
-     << " opencl_device_id="            << param_.opencl_device_id
-     << " psz_clbin_file="              << param_.psz_clbin_file
+     << " opencl_device_id="            << ptr_repr_t(param_.opencl_device_id)
+     << " psz_clbin_file="              << ptr_repr_t(param_.psz_clbin_file)
      << " i_slice_max_size="            << param_.i_slice_max_size
      << " i_slice_max_mbs="             << param_.i_slice_max_mbs
      << " i_slice_min_mbs="             << param_.i_slice_min_mbs
      << " i_slice_count="               << param_.i_slice_count
      << " i_slice_count_max="           << param_.i_slice_count_max
-     << " param_free="
-     << reinterpret_cast<void const *>(param_.param_free)
-     << " nalu_process="
-     << reinterpret_cast<void const *>(param_.nalu_process)
-     << " opaque="                      << param_.opaque
-     << reinterpret_cast<void const *>(param_.opaque)
+     << " param_free="                  << ptr_repr_t(param_.param_free)
+     << " nalu_process="                << ptr_repr_t(param_.nalu_process)
+     << " opaque="                      << ptr_repr_t(param_.opaque)
      << '}'
      ;
 }
@@ -710,10 +723,7 @@ std::ostream& operator<<(std::ostream& os, x264_picture_t const& rhs)
   return os;
 }
 
-input_picture_t::input_picture_t(
-  cuti::logging_context_t const& logging_context,
-  x264_proto::frame_t const& frame)
-: logging_context_(logging_context)
+input_picture_t::input_picture_t(x264_proto::frame_t const& frame)
 {
   int x264_csp = to_x264_csp(frame.format_);
 
@@ -844,8 +854,7 @@ wrap_x264_encoder_t::wrap_x264_encoder_t(
   cuti::logging_context_t const& logging_context,
   encoder_settings_t const& encoder_settings,
   x264_proto::session_params_t const& session_params)
-: logging_context_(logging_context)
-, param_(logging_context, encoder_settings, session_params)
+: param_(logging_context, encoder_settings, session_params)
 , handle_(param_.create_x264_handle())
 {
 }
@@ -981,7 +990,7 @@ struct encoding_session_t::impl_t
     ++frame_count_;
 
     x264_output_t output;
-    input_picture_t pic_in(logging_context_, frame);
+    input_picture_t pic_in(frame);
     int num_bytes = encoder_.encode(output, pic_in);
     if(num_bytes < 0)
     {
