@@ -21,6 +21,8 @@
 
 #include "service.hpp"
 
+#include <x264_proto/default_endpoints.hpp>
+
 #include <cuti/args_reader.hpp>
 #include <cuti/cmdline_reader.hpp>
 #include <cuti/config_file_reader.hpp>
@@ -36,12 +38,6 @@
 namespace // anonymous
 {
 
-std::vector<cuti::endpoint_t>
-default_endpoints()
-{
-  return cuti::local_interfaces(11264);
-}
-  
 char const* copyright_notice()
 {
   return
@@ -160,7 +156,7 @@ config_t::create_service(cuti::logging_context_t& context) const
   auto endpoints = endpoints_;
   if(endpoints.empty())
   {
-    endpoints = default_endpoints();
+    endpoints = x264_proto::default_endpoints();
   }
 
   auto result = std::make_unique<service_t>(
@@ -304,7 +300,7 @@ void config_t::print_usage(std::ostream& os)
     "add endpoint to listen on" << std::endl;
   os << "                             (defaults:";
   {
-    auto defaults = default_endpoints();
+    auto defaults = x264_proto::default_endpoints();
     for(auto const& endpoint : defaults)
     {
       os << ' ' << endpoint;

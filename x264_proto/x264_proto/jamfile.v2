@@ -26,6 +26,7 @@ lib-dir = [ usp-builder.stage-lib-dir ] ;
 lib x264_proto
 :
   client.cpp
+  default_endpoints.cpp
   types.cpp
   $(lib-dir)/jamfiles/cuti//cuti
 :
