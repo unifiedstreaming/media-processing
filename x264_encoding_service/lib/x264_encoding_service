@@ -4,7 +4,7 @@ name=x264_encoding_service
 cfgfile=/etc/x264_encoding_service.conf
 pidfile=/tmp/x264_encoding_service.pid
 command=/usr/bin/x264_encoding_service
-command_args="--config $cfgfile --pidfile $pidfile"
+command_args="--config $cfgfile --daemon --pidfile $pidfile"
 
 depend() {
   need net
