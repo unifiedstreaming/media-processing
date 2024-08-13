@@ -672,7 +672,7 @@ bjam-test-project = $(if $(call is-enabled,$1,$(bjam-test-keys)),$(call expand,$
 )))
 
 #
-# $(call package-impl,<package name>,<project>*,<prereq-package>*,<license>,<doc file>*,<conf file>*,<service file>*,<openrc file>*,<apache conf-file>*,<apache-load-file>*,<version>,<revision>?,<add debug package>?,<extra prereq system package>*)
+# $(call package-impl,<package name>,<project>*,<prereq-package>*,<license>,<doc file>*,<conf file>*,<service file>*,<openrc file>*,<apache conf-file>*,<apache-load-file>*,<version>,<revision>?,<add debug package>?,<extra prereq system package>*,<require user>?,<require group>?)
 #
 define package-impl =
 #
@@ -693,6 +693,8 @@ $1.package-version := $(11)
 $1.package-revision := $(if $(12),$(12),1)
 $1.package-add-debug-package := $(if $(13),yes)
 $1.package-extra-prereq-system-packages := $(14)
+$1.package-require-user := $(15)
+$1.package-require-group := $(16)
 
 endef
 
@@ -730,7 +732,9 @@ package-keys := \
   version \
   revision \
   add-debug-package \
-  extra-prereq-system-packages
+  extra-prereq-system-packages \
+  require-user \
+  require-group
   
 package = $(if $(call is-enabled,$1,$(package-keys)),$(call expand,$(call call-stripped, \
   package-impl, \
@@ -747,7 +751,9 @@ package = $(if $(call is-enabled,$1,$(package-keys)),$(call expand,$(call call-s
   $(call checked-package-version-or-revision,version,$(call get-value,version,$1,$(package-keys))), \
   $(call checked-package-version-or-revision,revision,$(call find-value,revision,$1,$(package-keys))), \
   $(call find-boolean-value,add-debug-package,$1,$(package-keys),yes), \
-  $(call find-values,extra-prereq-system-packages,$1,$(package-keys)) \
+  $(call find-values,extra-prereq-system-packages,$1,$(package-keys)), \
+  $(call find-value,require-user,$1,$(package-keys)), \
+  $(call find-value,require-group,$1,$(package-keys)) \
 )))
 
 #

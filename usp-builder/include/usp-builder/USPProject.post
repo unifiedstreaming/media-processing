@@ -180,6 +180,8 @@ native-packager-settings = $(strip \
   $(foreach p,$($1.package-prereqs),$($p.package-$2-name).package-version="$($p.package-version)" $($p.package-$2-name).package-revision="$($p.package-revision)") \
   add-debug-package=$(if $($1.package-add-debug-package),yes,no) \
   extra-prereq-system-packages="$(call mapped-package-names,$($1.package-extra-prereq-system-packages),$2)" \
+  require-user="$($1.package-require-user)" \
+  require-group="$($1.package-require-group)" \
 )
 
 #
