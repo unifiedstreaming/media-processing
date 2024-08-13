@@ -112,6 +112,24 @@ Priority: optional
 endef
 
 #
+# $(call postinst-content,<require user>?,<require group>?)
+#
+define postinst-content =
+#!/bin/sh
+set -e
+
+case "$$1" in
+configure)
+  $(if $2,if ! getent group "$2" >/dev/null 2>&1 ; then$(newline)    addgroup --quiet --system "$2"$(newline)  fi)
+  $(if $1,if ! getent passwd "$1" >/dev/null 2>&1 ; then$(newline)    adduser --quiet --system$(if $2, --ingroup "$2") --no-create-home --home /nonexistent "$1"$(newline)  fi)
+  ;;
+esac
+
+#DEBHELPER#
+
+endef
+
+#
 # $(call make-artifact-dirs,<package>,<deb-work-dir>,<artifact>*)
 #
 make-artifact-dirs = $(foreach d,$(call distro-dirs,$3),$(newline)$(tab)$(usp-mkdir-p) "$(call to-shell,$2/debian/$1/$d)")
@@ -223,6 +241,8 @@ override deb-work-dir := $(packaging-work-dir)/$(deb-package-basename)
 
 override artifacts := $(patsubst $(artifacts-dir)/%,%,$(call find-files-and-links,$(artifacts-dir)))
 
+override postinst-file := $(if $(strip $(require-user) $(require-group)),$(deb-work-dir)/debian/$(package).postinst)
+
 #
 # Rules
 #
@@ -245,6 +265,7 @@ $(packaging-work-dir)/$(deb-package-filename): \
   $(deb-work-dir)/debian/compat \
   $(deb-work-dir)/debian/control \
   $(deb-work-dir)/debian/rules \
+  $(postinst-file) \
   | $(packaging-work-dir)
 	unset MAKEFLAGS && cd "$(call to-shell,$(deb-work-dir))" && dpkg-buildpackage -us -uc -b 
 
@@ -268,6 +289,10 @@ $(deb-work-dir)/debian/rules: $(deb-work-dir)/debian
 	$(info generated $@)
 	chmod +x "$(call to-shell,$@)"
 
+$(postinst-file): $(deb-work-dir)/debian
+	$(file >$@,$(call postinst-content,$(require-user),$(require-group)))
+	$(info generated $@)
+	
 $(deb-work-dir)/debian: clean-deb-work-dir
 	$(usp-mkdir-p) "$(call to-shell,$@)"
 

@@ -198,3 +198,6 @@ override openrc-files := $(foreach f,$(openrc-files),$(call non-relative-path,$f
 
 override service-files := $(foreach f,$(service-files),$(call non-relative-path,$f))
 
+override require-user := $(strip $(require-user))
+
+override require-group := $(strip $(require-group))
