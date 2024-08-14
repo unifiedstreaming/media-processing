@@ -118,12 +118,8 @@ define postinst-content =
 #!/bin/sh
 set -e
 
-case "$$1" in
-configure)
-  $(if $2,if ! getent group "$2" >/dev/null 2>&1 ; then$(newline)    addgroup --quiet --system "$2"$(newline)  fi)
-  $(if $1,if ! getent passwd "$1" >/dev/null 2>&1 ; then$(newline)    adduser --quiet --system$(if $2, --ingroup "$2") --no-create-home --home /nonexistent "$1"$(newline)  fi)
-  ;;
-esac
+$(if $2,if ! getent group "$2" >/dev/null 2>&1 ; then$(newline)  addgroup --quiet --system "$2"$(newline)fi)
+$(if $1,if ! getent passwd "$1" >/dev/null 2>&1 ; then$(newline)  adduser --quiet --system$(if $2, --ingroup "$2") --no-create-home --home / "$1"$(newline)fi)
 
 #DEBHELPER#
 
