@@ -81,6 +81,30 @@ requires-line-impl = $(if $(strip $1),Requires: $(strip $1),# No explicit Requir
 requires-line = $(call requires-line-impl,$(call requires-listing,$1,$2))
 
 #
+# $(call add-group-post,<group>)
+#
+define add-group-post =
+
+if ! getent group "$1" >/dev/null 2>&1 ; then
+  # Group does not exist; create it
+  groupadd --system "$1" || :
+fi
+
+endef
+
+#
+# $(call add-user-post,<user>,<group>?)
+#
+define add-user-post =
+
+if ! getent passwd "$1" >/dev/null 2>&1 ; then
+  # User does not exist; create it
+  useradd --system --home-dir / --no-create-home$(if $2, --no-user-group --gid "$2") --shell /sbin/nologin "$1" || :
+fi
+
+endef
+
+#
 # $(call service-post,<service name>)
 # (stolen form systemd-rpm-macros package which is not available on Centos7)
 #
@@ -183,7 +207,7 @@ override rpm-work-dir := $(packaging-work-dir)/$(rpm-package-basename)
 override artifacts := $(patsubst $(artifacts-dir)/%,%,$(call find-files-and-links,$(artifacts-dir)))
 
 #
-# $(call spec-file-content,<package>,<version>,<revision>,<description>,<license>,<prereq-package>*,<source artifact dir>,<source artifact>*,<conf file>,<doc file>*,<service file>*,<apache conf file>*,<add debug package>?,<required system package>*)
+# $(call spec-file-content,<package>,<version>,<revision>,<description>,<license>,<prereq-package>*,<source artifact dir>,<source artifact>*,<conf file>,<doc file>*,<service file>*,<apache conf file>*,<add debug package>?,<required system package>*,<require-user>?,<require-group>?)
 #
 # Please note that, in contrast to the way Debian handles things, the
 # default rpm systemd postinstall hook does not enable or start any
@@ -250,6 +274,8 @@ $(if $(strip $(12)),$(newline)$(usp-mkdir-p) "%{buildroot}%{_httpd_confdir}")
 $(foreach f,$(12),$(newline)$(call subst-or-copy-apache-conf,$f,%{buildroot}%{_httpd_confdir},15-))
 
 %post
+$(if $(strip $(16)),$(call add-group-post,$(16)))
+$(if $(strip $(15)),$(call add-user-post,$(15),$(16)))
 $(foreach f,$(11),$(call service-post,$(call service-name,$f)))
 
 %preun
@@ -282,7 +308,7 @@ $(rpm-work-dir)/RPMS/$(rpm-arch)/$(rpm-package-filename): $(rpm-work-dir)/SPECS/
 	rpmbuild -bb --define '_topdir $(rpm-work-dir)' $<
 
 $(rpm-work-dir)/SPECS/$(package).spec: $(rpm-work-dir)/SPECS
-	$(file >$@,$(call spec-file-content,$(package),$(pkg-version),$(pkg-revision),$(pkg-description),$(license),$(addsuffix ,$(prereq-packages)),$(artifacts-dir),$(artifacts),$(conf-files),$(doc-files),$(service-files),$(apache-conf-files),$(add-debug-package),$(extra-prereq-system-packages)))
+	$(file >$@,$(call spec-file-content,$(package),$(pkg-version),$(pkg-revision),$(pkg-description),$(license),$(addsuffix ,$(prereq-packages)),$(artifacts-dir),$(artifacts),$(conf-files),$(doc-files),$(service-files),$(apache-conf-files),$(add-debug-package),$(extra-prereq-system-packages),$(require-user),$(require-group)))
 	$(info generated $@)
 
 $(rpm-work-dir)/SPECS: clean-rpm-work-dir
