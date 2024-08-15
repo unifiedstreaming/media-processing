@@ -124,6 +124,14 @@ override abuild-pkgs-dir := $(abuild-output-dir)/apk/$(apk-arch)
 override artifacts := $(patsubst $(artifacts-dir)/%,%,$(call find-files-and-links,$(artifacts-dir)))
 
 #
+# Determine installation scripts
+#
+override post-install-script := $(if $(strip $(openrc-files)),$(package).post-install)
+override post-upgrade-script := $(if $(strip $(openrc-files)),$(package).post-upgrade)
+override pre-deinstall-script := $(if $(strip $(openrc-files)),$(package).pre-deinstall)
+override installation-scripts := $(strip $(post-install-script) $(post-upgrade-script) $(pre-deinstall-script))
+
+#
 # $ (call fake-git-content)
 #
 define fake-git-content :=
@@ -133,10 +141,21 @@ exit 0
 endef
 
 #
-# $(call post-install-content,<service name>*)
+# $(call require-user-group-content,<user>?,<group>?)
+#
+define require-user-group-content =
+
+$(if $2,if ! getent group "$2" >/dev/null 2>&1 ; then$(newline)  addgroup -S "$2"$(newline)fi)
+$(if $1,if ! getent passwd "$1" >/dev/null 2>&1 ; then$(newline)  adduser -S -g "" -h / -H$(if $2, -G "$2") -s /sbin/nologin "$1"$(newline)fi)
+
+endef
+
+#
+# $(call post-install-content,<service name>*,<require user>?,<require group>?)
 #
 define post-install-content =
 #!/bin/sh
+$(if $(strip $2 $3),$(call require-user-group-content,$2,$3))
 $(foreach s,$1,$(newline)rc-update add $s default)
 
 exit 0
@@ -156,10 +175,11 @@ exit 0
 endef
 
 #
-# $(call post-upgrade-content,<service name>*)
+# $(call post-upgrade-content,<service name>*<require user>?,<require group>?)
 #
 define post-upgrade-content =
 #!/bin/sh
+$(if $(strip $2 $3),$(call require-user-group-content,$2,$3))
 $(foreach s,$1,$(newline)rc-service --ifstarted $s restart)
 
 exit 0
@@ -167,7 +187,7 @@ exit 0
 endef
 
 #
-# $(call apkbuild-content,<package>,<version>,<revision>,<description>,<maintainer>,<prereq package>*,<license>,<artifacts-dir>,<artifact>*,<conf file>*,<doc file>*,<openrc file>*,<apache conf file>*,<add debug package>?,<required system package>*)
+# $(call apkbuild-content,<package>,<version>,<revision>,<description>,<maintainer>,<prereq package>*,<license>,<artifacts-dir>,<artifact>*,<conf file>*,<doc file>*,<openrc file>*,<apache conf file>*,<add debug package>?,<required system package>*,<installation script>*)
 #
 define apkbuild-content =
 pkgname="$1"
@@ -182,7 +202,7 @@ depends="$(call depends-listing,$(15),$6)"
 subpackages="$(foreach s,$(if $(14),$$pkgname-dbg) $(if $(11),$$pkgname-doc),$s)"
 source=""
 options="!fhs$(if $(14),, !dbg !strip)"
-$(if $(strip $(12)),install="$1.post-install $1.pre-deinstall $1.post-upgrade")
+$(if $(strip $(16)),install="$(strip $(16))")
 
 prepare() {
   default_prepare
@@ -248,11 +268,11 @@ apk-package: build-apk-packages
 .PHONY: build-apk-packages
 build-apk-packages: $(apk-work-dir)/APKBUILD \
   $(apk-work-dir)/fake-git/git \
-  $(if $(strip $(openrc-files)),$(addprefix $(apk-work-dir)/$(package),.post-install .pre-deinstall .post-upgrade))
+  $(addprefix $(apk-work-dir)/,$(installation-scripts))
 	cd "$(call to-shell,$(apk-work-dir))" && abuild -m -d -P "$(call to-shell,$(abuild-output-dir))"
 	
 $(apk-work-dir)/APKBUILD: clean-apk-work-dir
-	$(file >$@,$(call apkbuild-content,$(package),$(pkg-version),$(pkg-revision),$(pkg-description),$(pkg-maintainer),$(prereq-packages),$(license),$(artifacts-dir),$(artifacts),$(conf-files),$(doc-files),$(openrc-files),$(apache-conf-files),$(add-debug-package),$(extra-prereq-system-packages)))
+	$(file >$@,$(call apkbuild-content,$(package),$(pkg-version),$(pkg-revision),$(pkg-description),$(pkg-maintainer),$(prereq-packages),$(license),$(artifacts-dir),$(artifacts),$(conf-files),$(doc-files),$(openrc-files),$(apache-conf-files),$(add-debug-package),$(extra-prereq-system-packages),$(installation-scripts)))
 	$(info generated $@)
 	
 #
@@ -267,18 +287,18 @@ $(apk-work-dir)/fake-git/git: $(apk-work-dir)/fake-git
 $(apk-work-dir)/fake-git: clean-apk-work-dir
 	$(usp-mkdir-p) "$(call to-shell,$@)"
 
-$(apk-work-dir)/$(package).post-install: clean-apk-work-dir
-	$(file >$@,$(call post-install-content,$(foreach f,$(openrc-files),$(call service-name,$f))))
+$(addprefix $(apk-work-dir)/,$(post-install-script)): clean-apk-work-dir
+	$(file >$@,$(call post-install-content,$(foreach f,$(openrc-files),$(call service-name,$f)),$(require-user),$(require-group)))
 	$(info generated $@)
 	chmod +x "$(call to-shell,$@)"
 	
-$(apk-work-dir)/$(package).pre-deinstall: clean-apk-work-dir
+$(addprefix $(apk-work-dir)/,$(pre-deinstall-script)): clean-apk-work-dir
 	$(file >$@,$(call pre-deinstall-content,$(foreach f,$(openrc-files),$(call service-name,$f))))
 	$(info generated $@)
 	chmod +x "$(call to-shell,$@)"
 	
-$(apk-work-dir)/$(package).post-upgrade: clean-apk-work-dir
-	$(file >$@,$(call post-upgrade-content,$(foreach f,$(openrc-files),$(call service-name,$f))))
+$(addprefix $(apk-work-dir)/,$(post-upgrade-script)): clean-apk-work-dir
+	$(file >$@,$(call post-upgrade-content,$(foreach f,$(openrc-files),$(call service-name,$f)),$(require-user),$(require-group)))
 	$(info generated $@)
 	chmod +x "$(call to-shell,$@)"
 	
