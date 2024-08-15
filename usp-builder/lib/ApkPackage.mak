@@ -126,8 +126,8 @@ override artifacts := $(patsubst $(artifacts-dir)/%,%,$(call find-files-and-link
 #
 # Determine installation scripts
 #
-override post-install-script := $(if $(strip $(openrc-files)),$(package).post-install)
-override post-upgrade-script := $(if $(strip $(openrc-files)),$(package).post-upgrade)
+override post-install-script := $(if $(strip $(openrc-files) $(require-user) $(require-group)),$(package).post-install)
+override post-upgrade-script := $(if $(strip $(openrc-files) $(require-user) $(require-group)),$(package).post-upgrade)
 override pre-deinstall-script := $(if $(strip $(openrc-files)),$(package).pre-deinstall)
 override installation-scripts := $(strip $(post-install-script) $(post-upgrade-script) $(pre-deinstall-script))
 
