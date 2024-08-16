@@ -7,5 +7,7 @@ command=/usr/bin/x264_encoding_service
 command_args="--config $cfgfile --daemon --user x264-es --group x264-es --pidfile $pidfile"
 
 depend() {
-  need net
+  need loopback
+  use dns logger netmount
+  before apache2 
 }
