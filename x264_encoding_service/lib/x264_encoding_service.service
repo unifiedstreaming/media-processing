@@ -1,6 +1,7 @@
 [Unit]
 Description=x264_encoding_service
 After=network.target
+Before=apache2.service httpd.service
 
 [Service]
 ExecStart=/usr/bin/x264_encoding_service --config /etc/x264_encoding_service.conf --daemon --user x264-es --group x264-es --pidfile /tmp/x264_encoding_service.pid
