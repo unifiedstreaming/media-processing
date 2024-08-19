@@ -4,7 +4,7 @@ After=network.target
 Before=apache2.service httpd.service
 
 [Service]
-ExecStart=/usr/bin/x264_encoding_service --config /etc/x264_encoding_service.conf --daemon --user x264-es --group x264-es --pidfile /tmp/x264_encoding_service.pid
+ExecStart=/usr/bin/x264_encoding_service --config /etc/x264_encoding_service.conf --daemon --user x264-es --group x264-es --umask 0002 --pidfile /tmp/x264_encoding_service.pid
 Type=forking
 PIDFile=/tmp/x264_encoding_service.pid
 
