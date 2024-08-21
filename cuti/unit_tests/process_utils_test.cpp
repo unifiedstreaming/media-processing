@@ -120,7 +120,7 @@ void root_user_test()
   assert(!root_user.empty());
 
   auto current_user = user_t::current();
-  assert(!root_user.empty());
+  assert(!current_user.empty());
 
   if(current_user.user_id() == root_user.user_id())
   {
