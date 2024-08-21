@@ -61,36 +61,75 @@ umask_t umask_t::apply() const
   return umask_t(prev_umask);
 }
 
-void user_id_t::apply() const
+struct user_t::impl_t
 {
-  int r = ::setuid(this->value());
-  if(r == -1)
-  {
-    int cause = last_system_error();
-    system_exception_builder_t builder;
-    builder << "can\'t set user id to " << this->value() << ": " <<
-      error_status_t(cause);
-    builder.explode();
-  }
-}
+  explicit impl_t(uid_t uid);
+  explicit impl_t(char const *name);
 
-user_id_t user_id_t::current() noexcept
+  impl_t(impl_t const&) = delete;
+  impl_t& operator=(impl_t const&) = delete;
+
+  auto user_id() const
+  { return pwd_.pw_uid; }
+
+  auto primary_group_id() const
+  { return pwd_.pw_gid; }
+
+  char const* name() const
+  { return pwd_.pw_name; }
+
+  void apply() const;
+
+private :
+  struct passwd pwd_;
+  std::vector<char> buffer_;
+};
+
+user_t::impl_t::impl_t(uid_t uid)
+: pwd_()
+, buffer_(256)
 {
-  auto value = ::geteuid();
-  return user_id_t(value);
-}
-  
-user_id_t user_id_t::resolve(char const* name)
-{
-  std::vector<char> buffer(256);
-  struct passwd pwd;
   struct passwd *pwd_ptr;
 
-  int r = ::getpwnam_r(name, &pwd, buffer.data(), buffer.size(), &pwd_ptr);
+  int r = ::getpwuid_r(uid, &pwd_, buffer_.data(), buffer_.size(), &pwd_ptr);
   while(r == ERANGE)
   {
-    buffer.resize(buffer.size() * 2);
-    r = ::getpwnam_r(name, &pwd, buffer.data(), buffer.size(), &pwd_ptr);
+    auto old_size = buffer_.size();
+    buffer_.resize(old_size + old_size / 2);
+    r = ::getpwuid_r(uid, &pwd_, buffer_.data(), buffer_.size(), &pwd_ptr);
+  }
+
+  if(r != 0)
+  {
+    system_exception_builder_t builder;
+    builder << "getpwuid_r() failure: " << error_status_t(r);
+    builder.explode();
+  }
+
+  if(pwd_ptr == nullptr)
+  {
+    system_exception_builder_t builder;
+    builder << "unknown user id '" << uid << "'";
+    builder.explode();
+  }
+
+  assert(pwd_ptr == &pwd_);
+}
+
+user_t::impl_t::impl_t(char const* name)
+: pwd_()
+, buffer_(256)
+{
+  assert(name != nullptr);
+  
+  struct passwd *pwd_ptr;
+
+  int r = ::getpwnam_r(name, &pwd_, buffer_.data(), buffer_.size(), &pwd_ptr);
+  while(r == ERANGE)
+  {
+    auto old_size = buffer_.size();
+    buffer_.resize(old_size + old_size / 2);
+    r = ::getpwnam_r(name, &pwd_, buffer_.data(), buffer_.size(), &pwd_ptr);
   }
 
   if(r != 0)
@@ -107,60 +146,85 @@ user_id_t user_id_t::resolve(char const* name)
     builder.explode();
   }
 
-  assert(pwd_ptr == &pwd);
-  
-  return user_id_t(pwd.pw_uid);
+  assert(pwd_ptr == &pwd_);
 }
 
-void group_id_t::apply() const
+void user_t::impl_t::apply() const
 {
-  int r = ::setgid(this->value());
+  if(::geteuid() == this->user_id())
+  {
+    return;
+  }
+
+  int r = ::initgroups(this->name(), this->primary_group_id());
   if(r == -1)
   {
     int cause = last_system_error();
     system_exception_builder_t builder;
-    builder << "can\'t set group id to " << this->value() << ": " <<
-      error_status_t(cause);
+    builder << "can\'t set supplementary group ids for user " <<
+      this->name() << ": " << error_status_t(cause);
+    builder.explode();
+  }
+  
+  r = ::setgid(this->primary_group_id());
+  if(r == -1)
+  {
+    int cause = last_system_error();
+    system_exception_builder_t builder;
+    builder << "can\'t set group id for user " << this->name() << " to " <<
+      this->primary_group_id() << ": " << error_status_t(cause);
+    builder.explode();
+  }
+
+  r = ::setuid(this->user_id());
+  if(r == -1)
+  {
+    int cause = last_system_error();
+    system_exception_builder_t builder;
+    builder << "can\'t set user id for user " << this->name() << " to " <<
+      this->user_id() << ": " << error_status_t(cause);
     builder.explode();
   }
 }
-
-group_id_t group_id_t::current() noexcept
+  
+unsigned int user_t::user_id() const
 {
-  auto value = ::getegid();
-  return group_id_t(value);
+  assert(!this->empty());
+  return impl_->user_id();
 }
-  
-group_id_t group_id_t::resolve(char const* name)
+
+unsigned int user_t::primary_group_id() const
 {
-  std::vector<char> buffer(256);
-  struct group grp;
-  struct group *grp_ptr;
+  assert(!this->empty());
+  return impl_->primary_group_id();
+}
 
-  int r = ::getgrnam_r(name, &grp, buffer.data(), buffer.size(), &grp_ptr);
-  while(r == ERANGE)
-  {
-    buffer.resize(buffer.size() * 2);
-    r = ::getgrnam_r(name, &grp, buffer.data(), buffer.size(), &grp_ptr);
-  }
+char const* user_t::name() const
+{
+  assert(!this->empty());
+  return impl_->name();
+}
 
-  if(r != 0)
-  {
-    system_exception_builder_t builder;
-    builder << "getgrnam_r() failure: " << error_status_t(r);
-    builder.explode();
-  }
+void user_t::apply() const
+{
+  assert(!this->empty());
+  impl_->apply();
+}
 
-  if(grp_ptr == nullptr)
-  {
-    system_exception_builder_t builder;
-    builder << "unknown group name '" << name << "'";
-    builder.explode();
-  }
+user_t user_t::root()
+{
+  return user_t(std::make_shared<impl_t>(0));
+}
 
-  assert(grp_ptr == &grp);
-  
-  return group_id_t(grp.gr_gid);
+user_t user_t::current()
+{
+  return user_t(std::make_shared<impl_t>(::geteuid()));
+}
+
+user_t user_t::resolve(char const* name)
+{
+  assert(name != nullptr);
+  return user_t(std::make_shared<impl_t>(name));
 }
 
 void parse_optval(char const* name, args_reader_t const& reader,
@@ -199,27 +263,11 @@ void parse_optval(char const* name, args_reader_t const& reader,
 }
 
 void parse_optval(char const* name, args_reader_t const& reader,
-                  char const* in, user_id_t& out)
+                  char const* in, user_t& out)
 {
   try
   {
-    out = user_id_t::resolve(in);
-  }
-  catch(std::exception const& ex)
-  {
-    system_exception_builder_t builder;
-    builder << reader.current_origin() <<
-      ": option '" << name << "': " << ex.what();
-    builder.explode();
-  }
-}
-
-void parse_optval(char const* name, args_reader_t const& reader,
-                  char const* in, group_id_t& out)
-{
-  try
-  {
-    out = group_id_t::resolve(in);
+    out = user_t::resolve(in);
   }
   catch(std::exception const& ex)
   {

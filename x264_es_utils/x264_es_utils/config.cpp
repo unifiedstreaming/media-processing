@@ -64,9 +64,6 @@ config_t::config_t(int argc, char const* const argv[])
 , dry_run_(false)
 , endpoints_()
 , encoder_settings_()
-#ifndef _WIN32
-, group_()
-#endif
 , logfile_()
 , loglevel_(default_loglevel)
 , pidfile_()
@@ -91,12 +88,7 @@ bool config_t::run_as_daemon() const
   return bool(daemon_);
 }
 
-cuti::group_id_t const* config_t::group_id() const
-{
-  return group_ ? &(*group_) : nullptr;
-}
-
-cuti::user_id_t const* config_t::user_id() const
+cuti::user_t const* config_t::user() const
 {
   return user_ ? &(*user_) : nullptr;
 }
@@ -240,9 +232,6 @@ void config_t::read_options(cuti::args_reader_t& reader,
       !walker.match("--deterministic", encoder_settings_.deterministic_) &&
       !walker.match("--preset", encoder_settings_.preset_) &&
       !walker.match("--tune", encoder_settings_.tune_) &&
-#ifndef _WIN32
-      !walker.match("--group", group_) &&
-#endif
       !walker.match("--loglevel", loglevel_) &&
       !walker.match("--max-connections",
         dispatcher_config_.max_connections_) &&
@@ -307,10 +296,6 @@ void config_t::print_usage(std::ostream& os)
     }
     os << ")" << std::endl;
   }
-#ifndef _WIN32
-  os << "  --group <group name>     " <<
-    "run under <group name>'s group id" << std::endl;
-#endif
   os << "  --logfile <path>         " <<
     "log to file <path>" << std::endl;
   os << "  --loglevel <level>       " <<
@@ -343,7 +328,7 @@ void config_t::print_usage(std::ostream& os)
   os << "  --umask <mask>           " <<
     "set umask (default: no change)" << std::endl;
   os << "  --user <user name>       " <<
-    "run under <user name>'s user id" << std::endl;
+    "run as user <user name>" << std::endl;
 #endif
   os << std::endl;
   os << copyright_notice() << std::endl;

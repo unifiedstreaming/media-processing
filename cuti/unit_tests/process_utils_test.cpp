@@ -103,16 +103,26 @@ void overflow_umask()
   
 void current_user_test()
 {
-  auto id1 = user_id_t::current();
-  id1.apply();
-  auto id2 = user_id_t::current();
-  assert(id1.value() == id2.value());
+  auto user1 = user_t::current();
+  assert(!user1.empty());
+
+  user1.apply();
+
+  auto user2 = user_t::current();
+  assert(!user2.empty());
+
+  assert(user1.user_id() == user2.user_id());
 }
   
 void root_user_test()
 {
-  auto root_user_id = user_id_t(0);
-  if(user_id_t::current().value() == root_user_id.value())
+  auto root_user = user_t::root();
+  assert(!root_user.empty());
+
+  auto current_user = user_t::current();
+  assert(!root_user.empty());
+
+  if(current_user.user_id() == root_user.user_id())
   {
     return;
   }
@@ -120,7 +130,7 @@ void root_user_test()
   bool caught = false;
   try
   {
-    root_user_id.apply();
+    root_user.apply();
   }
   catch(std::exception const&)
   {
@@ -129,38 +139,23 @@ void root_user_test()
   assert(caught);
 }
   
-void current_group_test()
+void current_user_lookup()
 {
-  auto id1 = group_id_t::current();
-  id1.apply();
-  auto id2 = group_id_t::current();
-  assert(id1.value() == id2.value());
-}
-  
-void root_group_test()
-{
-  auto root_group_id = group_id_t(0);
-  if(group_id_t::current().value() == root_group_id.value())
-  {
-    return;
-  }
+  auto user1 = user_t::current();
+  assert(!user1.empty());
 
-  bool caught = false;
-  try
-  {
-    root_group_id.apply();
-  }
-  catch(std::exception const&)
-  {
-    caught = true;
-  }
-  assert(caught);
+  auto user2 = user_t::resolve(user1.name());
+  assert(!user2.empty());
+
+  assert(user1.user_id() == user2.user_id());
 }
 
 void root_user_lookup()
 {
-  auto id = user_id_t::resolve("root");
-  assert(id.value() == 0);
+  auto root_user = user_t::resolve("root");
+  assert(!root_user.empty());
+
+  assert(root_user.user_id() == 0);
 }
   
 void failing_user_lookup()
@@ -168,22 +163,7 @@ void failing_user_lookup()
   bool caught = false;
   try
   {
-    user_id_t::resolve("unethical-blackhat");
-  }
-  catch(std::exception const&)
-  {
-    caught = true;
-  }
-
-  assert(caught);
-}
-  
-void failing_group_lookup()
-{
-  bool caught = false;
-  try
-  {
-    group_id_t::resolve("unethical-blackhats");
+    user_t::resolve("unethical-blackhat");
   }
   catch(std::exception const&)
   {
@@ -206,12 +186,9 @@ void run_tests(int, char const* const*)
   current_user_test();
   root_user_test();
   
-  current_group_test(); 
-  root_group_test();
-
+  current_user_lookup();
   root_user_lookup();
   failing_user_lookup();
-  failing_group_lookup();
 
 #endif // POSIX
 }

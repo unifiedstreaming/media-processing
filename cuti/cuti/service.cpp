@@ -63,14 +63,10 @@ constexpr auto default_loglevel = loglevel_t::warning;
 void run_attended(service_config_t const& config, char const* argv0)
 {
 #ifndef _WIN32
-  if(auto group_id = config.group_id())
+  if(auto user = config.user())
   {
-    group_id->apply();
-  }
-
-  if(auto user_id = config.user_id())
-  {
-    user_id->apply();
+    assert(!user->empty());
+    user->apply();
   }
 
   if(auto umask = config.umask())
@@ -518,14 +514,10 @@ void run_as_daemon(service_config_t const& config, char const* argv0)
     if(grandchild == 0)
     {
       // in grandchild
-      if(auto group_id = config.group_id())
+      if(auto user = config.user())
       {
-        group_id->apply();
-      }
-
-      if(auto user_id = config.user_id())
-      {
-        user_id->apply();
+        assert(!user->empty());
+        user->apply();
       }
 
       if(auto umask = config.umask())

@@ -51,8 +51,7 @@ struct config_t : cuti::service_config_t
 
 #ifndef _WIN32
   bool run_as_daemon() const override;
-  cuti::group_id_t const* group_id() const override;
-  cuti::user_id_t const* user_id() const override;
+  cuti::user_t const* user() const override;
   cuti::umask_t const* umask() const override;
 #endif
 
@@ -87,9 +86,6 @@ private :
   cuti::flag_t dry_run_;
   std::vector<cuti::endpoint_t> endpoints_;
   encoder_settings_t encoder_settings_;
-#ifndef _WIN32
-  std::optional<cuti::group_id_t> group_;
-#endif
   cuti::absolute_path_t logfile_;
   cuti::loglevel_t loglevel_;
   cuti::absolute_path_t pidfile_;
@@ -100,7 +96,7 @@ private :
   std::string syslog_name_;
 #ifndef _WIN32
   std::optional<cuti::umask_t> umask_;
-  std::optional<cuti::user_id_t> user_;
+  std::optional<cuti::user_t> user_;
 #endif
 };
 

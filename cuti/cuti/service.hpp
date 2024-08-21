@@ -75,16 +75,10 @@ struct CUTI_ABI service_config_t
   virtual bool run_as_daemon() const = 0;
 
   /*
-   * Returns the group id for the service or nullptr if no change is
+   * Returns the user for the service or nullptr if no change is
    * required.
    */
-  virtual group_id_t const* group_id() const = 0;
-
-  /*
-   * Returns the user id for the service or nullptr if no change is
-   * required.
-   */
-  virtual user_id_t const* user_id() const = 0;
+  virtual user_t const* user() const = 0;
 
   /*
    * Returns the umask for the service or nullptr if no change is

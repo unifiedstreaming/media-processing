@@ -25,7 +25,9 @@
 #include "fs_utils.hpp"
 
 #include <cassert>
+#include <memory>
 #include <string>
+#include <utility>
 
 namespace cuti
 {
@@ -81,68 +83,36 @@ private :
   int value_;
 };
 
-struct CUTI_ABI user_id_t
+struct CUTI_ABI user_t
 {
-  user_id_t() noexcept
-  : value_(0)
+  user_t()
+  : impl_(nullptr)
   { }
 
-  explicit user_id_t(unsigned int value) noexcept
-  : value_(value)
-  { }
+  bool empty() const
+  { return impl_ == nullptr; }
 
-  unsigned int value() const noexcept
-  { return value_; }
-
-  /*
-   * Sets the effective user id of the current process to *this.
-   */
+  // PRE: !empty()
+  unsigned int user_id() const;
+  unsigned int primary_group_id() const;
+  char const* name() const;
   void apply() const;
 
-  /*
-   * Returns the effective user id of the current process.
-   */
-  static user_id_t current() noexcept;
-
-  /*
-   * Resolves a user name.
-   */
-  static user_id_t resolve(char const* name);
+  // These 'named constructors' are guaranteed to either
+  // return a non-empty user_t or throw.
+  static user_t root();
+  static user_t current();
+  static user_t resolve(char const* name);
 
 private :
-  unsigned int value_;
-};
+  struct impl_t;
 
-struct CUTI_ABI group_id_t
-{
-  group_id_t() noexcept
-  : value_(0)
+  explicit user_t(std::shared_ptr<impl_t> impl)
+  : impl_(std::move(impl))
   { }
 
-  explicit group_id_t(unsigned int value) noexcept
-  : value_(value)
-  { }
-
-  unsigned int value() const noexcept
-  { return value_; }
-
-  /*
-   * Sets the effective user id of the current process to *this.
-   */
-  void apply() const;
-
-  /*
-   * Returns the effective group id of the current process.
-   */
-  static group_id_t current() noexcept;
-
-  /*
-   * Resolves a group name.
-   */
-  static group_id_t resolve(char const* name);
-
-private :
-  unsigned int value_;
+private : 
+  std::shared_ptr<impl_t const> impl_;
 };
 
 // Enable option value parsing for umask_t, user_id_t, group_id_t
@@ -152,11 +122,7 @@ void parse_optval(char const* name, args_reader_t const& reader,
 
 CUTI_ABI
 void parse_optval(char const* name, args_reader_t const& reader,
-                  char const* in, user_id_t& out);
-
-CUTI_ABI
-void parse_optval(char const* name, args_reader_t const& reader,
-                  char const* in, group_id_t& out);
+                  char const* in, user_t& out);
 
 #endif // POSIX
 
