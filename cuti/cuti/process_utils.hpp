@@ -107,7 +107,7 @@ struct CUTI_ABI user_t
 private :
   struct impl_t;
 
-  explicit user_t(std::shared_ptr<impl_t> impl)
+  explicit user_t(std::shared_ptr<impl_t const> impl)
   : impl_(std::move(impl))
   { }
 
@@ -115,7 +115,7 @@ private :
   std::shared_ptr<impl_t const> impl_;
 };
 
-// Enable option value parsing for umask_t, user_id_t, group_id_t
+// Enable option value parsing for umask_t, user_t
 CUTI_ABI
 void parse_optval(char const* name, args_reader_t const& reader,
                   char const* in, umask_t& out);

@@ -109,7 +109,7 @@ user_t::impl_t::impl_t(uid_t uid)
   if(pwd_ptr == nullptr)
   {
     system_exception_builder_t builder;
-    builder << "unknown user id '" << uid << "'";
+    builder << "unknown user id " << uid;
     builder.explode();
   }
 
@@ -151,38 +151,38 @@ user_t::impl_t::impl_t(char const* name)
 
 void user_t::impl_t::apply() const
 {
-  if(::geteuid() == this->user_id())
-  {
-    return;
-  }
-
+  // Set supplementary group ids found in the groups file/database
   int r = ::initgroups(this->name(), this->primary_group_id());
   if(r == -1)
   {
     int cause = last_system_error();
     system_exception_builder_t builder;
-    builder << "can\'t set supplementary group ids for user " <<
-      this->name() << ": " << error_status_t(cause);
+    builder << "can't set supplementary group ids for user '" <<
+      this->name() << "': " << error_status_t(cause);
     builder.explode();
   }
   
-  r = ::setgid(this->primary_group_id());
+  // Set real and effective primary group ids
+  auto gid = this->primary_group_id();
+  r = ::setregid(gid, gid);
   if(r == -1)
   {
     int cause = last_system_error();
     system_exception_builder_t builder;
-    builder << "can\'t set group id for user " << this->name() << " to " <<
-      this->primary_group_id() << ": " << error_status_t(cause);
+    builder << "can't set primary group id: user '" << this->name() <<
+      "' gid " << gid << ": " << error_status_t(cause);
     builder.explode();
   }
 
-  r = ::setuid(this->user_id());
+  // Set real and effective user ids
+  auto uid = this->user_id();
+  r = ::setreuid(uid, uid);
   if(r == -1)
   {
     int cause = last_system_error();
     system_exception_builder_t builder;
-    builder << "can\'t set user id for user " << this->name() << " to " <<
-      this->user_id() << ": " << error_status_t(cause);
+    builder << "can't set user id: user '" << this->name() << "' uid " <<
+      uid << ": " << error_status_t(cause);
     builder.explode();
   }
 }

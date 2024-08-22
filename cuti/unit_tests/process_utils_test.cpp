@@ -106,8 +106,6 @@ void current_user_test()
   auto user1 = user_t::current();
   assert(!user1.empty());
 
-  user1.apply();
-
   auto user2 = user_t::current();
   assert(!user2.empty());
 
