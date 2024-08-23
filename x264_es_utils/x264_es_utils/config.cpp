@@ -327,7 +327,7 @@ void config_t::print_usage(std::ostream& os)
 #ifndef _WIN32
   os << "  --umask <mask>           " <<
     "set umask (default: no change)" << std::endl;
-  os << "  --user <name>       " <<
+  os << "  --user <name>            " <<
     "run as user <name>" << std::endl;
 #endif
   os << std::endl;
