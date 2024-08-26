@@ -20,6 +20,8 @@
 #include "fs_utils.hpp"
 
 #include "args_reader.hpp"
+#include "io_utils.hpp"
+#include "scoped_guard.hpp"
 #include "system_error.hpp"
 
 #include <cassert>
@@ -40,10 +42,6 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
-
-#ifndef O_CLOEXEC
-#define O_CLOEXEC 0
-#endif
 
 #endif // POSIX
 
@@ -294,6 +292,13 @@ struct text_output_file_impl_t : text_output_file_t
         error_status_t(cause);
       builder.explode();
     }
+
+#if !defined(O_CLOEXEC)
+    scoped_guard_t guard([&] { ::close(fd_); });
+    set_cloexec(fd_, true);
+    guard.dismiss();
+#endif
+
   }
 
   std::size_t size() const noexcept override
@@ -335,12 +340,24 @@ private :
 
 int open_logfile_handle(char const* path)
 {
-  return ::open(path, O_CREAT | O_WRONLY | O_APPEND | O_CLOEXEC, 0666);
+  int constexpr flags = O_CREAT | O_WRONLY | O_APPEND
+#if defined(O_CLOEXEC)
+    | O_CLOEXEC
+#endif
+    ;
+
+  return ::open(path, flags, 0666);
 }
 
 int open_pidfile_handle(char const *path)
 {
-  return ::open(path, O_CREAT | O_EXCL | O_WRONLY | O_CLOEXEC, 0444);
+  int constexpr flags = O_CREAT | O_EXCL | O_WRONLY
+#if defined(O_CLOEXEC)
+    | O_CLOEXEC
+#endif
+    ;
+
+  return ::open(path, flags, 0444);
 }
 
 std::string absolute_path(char const* path)
