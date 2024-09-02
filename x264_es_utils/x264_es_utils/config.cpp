@@ -172,7 +172,7 @@ void config_t::read_options(cuti::args_reader_t& reader)
 void config_t::read_options(cuti::args_reader_t& reader,
                             int config_file_depth)
 {
-  static auto constexpr max_config_file_depth = 20;
+  static constexpr auto max_config_file_depth = 20;
  
   std::string config_filename;
 

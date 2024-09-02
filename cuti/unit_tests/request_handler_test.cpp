@@ -211,7 +211,7 @@ void do_run_tests(logging_context_t const& client_context,
     "add 42 \n");
 
   // int overflow (method failure)
-  static auto constexpr max = std::numeric_limits<int>::max(); 
+  static constexpr auto max = std::numeric_limits<int>::max(); 
   fail_int_request(client_context, server_context, bufsize, map,
     "add 1 " + std::to_string(max) + " \n");
 

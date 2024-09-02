@@ -283,7 +283,7 @@ struct make_output_list_t<type_list_t<Values...>>
  * invoked with.
  */
 template<typename... Values>
-auto constexpr make_output_list = make_output_list_t<Values...>();
+constexpr auto make_output_list = make_output_list_t<Values...>();
 
 /*
  * Helper functor template for building an abstract output list.
@@ -328,7 +328,7 @@ struct make_output_list_ptr_t<type_list_t<Values...>>
  * is invoked with.
  */
 template<typename... Values>
-auto constexpr make_output_list_ptr = make_output_list_ptr_t<Values...>();
+constexpr auto make_output_list_ptr = make_output_list_ptr_t<Values...>();
 
 } // cuti
 

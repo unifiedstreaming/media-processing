@@ -291,7 +291,7 @@ struct make_input_list_t<type_list_t<Values...>>
  * with.
  */
 template<typename... Values>
-auto constexpr make_input_list = make_input_list_t<Values...>();
+constexpr auto make_input_list = make_input_list_t<Values...>();
 
 /*
  * Helper functor template for building an abstract input list.
@@ -336,7 +336,7 @@ struct make_input_list_ptr_t<type_list_t<Values...>>
  * with.
  */
 template<typename... Values>
-auto constexpr make_input_list_ptr = make_input_list_ptr_t<Values...>();
+constexpr auto make_input_list_ptr = make_input_list_ptr_t<Values...>();
 
 } // cuti
 
