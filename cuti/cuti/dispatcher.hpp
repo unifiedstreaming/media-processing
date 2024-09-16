@@ -48,7 +48,7 @@ struct CUTI_ABI dispatcher_config_t
   default_throughput_settings()
   { return throughput_settings_t(); }
 
-  static std::size_t constexpr default_max_thread_pool_size()
+  static std::size_t constexpr default_max_concurrent_requests()
   { return 17; }
 
   static std::size_t constexpr default_max_connections()
@@ -58,14 +58,14 @@ struct CUTI_ABI dispatcher_config_t
   : selector_factory_(default_selector_factory())
   , bufsize_(default_bufsize())
   , throughput_settings_(default_throughput_settings())
-  , max_thread_pool_size_(default_max_thread_pool_size())
+  , max_concurrent_requests_(default_max_concurrent_requests())
   , max_connections_(default_max_connections())
   { }
 
   selector_factory_t selector_factory_;
   std::size_t bufsize_;
   throughput_settings_t throughput_settings_;
-  std::size_t max_thread_pool_size_; // 0: no limit
+  std::size_t max_concurrent_requests_; // 0: no limit
   std::size_t max_connections_; // 0: no limit
 };
 

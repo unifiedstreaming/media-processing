@@ -853,8 +853,8 @@ struct thread_pool_t
     {
       if(auto msg = context_.message_at(loglevel_t::warning))
       {
-        *msg << "maximum thread pool size (" << max_size_ <<
-          ") reached; concurrent requests may be delayed";
+        *msg << "maximum number of concurrent requests (" << max_size_ <<
+          ") reached; further requests may be delayed";
       }
     }
 
@@ -958,7 +958,7 @@ struct dispatcher_t::impl_t
   
   void run()
   {
-    thread_pool_t thread_pool(context_, config_.max_thread_pool_size_);
+    thread_pool_t thread_pool(context_, config_.max_concurrent_requests_);
 
     if(auto msg = context_.message_at(loglevel_t::info))
     {

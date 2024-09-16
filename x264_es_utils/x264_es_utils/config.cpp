@@ -233,10 +233,10 @@ void config_t::read_options(cuti::args_reader_t& reader,
       !walker.match("--preset", encoder_settings_.preset_) &&
       !walker.match("--tune", encoder_settings_.tune_) &&
       !walker.match("--loglevel", loglevel_) &&
+      !walker.match("--max-concurrent-requests",
+        dispatcher_config_.max_concurrent_requests_) &&
       !walker.match("--max-connections",
         dispatcher_config_.max_connections_) &&
-      !walker.match("--max-threads",
-        dispatcher_config_.max_thread_pool_size_) &&
       !walker.match("--pidfile", pidfile_) &&
       !walker.match("--rotation-depth", rotation_depth_) &&
       !walker.match("--selector",
@@ -273,21 +273,21 @@ void config_t::print_usage(std::ostream& os)
   os << std::endl;
   os << "usage: " << argv0_ << " [<option> ...]" << std::endl;
   os << "options are:" << std::endl;
-  os << "  --config <path>          " <<
+  os << "  --config <path>               " <<
     "insert options from file <path>" << std::endl;
 #ifndef _WIN32
-  os << "  --daemon                 " <<
+  os << "  --daemon                      " <<
     "run as daemon" << std::endl;
 #endif
-  os << "  --deterministic          " <<
+  os << "  --deterministic               " <<
     "use deterministic encoding" << std::endl;
-  os << "  --directory <path>       " <<
+  os << "  --directory <path>            " <<
     "change directory to <path> (default: no change)" << std::endl;
-  os << "  --dry-run                " <<
+  os << "  --dry-run                     " <<
     "initialize the service, but do not run it" << std::endl;
-  os << "  --endpoint <port>@<ip>   " <<
+  os << "  --endpoint <port>@<ip>        " <<
     "add endpoint to listen on" << std::endl;
-  os << "                             (defaults:";
+  os << "                                  (defaults:";
   {
     auto defaults = x264_proto::default_endpoints();
     for(auto const& endpoint : defaults)
@@ -296,38 +296,40 @@ void config_t::print_usage(std::ostream& os)
     }
     os << ")" << std::endl;
   }
-  os << "  --logfile <path>         " <<
+  os << "  --logfile <path>              " <<
     "log to file <path>" << std::endl;
-  os << "  --loglevel <level>       " <<
+  os << "  --loglevel <level>            " <<
     "sets loglevel (default: " << 
     cuti::loglevel_string(default_loglevel) << ')' << std::endl;
-  os << "  --max-connections <n>    " <<
-    "sets max #connections (default: " <<
+  os << "  --max-concurrent-requests <n> " <<
+    "sets max #concurrent requests" << std::endl;
+  os << "                                  (default: " <<
+    cuti::dispatcher_config_t::default_max_concurrent_requests() <<
+    "; 0=unlimited) " << std::endl;
+  os << "  --max-connections <n>         " <<
+    "sets max #connections" << std::endl;
+  os << "                                  (default: " <<
     cuti::dispatcher_config_t::default_max_connections() <<
     "; 0=unlimited) " << std::endl;
-  os << "  --max-threads <n>        " <<
-    "sets max #threads (default: " <<
-    cuti::dispatcher_config_t::default_max_thread_pool_size() <<
-    "; 0=unlimited) " << std::endl;
-  os << "  --pidfile <path>         " <<
+  os << "  --pidfile <path>              " <<
     "create PID file <path> (default: none)" << std::endl;
-  os << "  --rotation-depth <depth> " << 
+  os << "  --rotation-depth <depth>      " << 
     "sets logfile rotation depth (default: " <<
     cuti::file_backend_t::default_rotation_depth << ')' << std::endl;
-  os << "  --selector <type>        " <<
+  os << "  --selector <type>             " <<
     "sets selector type (default: " <<
     cuti::dispatcher_config_t::default_selector_factory() << ")" << std::endl;
-  os << "  --size-limit <limit>     " <<
+  os << "  --size-limit <limit>          " <<
     "sets logfile size limit (default: none)" << std::endl;
-  os << "  --syslog                 " <<
+  os << "  --syslog                      " <<
     "log to system log as " << cuti::default_syslog_name(argv0_) <<
     std::endl;
-  os << "  --syslog-name <name>     " <<
+  os << "  --syslog-name <name>          " <<
     "log to system log as <name>" << std::endl;
 #ifndef _WIN32
-  os << "  --umask <mask>           " <<
+  os << "  --umask <mask>                " <<
     "set umask (default: no change)" << std::endl;
-  os << "  --user <name>            " <<
+  os << "  --user <name>                 " <<
     "run as user <name>" << std::endl;
 #endif
   os << std::endl;

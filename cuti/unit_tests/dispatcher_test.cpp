@@ -343,7 +343,7 @@ void test_eviction(logging_context_t const& client_context,
 
   dispatcher_config_t config;
   config.bufsize_ = bufsize;
-  config.max_thread_pool_size_ = 1;
+  config.max_concurrent_requests_ = 1;
   config.max_connections_ = 1;
 
   {
@@ -389,13 +389,13 @@ void test_eviction(logging_context_t const& client_context,
 void test_remote_sleeps(logging_context_t const& client_context,
                         logging_context_t const& server_context,
                         std::size_t bufsize,
-                        std::size_t max_thread_pool_size,
+                        std::size_t max_concurrent_requests,
                         std::size_t n_clients)
 {
   if(auto msg = client_context.message_at(loglevel_t::info))
   {
     *msg << __func__ << ": starting (bufsize: " << bufsize <<
-      " max_thread_pool_size: " << max_thread_pool_size <<
+      " max_concurrent_requests: " << max_concurrent_requests <<
       " n_clients: " << n_clients << ")";
   }
 
@@ -404,7 +404,7 @@ void test_remote_sleeps(logging_context_t const& client_context,
 
   dispatcher_config_t config;
   config.bufsize_ = bufsize;
-  config.max_thread_pool_size_ = max_thread_pool_size;
+  config.max_concurrent_requests_ = max_concurrent_requests;
 
   {
     dispatcher_t dispatcher(server_context, config);
@@ -452,8 +452,8 @@ void test_concurrent_requests(logging_context_t const& client_context,
   }
 
   test_remote_sleeps(client_context, server_context, bufsize,
-    dispatcher_config_t::default_max_thread_pool_size(),
-    dispatcher_config_t::default_max_thread_pool_size());
+    dispatcher_config_t::default_max_concurrent_requests(),
+    dispatcher_config_t::default_max_concurrent_requests());
 
   if(auto msg = client_context.message_at(loglevel_t::info))
   {
@@ -471,8 +471,8 @@ void test_full_thread_pool(logging_context_t const& client_context,
   }
 
   test_remote_sleeps(client_context, server_context, bufsize,
-    dispatcher_config_t::default_max_thread_pool_size() / 2,
-    dispatcher_config_t::default_max_thread_pool_size());
+    dispatcher_config_t::default_max_concurrent_requests() / 2,
+    dispatcher_config_t::default_max_concurrent_requests());
 
   if(auto msg = client_context.message_at(loglevel_t::info))
   {
@@ -483,13 +483,13 @@ void test_full_thread_pool(logging_context_t const& client_context,
 void do_test_interrupted_server(logging_context_t const& client_context,
                                 logging_context_t const& server_context,
                                 std::size_t bufsize,
-                                std::size_t max_thread_pool_size,
+                                std::size_t max_concurrent_requests,
                                 std::size_t n_clients)
 {
   if(auto msg = client_context.message_at(loglevel_t::info))
   {
     *msg << __func__ << ": starting (bufsize: " << bufsize <<
-      " max_thread_pool_size: " << max_thread_pool_size <<
+      " max_concurrent_requests: " << max_concurrent_requests <<
       " n_clients: " << n_clients << ")";
   }
 
@@ -498,7 +498,7 @@ void do_test_interrupted_server(logging_context_t const& client_context,
 
   dispatcher_config_t config;
   config.bufsize_ = bufsize;
-  config.max_thread_pool_size_ = max_thread_pool_size;
+  config.max_concurrent_requests_ = max_concurrent_requests;
 
   {
     std::optional<dispatcher_t> dispatcher;
@@ -564,8 +564,8 @@ void test_interrupted_server(logging_context_t const& client_context,
   }
 
   do_test_interrupted_server(client_context, server_context, bufsize,
-    dispatcher_config_t::default_max_thread_pool_size(),
-    dispatcher_config_t::default_max_thread_pool_size());
+    dispatcher_config_t::default_max_concurrent_requests(),
+    dispatcher_config_t::default_max_concurrent_requests());
 
   if(auto msg = client_context.message_at(loglevel_t::info))
   {
@@ -584,8 +584,8 @@ void test_overloaded_interrupted_server(
   }
 
   do_test_interrupted_server(client_context, server_context, bufsize,
-    dispatcher_config_t::default_max_thread_pool_size() / 2,
-    dispatcher_config_t::default_max_thread_pool_size());
+    dispatcher_config_t::default_max_concurrent_requests() / 2,
+    dispatcher_config_t::default_max_concurrent_requests());
 
   if(auto msg = client_context.message_at(loglevel_t::info))
   {
