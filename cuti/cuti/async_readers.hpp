@@ -225,7 +225,7 @@ private :
     {
       exception_builder_t<parse_error_t> builder;
       builder << quoted_char(C) << " expected, but got " << quoted_char(c);
-      result_.fail(base_marker, builder.exception_object());
+      result_.fail(base_marker, builder.exception_ptr());
       return;
     }
 
@@ -798,9 +798,9 @@ private :
       exception_builder_t<parse_error_t> builder;
       builder << "on-the-wire value " << wire_value <<
         " cannot be represented in underlying type \'" <<
-	typeid(underlying_t).name() << "\' of enum type '" <<
-	typeid(T).name() << "\'";
-      result_.fail(base_marker, builder.exception_object());
+        typeid(underlying_t).name() << "\' of enum type '" <<
+        typeid(T).name() << "\'";
+      result_.fail(base_marker, builder.exception_ptr());
       return;
     }
 
@@ -910,7 +910,7 @@ private :
       exception_builder_t<parse_error_t> builder;
       builder << "end of message (" << quoted_char('\n') <<
         ") expected, but got " << quoted_char(c);
-      result_.fail(base_marker, builder.exception_object());
+      result_.fail(base_marker, builder.exception_ptr());
       return;
     }
 

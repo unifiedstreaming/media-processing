@@ -59,9 +59,9 @@ void encode_handler_t::create_session(
   {
     encoding_session_.emplace(context_, encoder_settings_, session_params);
   }
-  catch(std::exception const& ex)
+  catch(std::exception const&)
   {
-    result_.fail(marker, ex);
+    result_.fail(marker, std::current_exception());
     return;
   }
 
@@ -113,9 +113,9 @@ void encode_handler_t::encode_frame(
   {
     opt_sample = encoding_session_->encode(std::move(frame));
   }
-  catch(std::exception const& ex)
+  catch(std::exception const&)
   {
-    result_.fail(marker, ex);
+    result_.fail(marker, std::current_exception());
     return;
   }
 
@@ -141,9 +141,9 @@ void encode_handler_t::flush_samples(cuti::stack_marker_t& marker)
   {
     opt_sample = encoding_session_->flush();
   }
-  catch(std::exception const& ex)
+  catch(std::exception const&)
   {
-    result_.fail(marker, ex);
+    result_.fail(marker, std::current_exception());
     return;
   }
 

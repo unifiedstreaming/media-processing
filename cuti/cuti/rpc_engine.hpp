@@ -204,7 +204,7 @@ private :
       system_exception_builder_t builder;
       builder <<
         "output error on " << bound_outbuf_ << ": " << error_status_t(status);
-      result_.fail(base_marker, builder.exception_object());
+      result_.fail(base_marker, builder.exception_ptr());
     }
     else if(auto status = bound_inbuf_.error_status())
     {
@@ -212,7 +212,7 @@ private :
       system_exception_builder_t builder;
       builder <<
         "input error on " << bound_inbuf_ << ": " << error_status_t(status);
-      result_.fail(base_marker, builder.exception_object());
+      result_.fail(base_marker, builder.exception_ptr());
     }
     else if(ex_ != nullptr)
     {

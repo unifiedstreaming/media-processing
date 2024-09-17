@@ -21,6 +21,7 @@
 #define CUTI_EXCEPTION_BUILDER_HPP_
 
 #include <ostream>
+#include <exception>
 #include <string>
 #include <utility>
 
@@ -45,6 +46,13 @@ struct exception_builder_t : std::ostream
   {
     return T(std::string(buf_.begin(), buf_.end()),
              std::forward<Args>(args)...);
+  }
+
+  template<typename... Args>
+  std::exception_ptr exception_ptr(Args&&... args) const
+  {
+    return std::make_exception_ptr(
+      this->exception_object(std::forward<Args>(args)...));
   }
 
   template<typename... Args>

@@ -67,7 +67,8 @@ void add_handler_t::on_second_arg(stack_marker_t& base_marker, int arg)
   {
     if(arg > std::numeric_limits<int>::max() - first_arg_)
     {
-      result_.fail(base_marker, std::runtime_error("addition overflow"));
+      result_.fail(base_marker, std::make_exception_ptr(
+        std::runtime_error("addition overflow")));
       return;
     }
   }
@@ -75,7 +76,8 @@ void add_handler_t::on_second_arg(stack_marker_t& base_marker, int arg)
   {
     if(arg < std::numeric_limits<int>::min() - first_arg_)
     {
-      result_.fail(base_marker, std::runtime_error("addition underflow"));
+      result_.fail(base_marker, std::make_exception_ptr(
+        std::runtime_error("addition underflow")));
       return;
     }
   }

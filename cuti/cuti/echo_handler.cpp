@@ -78,7 +78,8 @@ void echo_handler_t::write_element(
 {
   if(censored_ && value == *censored_)
   {
-    result_.fail(base_marker, std::runtime_error(value + " is censored"));
+    result_.fail(base_marker, std::make_exception_ptr(
+      std::runtime_error(value + " is censored")));
     return;
   }
 

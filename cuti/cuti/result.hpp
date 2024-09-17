@@ -47,12 +47,6 @@ struct any_result_t
     this->do_fail(base_marker, std::move(ex));
   }
 
-  template<typename Ex>
-  void fail(stack_marker_t& base_marker, Ex&& ex)
-  {
-    this->do_fail(base_marker, std::make_exception_ptr(std::forward<Ex>(ex)));
-  }
-
   virtual ~any_result_t()
   { }
 

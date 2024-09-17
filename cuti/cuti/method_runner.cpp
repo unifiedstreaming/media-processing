@@ -47,7 +47,8 @@ void method_runner_t::start(stack_marker_t& base_marker,
     name, result_, context_, inbuf_, outbuf_);
   if(method_ == nullptr)
   {
-    result_.fail(base_marker, parse_error_t("method not found"));
+    result_.fail(base_marker, std::make_exception_ptr(
+      parse_error_t("method not found")));
     return;
   }
 

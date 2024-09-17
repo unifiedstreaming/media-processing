@@ -53,7 +53,7 @@ struct whitespace_skipper_t::exception_handler_t
 private :
   void on_error_read(stack_marker_t& base_marker, remote_error_t error)
   {
-    result_.fail(base_marker, std::move(error));
+    result_.fail(base_marker, std::make_exception_ptr(std::move(error)));
   }
 
 private :
@@ -112,7 +112,8 @@ void digits_reader_t<T>::read_digits(stack_marker_t& base_marker)
     T udval = static_cast<T>(dval);
     if(value_ > max_ / 10 || udval > max_ - 10 * value_)
     {
-      result_.fail(base_marker, parse_error_t("integral type overflow"));
+      result_.fail(base_marker, std::make_exception_ptr(
+        parse_error_t("integral type overflow")));
       return;
     }
 
@@ -134,7 +135,7 @@ void digits_reader_t<T>::read_digits(stack_marker_t& base_marker)
   {
     exception_builder_t<parse_error_t> builder;
     builder << "digit expected, but got " << quoted_char(c);
-    result_.fail(base_marker, builder.exception_object());
+    result_.fail(base_marker, builder.exception_ptr());
     return;
   }
 
@@ -143,7 +144,7 @@ void digits_reader_t<T>::read_digits(stack_marker_t& base_marker)
     // avoid submitting a half-baked value
     exception_builder_t<parse_error_t> builder;
     builder << "unexpected " << quoted_char(c) << " in integral value";
-    result_.fail(base_marker, builder.exception_object());
+    result_.fail(base_marker, builder.exception_ptr());
     return;
   }
 
@@ -183,7 +184,7 @@ void hex_digits_reader_t::read_digits(stack_marker_t& base_marker)
     {
       exception_builder_t<parse_error_t> builder;
       builder << "hex digit expected, but got " << quoted_char(c);
-      result_.fail(base_marker, builder.exception_object());
+      result_.fail(base_marker, builder.exception_ptr());
       return;
     }
 
@@ -239,7 +240,7 @@ void boolean_reader_t<T>::on_whitespace_skipped(
       builder << "boolean value (" << 
         quoted_char('&') << " or " << quoted_char('|') <<
         ") expected, but got " << quoted_char(c);
-      result_.fail(base_marker, builder.exception_object());
+      result_.fail(base_marker, builder.exception_ptr());
       return;
     }
   }
@@ -374,7 +375,7 @@ void blob_reader_t<T>::read_leading_dq(stack_marker_t& base_marker, int c)
     exception_builder_t<parse_error_t> builder;
     builder << "opening double quote (" << quoted_char('\"') <<
       ") expected, but got " << quoted_char(c);
-    result_.fail(base_marker, builder.exception_object());
+    result_.fail(base_marker, builder.exception_ptr());
     return;
   }
   buf_.skip();
@@ -392,14 +393,14 @@ void blob_reader_t<T>::read_contents(stack_marker_t& base_marker)
     {
     case eof :
       {
-        result_.fail(
-          base_marker, parse_error_t("unexpected eof in string value"));
+        result_.fail(base_marker, std::make_exception_ptr(
+          parse_error_t("unexpected eof in string value")));
         return;
       }
     case '\n' :
       {
-        result_.fail(
-          base_marker, parse_error_t("non-escaped newline in string value"));
+        result_.fail(base_marker, std::make_exception_ptr(
+          parse_error_t("non-escaped newline in string value")));
         return;
       }
     case '\\' :
@@ -466,7 +467,7 @@ void blob_reader_t<T>::read_escaped(stack_marker_t& base_marker)
       exception_builder_t<parse_error_t> builder;
       builder << "unknown escape sequence: " << quoted_char(c) <<
         " after backslash in string value";
-      result_.fail(base_marker, builder.exception_object());
+      result_.fail(base_marker, builder.exception_ptr());
       return;
     }
   }
@@ -529,7 +530,7 @@ void identifier_reader_t::read_leader(stack_marker_t& base_marker, int c)
   {
     exception_builder_t<parse_error_t> builder;
     builder << "identifier expected, but got " << quoted_char(c);
-    result_.fail(base_marker, builder.exception_object());
+    result_.fail(base_marker, builder.exception_ptr());
     return;
   }
 
@@ -561,7 +562,7 @@ void identifier_reader_t::read_followers(stack_marker_t& base_marker)
     // avoid submitting a half-baked value
     exception_builder_t<parse_error_t> builder;
     builder << "unexpected " << quoted_char(c) << " in identifier value";
-    result_.fail(base_marker, builder.exception_object());
+    result_.fail(base_marker, builder.exception_ptr());
     return;
   }
 

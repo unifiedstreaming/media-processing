@@ -78,7 +78,8 @@ struct fail_t
 
   void start(stack_marker_t& base_marker)
   {
-    result_.fail(base_marker, std::runtime_error("method failed"));
+    result_.fail(base_marker, std::make_exception_ptr(
+      std::runtime_error("method failed")));
   }
 
 private :
@@ -105,7 +106,8 @@ struct configurable_t
   {
     if(fail_)
     {
-      result_.fail(base_marker, std::runtime_error("configured to fail"));
+      result_.fail(base_marker, std::make_exception_ptr(
+        std::runtime_error("configured to fail")));
       return;
     }
 

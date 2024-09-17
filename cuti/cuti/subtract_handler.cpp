@@ -65,7 +65,8 @@ void subtract_handler_t::on_second_arg(stack_marker_t& base_marker, int arg)
   {
     if(first_arg_ < std::numeric_limits<int>::min() + arg)
     {
-      result_.fail(base_marker, std::runtime_error("subtraction underflow"));
+      result_.fail(base_marker, std::make_exception_ptr(
+        std::runtime_error("subtraction underflow")));
       return;
     }
   }
@@ -73,7 +74,8 @@ void subtract_handler_t::on_second_arg(stack_marker_t& base_marker, int arg)
   {
     if(first_arg_ > std::numeric_limits<int>::max() + arg)
     {
-      result_.fail(base_marker, std::runtime_error("subtraction overflow"));
+      result_.fail(base_marker, std::make_exception_ptr(
+        std::runtime_error("subtraction overflow")));
       return;
     }
   }
