@@ -230,18 +230,18 @@ void config_t::read_options(cuti::args_reader_t& reader,
       !walker.match("--dry-run", dry_run_) &&
       !walker.match("--endpoint", endpoints_) &&
       !walker.match("--deterministic", encoder_settings_.deterministic_) &&
-      !walker.match("--preset", encoder_settings_.preset_) &&
-      !walker.match("--tune", encoder_settings_.tune_) &&
       !walker.match("--loglevel", loglevel_) &&
       !walker.match("--max-concurrent-requests",
         dispatcher_config_.max_concurrent_requests_) &&
       !walker.match("--max-connections",
         dispatcher_config_.max_connections_) &&
       !walker.match("--pidfile", pidfile_) &&
+      !walker.match("--preset", encoder_settings_.preset_) &&
       !walker.match("--rotation-depth", rotation_depth_) &&
       !walker.match("--selector",
         dispatcher_config_.selector_factory_) &&
       !walker.match("--size-limit", size_limit_) &&
+      !walker.match("--tune", encoder_settings_.tune_) &&
 #ifndef _WIN32
       !walker.match("--umask", umask_) &&
       !walker.match("--user", user_) &&
@@ -313,6 +313,8 @@ void config_t::print_usage(std::ostream& os)
     "; 0=unlimited) " << std::endl;
   os << "  --pidfile <path>              " <<
     "create PID file <path> (default: none)" << std::endl;
+  os << "  --preset <presets>            " <<
+    "sets libx264 session presets (default: none)" << std::endl;
   os << "  --rotation-depth <depth>      " << 
     "sets logfile rotation depth (default: " <<
     cuti::file_backend_t::default_rotation_depth << ')' << std::endl;
@@ -326,6 +328,8 @@ void config_t::print_usage(std::ostream& os)
     std::endl;
   os << "  --syslog-name <name>          " <<
     "log to system log as <name>" << std::endl;
+  os << "  --tune <tunings>              " <<
+    "sets libx264 session tunings (default: none)" << std::endl;
 #ifndef _WIN32
   os << "  --umask <mask>                " <<
     "set umask (default: no change)" << std::endl;
