@@ -29,14 +29,19 @@ namespace x264_es_utils
 
 struct encoder_settings_t
 {
+  static unsigned int constexpr default_session_threads()
+  { return 0; }
+
   encoder_settings_t()
   : deterministic_()
   , preset_()
+  , session_threads_(default_session_threads())
   , tune_()
   { }
 
   cuti::flag_t deterministic_;
   std::string preset_;
+  unsigned int session_threads_;
   std::string tune_;
 };
 

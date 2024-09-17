@@ -240,6 +240,7 @@ void config_t::read_options(cuti::args_reader_t& reader,
       !walker.match("--rotation-depth", rotation_depth_) &&
       !walker.match("--selector",
         dispatcher_config_.selector_factory_) &&
+      !walker.match("--session-threads", encoder_settings_.session_threads_) &&
       !walker.match("--size-limit", size_limit_) &&
       !walker.match("--tune", encoder_settings_.tune_) &&
 #ifndef _WIN32
@@ -321,6 +322,10 @@ void config_t::print_usage(std::ostream& os)
   os << "  --selector <type>             " <<
     "sets selector type (default: " <<
     cuti::dispatcher_config_t::default_selector_factory() << ")" << std::endl;
+  os << "  --session-threads <n>         " <<
+    "sets libx264 #encoding session threads" << std::endl;
+  os << "                                  (default: " <<
+    encoder_settings_t::default_session_threads() << "; 0=auto)" << std::endl;
   os << "  --size-limit <limit>          " <<
     "sets logfile size limit (default: none)" << std::endl;
   os << "  --syslog                      " <<

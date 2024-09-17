@@ -22,11 +22,13 @@
 #include <cuti/exception_builder.hpp>
 #include <x264_proto/types.hpp>
 
-#undef NDEBUG
-#include <cassert>
 #include <iomanip>
+#include <limits>
 #include <thread>
 #include <x264.h>
+
+#undef NDEBUG
+#include <cassert>
 
 namespace x264_es_utils
 {
@@ -321,6 +323,23 @@ wrap_x264_param_t::wrap_x264_param_t(
     builder.explode();
   }
 
+  // Number of session threads
+  if(encoder_settings.session_threads_ != 0) // 0=auto
+  {
+    static unsigned int constexpr max_session_threads =
+      std::numeric_limits<int>::max();
+    if(encoder_settings.session_threads_ > max_session_threads)
+    {
+      x264_exception_builder_t builder;
+      builder << "number of session threads (" <<
+        encoder_settings.session_threads_ << ") exceeds maximum (" <<
+	max_session_threads << ')' << std::endl;
+      builder.explode();
+    }
+
+    param_.i_threads = static_cast<int>(encoder_settings.session_threads_);
+  }
+    
   // CPU flags
   if(encoder_settings.deterministic_)
   {
