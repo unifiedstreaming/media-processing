@@ -380,9 +380,9 @@ override default-toolset := $(strip \
     $(if $(or $(darwin),$(freebsd)), \
       clang \
     , \
-      $(if $(filter 0 1 2 3 4 5 6 7,$(call major-gcc-version)), \
-        $(call REM,default to gcc-8 for proper C++17 support) \
-        gcc-8 \
+      $(if $(filter 0 1 2 3 4 5 6 7 8 9,$(call major-gcc-version)), \
+        $(call REM,default to gcc-10 for proper C++20 support) \
+        gcc-10 \
       , \
         gcc \
       ) \

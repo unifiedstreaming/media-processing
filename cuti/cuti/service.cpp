@@ -339,8 +339,8 @@ void run_service(service_config_reader_t const& config_reader,
   service_main_args.argv_ = argv;
   service_main_args.config_reader_ = &config_reader;
 
-  static constexpr SERVICE_TABLE_ENTRY service_table[] = {
-    { "", service_main },
+  static SERVICE_TABLE_ENTRY service_table[] = {
+    { const_cast<char*>(""), service_main },
     { nullptr, nullptr }
   };
 
