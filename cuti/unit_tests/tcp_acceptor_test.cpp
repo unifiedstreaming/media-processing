@@ -272,7 +272,7 @@ void dual_stack(logging_context_t const& context)
   assert(proven);
 }
 
-void run_tests(int argc, char const* const*)
+void run_tests(int argc, char const* const* /* argv */)
 {
   logger_t logger(std::make_unique<cuti::streambuf_backend_t>(std::cerr));
   logging_context_t context(
