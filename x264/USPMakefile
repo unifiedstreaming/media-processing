@@ -48,6 +48,10 @@ ifneq ($(build-x264),)
         https://bugs.launchpad.net/ubuntu/+source/gcc-13/+bug/2023424) \
       $(if $(strip $(sanitizer-flags)),-fno-stack-protector) \
     ) \
+    $(if $(filter gcc%,$(toolset)), \
+      -Wno-dangling-pointer \
+    ) \
+    -Wno-unused-but-set-variable \
     $(sanitizer-flags) \
   )
 
