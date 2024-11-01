@@ -12,11 +12,11 @@
 #
 # Common targets
 #
-.PHONY: $(public-prefix)all
-$(public-prefix)all: x264_encoding_service
+.PHONY: all
+all: x264_encoding_service
 
-.PHONY: $(public-prefix)unit_tests
-$(public-prefix)unit_tests: cuti_unit_tests x264_es_utils_unit_tests x264_proto_unit_tests
+.PHONY: unit_tests
+unit_tests: cuti_unit_tests x264_es_utils_unit_tests x264_proto_unit_tests
 
-.PHONY: $(public-prefix)deploy
-$(public-prefix)deploy: x264_encoding_service.deploy
+.PHONY: deploy
+deploy: x264_encoding_service.deploy
