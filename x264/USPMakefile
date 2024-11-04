@@ -49,7 +49,11 @@ ifneq ($(build-x264),)
       $(if $(strip $(sanitizer-flags)),-fno-stack-protector) \
     ) \
     $(if $(filter gcc%,$(toolset)), \
+      -Wno-array-bounds \
       -Wno-dangling-pointer \
+    ) \
+    $(if $(filter clang%,$(toolset)), \
+      -Wno-nan-infinity-disabled \
     ) \
     -Wno-unused-but-set-variable \
     $(sanitizer-flags) \
