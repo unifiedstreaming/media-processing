@@ -333,7 +333,7 @@ wrap_x264_param_t::wrap_x264_param_t(
       x264_exception_builder_t builder;
       builder << "number of session threads (" <<
         encoder_settings.session_threads_ << ") exceeds maximum (" <<
-	max_session_threads << ')' << std::endl;
+	max_session_threads << ')';
       builder.explode();
     }
 

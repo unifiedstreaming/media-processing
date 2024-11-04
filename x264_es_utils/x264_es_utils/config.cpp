@@ -252,7 +252,7 @@ void config_t::read_options(cuti::args_reader_t& reader,
     {
       cuti::exception_builder_t<std::runtime_error> builder;
       builder << reader.current_origin() <<
-        ": unknown option '" << reader.current_argument() << "'" << std::endl;
+        ": unknown option '" << reader.current_argument() << "'";
       print_usage(builder);
       builder.explode();
     }
@@ -262,8 +262,7 @@ void config_t::read_options(cuti::args_reader_t& reader,
   {
     cuti::exception_builder_t<std::runtime_error> builder;
     builder << reader.current_origin() <<
-      ": unexpected argument '" << reader.current_argument() << "'" <<
-      std::endl;
+      ": unexpected argument '" << reader.current_argument() << "'";
     print_usage(builder);
     builder.explode();
   }
