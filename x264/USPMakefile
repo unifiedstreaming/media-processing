@@ -54,6 +54,7 @@ ifneq ($(build-x264),)
     ) \
     $(if $(filter clang%,$(toolset)), \
       -Wno-nan-infinity-disabled \
+      -Wno-unknown-warning-option \
     ) \
     -Wno-unused-but-set-variable \
     $(sanitizer-flags) \
