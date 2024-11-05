@@ -15,19 +15,19 @@ modules.load usp-builder : usp-builder.jam : $(ROOT)/usp-builder/lib ;
 project oss
 : requirements
   <cxxstd>20
+  <visibility>hidden
   <debug-symbols>on
+  <threading>multi
   <toolset>msvc:<cxxflags>/wd4251 # class needs to have dll-interface
   <toolset>msvc:<cxxflags>/wd4275 # non dll-interface class used as base
   <toolset>msvc:<cxxflags>/wd4910 # dllexport on extern template
   <target-os>windows:<define>NOMINMAX
   <target-os>windows:<define>WIN32_LEAN_AND_MEAN
-  <threading>multi
   <target-os>darwin:<linkflags>-Wl,-rpath,@loader_path/../lib
   <target-os>freebsd:<linkflags>-Wl,--enable-new-dtags
   <target-os>freebsd:<linkflags>-Wl,-rpath,\\$ORIGIN/../lib
   <target-os>linux:<linkflags>-Wl,--enable-new-dtags
   <target-os>linux:<linkflags>-Wl,-rpath,\\$ORIGIN/../lib
-  <local-visibility>hidden
 : default-build
 # <variant>release
   <address-model>64
