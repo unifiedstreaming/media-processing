@@ -87,11 +87,11 @@ private :
   std::vector<cuti::endpoint_t> endpoints_;
   encoder_settings_t encoder_settings_;
   cuti::absolute_path_t logfile_;
+  unsigned int logfile_rotation_depth_;
+  unsigned int logfile_size_limit_;
   cuti::loglevel_t loglevel_;
   cuti::absolute_path_t pidfile_;
-  unsigned int rotation_depth_;
   cuti::dispatcher_config_t dispatcher_config_;
-  unsigned int size_limit_;
   cuti::flag_t syslog_;  
   std::string syslog_name_;
 #ifndef _WIN32

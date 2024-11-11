@@ -1247,28 +1247,28 @@ struct options_t
 
   options_t()
   : logfile_()
+  , logfile_rotation_depth_(file_backend_t::default_rotation_depth)
+  , logfile_size_limit_(file_backend_t::no_size_limit)
   , loglevel_(default_loglevel)
-  , rotation_depth_(file_backend_t::default_rotation_depth)
-  , size_limit_(file_backend_t::no_size_limit)
   { }
 
   absolute_path_t logfile_;
+  unsigned int logfile_rotation_depth_;
+  unsigned int logfile_size_limit_;
   loglevel_t loglevel_;
-  unsigned int rotation_depth_;
-  unsigned int size_limit_;
 };
 
 void print_usage(std::ostream& os, char const* argv0)
 {
   os << "usage: " << argv0 << " [<option> ...]\n";
   os << "options are:\n";
-  os << "  --logfile <name>         log to a file\n";
-  os << "  --loglevel <level>       set loglevel " <<
-    "(default: " << loglevel_string(options_t::default_loglevel) << ")\n";
-  os << "  --rotation-depth <depth> set logfile rotation depth " <<
+  os << "  --logfile <name>                  log to a file\n";
+  os << "  --logfile-rotation-depth <depth>  set logfile rotation depth " <<
     "(default: " << file_backend_t::default_rotation_depth << ")\n";
-  os << "  --size-limit <limit>     set logfile size limit " <<
+  os << "  --logfile-size-limit <limit>      set logfile size limit " <<
     "(default: none)\n";
+  os << "  --loglevel <level>                set loglevel " <<
+    "(default: " << loglevel_string(options_t::default_loglevel) << ")\n";
   os << std::flush;
 }
 
@@ -1277,9 +1277,10 @@ void read_options(options_t& options, option_walker_t& walker)
   while(!walker.done())
   {
     if(!walker.match("--logfile", options.logfile_) &&
-       !walker.match("--loglevel", options.loglevel_) &&
-       !walker.match("--rotation-depth", options.rotation_depth_) &&
-       !walker.match("--size-limit", options.size_limit_))
+       !walker.match("--logfile-rotation-depth",
+         options.logfile_rotation_depth_) &&
+       !walker.match("--logfile-size-limit", options.logfile_size_limit_) &&
+       !walker.match("--loglevel", options.loglevel_))
     {
       break;
     }
@@ -1303,7 +1304,9 @@ int run_tests(int argc, char const* const* argv)
   if(!options.logfile_.empty())
   {
     logger.set_backend(std::make_unique<file_backend_t>(
-      options.logfile_, options.size_limit_, options.rotation_depth_));
+      options.logfile_,
+      options.logfile_size_limit_,
+      options.logfile_rotation_depth_));
   }
 
   logging_context_t context(logger, options.loglevel_);

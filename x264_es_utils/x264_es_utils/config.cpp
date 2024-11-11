@@ -65,11 +65,11 @@ config_t::config_t(int argc, char const* const argv[])
 , endpoints_()
 , encoder_settings_()
 , logfile_()
+, logfile_rotation_depth_(cuti::file_backend_t::default_rotation_depth)
+, logfile_size_limit_(cuti::file_backend_t::no_size_limit)
 , loglevel_(default_loglevel)
 , pidfile_()
-, rotation_depth_(cuti::file_backend_t::default_rotation_depth)
 , dispatcher_config_()
-, size_limit_(cuti::file_backend_t::no_size_limit)
 , syslog_(false)
 , syslog_name_("")
 #ifndef _WIN32
@@ -113,7 +113,7 @@ config_t::create_logging_backend() const
   if(!logfile_.empty())
   {
     result = std::make_unique<cuti::file_backend_t>(
-      logfile_, size_limit_, rotation_depth_);
+      logfile_, logfile_size_limit_, logfile_rotation_depth_);
   }
   else if(!syslog_name_.empty())
   {
@@ -230,6 +230,8 @@ void config_t::read_options(cuti::args_reader_t& reader,
       !walker.match("--dry-run", dry_run_) &&
       !walker.match("--endpoint", endpoints_) &&
       !walker.match("--deterministic", encoder_settings_.deterministic_) &&
+      !walker.match("--logfile-rotation-depth", logfile_rotation_depth_) &&
+      !walker.match("--logfile-size-limit", logfile_size_limit_) &&
       !walker.match("--loglevel", loglevel_) &&
       !walker.match("--max-concurrent-requests",
         dispatcher_config_.max_concurrent_requests_) &&
@@ -237,11 +239,9 @@ void config_t::read_options(cuti::args_reader_t& reader,
         dispatcher_config_.max_connections_) &&
       !walker.match("--pidfile", pidfile_) &&
       !walker.match("--preset", encoder_settings_.preset_) &&
-      !walker.match("--rotation-depth", rotation_depth_) &&
       !walker.match("--selector",
         dispatcher_config_.selector_factory_) &&
       !walker.match("--session-threads", encoder_settings_.session_threads_) &&
-      !walker.match("--size-limit", size_limit_) &&
       !walker.match("--tune", encoder_settings_.tune_) &&
 #ifndef _WIN32
       !walker.match("--umask", umask_) &&
@@ -273,21 +273,23 @@ void config_t::print_usage(std::ostream& os)
   os << std::endl;
   os << "usage: " << argv0_ << " [<option> ...]" << std::endl;
   os << "options are:" << std::endl;
-  os << "  --config <path>               " <<
+  os << "  --config <path>                  " <<
     "insert options from file <path>" << std::endl;
 #ifndef _WIN32
-  os << "  --daemon                      " <<
+  os << "  --daemon                         " <<
     "run as daemon" << std::endl;
 #endif
-  os << "  --deterministic               " <<
+  os << "  --deterministic                  " <<
     "use deterministic encoding" << std::endl;
-  os << "  --directory <path>            " <<
-    "change directory to <path> (default: no change)" << std::endl;
-  os << "  --dry-run                     " <<
+  os << "  --directory <path>               " <<
+    "change directory to <path>" << std::endl;
+  os << "                                     (default: no change)" <<
+    std::endl;
+  os << "  --dry-run                        " <<
     "initialize the service, but do not run it" << std::endl;
-  os << "  --endpoint <port>@<ip>        " <<
+  os << "  --endpoint <port>@<ip>           " <<
     "add endpoint to listen on" << std::endl;
-  os << "                                  (defaults:";
+  os << "                                     (defaults:";
   {
     auto defaults = x264_proto::default_endpoints();
     for(auto const& endpoint : defaults)
@@ -296,48 +298,48 @@ void config_t::print_usage(std::ostream& os)
     }
     os << ")" << std::endl;
   }
-  os << "  --logfile <path>              " <<
+  os << "  --logfile <path>                 " <<
     "log to file <path>" << std::endl;
-  os << "  --loglevel <level>            " <<
-    "sets loglevel (default: " << 
-    cuti::loglevel_string(default_loglevel) << ')' << std::endl;
-  os << "  --max-concurrent-requests <n> " <<
-    "sets max #concurrent requests" << std::endl;
-  os << "                                  (default: " <<
-    cuti::dispatcher_config_t::default_max_concurrent_requests() <<
-    "; 0=unlimited) " << std::endl;
-  os << "  --max-connections <n>         " <<
-    "sets max #connections" << std::endl;
-  os << "                                  (default: " <<
-    cuti::dispatcher_config_t::default_max_connections() <<
-    "; 0=unlimited) " << std::endl;
-  os << "  --pidfile <path>              " <<
-    "create PID file <path> (default: none)" << std::endl;
-  os << "  --preset <presets>            " <<
-    "sets libx264 session presets (default: none)" << std::endl;
-  os << "  --rotation-depth <depth>      " << 
+  os << "  --logfile-rotation-depth <depth> " << 
     "sets logfile rotation depth (default: " <<
     cuti::file_backend_t::default_rotation_depth << ')' << std::endl;
-  os << "  --selector <type>             " <<
+  os << "  --logfile-size-limit <limit>     " <<
+    "sets logfile size limit (default: none)" << std::endl;
+  os << "  --loglevel <level>               " <<
+    "sets loglevel (default: " << 
+    cuti::loglevel_string(default_loglevel) << ')' << std::endl;
+  os << "  --max-concurrent-requests <n>    " <<
+    "sets max #concurrent requests" << std::endl;
+  os << "                                     (default: " <<
+    cuti::dispatcher_config_t::default_max_concurrent_requests() <<
+    "; 0=unlimited) " << std::endl;
+  os << "  --max-connections <n>            " <<
+    "sets max #connections" << std::endl;
+  os << "                                     (default: " <<
+    cuti::dispatcher_config_t::default_max_connections() <<
+    "; 0=unlimited) " << std::endl;
+  os << "  --pidfile <path>                 " <<
+    "create PID file <path> (default: none)" << std::endl;
+  os << "  --preset <presets>               " <<
+    "sets libx264 session presets (default: none)" << std::endl;
+  os << "  --selector <type>                " <<
     "sets selector type (default: " <<
     cuti::dispatcher_config_t::default_selector_factory() << ")" << std::endl;
-  os << "  --session-threads <n>         " <<
+  os << "  --session-threads <n>            " <<
     "sets libx264 #encoding session threads" << std::endl;
-  os << "                                  (default: " <<
+  os << "                                     (default: " <<
     encoder_settings_t::default_session_threads() << "; 0=auto)" << std::endl;
-  os << "  --size-limit <limit>          " <<
-    "sets logfile size limit (default: none)" << std::endl;
-  os << "  --syslog                      " <<
+  os << "  --syslog                         " <<
     "log to system log as " << cuti::default_syslog_name(argv0_) <<
     std::endl;
-  os << "  --syslog-name <name>          " <<
+  os << "  --syslog-name <name>             " <<
     "log to system log as <name>" << std::endl;
-  os << "  --tune <tunings>              " <<
+  os << "  --tune <tunings>                 " <<
     "sets libx264 session tunings (default: none)" << std::endl;
 #ifndef _WIN32
-  os << "  --umask <mask>                " <<
+  os << "  --umask <mask>                   " <<
     "set umask (default: no change)" << std::endl;
-  os << "  --user <name>                 " <<
+  os << "  --user <name>                    " <<
     "run as user <name>" << std::endl;
 #endif
   os << std::endl;
