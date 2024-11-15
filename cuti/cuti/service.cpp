@@ -285,14 +285,14 @@ void WINAPI service_main(DWORD dwNumServiceArgs, LPSTR* lpServiceArgVectors)
    * To be able to report configuration errors, we enable a
    * default-configured logger before parsing the command line.
    */
+  status_reporter_t status_reporter;
   logger_t logger(std::make_unique<syslog_backend_t>(
     default_syslog_name(argv[0]).c_str()));
 
   logging_context_t context(logger, default_loglevel);
+
   try
   {
-    status_reporter_t status_reporter;
-
     auto config = config_reader.read_config(argc, argv);
     assert(config != nullptr);
 
