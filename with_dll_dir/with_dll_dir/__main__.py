@@ -22,7 +22,7 @@
 # This Windows-only python script is intended to be used as a frontend
 # for some other python script that imports a python extension which
 # in turn drags in a native DLL from a different directory (on
-# Windows, the python interpreter uses OS magic is to ignore %PATH%
+# Windows, the python interpreter uses OS magic to ignore %PATH%
 # when finding such DLLs).
 #
 # See https://bugs.python.org/issue36085 or
