@@ -9,7 +9,7 @@ media processing tools.
 
   A shared library/DLL that provides an asynchronous RPC framework for
   C++, and a few other utilties for logging, command line parsing and
-  deamonization. Licensed under the LGPLv2.1.
+  daemonization. Licensed under the LGPLv2.1.
 
 * **usp-builder**
 
@@ -31,7 +31,7 @@ media processing tools.
 
 * **x264_encoding_service**
 
-  A daemon/service executing providing x264 encoding over a TCP
+  A daemon/service that provides x264 encoding over a TCP
   connection. Licensed under the GPLv2.
 
 * **x264_es_utils**
