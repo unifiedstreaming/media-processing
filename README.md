@@ -26,7 +26,7 @@ media processing tools.
 * **x264**
 
   Our fork of VideoLAN's
-  [lib264](https://www.videolan.org/developers/x264.html). Licensed
+  [x264](https://www.videolan.org/developers/x264.html). Licensed
   under the GPLv2.
 
 * **x264_encoding_service**
