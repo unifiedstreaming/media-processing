@@ -26,8 +26,8 @@ media processing tools.
 * **x264**
 
   Our fork of VideoLAN's
-  [x264](https://www.videolan.org/developers/x264.html). Licensed
-  under the GPLv2.
+  [x264](https://www.videolan.org/developers/x264.html)
+  library. Licensed under the GPLv2.
 
 * **x264_encoding_service**
 
@@ -54,13 +54,13 @@ media processing tools.
 * A recent *native* version of [b2](https://www.bfgroup.xyz/b2/).
 
 * A recent version of **GNU make** and a few other POSIX-style command
-  line utilities such as **bash**, **rm**, **mkdir** and **GNU sed**. On
-  Windows, we use a fairly minimal set of Cygwin packages to provide
-  these tools.
+  line utilities such as **bash**, **rm**, **mkdir** and **GNU
+  sed**. On Windows, we use a fairly minimal set of Cygwin packages to
+  provide these tools; the resulting binaries do not depend on Cygwin.
 
 ## Build instructions
 
-From a POSIX-style shell (bash) in the top level source dir:
+From a POSIX-style shell (bash) in the top level source directory:
 
 * type `make` to build all executables and shared libs/DLLs. By
   default, debug mode is used. For release mode, type `make
@@ -72,7 +72,3 @@ From a POSIX-style shell (bash) in the top level source dir:
 
 * type `make deploy dest-dir=/some/path` to deploy the executables
   and shared libs/DLLs to the directory tree rooted at `/some/path`.
-
-
-
-
