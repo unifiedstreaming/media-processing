@@ -20,8 +20,8 @@ media processing tools.
 
 * **with_dll_dir**
 
-  A small Python-on-Windows wrapper to set the native DLL directory
-  search directory for a python script. Licensed under the LGPLv2.1.
+  A small Python-on-Windows wrapper to set the native DLL search
+  directory for a python script. Licensed under the LGPLv2.1.
 
 * **x264**
 
