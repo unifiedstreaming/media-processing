@@ -54,9 +54,10 @@ media processing tools.
 * A recent *native* version of [b2](https://www.bfgroup.xyz/b2/).
 
 * A recent version of **GNU make** and a few other POSIX-style command
-  line utilities such as **bash**, **rm**, **mkdir** and **GNU
-  sed**. On Windows, we use a fairly minimal set of Cygwin packages to
-  provide these tools; the resulting binaries do not depend on Cygwin.
+  line utilities such as **bash**, **rm**, **mkdir**, **GNU sed**, and
+  **nasm**. On Windows, we use a fairly minimal set of Cygwin packages
+  to provide these tools; the resulting binaries do not depend on
+  Cygwin.
 
 ## Build instructions
 
