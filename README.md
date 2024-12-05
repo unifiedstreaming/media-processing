@@ -9,41 +9,42 @@ media processing tools.
 
   A shared library/DLL that provides an asynchronous RPC framework for
   C++, and a few other utilties for logging, command line parsing and
-  daemonization. Licensed under the LGPLv2.1.
+  daemonization. Distributed under the terms of the LGPLv2.1.
 
 * **usp-builder**
 
   A build tool that is mainly used for managing the dependencies
   between the projects in the source tree, relying on
   [b2](https://www.bfgroup.xyz/b2/) and GNU make to do the actual
-  work. Licensed under the GPLv2.
+  work. Distributed under the terms of the GPLv2.
 
 * **with_dll_dir**
 
   A small Python-on-Windows wrapper to set the native DLL search
-  directory for a python script. Licensed under the LGPLv2.1.
+  directory for a python script. Distributed under the terms of the
+  LGPLv2.1.
 
 * **x264**
 
   Our fork of VideoLAN's
   [x264](https://www.videolan.org/developers/x264.html)
-  library. Licensed under the GPLv2.
+  library. Distributed under the terms of the GPLv2.
 
 * **x264_encoding_service**
 
   A daemon/service that provides x264 encoding over a TCP
-  connection. Licensed under the GPLv2.
+  connection. Distributed under the terms of the GPLv2.
 
 * **x264_es_utils**
 
   A static library providing some utilities for the x264 encoding
-  service. Licensed under the GPLv2.
+  service. Distributed under the terms of the GPLv2.
 
 * **x264_proto**
 
   A shared library/DLL that implements both the client and server
   sides of the network protocol used by the x264 encoding
-  service. Licensed under the LGPLv2.1.
+  service. Distributed under the terms of the LGPLv2.1.
 
 ## Build requirements
 
