@@ -189,7 +189,7 @@ $(strip \
 #
 # force PYTHONIOENCODING to UTF-8
 #
-PYTHONIOENCODING=utf-8:surrogateescape
+PYTHONIOENCODING = utf-8:surrogateescape
 export PYTHONIOENCODING
 
 #
