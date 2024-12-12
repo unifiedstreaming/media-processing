@@ -339,7 +339,7 @@ wrap_x264_param_t::wrap_x264_param_t(
 
     param_.i_threads = static_cast<int>(encoder_settings.session_threads_);
   }
-    
+
   // CPU flags
   if(encoder_settings.deterministic_)
   {
@@ -447,20 +447,25 @@ wrap_x264_param_t::wrap_x264_param_t(
       builder.explode();
     }
 
-    param_.i_timebase_num = vui_num_units_in_tick;
-    param_.i_timebase_den = vui_time_scale / 2;
     if(!param_.b_vfr_input)
     {
       // NOTE: x264's "fps" is reversed, similar to FFmpeg. That means: 25 fps
       // is represented as 25/1, 29.97 fps is 30000/1001, etc.
-      param_.i_fps_num = param_.i_timebase_den;
-      param_.i_fps_den = param_.i_timebase_num;
+      param_.i_fps_num = vui_time_scale / 2;
+      param_.i_fps_den = vui_num_units_in_tick;
     }
-
-    // Adjust keyint_{min,max} based on fps
-    param_.i_keyint_min = param_.i_timebase_num / param_.i_timebase_den;
-    param_.i_keyint_max = 10 * param_.i_keyint_min;
   }
+
+  param_.i_timebase_num = 1;
+  param_.i_timebase_den = session_params.timescale_;
+
+  // We will signal IDR keyframes ourselves, so turn off forced IDR keyframes at
+  // specific intervals.
+  param_.i_keyint_max = X264_KEYINT_MAX_INFINITE;
+
+  // i_keyint_min is only used for scenecuts which we turn off below, so set it
+  // to automatic.
+  param_.i_keyint_min = X264_KEYINT_MIN_AUTO;
 
   // Turn off automatic insertion of keyframes on scenecuts.
   param_.i_scenecut_threshold = 0;
