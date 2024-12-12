@@ -1,6 +1,6 @@
 Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
 Upstream-name: x264_proto
-Source: https://github.com/unifiedstreaming/oss-temp
+Source: https://github.com/unifiedstreaming/media-processing
 
 Files: *
 Copyright: 2021-2024 CodeShop B.V.
