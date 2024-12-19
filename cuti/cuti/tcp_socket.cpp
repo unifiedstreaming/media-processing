@@ -393,14 +393,7 @@ int tcp_socket_t::close_write_end()
 #endif
   if(r == -1)
   {
-    int cause = last_system_error();
-    if(is_fatal_io_error(cause))
-    {
-      system_exception_builder_t builder;
-      builder << "shutdown() failure: " << error_status_t(cause);
-      builder.explode();
-    }
-    result = cause;
+    result = last_system_error();
   }
 
   return result;
