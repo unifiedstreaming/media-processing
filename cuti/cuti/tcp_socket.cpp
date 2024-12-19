@@ -382,7 +382,7 @@ int tcp_socket_t::write(char const* first, char const* last, char const*& next)
   return result;
 }
 
-int tcp_socket_t::close_write_end()
+int tcp_socket_t::close_write_end() noexcept
 {
   int result = 0;
 

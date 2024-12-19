@@ -124,7 +124,7 @@ struct CUTI_ABI tcp_socket_t
    * Returns 0 on success; if the connection is broken, a system error
    * code might be returned.
    */
-  int close_write_end();
+  int close_write_end() noexcept;
 
   /*
    * Tries to read the bytes in range [first, last>, setting next to
