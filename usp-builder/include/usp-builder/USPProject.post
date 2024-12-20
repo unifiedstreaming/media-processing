@@ -191,10 +191,12 @@ define artifact-targets =
 #
 # Distributable artifact targets for package $1
 #
+.PHONY: $(artifacts-dir)/$1
 $(artifacts-dir)/$1: | $(artifacts-dir)
+	$(usp-rm-dir) "$$(call to-shell,$$@)"
 	$(usp-mkdir-p) "$$(call to-shell,$$@)"
 
-$(foreach prj,$($1.package-projects),$(prj).project-artifacts: | $(artifacts-dir)/$1$(newline))
+$(foreach prj,$($1.package-projects),$(prj).project-artifacts: $(artifacts-dir)/$1$(newline))
 
 .PHONY: $1.artifacts
 $1.artifacts: $(strip $(foreach pkg,$($1.package-prereqs),$(pkg).artifacts) $(foreach prj,$($1.package-projects),$(prj).project-artifacts))
