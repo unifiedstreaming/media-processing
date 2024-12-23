@@ -59,6 +59,24 @@ rule stage-lib-dir ( )
   return $(stage-dir)/lib ;
 }
 
+rule staged-library ( library-name )
+{
+  local lib-dir = [ stage-lib-dir ] ;
+  return $(lib-dir)/jamfiles/$(library-name)//$(library-name) ;
+}
+
+rule staged-library-requirement ( library-name )
+{
+  local library = [ staged-library $(library-name) ] ;
+  return <library>$(library) ;
+}
+
+rule staged-library-dependency ( library-name )
+{
+  local library = [ staged-library $(library-name) ] ;
+  return <dependency>$(library) ;
+}
+
 rule deploy-dll-dir ( )
 {
   local dest-dir = [ require-from-environ dest-dir ] ;
