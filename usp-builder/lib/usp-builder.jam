@@ -71,12 +71,6 @@ rule staged-library-requirement ( library-name )
   return <library>$(library) ;
 }
 
-rule staged-library-dependency ( library-name )
-{
-  local library = [ staged-library $(library-name) ] ;
-  return <dependency>$(library) ;
-}
-
 rule deploy-dll-dir ( )
 {
   local dest-dir = [ require-from-environ dest-dir ] ;
@@ -173,6 +167,19 @@ rule uspbuild-dll-name ( name : type ? : properties * )
 {
   local version = [ os.environ "$(name).version" ] ;
   return [ dll-artifact-name $(name) : $(version) : $(type) ] ;
+}
+
+rule staged-dll ( library-name )
+{
+  local dir = [ stage-dll-dir ] ;
+  local filename = [ uspbuild-dll-name $(library-name) : SHARED_LIB ] ;
+  return $(dir)/$(filename) ;
+}
+
+rule staged-dll-dependency ( library-name )
+{
+  local dll = [ staged-dll $(library-name) ] ;
+  return <dependency>$(dll) ;
 }
 
 rule default-system-python ( )
