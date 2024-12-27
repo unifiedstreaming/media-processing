@@ -19,12 +19,10 @@
 
 import usp-builder ;
 
-lib-dir = [ usp-builder.stage-lib-dir ] ;
-
 exe x264_encoding_service
 : main.cpp
-  $(lib-dir)/jamfiles/x264_es_utils//x264_es_utils
-  $(lib-dir)/jamfiles/cuti//cuti
+  [ usp-builder.staged-library x264_es_utils ]
+  [ usp-builder.staged-library cuti ]
 ;
 
 explicit uspb-all ;

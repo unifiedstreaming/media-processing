@@ -19,8 +19,6 @@
 
 import usp-builder ;
 
-lib-dir = [ usp-builder.stage-lib-dir ] ;
-
 lib x264_es_utils
 :
   config.cpp
@@ -29,9 +27,9 @@ lib x264_es_utils
   encoder_settings.cpp
   encoding_session.cpp
   service.cpp
-  $(lib-dir)/jamfiles/cuti//cuti
-  $(lib-dir)/jamfiles/x264_proto//x264_proto
-  $(lib-dir)/jamfiles/x264//x264
+  [ usp-builder.staged-library cuti ]
+  [ usp-builder.staged-library x264_proto ]
+  [ usp-builder.staged-library x264 ]
 :
   <link>static
 :

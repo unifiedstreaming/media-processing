@@ -20,11 +20,9 @@
 import testing ;
 import usp-builder ;
 
-lib-dir = [ usp-builder.stage-lib-dir ] ;
-
 project
 : requirements
-  <library>$(lib-dir)/jamfiles/cuti//cuti
+  [ usp-builder.staged-library-requirement cuti ]
 ;
 
 unit-test boolean_io_test

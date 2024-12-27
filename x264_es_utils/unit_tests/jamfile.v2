@@ -20,13 +20,11 @@
 import testing ;
 import usp-builder ;
 
-lib-dir = [ usp-builder.stage-lib-dir ] ;
-
 project
 : requirements
-  <library>$(lib-dir)/jamfiles/x264_es_utils//x264_es_utils
-  <library>$(lib-dir)/jamfiles/x264_proto//x264_proto
-  <library>$(lib-dir)/jamfiles/cuti//cuti
+  [ usp-builder.staged-library-requirement x264_es_utils ]
+  [ usp-builder.staged-library-requirement x264_proto ]
+  [ usp-builder.staged-library-requirement cuti ]
 ;
 
 unit-test encoding_session_test
