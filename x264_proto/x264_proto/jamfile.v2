@@ -30,7 +30,7 @@ lib x264_proto
 :
   <define>BUILDING_X264_PROTO
   <link>shared
-  <tag>@usp-builder.uspbuild-dll-name
+  <tag>@usp-builder.dll-name
 :
 :
   <include>..

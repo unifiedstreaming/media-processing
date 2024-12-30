@@ -163,7 +163,7 @@ rule dll-artifact-name ( name : version ? : type ? )
   return $(result) ;
 }
 
-rule uspbuild-dll-name ( name : type ? : properties * )
+rule dll-name ( name : type ? : properties * )
 {
   local version = [ os.environ "$(name).version" ] ;
   return [ dll-artifact-name $(name) : $(version) : $(type) ] ;
@@ -172,7 +172,7 @@ rule uspbuild-dll-name ( name : type ? : properties * )
 rule staged-dll ( library-name )
 {
   local dir = [ stage-dll-dir ] ;
-  local filename = [ uspbuild-dll-name $(library-name) : SHARED_LIB ] ;
+  local filename = [ dll-name $(library-name) : SHARED_LIB ] ;
   return $(dir)/$(filename) ;
 }
 

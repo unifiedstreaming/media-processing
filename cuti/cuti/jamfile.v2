@@ -125,7 +125,7 @@ lib cuti
   <link>shared
   <target-os>windows:<find-shared-library>advapi32
   <target-os>windows:<find-shared-library>ws2_32
-  <tag>@usp-builder.uspbuild-dll-name
+  <tag>@usp-builder.dll-name
 :
 :
   <include>..
