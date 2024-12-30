@@ -192,7 +192,7 @@ license="$7"
 depends="$(call depends-listing,$(15),$6)"
 subpackages="$(foreach s,$(if $(14),$$pkgname-dbg),$s)"
 source=""
-options="!fhs$(if $(14),, !dbg !strip)"
+options="!fhs ignore-missing-so-files$(if $(14),, !dbg !strip)"
 $(if $(strip $(16)),install="$(strip $(16))")
 
 prepare() {
