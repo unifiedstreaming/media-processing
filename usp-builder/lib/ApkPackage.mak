@@ -53,7 +53,7 @@ checked-apk-arch = $(strip \
 #
 # $(call get-apk-arch)
 #
-get-apk-arch = $(call checked-apk-arch,$(shell abuild -A))
+get-apk-arch = $(call checked-apk-arch,$(shell git=true abuild -A))
 
 #
 # $(call checked-apk-package-name-impl,<package name>,<char>*)
@@ -130,15 +130,6 @@ override post-install-script := $(if $(strip $(openrc-files) $(require-user) $(r
 override post-upgrade-script := $(if $(strip $(openrc-files) $(require-user) $(require-group)),$(package).post-upgrade)
 override pre-deinstall-script := $(if $(strip $(openrc-files)),$(package).pre-deinstall)
 override installation-scripts := $(strip $(post-install-script) $(post-upgrade-script) $(pre-deinstall-script))
-
-#
-# $ (call fake-git-content)
-#
-define fake-git-content :=
-#! /bin/sh
-exit 0
-
-endef
 
 #
 # $(call require-user-group-content,<user>?,<group>?)
@@ -253,11 +244,6 @@ package() {
 
 endef
 
-#
-# Ensure our fake git command is found first
-#
-export PATH := $(apk-work-dir)/fake-git:$(PATH)
-
 .PHONY: all
 all: apk-package
 
@@ -267,26 +253,13 @@ apk-package: build-apk-packages
 	
 .PHONY: build-apk-packages
 build-apk-packages: $(apk-work-dir)/APKBUILD \
-  $(apk-work-dir)/fake-git/git \
   $(addprefix $(apk-work-dir)/,$(installation-scripts))
-	cd "$(call to-shell,$(apk-work-dir))" && abuild -m -d -P "$(call to-shell,$(abuild-output-dir))"
+	cd "$(call to-shell,$(apk-work-dir))" && git=true abuild -m -d -P "$(call to-shell,$(abuild-output-dir))"
 	
 $(apk-work-dir)/APKBUILD: clean-apk-work-dir
 	$(file >$@,$(call apkbuild-content,$(package),$(pkg-version),$(pkg-revision),$(pkg-description),$(pkg-maintainer),$(prereq-packages),$(license),$(artifacts-dir),$(artifacts),$(conf-files),$(doc-files),$(openrc-files),$(apache-conf-files),$(add-debug-package),$(extra-prereq-system-packages),$(installation-scripts)))
 	$(info generated $@)
 	
-#
-# install a fake git command in $(apk-work-dir)/fake-git
-# (to stop abuild's git magic)
-#
-$(apk-work-dir)/fake-git/git: $(apk-work-dir)/fake-git
-	$(file >$@,$(fake-git-content))
-	$(info generated fake $@)
-	chmod +x "$(call to-shell,$@)"
-	
-$(apk-work-dir)/fake-git: clean-apk-work-dir
-	$(usp-mkdir-p) "$(call to-shell,$@)"
-
 $(addprefix $(apk-work-dir)/,$(post-install-script)): clean-apk-work-dir
 	$(file >$@,$(call post-install-content,$(foreach f,$(openrc-files),$(call service-name,$f)),$(require-user),$(require-group)))
 	$(info generated $@)
