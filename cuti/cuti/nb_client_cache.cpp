@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024 CodeShop B.V.
+ * Copyright (C) 2024-2025 CodeShop B.V.
  *
  * This file is part of the cuti library.
  *

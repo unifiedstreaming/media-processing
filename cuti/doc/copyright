@@ -3,7 +3,7 @@ Source: https://github.com/unifiedstreaming/media-processing
 Upstream-name: cuti
 
 Files: *
-Copyright: 2021-2024 CodeShop B.V.
+Copyright: 2021-2025 CodeShop B.V.
 License: LGPL-2.1
  The cuti library is free software: you can redistribute it and/or
  modify it under the terms of version 2.1 of the GNU Lesser General
