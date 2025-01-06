@@ -30,7 +30,6 @@
 #include <cuti/resolver.hpp>
 #include <cuti/rpc_client.hpp>
 #include <cuti/scoped_guard.hpp>
-#include <cuti/scoped_thread.hpp>
 #include <cuti/simple_nb_client_cache.hpp>
 #include <cuti/stack_marker.hpp>
 #include <cuti/streambuf_backend.hpp>
@@ -241,7 +240,7 @@ void test_deaf_client(logging_context_t const& client_context,
     endpoint_t server_address = dispatcher.add_listener(
       local_interfaces(any_port).front(), map);
 
-    scoped_thread_t server_thread([&] { dispatcher.run(); });
+    std::jthread server_thread([&] { dispatcher.run(); });
     auto stop_guard = make_scoped_guard([&] { dispatcher.stop(SIGINT); });
   
     tcp_connection_t client_side(server_address);
@@ -298,7 +297,7 @@ void test_slow_client(logging_context_t const& client_context,
     endpoint_t server_address = dispatcher.add_listener(
       local_interfaces(any_port).front(), map);
 
-    scoped_thread_t server_thread([&] { dispatcher.run(); });
+    std::jthread server_thread([&] { dispatcher.run(); });
     auto stop_guard = make_scoped_guard([&] { dispatcher.stop(SIGINT); });
   
     tcp_connection_t client_side(server_address);
@@ -351,7 +350,7 @@ void test_eviction(logging_context_t const& client_context,
     endpoint_t server_address = dispatcher.add_listener(
       local_interfaces(any_port).front(), map);
 
-    scoped_thread_t server_thread([&] { dispatcher.run(); });
+    std::jthread server_thread([&] { dispatcher.run(); });
     auto stop_guard = make_scoped_guard([&] { dispatcher.stop(SIGINT); });
 
     simple_nb_client_cache_t cache1(
@@ -411,7 +410,7 @@ void test_remote_sleeps(logging_context_t const& client_context,
     endpoint_t server_address = dispatcher.add_listener(
       local_interfaces(any_port).front(), map);
 
-    scoped_thread_t server_thread([&] { dispatcher.run(); });
+    std::jthread server_thread([&] { dispatcher.run(); });
     auto stop_guard = make_scoped_guard([&] { dispatcher.stop(SIGINT); });
 
     simple_nb_client_cache_t cache(
@@ -423,7 +422,7 @@ void test_remote_sleeps(logging_context_t const& client_context,
       clients.emplace_back(client_context, cache, server_address);
     }
 
-    std::list<scoped_thread_t> client_threads;
+    std::list<std::jthread> client_threads;
     for(auto& client : clients)
     {
       client_threads.emplace_back([&]
@@ -509,7 +508,7 @@ void do_test_interrupted_server(logging_context_t const& client_context,
     simple_nb_client_cache_t cache(
       simple_nb_client_cache_t::default_max_cachesize, bufsize, bufsize);
 
-    std::list<scoped_thread_t> client_threads;
+    std::list<std::jthread> client_threads;
     for(std::size_t i = 0; i != n_clients; ++i)
     {
       client_threads.emplace_back([&]
@@ -536,7 +535,7 @@ void do_test_interrupted_server(logging_context_t const& client_context,
     }  
 
     {
-      scoped_thread_t stopper([&dispatcher]
+      std::jthread stopper([&dispatcher]
       {
         std::this_thread::sleep_for(milliseconds_t(1000));
         dispatcher->stop(SIGINT);
@@ -623,7 +622,7 @@ void test_restart(logging_context_t const& client_context,
       simple_nb_client_cache_t cache(
         simple_nb_client_cache_t::default_max_cachesize, bufsize, bufsize);
 
-      scoped_thread_t runner(
+      std::jthread runner(
         [&dispatcher] { dispatcher.run(); });
       auto stop_guard = make_scoped_guard(
         [&dispatcher] { dispatcher.stop(SIGINT); });

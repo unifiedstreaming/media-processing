@@ -30,7 +30,6 @@
 #include "method_map.hpp"
 #include "nb_tcp_buffers.hpp"
 #include "request_handler.hpp"
-#include "scoped_thread.hpp"
 #include "stack_marker.hpp"
 #include "tcp_acceptor.hpp"
 #include "tcp_connection.hpp"
@@ -41,6 +40,7 @@
 #include <list>
 #include <mutex>
 #include <string>
+#include <thread>
 #include <tuple>
 #include <utility>
 #include <vector>
@@ -820,7 +820,7 @@ private :
   std::mutex mutex_;
   bool joined_;
   std::condition_variable just_joined_;
-  std::optional<scoped_thread_t> thread_;
+  std::optional<std::jthread> thread_;
 };
 
 struct thread_pool_t

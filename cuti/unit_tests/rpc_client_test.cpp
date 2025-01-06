@@ -29,7 +29,6 @@
 #include <cuti/quoted.hpp>
 #include <cuti/resolver.hpp>
 #include <cuti/rpc_client.hpp>
-#include <cuti/scoped_thread.hpp>
 #include <cuti/simple_nb_client_cache.hpp>
 #include <cuti/streambuf_backend.hpp>
 #include <cuti/subtract_handler.hpp>
@@ -40,6 +39,7 @@
 #include <limits>
 #include <memory>
 #include <stdexcept>
+#include <thread>
 #include <tuple>
 #include <utility>
 
@@ -529,7 +529,7 @@ void run_logic_tests(logging_context_t const& client_context,
     rpc_client_t client(client_context, cache, server_endpoint);
 
     {
-      scoped_thread_t dispatcher_thread([&] { dispatcher.run(); });
+      std::jthread dispatcher_thread([&] { dispatcher.run(); });
       auto guard = make_scoped_guard([&] { dispatcher.stop(SIGINT); });
 
       test_add(client_context, client);
@@ -628,7 +628,7 @@ void test_throughput(logging_context_t const& client_context,
     endpoint_t endpoint = dispatcher.add_listener(
       local_interfaces(any_port).front(), map);
     {
-      scoped_thread_t dispatcher_thread([&] { dispatcher.run(); });
+      std::jthread dispatcher_thread([&] { dispatcher.run(); });
       auto guard = make_scoped_guard([&] { dispatcher.stop(SIGINT); });
 
       throughput_echo_client(client_context, endpoint, bufsize,

@@ -18,7 +18,6 @@
  */
 
 #include <cuti/streambuf_backend.hpp>
-#include <cuti/scoped_thread.hpp>
 
 #include <cstring>
 
@@ -29,6 +28,7 @@
 #include <mutex>
 #include <sstream>
 #include <string>
+#include <thread>
 #include <utility>
 #include <vector>
 
@@ -162,7 +162,7 @@ void test_multi_threaded(char const* argv0)
 
   thundering_herd_fence_t fence(n_threads);
   {
-    std::vector<std::unique_ptr<cuti::scoped_thread_t>> threads;
+    std::vector<std::unique_ptr<std::jthread>> threads;
     for(unsigned int tid = 0; tid != n_threads; ++tid)
     {
       auto code = [&, tid]
@@ -171,7 +171,7 @@ void test_multi_threaded(char const* argv0)
         log_away(logger, n_events, tid);
       };
 
-      threads.push_back(std::make_unique<cuti::scoped_thread_t>(code));
+      threads.push_back(std::make_unique<std::jthread>(code));
     }
   }
 

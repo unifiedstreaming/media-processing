@@ -23,13 +23,13 @@
 #include <cuti/default_scheduler.hpp>
 #include <cuti/logging_context.hpp>
 #include <cuti/option_walker.hpp>
-#include <cuti/scoped_thread.hpp>
 #include <cuti/stack_marker.hpp>
 #include <cuti/streambuf_backend.hpp>
 
 #include <iostream>
 #include <condition_variable>
 #include <mutex>
+#include <thread>
 #include <utility>
 
 #undef NDEBUG
@@ -477,12 +477,12 @@ void multiple_consumer_queue(logging_context_t const& context,
   mcq_t queue(factory);
   unsigned int counts[n_threads];
   {
-    std::unique_ptr<scoped_thread_t> threads[n_threads];
+    std::unique_ptr<std::jthread> threads[n_threads];
     auto guard = make_scoped_guard([&] { queue.push(eof); });
 
     for(unsigned int tid = 0; tid != n_threads; ++tid)
     {
-      threads[tid] = std::make_unique<scoped_thread_t>(
+      threads[tid] = std::make_unique<std::jthread>(
         [&, tid] { counts[tid] = pull_mcq(context, tid, queue); }); 
     }
 

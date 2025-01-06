@@ -97,7 +97,6 @@ lib cuti
   rpc_engine.cpp
   scheduler.cpp
   scoped_guard.cpp
-  scoped_thread.cpp
   select_selector.cpp
   selector.cpp
   selector_factory.cpp
