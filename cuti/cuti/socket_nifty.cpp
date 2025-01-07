@@ -19,7 +19,6 @@
 
 #include "socket_nifty.hpp"
 
-#include "signal_handler.hpp"
 #include "tcp_socket.hpp"
 
 #include <cstring>
@@ -67,22 +66,13 @@ namespace cuti
 struct socket_initializer_t
 {
   socket_initializer_t()
-  : sigpipe_handler_()
-  {
-    if(!tcp_socket_t::stops_sigpipe())
-    {
-      sigpipe_handler_.reset(new signal_handler_t(SIGPIPE, nullptr));
-    }
-  }
+  { }
 
   socket_initializer_t(socket_initializer_t const&) = delete;
   socket_initializer_t& operator=(socket_initializer_t const&) = delete;
 
   ~socket_initializer_t()
   { }
-
-private :
-  std::unique_ptr<signal_handler_t> sigpipe_handler_;
 };
 
 } // cuti

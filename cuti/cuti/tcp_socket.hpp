@@ -163,10 +163,6 @@ private :
   static void close_fd(int fd) noexcept;
 
 private :
-  friend struct socket_initializer_t;
-  static bool stops_sigpipe();
-
-private :
   int fd_;
 };
 
