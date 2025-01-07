@@ -23,6 +23,7 @@
 #include <cuti/logger.hpp>
 #include <cuti/logging_context.hpp>
 #include <cuti/option_walker.hpp>
+#include <cuti/scoped_thread.hpp>
 #include <cuti/streambuf_backend.hpp>
 
 #include <x264_proto/client.hpp>
@@ -33,7 +34,6 @@
 #include <exception>
 #include <fstream>
 #include <iostream>
-#include <thread>
 
 #undef NDEBUG
 #include <cassert>
@@ -177,7 +177,7 @@ void test_session_in_separate_thread(cuti::logging_context_t const& context)
     x264_proto::format_t::YUV420P,
     x264_proto::format_t::YUV420P10LE })
   {
-    std::jthread runner([&] { run_session(context, format); });
+    cuti::scoped_thread_t runner([&] { run_session(context, format); });
   }
 
   if(auto msg = context.message_at(cuti::loglevel_t::info))

@@ -24,12 +24,12 @@
 #include <cuti/resolver.hpp>
 #include <cuti/simple_nb_client_cache.hpp>
 #include <cuti/streambuf_backend.hpp>
+#include <cuti/scoped_thread.hpp>
 #include <cuti/tcp_acceptor.hpp>
 #include <cuti/tcp_connection.hpp>
 
 #include <iostream>
 #include <sstream>
-#include <thread>
 #include <tuple>
 #include <utility>
 
@@ -65,7 +65,7 @@ struct dummy_server_t
     stop_reader_->call_when_readable(scheduler_,
       [this](stack_marker_t&) { this->on_stop_reader(); });
 
-    serving_thread_ = std::make_unique<std::jthread>(
+    serving_thread_ = std::make_unique<scoped_thread_t>(
       [this] { this->serve(); });
   }
 
@@ -131,7 +131,7 @@ private :
   std::unique_ptr<tcp_connection_t> stop_writer_;
   default_scheduler_t scheduler_;
   bool stopping_;
-  std::unique_ptr<std::jthread> serving_thread_;
+  std::unique_ptr<scoped_thread_t> serving_thread_;
 };
 
 std::string connection_id(nb_client_t const& client)

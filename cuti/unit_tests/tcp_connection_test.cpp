@@ -27,6 +27,7 @@
 #include <cuti/logging_context.hpp>
 #include <cuti/option_walker.hpp>
 #include <cuti/resolver.hpp>
+#include <cuti/scoped_thread.hpp>
 #include <cuti/selector.hpp>
 #include <cuti/selector_factory.hpp>
 #include <cuti/stack_marker.hpp>
@@ -40,7 +41,6 @@
 #include <limits>
 #include <memory>
 #include <string>
-#include <thread>
 #include <tuple>
 #include <utility>
 #include <vector>
@@ -830,8 +830,8 @@ void run_pipe_in_parallel(producer_t& producer,
                           filter_t& filter,
                           consumer_t& consumer)
 {
-  std::jthread producer_thread([&] { run_to_completion(producer); });
-  std::jthread filter_thread([&] { run_to_completion(filter); });
+  scoped_thread_t producer_thread([&] { run_to_completion(producer); });
+  scoped_thread_t filter_thread([&] { run_to_completion(filter); });
   run_to_completion(consumer);
 }
 

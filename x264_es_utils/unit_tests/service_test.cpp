@@ -27,6 +27,7 @@
 #include <cuti/resolver.hpp>
 #include <cuti/rpc_client.hpp>
 #include <cuti/scoped_guard.hpp>
+#include <cuti/scoped_thread.hpp>
 #include <cuti/simple_nb_client_cache.hpp>
 #include <cuti/streambuf_backend.hpp>
 #include <x264_proto/client.hpp>
@@ -38,7 +39,6 @@
 #include <csignal>
 #include <exception>
 #include <iostream>
-#include <thread>
 
 #undef NDEBUG
 #include <cassert>
@@ -251,7 +251,7 @@ void test_service(cuti::logging_context_t const& client_context,
     x264_es_utils::service_t service(
       server_context, dispatcher_config, encoder_settings, interfaces);
 
-    std::jthread server_thread([&] { service.run(); });
+    cuti::scoped_thread_t server_thread([&] { service.run(); });
     cuti::scoped_guard_t stop_guard([&] { service.stop(SIGINT); });
 
     auto const& endpoints = service.endpoints();
