@@ -770,7 +770,6 @@ void repeated_flag_option()
     assert(true == flag);
     assert(!(flag != true));
     assert(!(true != flag));
-
   }
 }
 
@@ -819,7 +818,45 @@ void optional_option()
   assert(opt_number != std::nullopt);
   assert(*opt_number == 42);
 }
+
+void callables()
+{
+  char const* argv[] =
+    { "command", "--fixit", "--color", "red" };
+  int argc = sizeof argv / sizeof argv[0];
+  cmdline_reader_t reader(argc, argv);
+  option_walker_t walker(reader);
+
+  bool fixit = false;
+  auto fixit_handler = [&fixit] (char const* name, args_reader_t const&)
+  {
+    assert(std::strcmp(name, "--fixit") == 0);
+    fixit = true;
+  };
+
+  std::string color;
+  auto color_handler = [&color] (char const* name, args_reader_t const&,
+    char const* value)
+  {
+    assert(std::strcmp(name, "--color") == 0);
+    color = value;
+  };
+
+  while(!walker.done())
+  {
+    if(!walker.match("--fixit", fixit_handler) &&
+       !walker.match("--color", color_handler))
+    {
+      break;
+    }
+  }
   
+  assert(walker.done());
+  assert(reader.at_end());
+  assert(fixit);
+  assert(color == "red");
+}
+
 void run_tests(int, char const* const*)
 {
   no_options_no_args();
@@ -882,6 +919,8 @@ void run_tests(int, char const* const*)
   repeated_flag_option();
   repeated_value_option();
   optional_option();
+
+  callables();
 }
 
 } // anonymous

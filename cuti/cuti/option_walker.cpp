@@ -32,47 +32,6 @@ namespace cuti
 namespace // anonymous
 {
 
-bool is_short_option(char const *name)
-{
-  return name[0] == '-' &&
-    name[1] != '\0' && name[1] != '-' &&
-    name[2] == '\0';
-}
-
-bool is_long_option(char const* name)
-{
-  return name[0] == '-' &&
-    name[1] == '-' &&
-    name[2] != '\0';
-}
-
-char const* match_prefix(char const* arg, char const* prefix)
-{
-  while(*prefix == '-')
-  {
-    if(*arg != '-')
-    {
-      return nullptr;
-    }
-    ++arg;
-    ++prefix;
-  }
-
-  while(*prefix != '\0')
-  {
-    if(*prefix != *arg &&
-       !(*prefix == '-' && *arg == '_') &&
-       !(*prefix == '_' && *arg == '-'))
-    {
-      return nullptr;
-    }
-    ++arg;
-    ++prefix;
-  }
-
-  return arg;
-}
-
 template<typename T>
 T parse_unsigned(char const* name, args_reader_t const& reader,
                  char const* value, T max)
@@ -219,43 +178,6 @@ option_walker_t::option_walker_t(args_reader_t& reader)
   on_next_argument();
 }
 
-bool option_walker_t::match(const char *name, flag_t& value)
-{
-  assert(!done_);
-
-  bool result = false;
-
-  if(is_short_option(name))
-  {
-    if(short_option_ptr_ != nullptr && *short_option_ptr_ == name[1])
-    {
-      value = true;
-      result = true;
-
-      ++short_option_ptr_;
-      if(*short_option_ptr_ == '\0')
-      {
-        reader_.advance();
-        on_next_argument();
-      }
-    }
-  }
-  else if(is_long_option(name))
-  {
-    char const* suffix = match_prefix(reader_.current_argument(), name);
-    if(suffix != nullptr && *suffix == '\0')
-    {
-      value = true;
-      result = true;
-
-      reader_.advance();
-      on_next_argument();
-    }
-  }
-
-  return result;
-}
-
 bool option_walker_t::value_option_matches(char const* name,
                                            char const*& value)
 {
@@ -326,6 +248,47 @@ void option_walker_t::on_next_argument()
       // long option found
     }
   }
+}
+
+bool option_walker_t::is_short_option(char const *name)
+{
+  return name[0] == '-' &&
+    name[1] != '\0' && name[1] != '-' &&
+    name[2] == '\0';
+}
+
+bool option_walker_t::is_long_option(char const* name)
+{
+  return name[0] == '-' &&
+    name[1] == '-' &&
+    name[2] != '\0';
+}
+
+char const* option_walker_t::match_prefix(char const* arg, char const* prefix)
+{
+  while(*prefix == '-')
+  {
+    if(*arg != '-')
+    {
+      return nullptr;
+    }
+    ++arg;
+    ++prefix;
+  }
+
+  while(*prefix != '\0')
+  {
+    if(*prefix != *arg &&
+       !(*prefix == '-' && *arg == '_') &&
+       !(*prefix == '_' && *arg == '-'))
+    {
+      return nullptr;
+    }
+    ++arg;
+    ++prefix;
+  }
+
+  return arg;
 }
 
 } // cuti
