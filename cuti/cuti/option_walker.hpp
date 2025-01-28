@@ -144,7 +144,7 @@ struct CUTI_ABI option_walker_t
       // assume the target is an lvalue we can assign to
       static_assert(std::is_lvalue_reference_v<Target&&>,
         "option_walker: target type not supported");
-      result = match_lvalue(name, std::forward<Target>(target));
+      result = this->match_lvalue(name, std::forward<Target>(target));
     }
 
     return result;
