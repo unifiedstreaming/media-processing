@@ -46,7 +46,7 @@ namespace cuti
 namespace // anonymous
 {
 
-union endpoint_storage_t
+union sockaddr_buffer_t
 {
   sockaddr addr_;
   sockaddr_in addr_in_;
@@ -247,10 +247,10 @@ endpoint_t tcp_socket_t::local_endpoint() const
 {
   assert(!empty());
 
-  auto storage = std::make_shared<endpoint_storage_t>();
-  socklen_t size = static_cast<socklen_t>(sizeof *storage);
+  sockaddr_buffer_t buffer;
+  socklen_t size = static_cast<socklen_t>(sizeof buffer);
 
-  int r = getsockname(fd_, &storage->addr_, &size);
+  int r = getsockname(fd_, &buffer.addr_, &size);
   if(r == -1)
   {
     int cause = last_system_error();
@@ -259,18 +259,17 @@ endpoint_t tcp_socket_t::local_endpoint() const
     builder.explode();
   }
 
-  std::shared_ptr<sockaddr const> addr(std::move(storage), &storage->addr_);
-  return endpoint_t(std::move(addr));
+  return endpoint_t(buffer.addr_);
 }
 
 endpoint_t tcp_socket_t::remote_endpoint() const
 {
   assert(!empty());
 
-  auto storage = std::make_shared<endpoint_storage_t>();
-  socklen_t size = static_cast<socklen_t>(sizeof *storage);
+  sockaddr_buffer_t buffer;
+  socklen_t size = static_cast<socklen_t>(sizeof buffer);
 
-  int r = getpeername(fd_, &storage->addr_, &size);
+  int r = getpeername(fd_, &buffer.addr_, &size);
   if(r == -1)
   {
     int cause = last_system_error();
@@ -279,8 +278,7 @@ endpoint_t tcp_socket_t::remote_endpoint() const
     builder.explode();
   }
 
-  std::shared_ptr<sockaddr const> addr(std::move(storage), &storage->addr_);
-  return endpoint_t(std::move(addr));
+  return endpoint_t(buffer.addr_);
 }
 
 void tcp_socket_t::set_blocking()

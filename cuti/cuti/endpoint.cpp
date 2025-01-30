@@ -133,6 +133,28 @@ bool sockaddr_equals(sockaddr const& lhs, sockaddr const& rhs) noexcept
   return result;
 }
 
+std::shared_ptr<sockaddr const> clone_sockaddr(sockaddr const& addr)
+{
+  std::shared_ptr<sockaddr const> result;
+
+  auto on_ipv4 = [&](sockaddr_in const& addr_in)
+  {
+    auto clone = std::make_shared<sockaddr_in const>(addr_in);
+    result = std::shared_ptr<sockaddr const>(
+      clone, reinterpret_cast<sockaddr const*>(clone.get()));
+  };
+
+  auto on_ipv6 = [&](sockaddr_in6 const& addr_in6)
+  {
+    auto clone = std::make_shared<sockaddr_in6 const>(addr_in6);
+    result = std::shared_ptr<sockaddr const>(
+      clone, reinterpret_cast<sockaddr const*>(clone.get()));
+  };
+
+  visit_sockaddr(addr, on_ipv4, on_ipv6);
+  return result;
+}
+
 } // anonymous
 
 int endpoint_t::address_family() const
@@ -226,14 +248,9 @@ bool endpoint_t::equals(endpoint_t const& that) const noexcept
   return sockaddr_equals(*this->addr_, *that.addr_);
 }
 
-endpoint_t::endpoint_t(std::shared_ptr<sockaddr const> addr)
-: addr_(std::move(addr))
-{
-  if(addr_ != nullptr)
-  {
-    check_family(addr_->sa_family);
-  }
-}
+endpoint_t::endpoint_t(sockaddr const& addr)
+: addr_((check_family(addr.sa_family), clone_sockaddr(addr)))
+{ }
 
 std::ostream& operator<<(std::ostream& os, endpoint_t const& endpoint)
 {

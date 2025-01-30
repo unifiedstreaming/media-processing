@@ -61,7 +61,7 @@ private :
   friend struct tcp_socket_t;
 
   // Constructs an endpoint from a socket address
-  explicit endpoint_t(std::shared_ptr<sockaddr const> addr);
+  explicit endpoint_t(sockaddr const& addr);
 
 private :
   std::shared_ptr<sockaddr const> addr_;

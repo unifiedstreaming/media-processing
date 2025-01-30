@@ -103,8 +103,7 @@ struct resolver_t
     assert(info != nullptr);
     assert(info->ai_next == nullptr);
 
-    std::shared_ptr<sockaddr const> addr(std::move(info), info->ai_addr);
-    return endpoint_t(std::move(addr));
+    return endpoint_t(*info->ai_addr);
   }
 
   static endpoints_t find_endpoints(
@@ -118,8 +117,7 @@ struct resolver_t
         node != nullptr;
         node = node->ai_next)
     {
-      std::shared_ptr<sockaddr const> addr(info, node->ai_addr);
-      result.push_back(endpoint_t(std::move(addr)));
+      result.push_back(endpoint_t(*node->ai_addr));
     }
     return result;
   }
