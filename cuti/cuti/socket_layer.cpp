@@ -25,8 +25,13 @@
 #ifdef _WIN32
 
 #include <winsock2.h>
+#include <ws2tcpip.h>
 
 #else // POSIX
+
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netdb.h>
 
 #endif
 
@@ -70,5 +75,33 @@ socket_layer_t::socket_layer_t()
 
 socket_layer_t::~socket_layer_t()
 { }
+
+int socket_layer_t::getaddrinfo(char const* node, char const* service,
+                                addrinfo const *hints, addrinfo** res)
+{
+  return ::getaddrinfo(node, service, hints, res);
+}
+
+void socket_layer_t::freeaddrinfo(addrinfo* res)
+{
+  ::freeaddrinfo(res);
+}
+
+#ifndef _WIN32
+
+char const* socket_layer_t::gai_strerror(int errcode)
+{
+  return ::gai_strerror(errcode);
+}
+
+#endif
+
+int socket_layer_t::getnameinfo(sockaddr const* addr, unsigned int addrlen,
+                                char* host, unsigned int hostlen,
+                                char* serv, unsigned int servlen,
+                                int flags)
+{
+  return ::getnameinfo(addr, addrlen, host, hostlen, serv, servlen, flags);
+}
 
 } // namespace cuti

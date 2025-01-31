@@ -24,9 +24,18 @@
 
 #include <memory>
 
+struct addrinfo;
+struct sockaddr;
+
 namespace cuti
 {
 
+/*
+ * Use a (scoped) socket_layer_t RAII object to get access to the
+ * native socket API. Experience (under Windows) suggests that the
+ * socket layer's lifetime should be nested in main() or one of its
+ * subscopes.
+ */
 struct CUTI_ABI socket_layer_t
 {
   socket_layer_t();
@@ -35,6 +44,22 @@ struct CUTI_ABI socket_layer_t
   socket_layer_t& operator=(socket_layer_t const&) = delete;
 
   ~socket_layer_t();
+
+  /*
+   * Address resolution
+   */
+  int getaddrinfo(char const* node, char const* service,
+                  addrinfo const *hints, addrinfo** res);
+  void freeaddrinfo(addrinfo* res);
+
+#ifndef _WIN32
+  char const* gai_strerror(int errcode);
+#endif
+
+ int getnameinfo(sockaddr const* addr, unsigned int addrlen,
+                 char* host, unsigned int hostlen,
+                 char* serv, unsigned int servlen,
+                 int flags);
 
 private :
   struct initializer_t;
