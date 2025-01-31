@@ -41,159 +41,34 @@
 namespace cuti
 {
 
+struct endpoint_t::rep_t
+{
+  rep_t()
+  { }
+
+  rep_t(rep_t const&) = delete;
+  rep_t& operator=(rep_t const&) = delete;
+
+  virtual int address_family() const = 0;
+  virtual sockaddr const& socket_address() const = 0;
+  virtual unsigned int socket_address_size() const = 0;
+  virtual std::string const& ip_address() const = 0;
+  virtual unsigned int port() const = 0;
+
+  virtual ~rep_t();
+};
+  
 namespace // anonymous
 {
 
-void check_family(int family)
+std::string get_ip_address(sockaddr const& addr, std::size_t addr_size)
 {
-  switch(family)
-  {
-  case AF_INET :
-  case AF_INET6 :
-    break;
-  default :
-    {
-      system_exception_builder_t builder;
-      builder << "Unsupported address family " << family;
-      builder.explode();
-    }
-    break;
-  }
-}
-
-template<typename IPv4Handler, typename IPv6Handler>
-void visit_sockaddr(sockaddr const& addr,
-                    IPv4Handler ipv4_handler,
-                    IPv6Handler ipv6_handler)
-{
-  switch(addr.sa_family)
-  {
-  case AF_INET :
-    ipv4_handler(*reinterpret_cast<sockaddr_in const*>(&addr));
-    break;
-  case AF_INET6 :
-    ipv6_handler(*reinterpret_cast<sockaddr_in6 const*>(&addr));
-    break;
-  default :
-    assert(!"expected address family");
-    break;
-  }
-}
-
-bool sockaddr_equals(sockaddr_in const& lhs, sockaddr_in const& rhs) noexcept
-{
-  return lhs.sin_port == rhs.sin_port &&
-         lhs.sin_addr.s_addr == rhs.sin_addr.s_addr;
-}
-
-bool sockaddr_equals(sockaddr_in6 const& lhs, sockaddr_in6 const& rhs) noexcept
-{
-  return lhs.sin6_port == rhs.sin6_port &&
-         std::equal(std::begin(lhs.sin6_addr.s6_addr),
-                    std::end(lhs.sin6_addr.s6_addr),
-                    std::begin(rhs.sin6_addr.s6_addr));
-}
-
-bool sockaddr_equals(sockaddr_in const& lhs, sockaddr const& rhs) noexcept
-{
-  bool result = false;
-
-  auto on_ipv4 = [&](sockaddr_in const& rhs)
-    { result = sockaddr_equals(lhs, rhs); };
-  auto on_ipv6 = [&](sockaddr_in6 const&)
-    { };
-  visit_sockaddr(rhs, on_ipv4, on_ipv6);
-
-  return result;
-}
-
-bool sockaddr_equals(sockaddr_in6 const& lhs, sockaddr const& rhs) noexcept
-{
-  bool result = false;
-
-  auto on_ipv4 = [&](sockaddr_in const&)
-    { };
-  auto on_ipv6 = [&](sockaddr_in6 const& rhs)
-    { result = sockaddr_equals(lhs, rhs); };
-  visit_sockaddr(rhs, on_ipv4, on_ipv6);
-
-  return result;
-}
-
-bool sockaddr_equals(sockaddr const& lhs, sockaddr const& rhs) noexcept
-{
-  bool result = false;
-
-  auto on_ipv4 = [&](sockaddr_in const& lhs)
-    { result = sockaddr_equals(lhs, rhs); };
-  auto on_ipv6 = [&](sockaddr_in6 const& lhs)
-    { result = sockaddr_equals(lhs, rhs); };
-  visit_sockaddr(lhs, on_ipv4, on_ipv6);
-
-  return result;
-}
-
-std::shared_ptr<sockaddr const> clone_sockaddr(sockaddr const& addr)
-{
-  std::shared_ptr<sockaddr const> result;
-
-  auto on_ipv4 = [&](sockaddr_in const& addr_in)
-  {
-    auto clone = std::make_shared<sockaddr_in const>(addr_in);
-    result = std::shared_ptr<sockaddr const>(
-      clone, reinterpret_cast<sockaddr const*>(clone.get()));
-  };
-
-  auto on_ipv6 = [&](sockaddr_in6 const& addr_in6)
-  {
-    auto clone = std::make_shared<sockaddr_in6 const>(addr_in6);
-    result = std::shared_ptr<sockaddr const>(
-      clone, reinterpret_cast<sockaddr const*>(clone.get()));
-  };
-
-  visit_sockaddr(addr, on_ipv4, on_ipv6);
-  return result;
-}
-
-} // anonymous
-
-int endpoint_t::address_family() const
-{
-  assert(!empty());
-
-  return addr_->sa_family;
-}
-
-sockaddr const& endpoint_t::socket_address() const
-{
-  assert(!empty());
-
-  return *addr_;
-}
-
-unsigned int endpoint_t::socket_address_size() const
-{
-  assert(!empty());
-
-  unsigned int result = 0;
-
-  auto on_ipv4 = [&](sockaddr_in const& addr) { result = sizeof addr; };
-  auto on_ipv6 = [&](sockaddr_in6 const& addr) { result = sizeof addr; };
-  visit_sockaddr(*addr_, on_ipv4, on_ipv6);
-
-  return result;
-}
-
-std::string endpoint_t::ip_address() const
-{
-  assert(!empty());
-
   static char const longest_expected[] =
     "ffff:ffff:ffff:ffff:ffff:ffff:255.255.255.255";
   char buf[sizeof longest_expected];
 
   int r = getnameinfo(
-    addr_.get(), this->socket_address_size(),
+    &addr, static_cast<socklen_t>(addr_size),
     buf, static_cast<socklen_t>(sizeof buf),
     nullptr, 0,
     NI_NUMERICHOST);
@@ -219,37 +94,167 @@ std::string endpoint_t::ip_address() const
   return std::string(buf, end);
 }
 
-unsigned int endpoint_t::port() const
+template<typename AddrT>
+std::string get_ip_address(AddrT const& addr)
 {
-  assert(!empty());
+  return get_ip_address(
+    *reinterpret_cast<sockaddr const*>(&addr), sizeof addr);
+}
 
-  unsigned int result = 0;
+struct ipv4_rep_t : endpoint_t::rep_t
+{
+  explicit ipv4_rep_t(sockaddr_in const& addr)
+  : endpoint_t::rep_t()
+  , addr_(addr)
+  , ip_address_(get_ip_address(addr_))
+  { }
 
-  auto on_ipv4 = [&](sockaddr_in const& addr)
-    { result = ntohs(addr.sin_port); };
-  auto on_ipv6 = [&](sockaddr_in6 const& addr)
-    { result = ntohs(addr.sin6_port); };
-  visit_sockaddr(*addr_, on_ipv4, on_ipv6);
+  int address_family() const override
+  { return AF_INET; }
+
+  sockaddr const& socket_address() const override
+  { return *reinterpret_cast<sockaddr const*>(&addr_); }
+
+  unsigned int socket_address_size() const override
+  { return sizeof addr_; }
+
+  std::string const& ip_address() const override
+  { return ip_address_; }
+
+  unsigned int port() const override
+  { return ntohs(addr_.sin_port); }
+
+private :
+  sockaddr_in addr_;
+  std::string ip_address_;
+};
+
+struct ipv6_rep_t : endpoint_t::rep_t
+{
+  explicit ipv6_rep_t(sockaddr_in6 const& addr)
+  : endpoint_t::rep_t()
+  , addr_(addr)
+  , ip_address_(get_ip_address(addr_))
+  { }
+
+  int address_family() const override
+  { return AF_INET6; }
+
+  sockaddr const& socket_address() const override
+  { return *reinterpret_cast<sockaddr const*>(&addr_); }
+
+  unsigned int socket_address_size() const override
+  { return sizeof addr_; }
+
+  std::string const& ip_address() const override
+  { return ip_address_; }
+
+  unsigned int port() const override
+  { return ntohs(addr_.sin6_port); }
+
+private :
+  sockaddr_in6 addr_;
+  std::string ip_address_;
+};
+
+std::shared_ptr<endpoint_t::rep_t const>
+make_rep(sockaddr const& addr, std::size_t addr_size)
+{
+  std::shared_ptr<endpoint_t::rep_t const> result;
+
+  switch(addr.sa_family)
+  {
+  case AF_INET:
+    if(addr_size != sizeof(sockaddr_in))
+    {
+      system_exception_builder_t builder;
+      builder << "Bad sockaddr size " << addr_size <<
+        " for address family AF_INET (" << sizeof(sockaddr_in) <<
+	" expected)";
+      builder.explode();
+    }
+    result = std::make_shared<ipv4_rep_t const>(
+      *reinterpret_cast<sockaddr_in const*>(&addr));
+    break;
+  case AF_INET6:
+    if(addr_size != sizeof(sockaddr_in6))
+    {
+      system_exception_builder_t builder;
+      builder << "Bad sockaddr size " << addr_size <<
+        " for address family AF_INET6 (" << sizeof(sockaddr_in6) <<
+	" expected)";
+      builder.explode();
+    }
+    result = std::make_shared<ipv6_rep_t const>(
+      *reinterpret_cast<sockaddr_in6 const*>(&addr));
+    break;
+  default:
+    {
+      system_exception_builder_t builder;
+      builder << "Unsupported address family " << addr.sa_family;
+      builder.explode();
+    }
+    break;
+  }
 
   return result;
 }
 
+} // anonymous
+
+endpoint_t::rep_t::~rep_t()
+{ }
+
+int endpoint_t::address_family() const
+{
+  assert(!empty());
+  return rep_->address_family();
+}
+
+sockaddr const& endpoint_t::socket_address() const
+{
+  assert(!empty());
+  return rep_->socket_address();
+}
+
+unsigned int endpoint_t::socket_address_size() const
+{
+  assert(!empty());
+  return rep_->socket_address_size();
+}
+
+std::string const& endpoint_t::ip_address() const
+{
+  assert(!empty());
+  return rep_->ip_address();
+}
+
+unsigned int endpoint_t::port() const
+{
+  assert(!empty());
+  return rep_->port();
+}
+
 bool endpoint_t::equals(endpoint_t const& that) const noexcept
 {
-  if(this->addr_ == that.addr_)
+  if(this->rep_ == that.rep_)
   {
     return true;
   }
-  if(this->addr_ == nullptr || that.addr_ == nullptr)
+
+  if(this->rep_ == nullptr || that.rep_ == nullptr)
   {
     return false;
   }
 
-  return sockaddr_equals(*this->addr_, *that.addr_);
+  return
+     this->port() == that.port() &&
+     this->ip_address() == that.ip_address() &&
+     this->address_family() == that.address_family();
 }
 
-endpoint_t::endpoint_t(sockaddr const& addr)
-: addr_((check_family(addr.sa_family), clone_sockaddr(addr)))
+endpoint_t::endpoint_t(sockaddr const& addr, std::size_t addr_size)
+: rep_(make_rep(addr, addr_size))
 { }
 
 std::ostream& operator<<(std::ostream& os, endpoint_t const& endpoint)

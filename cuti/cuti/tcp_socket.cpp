@@ -259,7 +259,7 @@ endpoint_t tcp_socket_t::local_endpoint() const
     builder.explode();
   }
 
-  return endpoint_t(buffer.addr_);
+  return endpoint_t(buffer.addr_, size);
 }
 
 endpoint_t tcp_socket_t::remote_endpoint() const
@@ -278,7 +278,7 @@ endpoint_t tcp_socket_t::remote_endpoint() const
     builder.explode();
   }
 
-  return endpoint_t(buffer.addr_);
+  return endpoint_t(buffer.addr_, size);
 }
 
 void tcp_socket_t::set_blocking()

@@ -23,6 +23,7 @@
 #include "linkage.h"
 #include "socket_nifty.hpp"
 
+#include <cstddef>
 #include <memory>
 #include <iosfwd>
 #include <string>
@@ -38,20 +39,22 @@ struct tcp_socket_t;
 
 struct CUTI_ABI endpoint_t
 {
+  struct rep_t;
+
   // Constructs an empty endpoint; access verboten. To obtain real,
   // non-empty endpoints, use the factory functions in resolver.hpp.
   endpoint_t()
-  : addr_(nullptr)
+  : rep_(nullptr)
   { }
 
   // Accessors: no properties exist when this->empty()
   bool empty() const
-  { return addr_ == nullptr; }
+  { return rep_ == nullptr; }
 
   int address_family() const;
   sockaddr const& socket_address() const;
   unsigned int socket_address_size() const;
-  std::string ip_address() const;
+  std::string const& ip_address() const;
   unsigned int port() const;
 
   bool equals(endpoint_t const& that) const noexcept;
@@ -61,10 +64,10 @@ private :
   friend struct tcp_socket_t;
 
   // Constructs an endpoint from a socket address
-  explicit endpoint_t(sockaddr const& addr);
+  endpoint_t(sockaddr const& addr, std::size_t addr_size);
 
 private :
-  std::shared_ptr<sockaddr const> addr_;
+  std::shared_ptr<rep_t const> rep_;
 };
 
 CUTI_ABI
