@@ -34,9 +34,11 @@
 namespace cuti
 {
 
+struct socket_layer_t;
+
 struct CUTI_ABI tcp_acceptor_t
 {
-  explicit tcp_acceptor_t(endpoint_t const& endpoint);
+  tcp_acceptor_t(socket_layer_t& sockets, endpoint_t const& endpoint);
 
   tcp_acceptor_t(tcp_acceptor_t const&) = delete;
   tcp_acceptor_t& operator=(tcp_acceptor_t const&) = delete;

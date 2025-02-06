@@ -34,6 +34,7 @@ namespace cuti
 {
 
 struct scheduler_t;
+struct socket_layer_t;
 
 struct CUTI_ABI event_pipe_reader_t
 {
@@ -107,7 +108,7 @@ struct CUTI_ABI event_pipe_writer_t
 CUTI_ABI
 std::pair<std::unique_ptr<event_pipe_reader_t>,
           std::unique_ptr<event_pipe_writer_t>>
-make_event_pipe();
+make_event_pipe(socket_layer_t& sockets);
 
 } // cuti
 

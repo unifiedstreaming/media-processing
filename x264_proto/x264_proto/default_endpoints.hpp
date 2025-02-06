@@ -35,7 +35,7 @@ namespace x264_proto
  * The list of endpoints the x264 encoding service listens on by default.
  */
 X264_PROTO_ABI
-std::vector<cuti::endpoint_t> default_endpoints();
+std::vector<cuti::endpoint_t> default_endpoints(cuti::socket_layer_t& sockets);
 
 } // x264_proto
 

@@ -24,6 +24,7 @@
 #include <cuti/logging_context.hpp>
 #include <cuti/option_walker.hpp>
 #include <cuti/scoped_thread.hpp>
+#include <cuti/socket_layer.hpp>
 #include <cuti/stack_marker.hpp>
 #include <cuti/streambuf_backend.hpp>
 
@@ -179,7 +180,7 @@ private :
  */
 struct mcq_t
 {
-  explicit mcq_t(selector_factory_t const& factory)
+  mcq_t(socket_layer_t& sockets, selector_factory_t const& factory)
   : mutex_()
   , active_(false)
   , check_active_()
@@ -189,7 +190,7 @@ struct mcq_t
   , selecting_(false)
   , check_selecting_()
   {
-    std::tie(reader_, writer_) = make_event_pipe();
+    std::tie(reader_, writer_) = make_event_pipe(sockets);
   }
 
   mcq_t(mcq_t const&) = delete;
@@ -292,10 +293,11 @@ void blocking_transfer(logging_context_t const& context)
     *msg << __func__ << ": starting";
   }
 
+  cuti::socket_layer_t sockets;
   std::unique_ptr<event_pipe_reader_t> reader;
   std::unique_ptr<event_pipe_writer_t> writer;
 
-  std::tie(reader, writer) = make_event_pipe();
+  std::tie(reader, writer) = make_event_pipe(sockets);
 
   for(int i = 0; i != 256; ++i)
   {
@@ -323,10 +325,11 @@ void nonblocking_transfer(logging_context_t const& context)
     *msg << __func__ << ": starting";
   }
 
+  cuti::socket_layer_t sockets;
   std::unique_ptr<event_pipe_reader_t> reader;
   std::unique_ptr<event_pipe_writer_t> writer;
 
-  std::tie(reader, writer) = make_event_pipe();
+  std::tie(reader, writer) = make_event_pipe(sockets);
   reader->set_nonblocking();
   writer->set_nonblocking();
   
@@ -390,10 +393,11 @@ void scheduled_transfer(logging_context_t const& context,
       " count: " << count;
   }
 
+  socket_layer_t sockets;
   std::unique_ptr<event_pipe_reader_t> reader;
   std::unique_ptr<event_pipe_writer_t> writer;
 
-  std::tie(reader, writer) = make_event_pipe();
+  std::tie(reader, writer) = make_event_pipe(sockets);
   reader->set_nonblocking();
   writer->set_nonblocking();
 
@@ -474,7 +478,8 @@ void multiple_consumer_queue(logging_context_t const& context,
     *msg << __func__ << ": starting (selector: " << factory << ")";
   }
 
-  mcq_t queue(factory);
+  socket_layer_t sockets;
+  mcq_t queue(sockets, factory);
   unsigned int counts[n_threads];
   {
     std::unique_ptr<scoped_thread_t> threads[n_threads];

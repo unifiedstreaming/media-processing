@@ -24,6 +24,7 @@
 #include <cuti/logging_context.hpp>
 #include <cuti/logger.hpp>
 #include <cuti/resolver.hpp>
+#include <cuti/socket_layer.hpp>
 #include <cuti/streambuf_backend.hpp>
 #include <cuti/system_error.hpp>
 #include <cuti/tcp_connection.hpp>
@@ -44,16 +45,17 @@ using namespace cuti;
 loglevel_t const loglevel = loglevel_t::info;
 
 void blocking_accept(logging_context_t const& context,
+                     socket_layer_t& sockets,
                      endpoint_t const& interface)
 {
-  tcp_acceptor_t acceptor(interface);
+  tcp_acceptor_t acceptor(sockets, interface);
   if(auto msg = context.message_at(loglevel))
   {
     *msg << "blocking_accept: acceptor " << acceptor <<
       " at interface " << interface;
   }
 
-  tcp_connection_t client(acceptor.local_endpoint());
+  tcp_connection_t client(sockets, acceptor.local_endpoint());
   if(auto msg = context.message_at(loglevel))
   {
     *msg << "client side: " << client;
@@ -71,19 +73,22 @@ void blocking_accept(logging_context_t const& context,
 
 void blocking_accept(logging_context_t const& context)
 {
-  auto interfaces = local_interfaces(any_port);
+  socket_layer_t sockets;
+
+  auto interfaces = local_interfaces(sockets, any_port);
   assert(!interfaces.empty());
 
   for(auto const& interface : interfaces)
   {
-    blocking_accept(context, interface);
+    blocking_accept(context, sockets, interface);
   }
 }
 
 void nonblocking_accept(logging_context_t const& context,
+                        socket_layer_t& sockets,
                         endpoint_t const& interface)
 {
-  tcp_acceptor_t acceptor(interface);
+  tcp_acceptor_t acceptor(sockets, interface);
   if(auto msg = context.message_at(loglevel))
   {
     *msg << "nonblocking_accept: acceptor " << acceptor <<
@@ -100,7 +105,7 @@ void nonblocking_accept(logging_context_t const& context,
     *msg << acceptor << " returned expected nullptr";
   }
 
-  tcp_connection_t client(acceptor.local_endpoint());
+  tcp_connection_t client(sockets, acceptor.local_endpoint());
   if(auto msg = context.message_at(loglevel))
   {
     *msg << "client side: " << client;
@@ -140,19 +145,21 @@ void nonblocking_accept(logging_context_t const& context,
 
 void nonblocking_accept(logging_context_t const& context)
 {
-  auto interfaces = local_interfaces(any_port);
+  socket_layer_t sockets;
+  auto interfaces = local_interfaces(sockets, any_port);
   assert(!interfaces.empty());
 
   for(auto const& interface : interfaces)
   {
-    nonblocking_accept(context, interface);
+    nonblocking_accept(context, sockets, interface);
   }
 }
 
 void duplicate_bind(logging_context_t const& context,
+                    socket_layer_t& sockets,
                     endpoint_t const& interface)
 {
-  tcp_acceptor_t acceptor1(interface);
+  tcp_acceptor_t acceptor1(sockets, interface);
   if(auto msg = context.message_at(loglevel))
   {
     *msg << "duplicate_bind: acceptor " << acceptor1 <<
@@ -166,7 +173,7 @@ void duplicate_bind(logging_context_t const& context,
     {
       *msg << "binding to " << acceptor1;
     }
-    tcp_acceptor_t acceptor2(acceptor1.local_endpoint());
+    tcp_acceptor_t acceptor2(sockets, acceptor1.local_endpoint());
   }
   catch(system_exception_t const& ex)
   {
@@ -181,16 +188,18 @@ void duplicate_bind(logging_context_t const& context,
 
 void duplicate_bind(logging_context_t const& context)
 {
-  auto interfaces = local_interfaces(any_port);
+  socket_layer_t sockets;
+  auto interfaces = local_interfaces(sockets, any_port);
   assert(!interfaces.empty());
 
   for(auto const& interface : interfaces)
   {
-    duplicate_bind(context, interface);
+    duplicate_bind(context, sockets, interface);
   }
 }
 
 bool prove_dual_stack(logging_context_t const& context,
+                      socket_layer_t& sockets,
                       endpoints_t const& interfaces)
 {
   assert(interfaces.size() >= 2);
@@ -199,7 +208,7 @@ bool prove_dual_stack(logging_context_t const& context,
    * Bind to the first interface in the list
    */
   endpoint_t interface1 = interfaces.front();
-  tcp_acceptor_t acceptor1(interface1);
+  tcp_acceptor_t acceptor1(sockets, interface1);
   if(auto msg = context.message_at(loglevel))
   {
     *msg << "dual_stack: acceptor1 " << acceptor1 <<
@@ -215,14 +224,15 @@ bool prove_dual_stack(logging_context_t const& context,
    */
   endpoint_t interface2 = interfaces.back();
   assert(interface1.address_family() != interface2.address_family());
-  endpoint_t target = resolve_ip(interface2.ip_address(),
+  endpoint_t target = resolve_ip(sockets,
+                                 interface2.ip_address(),
                                  acceptor1.local_endpoint().port());
 
   bool result = false;
 
   try
   {
-    tcp_acceptor_t acceptor2(target);
+    tcp_acceptor_t acceptor2(sockets, target);
     if(auto msg = context.message_at(loglevel))
     {
       *msg << "dual_stack: acceptor2 " << acceptor2 <<
@@ -243,8 +253,10 @@ bool prove_dual_stack(logging_context_t const& context,
 
 void dual_stack(logging_context_t const& context)
 {
+  socket_layer_t sockets;
+
   // Check that we have multiple local interfaces (one for each family)
-  auto interfaces = local_interfaces(any_port);
+  auto interfaces = local_interfaces(sockets, any_port);
   assert(!interfaces.empty());
 
   if(interfaces.size() == 1)
@@ -261,7 +273,7 @@ void dual_stack(logging_context_t const& context)
   unsigned int attempt;
   for(attempt = 0; !proven && attempt != 10; ++attempt)
   {
-    proven = prove_dual_stack(context, interfaces);
+    proven = prove_dual_stack(context, sockets, interfaces);
   }
 
   if(auto msg = context.message_at(loglevel))

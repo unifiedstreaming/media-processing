@@ -55,8 +55,10 @@ see <http://www.gnu.org/licenses/> for details.)";
 namespace x264_es_utils
 {
 
-config_t::config_t(int argc, char const* const argv[])
-: argv0_((assert(argc > 0), argv[0]))
+config_t::config_t(cuti::socket_layer_t& sockets,
+                   int argc, char const* const argv[])
+: sockets_(sockets)
+, argv0_((assert(argc > 0), argv[0]))
 #ifndef _WIN32
 , daemon_(false)
 #endif
@@ -148,11 +150,11 @@ config_t::create_service(cuti::logging_context_t& context) const
   auto endpoints = endpoints_;
   if(endpoints.empty())
   {
-    endpoints = x264_proto::default_endpoints();
+    endpoints = x264_proto::default_endpoints(sockets_);
   }
 
   auto result = std::make_unique<service_t>(
-    context, dispatcher_config_, encoder_settings_, endpoints);
+    context, sockets_, dispatcher_config_, encoder_settings_, endpoints);
   if(dry_run_)
   {
     result.reset();
@@ -175,6 +177,16 @@ void config_t::read_options(cuti::args_reader_t& reader,
   static constexpr auto max_config_file_depth = 20;
  
   std::string config_filename;
+
+  auto handle_endpoint = [this](char const* name,
+                                cuti::args_reader_t const & reader,
+                                char const *value)
+  {
+    cuti::endpoint_t ep;
+    cuti::parse_endpoint(sockets_, name, reader, value, ep);
+    this->endpoints_.push_back(ep);
+  };
+      
 
   cuti::option_walker_t walker(reader);
   while(!walker.done())
@@ -228,7 +240,7 @@ void config_t::read_options(cuti::args_reader_t& reader,
 #endif
       !walker.match("--directory", directory_) &&
       !walker.match("--dry-run", dry_run_) &&
-      !walker.match("--endpoint", endpoints_) &&
+      !walker.match("--endpoint", handle_endpoint) &&
       !walker.match("--deterministic", encoder_settings_.deterministic_) &&
       !walker.match("--logfile-rotation-depth", logfile_rotation_depth_) &&
       !walker.match("--logfile-size-limit", logfile_size_limit_) &&
@@ -291,7 +303,7 @@ void config_t::print_usage(std::ostream& os)
     "add endpoint to listen on" << std::endl;
   os << "                                     (defaults:";
   {
-    auto defaults = x264_proto::default_endpoints();
+    auto defaults = x264_proto::default_endpoints(sockets_);
     for(auto const& endpoint : defaults)
     {
       os << ' ' << endpoint;

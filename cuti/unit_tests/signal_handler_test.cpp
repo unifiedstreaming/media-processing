@@ -24,6 +24,7 @@
 #include <cuti/default_scheduler.hpp>
 #include <cuti/option_walker.hpp>
 #include <cuti/selector_factory.hpp>
+#include <cuti/socket_layer.hpp>
 #include <cuti/stack_marker.hpp>
 #include <cuti/tcp_connection.hpp>
 
@@ -62,9 +63,11 @@ void automated_tests()
 
 void trap(int sig1, int sig2)
 {
+  socket_layer_t sockets;
+
   std::unique_ptr<tcp_connection_t> sender;
   std::unique_ptr<tcp_connection_t> receiver;
-  std::tie(sender, receiver) = make_connected_pair();
+  std::tie(sender, receiver) = make_connected_pair(sockets);
   sender->set_nonblocking();
 
   auto send_sig1 = [&](stack_marker_t&)
@@ -137,11 +140,11 @@ void automated_tests()
   
 #endif // POSIX
 
-int interactive_trap()
+int interactive_trap(socket_layer_t& sockets)
 {
   std::unique_ptr<tcp_connection_t> sender;
   std::unique_ptr<tcp_connection_t> receiver;
-  std::tie(sender, receiver) = make_connected_pair();
+  std::tie(sender, receiver) = make_connected_pair(sockets);
   sender->set_nonblocking();
 
   auto send_sigint = [&](stack_marker_t&)
@@ -190,9 +193,11 @@ int interactive_trap()
   
 int interactive_trap_then_ignore()
 {
+  socket_layer_t sockets;
+
   signal_handler_t handler(SIGINT, nullptr);
 
-  int r = interactive_trap();
+  int r = interactive_trap(sockets);
   if(r != 0)
   {
     return r;

@@ -26,9 +26,9 @@
 namespace x264_proto
 {
 
-std::vector<cuti::endpoint_t> default_endpoints()
+std::vector<cuti::endpoint_t> default_endpoints(cuti::socket_layer_t& sockets)
 {
-  return cuti::local_interfaces(11264);
+  return cuti::local_interfaces(sockets, 11264);
 }
 
 } // x264_proto

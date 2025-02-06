@@ -17,6 +17,8 @@
  * <http://www.gnu.org/licenses/>.
  */
 
+#include <cuti/tcp_connection.hpp>
+
 #include <cuti/circular_buffer.hpp>
 #include <cuti/cmdline_reader.hpp>
 #include <cuti/default_scheduler.hpp>
@@ -30,9 +32,9 @@
 #include <cuti/scoped_thread.hpp>
 #include <cuti/selector.hpp>
 #include <cuti/selector_factory.hpp>
+#include <cuti/socket_layer.hpp>
 #include <cuti/stack_marker.hpp>
 #include <cuti/streambuf_backend.hpp>
-#include <cuti/tcp_connection.hpp>
 
 #include <algorithm>
 #include <cstring>
@@ -855,13 +857,14 @@ unsigned int const bufsize = 256 * 1024;
 std::string const payload = make_lorems(256);
 
 void blocking_transfer(logging_context_t const& context,
+                       socket_layer_t& sockets,
                        endpoint_t const& interface)
 {
   char const* first = payload.data();
   char const* last = payload.data() + payload.size();
 
-  auto[producer_out, filter_in] = make_connected_pair(interface);
-  auto[filter_out, consumer_in] = make_connected_pair(interface);
+  auto[producer_out, filter_in] = make_connected_pair(sockets, interface);
+  auto[filter_out, consumer_in] = make_connected_pair(sockets, interface);
 
   if(auto msg = context.message_at(loglevel_t::info))
   {
@@ -883,22 +886,25 @@ void blocking_transfer(logging_context_t const& context,
 
 void blocking_transfer(logging_context_t const& context)
 {
-  auto interfaces = local_interfaces(any_port);
+  socket_layer_t sockets;
+
+  auto interfaces = local_interfaces(sockets, any_port);
   for(auto const& interface : interfaces)
   {
-    blocking_transfer(context, interface);
+    blocking_transfer(context, sockets, interface);
   }
 }
 
 void nonblocking_transfer(logging_context_t const& context,
+                          socket_layer_t& sockets,
                           endpoint_t const& interface,
                           bool agile)
 {
   char const* first = payload.data();
   char const* last = payload.data() + payload.size();
 
-  auto[producer_out, filter_in] = make_connected_pair(interface);
-  auto[filter_out, consumer_in] = make_connected_pair(interface);
+  auto[producer_out, filter_in] = make_connected_pair(sockets, interface);
+  auto[filter_out, consumer_in] = make_connected_pair(sockets, interface);
 
   producer_out->set_nonblocking();
   filter_in->set_nonblocking();
@@ -926,22 +932,25 @@ void nonblocking_transfer(logging_context_t const& context,
 
 void nonblocking_transfer(logging_context_t const& context, bool agile)
 {
-  auto interfaces = local_interfaces(any_port);
+  socket_layer_t sockets;
+
+  auto interfaces = local_interfaces(sockets, any_port);
   for(auto const& interface : interfaces)
   {
-    nonblocking_transfer(context, interface, agile);
+    nonblocking_transfer(context, sockets, interface, agile);
   }
 }
 
 void selected_transfer(logging_context_t const& context,
+                       socket_layer_t& sockets,
                        selector_factory_t const& factory,
                        endpoint_t const& interface)
 {
   char const* first = payload.data();
   char const* last = payload.data() + payload.size();
 
-  auto[producer_out, filter_in] = make_connected_pair(interface);
-  auto[filter_out, consumer_in] = make_connected_pair(interface);
+  auto[producer_out, filter_in] = make_connected_pair(sockets, interface);
+  auto[filter_out, consumer_in] = make_connected_pair(sockets, interface);
 
   producer_out->set_nonblocking();
   filter_in->set_nonblocking();
@@ -980,25 +989,28 @@ void selected_transfer(logging_context_t const& context,
 
 void selected_transfer(logging_context_t const& context)
 {
+  socket_layer_t sockets;
+
   auto factories = available_selector_factories();
-  auto interfaces = local_interfaces(any_port);
+  auto interfaces = local_interfaces(sockets, any_port);
 
   for(auto const& factory : factories)
   {
     for(auto const& interface : interfaces)
     {
-      selected_transfer(context, factory, interface);
+      selected_transfer(context, sockets, factory, interface);
     }
   }
 }
 
 void blocking_client_server(logging_context_t const& context,
+                            socket_layer_t& sockets,
                             endpoint_t const& interface)
 {
   char const* first = payload.data();
   char const* last = payload.data() + payload.size();
 
-  auto[client_side, server_side] = make_connected_pair(interface);
+  auto[client_side, server_side] = make_connected_pair(sockets, interface);
 
   if(auto msg = context.message_at(loglevel_t::info))
   {
@@ -1018,21 +1030,23 @@ void blocking_client_server(logging_context_t const& context,
 
 void blocking_client_server(logging_context_t const& context)
 {
-  auto interfaces = local_interfaces(any_port);
+  socket_layer_t sockets;
+  auto interfaces = local_interfaces(sockets, any_port);
   for(auto const& interface : interfaces)
   {
-    blocking_client_server(context, interface);
+    blocking_client_server(context, sockets, interface);
   }
 }
 
 void nonblocking_client_server(logging_context_t const& context,
+                               socket_layer_t& sockets,
                                endpoint_t const& interface,
                                bool agile)
 {
   char const* first = payload.data();
   char const* last = payload.data() + payload.size();
 
-  auto[client_side, server_side] = make_connected_pair(interface);
+  auto[client_side, server_side] = make_connected_pair(sockets, interface);
 
   client_side->set_nonblocking();
   server_side->set_nonblocking();
@@ -1055,21 +1069,23 @@ void nonblocking_client_server(logging_context_t const& context,
 
 void nonblocking_client_server(logging_context_t const& context, bool agile)
 {
-  auto interfaces = local_interfaces(any_port);
+  socket_layer_t sockets;
+  auto interfaces = local_interfaces(sockets, any_port);
   for(auto const& interface : interfaces)
   {
-    nonblocking_client_server(context, interface, agile);
+    nonblocking_client_server(context, sockets, interface, agile);
   }
 }
 
 void selected_client_server(logging_context_t const& context,
+                            socket_layer_t& sockets,
                             selector_factory_t const& factory,
                             endpoint_t const& interface)
 {
   char const* first = payload.data();
   char const* last = payload.data() + payload.size();
 
-  auto[client_side, server_side] = make_connected_pair(interface);
+  auto[client_side, server_side] = make_connected_pair(sockets, interface);
 
   client_side->set_nonblocking();
   server_side->set_nonblocking();
@@ -1103,25 +1119,28 @@ void selected_client_server(logging_context_t const& context,
 
 void selected_client_server(logging_context_t const& context)
 {
+  socket_layer_t sockets;
+
   auto factories = available_selector_factories();
-  auto interfaces = local_interfaces(any_port);
+  auto interfaces = local_interfaces(sockets, any_port);
 
   for(auto const& factory : factories)
   {
     for(auto const& interface : interfaces)
     {
-      selected_client_server(context, factory, interface);
+      selected_client_server(context, sockets, factory, interface);
     }
   }
 }
 
 void broken_pipe(logging_context_t const& context,
+                 socket_layer_t& sockets,
                  endpoint_t const& interface)
 {
   char const* first = payload.data();
   char const* last = payload.data() + payload.size();
 
-  auto[producer_out, consumer_in] = make_connected_pair(interface);
+  auto[producer_out, consumer_in] = make_connected_pair(sockets, interface);
 
   if(auto msg = context.message_at(loglevel_t::info))
   {
@@ -1139,20 +1158,23 @@ void broken_pipe(logging_context_t const& context,
 
 void broken_pipe(logging_context_t const& context)
 {
-  auto interfaces = local_interfaces(any_port);
+  socket_layer_t sockets;
+
+  auto interfaces = local_interfaces(sockets, any_port);
   for(auto const& interface : interfaces)
   {
-    broken_pipe(context, interface);
+    broken_pipe(context, sockets, interface);
   }
 }
 
 void scheduler_switch(logging_context_t const& context,
-                     selector_factory_t const& factory,
-                     endpoint_t const& interface)
+                      socket_layer_t& sockets,
+                      selector_factory_t const& factory,
+                      endpoint_t const& interface)
 {
   default_scheduler_t sched1(factory);
   default_scheduler_t sched2(factory);
-  auto [client, server] = make_connected_pair(interface);
+  auto [client, server] = make_connected_pair(sockets, interface);
 
   // put some pressure on the server
   char const msg[] = "Hello server!";
@@ -1229,14 +1251,16 @@ void scheduler_switch(logging_context_t const& context,
 
 void scheduler_switch(logging_context_t const& context)
 {
+  socket_layer_t sockets;
+
   auto factories = available_selector_factories();
-  auto interfaces = local_interfaces(any_port);
+  auto interfaces = local_interfaces(sockets, any_port);
 
   for(auto const& factory : factories)
   {
     for(auto const& interface : interfaces)
     {
-      scheduler_switch(context, factory, interface);
+      scheduler_switch(context, sockets, factory, interface);
     }
   }
 }

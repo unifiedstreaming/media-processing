@@ -21,6 +21,7 @@
 
 #include "args_reader.hpp"
 #include "resolver.hpp"
+#include "socket_layer.hpp"
 #include "system_error.hpp"
 
 #include <algorithm>
@@ -61,17 +62,16 @@ struct endpoint_t::rep_t
 namespace // anonymous
 {
 
-std::string get_ip_address(sockaddr const& addr, std::size_t addr_size)
+std::string get_ip_address(socket_layer_t& sockets,
+                           sockaddr const& addr, unsigned int addr_size)
 {
   static char const longest_expected[] =
     "ffff:ffff:ffff:ffff:ffff:ffff:255.255.255.255";
   char buf[sizeof longest_expected];
 
-  int r = getnameinfo(
-    &addr, static_cast<socklen_t>(addr_size),
-    buf, static_cast<socklen_t>(sizeof buf),
-    nullptr, 0,
-    NI_NUMERICHOST);
+  int r = sockets.getnameinfo(
+    &addr, addr_size, buf, sizeof buf,
+    nullptr, 0, NI_NUMERICHOST);
 
   if(r != 0)
   {
@@ -83,7 +83,7 @@ std::string get_ip_address(sockaddr const& addr, std::size_t addr_size)
 #ifdef _WIN32
     builder << error_status_t(cause);
 #else
-    builder << gai_strerror(r);
+    builder << sockets.gai_strerror(r);
 #endif
     builder.explode();
   }
@@ -95,18 +95,18 @@ std::string get_ip_address(sockaddr const& addr, std::size_t addr_size)
 }
 
 template<typename AddrT>
-std::string get_ip_address(AddrT const& addr)
+std::string get_ip_address(socket_layer_t& sockets, AddrT const& addr)
 {
   return get_ip_address(
-    *reinterpret_cast<sockaddr const*>(&addr), sizeof addr);
+    sockets, *reinterpret_cast<sockaddr const*>(&addr), sizeof addr);
 }
 
 struct ipv4_rep_t : endpoint_t::rep_t
 {
-  explicit ipv4_rep_t(sockaddr_in const& addr)
+  ipv4_rep_t(socket_layer_t& sockets, sockaddr_in const& addr)
   : endpoint_t::rep_t()
   , addr_(addr)
-  , ip_address_(get_ip_address(addr_))
+  , ip_address_(get_ip_address(sockets, addr_))
   { }
 
   int address_family() const override
@@ -131,10 +131,10 @@ private :
 
 struct ipv6_rep_t : endpoint_t::rep_t
 {
-  explicit ipv6_rep_t(sockaddr_in6 const& addr)
+  ipv6_rep_t(socket_layer_t& sockets, sockaddr_in6 const& addr)
   : endpoint_t::rep_t()
   , addr_(addr)
-  , ip_address_(get_ip_address(addr_))
+  , ip_address_(get_ip_address(sockets, addr_))
   { }
 
   int address_family() const override
@@ -158,7 +158,7 @@ private :
 };
 
 std::shared_ptr<endpoint_t::rep_t const>
-make_rep(sockaddr const& addr, std::size_t addr_size)
+make_rep(socket_layer_t& sockets, sockaddr const& addr, std::size_t addr_size)
 {
   std::shared_ptr<endpoint_t::rep_t const> result;
 
@@ -170,10 +170,10 @@ make_rep(sockaddr const& addr, std::size_t addr_size)
       system_exception_builder_t builder;
       builder << "Bad sockaddr size " << addr_size <<
         " for address family AF_INET (" << sizeof(sockaddr_in) <<
-	" expected)";
+        " expected)";
       builder.explode();
     }
-    result = std::make_shared<ipv4_rep_t const>(
+    result = std::make_shared<ipv4_rep_t const>(sockets,
       *reinterpret_cast<sockaddr_in const*>(&addr));
     break;
   case AF_INET6:
@@ -182,10 +182,10 @@ make_rep(sockaddr const& addr, std::size_t addr_size)
       system_exception_builder_t builder;
       builder << "Bad sockaddr size " << addr_size <<
         " for address family AF_INET6 (" << sizeof(sockaddr_in6) <<
-	" expected)";
+        " expected)";
       builder.explode();
     }
-    result = std::make_shared<ipv6_rep_t const>(
+    result = std::make_shared<ipv6_rep_t const>(sockets,
       *reinterpret_cast<sockaddr_in6 const*>(&addr));
     break;
   default:
@@ -253,8 +253,9 @@ bool endpoint_t::equals(endpoint_t const& that) const noexcept
      this->address_family() == that.address_family();
 }
 
-endpoint_t::endpoint_t(sockaddr const& addr, std::size_t addr_size)
-: rep_(make_rep(addr, addr_size))
+endpoint_t::endpoint_t(socket_layer_t& sockets,
+                       sockaddr const& addr, std::size_t addr_size)
+: rep_(make_rep(sockets, addr, addr_size))
 { }
 
 std::ostream& operator<<(std::ostream& os, endpoint_t const& endpoint)
@@ -271,8 +272,9 @@ std::ostream& operator<<(std::ostream& os, endpoint_t const& endpoint)
   return os;
 }
 
-void parse_optval(char const* name, args_reader_t const& reader,
-                  char const* in, endpoint_t& out)
+void parse_endpoint(socket_layer_t& sockets,
+  char const* name, args_reader_t const& reader,
+  char const* in, endpoint_t& out)
 {
   unsigned int port = 0;
   do
@@ -304,7 +306,7 @@ void parse_optval(char const* name, args_reader_t const& reader,
   ++in;
   try
   {
-    out = resolve_ip(in, port);
+    out = resolve_ip(sockets, in, port);
   }
   catch(std::exception const& ex)
   {

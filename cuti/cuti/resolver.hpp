@@ -32,6 +32,8 @@
 namespace cuti
 {
 
+struct socket_layer_t;
+
 /*
  * Endpoint factory functions
  */
@@ -40,18 +42,24 @@ unsigned int constexpr any_port = 0;
 unsigned int constexpr max_port = std::numeric_limits<uint16_t>::max();
 
 // Returns an endpoint for an IP address and port number
-CUTI_ABI endpoint_t resolve_ip(char const* ip, unsigned int port);
-CUTI_ABI endpoint_t resolve_ip(std::string const& ip, unsigned int port);
+CUTI_ABI endpoint_t resolve_ip(socket_layer_t& sockets,
+                               char const* ip, unsigned int port);
+CUTI_ABI endpoint_t resolve_ip(socket_layer_t& sockets,
+                               std::string const& ip, unsigned int port);
 
 // Returns endpoints for a host name and port number
-CUTI_ABI endpoints_t resolve_host(char const* host, unsigned int port);
-CUTI_ABI endpoints_t resolve_host(std::string const& host, unsigned int port);
+CUTI_ABI endpoints_t resolve_host(socket_layer_t& sockets,
+                                  char const* host, unsigned int port);
+CUTI_ABI endpoints_t resolve_host(socket_layer_t& sockets,
+                                  std::string const& host, unsigned int port);
 
 // Returns endpoints for binding to local interfaces
-CUTI_ABI endpoints_t local_interfaces(unsigned int port);
+CUTI_ABI endpoints_t local_interfaces(socket_layer_t& sockets,
+                                      unsigned int port);
 
 // Returns endpoints for binding to all interfaces
-CUTI_ABI endpoints_t all_interfaces(unsigned int port);
+CUTI_ABI endpoints_t all_interfaces(socket_layer_t& sockets,
+                                    unsigned int port);
 
 } // cuti
 

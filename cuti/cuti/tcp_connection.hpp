@@ -33,11 +33,12 @@
 namespace cuti
 {
 
+struct socket_layer_t;
 struct tcp_acceptor_t;
 
 struct CUTI_ABI tcp_connection_t
 {
-  explicit tcp_connection_t(endpoint_t const& peer);
+  tcp_connection_t(socket_layer_t& sockets, endpoint_t const& peer);
 
   tcp_connection_t(tcp_connection_t const&) = delete;
   tcp_connection_t& operator=(tcp_connection_t const&) = delete;
@@ -122,11 +123,11 @@ CUTI_ABI std::ostream& operator<<(std::ostream& os,
 
 CUTI_ABI std::pair<std::unique_ptr<tcp_connection_t>,
                    std::unique_ptr<tcp_connection_t>>
-make_connected_pair(endpoint_t const& interface);
+make_connected_pair(socket_layer_t& sockets, endpoint_t const& interface);
 
 CUTI_ABI std::pair<std::unique_ptr<tcp_connection_t>,
                    std::unique_ptr<tcp_connection_t>>
-make_connected_pair();
+make_connected_pair(socket_layer_t& sockets);
 
 } // cuti
 

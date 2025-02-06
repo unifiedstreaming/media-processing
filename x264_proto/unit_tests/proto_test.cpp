@@ -83,10 +83,12 @@ void test_serialization(
   cuti::logging_context_t const& context,
   std::size_t bufsize)
 {
-  cuti::io_test_utils::test_roundtrip(context, bufsize, make_example_session_params());
-  cuti::io_test_utils::test_roundtrip(context, bufsize, make_example_frame());
-  cuti::io_test_utils::test_roundtrip(context, bufsize, make_example_sample_headers());
-  cuti::io_test_utils::test_roundtrip(context, bufsize, make_example_sample());
+  using cuti::io_test_utils::test_roundtrip;
+
+  test_roundtrip(context, bufsize, make_example_session_params());
+  test_roundtrip(context, bufsize, make_example_frame());
+  test_roundtrip(context, bufsize, make_example_sample_headers());
+  test_roundtrip(context, bufsize, make_example_sample());
 }
 
 struct options_t

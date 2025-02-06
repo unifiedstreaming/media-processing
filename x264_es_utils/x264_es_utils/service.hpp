@@ -34,6 +34,7 @@ namespace cuti
 
 struct logging_context_t;
 struct method_map_t;
+struct socket_layer_t;
 
 } // cuti
 
@@ -43,6 +44,7 @@ namespace x264_es_utils
 struct service_t : cuti::service_t
 {
   service_t(cuti::logging_context_t const& context,
+            cuti::socket_layer_t& sockets,
             cuti::dispatcher_config_t const& dispatcher_config,
             encoder_settings_t const& encoder_settings,
             std::vector<cuti::endpoint_t> const& endpoints);

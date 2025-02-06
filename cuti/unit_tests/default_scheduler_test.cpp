@@ -26,6 +26,7 @@
 #include <cuti/resolver.hpp>
 #include <cuti/selector.hpp>
 #include <cuti/selector_factory.hpp>
+#include <cuti/socket_layer.hpp>
 #include <cuti/stack_marker.hpp>
 #include <cuti/streambuf_backend.hpp>
 #include <cuti/tcp_acceptor.hpp>
@@ -53,11 +54,12 @@ loglevel_t const loglevel = loglevel_t::info;
 struct dos_protector_t
 {
   dos_protector_t(logging_context_t const& context,
+                  socket_layer_t& sockets,
                   endpoint_t const& interface,
                   int count,
                   duration_t timeout = minutes_t(1))
   : context_(context)
-  , acceptor_(interface)
+  , acceptor_(sockets, interface)
   , count_(count)
   , timed_out_(false)
   , timeout_(timeout)
@@ -270,13 +272,14 @@ void empty_scheduler(logging_context_t const& context)
 }
 
 void no_client(logging_context_t const& context,
+               socket_layer_t& sockets,
                selector_factory_t const& factory,
                endpoint_t const& interface)
 {
   default_scheduler_t scheduler(factory);
 
   auto protector = start_event_handler<dos_protector_t>(
-    scheduler, context, interface, 1, milliseconds_t(1));
+    scheduler, context, sockets, interface, 1, milliseconds_t(1));
   endpoint_t endpoint = protector->local_endpoint();
 
   if(auto msg = context.message_at(loglevel))
@@ -298,26 +301,28 @@ void no_client(logging_context_t const& context,
 
 void no_client(logging_context_t const& context)
 {
+  socket_layer_t sockets;
   auto factories = available_selector_factories();
-  auto interfaces = local_interfaces(any_port);
+  auto interfaces = local_interfaces(sockets, any_port);
 
   for(auto const& factory : factories)
   {
     for(auto const& interface : interfaces)
     {
-      no_client(context, factory, interface);
+      no_client(context, sockets, factory, interface);
     }
   }
 }
 
 void single_client(logging_context_t const& context,
+                   socket_layer_t& sockets,
                    selector_factory_t const& factory,
                    endpoint_t const& interface)
 {
   default_scheduler_t scheduler(factory);
 
   auto protector = start_event_handler<dos_protector_t>(
-    scheduler, context, interface, 1);
+    scheduler, context, sockets, interface, 1);
   endpoint_t endpoint = protector->local_endpoint();
 
   assert(!protector->done());
@@ -328,7 +333,7 @@ void single_client(logging_context_t const& context,
       " selector; protector: " << endpoint;
   }
 
-  tcp_connection_t client(endpoint);
+  tcp_connection_t client(sockets, endpoint);
   if(auto msg = context.message_at(loglevel))
   {
     *msg << "single_client(): client " << client;
@@ -345,26 +350,29 @@ void single_client(logging_context_t const& context,
 
 void single_client(logging_context_t const& context)
 {
+  socket_layer_t sockets;
+
   auto factories = available_selector_factories();
-  auto interfaces = local_interfaces(any_port);
+  auto interfaces = local_interfaces(sockets, any_port);
 
   for(auto const& factory : factories)
   {
     for(auto const& interface : interfaces)
     {
-      single_client(context, factory, interface);
+      single_client(context, sockets, factory, interface);
     }
   }
 }
 
 void multiple_clients(logging_context_t const& context,
+                      socket_layer_t& sockets,
                       selector_factory_t const& factory,
                       endpoint_t const& interface)
 {
   default_scheduler_t scheduler(factory);
   
   auto protector = start_event_handler<dos_protector_t>(
-    scheduler, context, interface, 2);
+    scheduler, context, sockets, interface, 2);
   endpoint_t endpoint = protector->local_endpoint();
 
   assert(!protector->done());
@@ -375,8 +383,8 @@ void multiple_clients(logging_context_t const& context,
       " selector; protector: " << endpoint;
   }
 
-  tcp_connection_t client1(endpoint);
-  tcp_connection_t client2(endpoint);
+  tcp_connection_t client1(sockets, endpoint);
+  tcp_connection_t client2(sockets, endpoint);
   if(auto msg = context.message_at(loglevel))
   {
     *msg << "multiple_clients(): client1: " << client1 <<
@@ -394,30 +402,32 @@ void multiple_clients(logging_context_t const& context,
 
 void multiple_clients(logging_context_t const& context)
 {
+  socket_layer_t sockets;
   auto factories = available_selector_factories();
-  auto interfaces = local_interfaces(any_port);
+  auto interfaces = local_interfaces(sockets, any_port);
 
   for(auto const& factory : factories)
   {
     for(auto const& interface : interfaces)
     {
-      multiple_clients(context, factory, interface);
+      multiple_clients(context, sockets, factory, interface);
     }
   }
 }
 
 void multiple_acceptors(logging_context_t const& context,
+                        socket_layer_t& sockets,
                         selector_factory_t const& factory,
                         endpoint_t const& interface)
 {
   default_scheduler_t scheduler(factory);
 
   auto protector1 = start_event_handler<dos_protector_t>(
-    scheduler, context, interface, 1);
+    scheduler, context, sockets, interface, 1);
   endpoint_t endpoint1 = protector1->local_endpoint();
 
   auto protector2 = start_event_handler<dos_protector_t>(
-    scheduler, context, interface, 1);
+    scheduler, context, sockets, interface, 1);
   endpoint_t endpoint2 = protector2->local_endpoint();
 
   assert(!protector1->done());
@@ -430,8 +440,8 @@ void multiple_acceptors(logging_context_t const& context,
       " protector2: " << endpoint2;
   }
 
-  tcp_connection_t client1(endpoint1);
-  tcp_connection_t client2(endpoint2);
+  tcp_connection_t client1(sockets, endpoint1);
+  tcp_connection_t client2(sockets, endpoint2);
   if(auto msg = context.message_at(loglevel))
   {
     *msg << "multiple_acceptors(): client1: " << client1 <<
@@ -450,30 +460,32 @@ void multiple_acceptors(logging_context_t const& context,
 
 void multiple_acceptors(logging_context_t const& context)
 {
+  socket_layer_t sockets;
   auto factories = available_selector_factories();
-  auto interfaces = local_interfaces(any_port);
+  auto interfaces = local_interfaces(sockets, any_port);
 
   for(auto const& factory : factories)
   {
     for(auto const& interface : interfaces)
     {
-      multiple_acceptors(context, factory, interface);
+      multiple_acceptors(context, sockets, factory, interface);
     }
   }
 }
 
 void one_idle_acceptor(logging_context_t const& context,
+                       socket_layer_t& sockets,
                        selector_factory_t const& factory,
                        endpoint_t const& interface)
 {
   default_scheduler_t scheduler(factory);
 
   auto protector1 = start_event_handler<dos_protector_t>(
-    scheduler, context, interface, 2);
+    scheduler, context, sockets, interface, 2);
   endpoint_t endpoint1 = protector1->local_endpoint();
 
   auto protector2 = start_event_handler<dos_protector_t>(
-    scheduler, context, interface, 1, milliseconds_t(1));
+    scheduler, context, sockets, interface, 1, milliseconds_t(1));
   endpoint_t endpoint2 = protector2->local_endpoint();
 
   assert(!protector1->done());
@@ -486,8 +498,8 @@ void one_idle_acceptor(logging_context_t const& context,
       " protector2: " << endpoint2;
   }
 
-  tcp_connection_t client1(endpoint1);
-  tcp_connection_t client2(endpoint1);
+  tcp_connection_t client1(sockets, endpoint1);
+  tcp_connection_t client2(sockets, endpoint1);
   if(auto msg = context.message_at(loglevel))
   {
     *msg << "one_idle_acceptor(): client1: " << client1 <<
@@ -506,30 +518,32 @@ void one_idle_acceptor(logging_context_t const& context,
 
 void one_idle_acceptor(logging_context_t const& context)
 {
+  socket_layer_t sockets;
   auto factories = available_selector_factories();
-  auto interfaces = local_interfaces(any_port);
+  auto interfaces = local_interfaces(sockets, any_port);
 
   for(auto const& factory : factories)
   {
     for(auto const& interface : interfaces)
     {
-      one_idle_acceptor(context, factory, interface);
+      one_idle_acceptor(context, sockets, factory, interface);
     }
   }
 }
 
 void scheduler_switch(logging_context_t const& context,
-                     selector_factory_t const& factory,
-                     endpoint_t const& interface)
+                      socket_layer_t& sockets,
+                      selector_factory_t const& factory,
+                      endpoint_t const& interface)
 {
   default_scheduler_t scheduler1(factory);
   default_scheduler_t scheduler2(factory);
 
-  tcp_acceptor_t acceptor(interface);
+  tcp_acceptor_t acceptor(sockets, interface);
   acceptor.set_nonblocking();
 
   // put pressure on the acceptor
-  tcp_connection_t client(acceptor.local_endpoint());
+  tcp_connection_t client(sockets, acceptor.local_endpoint());
 
   if(auto msg = context.message_at(loglevel))
   {
@@ -568,14 +582,15 @@ void scheduler_switch(logging_context_t const& context,
 
 void scheduler_switch(logging_context_t const& context)
 {
+  socket_layer_t sockets;
   auto factories = available_selector_factories();
-  auto interfaces = local_interfaces(any_port);
+  auto interfaces = local_interfaces(sockets, any_port);
 
   for(auto const& factory : factories)
   {
     for(auto const& interface : interfaces)
     {
-      scheduler_switch(context, factory, interface);
+      scheduler_switch(context, sockets, factory, interface);
     }
   }
 }

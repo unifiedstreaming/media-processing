@@ -47,7 +47,8 @@ namespace x264_es_utils
 
 struct config_t : cuti::service_config_t
 {
-  config_t(int argc, char const* const argv[]);
+  config_t(cuti::socket_layer_t& sockets,
+           int argc, char const* const argv[]);
 
 #ifndef _WIN32
   bool run_as_daemon() const override;
@@ -77,6 +78,7 @@ private :
   static constexpr cuti::loglevel_t default_loglevel = 
     cuti::loglevel_t::warning;
 
+  cuti::socket_layer_t& sockets_;
   std::string argv0_;
 
 #ifndef _WIN32

@@ -18,6 +18,7 @@
  */
 
 #include <cuti/service.hpp>
+#include <cuti/socket_layer.hpp>
 #include <x264_es_utils/config_reader.hpp>
 
 #include <iostream>
@@ -28,8 +29,9 @@ namespace // anonymous
 
 void throwing_main(int argc, char const* const argv[])
 {
-  x264_es_utils::config_reader_t config_reader;
-  cuti::run_service(config_reader, argc, argv);
+  cuti::socket_layer_t sockets;
+  x264_es_utils::config_reader_t config_reader(sockets);
+  cuti::run_service(sockets, config_reader, argc, argv);
 }
 
 } // anonymous

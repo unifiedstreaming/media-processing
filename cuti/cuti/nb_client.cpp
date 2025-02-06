@@ -25,7 +25,8 @@
 namespace cuti
 {
 
-nb_client_t::nb_client_t(endpoint_t server_address,
+nb_client_t::nb_client_t(socket_layer_t& sockets,
+                         endpoint_t server_address,
                          std::size_t inbufsize,
                          std::size_t outbufsize)
 : server_address_(std::move(server_address))
@@ -33,7 +34,7 @@ nb_client_t::nb_client_t(endpoint_t server_address,
 , nb_outbuf_()
 {
   std::tie(nb_inbuf_, nb_outbuf_) = make_nb_tcp_buffers(
-    std::make_unique<tcp_connection_t>(server_address_),
+    std::make_unique<tcp_connection_t>(sockets, server_address_),
     inbufsize,
     outbufsize
   );

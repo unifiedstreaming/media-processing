@@ -32,6 +32,7 @@
 #include <cuti/scoped_guard.hpp>
 #include <cuti/scoped_thread.hpp>
 #include <cuti/simple_nb_client_cache.hpp>
+#include <cuti/socket_layer.hpp>
 #include <cuti/stack_marker.hpp>
 #include <cuti/streambuf_backend.hpp>
 #include <cuti/tcp_connection.hpp>
@@ -230,6 +231,8 @@ void test_deaf_client(logging_context_t const& client_context,
   method_map_t map;
   map.add_method_factory("echo", default_method_factory<echo_handler_t>());
 
+  socket_layer_t sockets;
+
   dispatcher_config_t config;
   config.bufsize_ = bufsize;
   config.throughput_settings_.min_bytes_per_tick_ = 512;
@@ -237,14 +240,14 @@ void test_deaf_client(logging_context_t const& client_context,
   config.throughput_settings_.tick_length_ = milliseconds_t(100);
 
   {
-    dispatcher_t dispatcher(server_context, config);
+    dispatcher_t dispatcher(server_context, sockets, config);
     endpoint_t server_address = dispatcher.add_listener(
-      local_interfaces(any_port).front(), map);
+      local_interfaces(sockets, any_port).front(), map);
 
     scoped_thread_t server_thread([&] { dispatcher.run(); });
     auto stop_guard = make_scoped_guard([&] { dispatcher.stop(SIGINT); });
   
-    tcp_connection_t client_side(server_address);
+    tcp_connection_t client_side(sockets, server_address);
     client_side.set_blocking();
   
     std::string const request = some_echo_request();
@@ -287,6 +290,8 @@ void test_slow_client(logging_context_t const& client_context,
   method_map_t map;
   map.add_method_factory("echo", default_method_factory<echo_handler_t>());
 
+  socket_layer_t sockets;
+
   dispatcher_config_t config;
   config.bufsize_ = bufsize;
   config.throughput_settings_.min_bytes_per_tick_ = 512;
@@ -294,14 +299,14 @@ void test_slow_client(logging_context_t const& client_context,
   config.throughput_settings_.tick_length_ = milliseconds_t(10);
 
   {
-    dispatcher_t dispatcher(server_context, config);
+    dispatcher_t dispatcher(server_context, sockets, config);
     endpoint_t server_address = dispatcher.add_listener(
-      local_interfaces(any_port).front(), map);
+      local_interfaces(sockets, any_port).front(), map);
 
     scoped_thread_t server_thread([&] { dispatcher.run(); });
     auto stop_guard = make_scoped_guard([&] { dispatcher.stop(SIGINT); });
   
-    tcp_connection_t client_side(server_address);
+    tcp_connection_t client_side(sockets, server_address);
     client_side.set_blocking();
   
     std::string const incomplete_request = "echo [ \"hello";
@@ -341,26 +346,32 @@ void test_eviction(logging_context_t const& client_context,
   method_map_t map;
   map.add_method_factory("echo", default_method_factory<echo_handler_t>());
 
+  socket_layer_t sockets;
+
   dispatcher_config_t config;
   config.bufsize_ = bufsize;
   config.max_concurrent_requests_ = 1;
   config.max_connections_ = 1;
 
   {
-    dispatcher_t dispatcher(server_context, config);
+    dispatcher_t dispatcher(server_context, sockets, config);
     endpoint_t server_address = dispatcher.add_listener(
-      local_interfaces(any_port).front(), map);
+      local_interfaces(sockets, any_port).front(), map);
 
     scoped_thread_t server_thread([&] { dispatcher.run(); });
     auto stop_guard = make_scoped_guard([&] { dispatcher.stop(SIGINT); });
 
     simple_nb_client_cache_t cache1(
-      simple_nb_client_cache_t::default_max_cachesize, bufsize, bufsize);
+      sockets,
+      simple_nb_client_cache_t::default_max_cachesize,
+      bufsize, bufsize);
     rpc_client_t client1(client_context, cache1, server_address);
     echo_nothing(client1);
 
     simple_nb_client_cache_t cache2(
-      simple_nb_client_cache_t::default_max_cachesize, bufsize, bufsize);
+      sockets,
+      simple_nb_client_cache_t::default_max_cachesize,
+      bufsize, bufsize);
     rpc_client_t client2(client_context, cache2, server_address);
     echo_nothing(client2);
 
@@ -402,20 +413,24 @@ void test_remote_sleeps(logging_context_t const& client_context,
   method_map_t map;
   map.add_method_factory("sleep", default_method_factory<sleep_handler_t>());
 
+  socket_layer_t sockets;
+
   dispatcher_config_t config;
   config.bufsize_ = bufsize;
   config.max_concurrent_requests_ = max_concurrent_requests;
 
   {
-    dispatcher_t dispatcher(server_context, config);
+    dispatcher_t dispatcher(server_context, sockets, config);
     endpoint_t server_address = dispatcher.add_listener(
-      local_interfaces(any_port).front(), map);
+      local_interfaces(sockets, any_port).front(), map);
 
     scoped_thread_t server_thread([&] { dispatcher.run(); });
     auto stop_guard = make_scoped_guard([&] { dispatcher.stop(SIGINT); });
 
     simple_nb_client_cache_t cache(
-      simple_nb_client_cache_t::default_max_cachesize, bufsize, bufsize);
+      sockets,
+      simple_nb_client_cache_t::default_max_cachesize,
+      bufsize, bufsize);
 
     std::list<rpc_client_t> clients;
     while(clients.size() != n_clients)
@@ -496,18 +511,22 @@ void do_test_interrupted_server(logging_context_t const& client_context,
   method_map_t map;
   map.add_method_factory("echo", default_method_factory<echo_handler_t>());
 
+  socket_layer_t sockets;
+
   dispatcher_config_t config;
   config.bufsize_ = bufsize;
   config.max_concurrent_requests_ = max_concurrent_requests;
 
   {
     std::optional<dispatcher_t> dispatcher;
-    dispatcher.emplace(server_context, config);
+    dispatcher.emplace(server_context, sockets, config);
     endpoint_t server_address = dispatcher->add_listener(
-      local_interfaces(any_port).front(), map);
+      local_interfaces(sockets, any_port).front(), map);
 
     simple_nb_client_cache_t cache(
-      simple_nb_client_cache_t::default_max_cachesize, bufsize, bufsize);
+      sockets,
+      simple_nb_client_cache_t::default_max_cachesize,
+      bufsize, bufsize);
 
     std::list<scoped_thread_t> client_threads;
     for(std::size_t i = 0; i != n_clients; ++i)
@@ -600,6 +619,8 @@ void test_restart(logging_context_t const& client_context,
   method_map_t map;
   map.add_method_factory("echo", default_method_factory<echo_handler_t>());
 
+  socket_layer_t sockets;
+
   dispatcher_config_t config;
   config.bufsize_ = bufsize;
 
@@ -609,9 +630,9 @@ void test_restart(logging_context_t const& client_context,
   }
 
   {
-    dispatcher_t dispatcher(server_context, config);
+    dispatcher_t dispatcher(server_context, sockets, config);
     endpoint_t server_address = dispatcher.add_listener(
-      local_interfaces(any_port).front(), map);
+      local_interfaces(sockets, any_port).front(), map);
 
     /*
      * In theory, restarting a stopped dispatcher should be possible.
@@ -621,7 +642,9 @@ void test_restart(logging_context_t const& client_context,
     for(int i = 0; i != 2; ++i)
     {
       simple_nb_client_cache_t cache(
-        simple_nb_client_cache_t::default_max_cachesize, bufsize, bufsize);
+        sockets,
+        simple_nb_client_cache_t::default_max_cachesize,
+        bufsize, bufsize);
 
       scoped_thread_t runner(
         [&dispatcher] { dispatcher.run(); });

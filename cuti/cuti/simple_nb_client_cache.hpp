@@ -36,6 +36,8 @@
 namespace cuti
 {
 
+struct socket_layer_t;
+
 /*
  * A simple nb_client_cache_t implementation
  */
@@ -48,6 +50,7 @@ struct CUTI_ABI simple_nb_client_cache_t : nb_client_cache_t
     nb_outbuf_t::default_bufsize;
 
   explicit simple_nb_client_cache_t(
+    socket_layer_t& sockets,
     std::size_t max_cachesize = default_max_cachesize,
     std::size_t inbufsize = default_inbufsize,
     std::size_t outbufsize = default_outbufsize);
@@ -68,6 +71,7 @@ struct CUTI_ABI simple_nb_client_cache_t : nb_client_cache_t
     std::ostream& os, simple_nb_client_cache_t const& cache);
 
 private :
+  socket_layer_t& sockets_;
   std::size_t max_cachesize_;
   std::size_t inbufsize_;
   std::size_t outbufsize_;

@@ -18,6 +18,7 @@
  */
 
 #include <cuti/resolver.hpp>
+#include <cuti/socket_layer.hpp>
 #include <cuti/system_error.hpp>
 
 #include <exception>
@@ -35,9 +36,9 @@ namespace // anonymous
 
 using namespace cuti;
 
-void check_endpoint(endpoint_t const& ep)
+void check_endpoint(socket_layer_t& sockets, endpoint_t const& ep)
 {
-  endpoint_t refetched = resolve_ip(ep.ip_address(), ep.port());
+  endpoint_t refetched = resolve_ip(sockets, ep.ip_address(), ep.port());
 
   assert(refetched.address_family() == ep.address_family());
   assert(refetched.socket_address_size() == ep.socket_address_size());
@@ -47,11 +48,12 @@ void check_endpoint(endpoint_t const& ep)
 
 void ip_address()
 {
-  auto interfaces = local_interfaces(any_port);
+  socket_layer_t sockets;
+  auto interfaces = local_interfaces(sockets, any_port);
   for(auto const& interface: interfaces)
   {
     auto ip_address = interface.ip_address();
-    endpoint_t ep = resolve_ip(ip_address, any_port);
+    endpoint_t ep = resolve_ip(sockets, ip_address, any_port);
 #if PRINT
       std::cout << "ip_addresses(): " <<
         ip_address << " -> " << ep << std::endl;
@@ -62,11 +64,12 @@ void ip_address()
 
 void not_an_ip_address()
 {
+  socket_layer_t sockets;
   bool caught = false;
 
   try
   {
-    endpoint_t ep = resolve_ip("localhost", any_port);
+    endpoint_t ep = resolve_ip(sockets, "localhost", any_port);
   }
   catch(system_exception_t const& ex)
   {
@@ -84,7 +87,8 @@ void not_an_ip_address()
 
 void local_endpoints()
 {
-  auto endpoints = local_interfaces(any_port);
+  socket_layer_t sockets;
+  auto endpoints = local_interfaces(sockets, any_port);
   assert(!endpoints.empty());
 
   for(auto const& ep : endpoints)
@@ -93,13 +97,14 @@ void local_endpoints()
     std::cout << "local interfaces: " << ep << std::endl;
 #endif
     assert(ep.port() == any_port);
-    check_endpoint(ep);
+    check_endpoint(sockets, ep);
   }
 }
 
 void local_endpoints_with_port()
 {
-  auto endpoints = local_interfaces(11264);
+  socket_layer_t sockets;
+  auto endpoints = local_interfaces(sockets, 11264);
   assert(!endpoints.empty());
 
   for(auto const& ep : endpoints)
@@ -108,13 +113,14 @@ void local_endpoints_with_port()
     std::cout << "local interfaces port 11264: " << ep << std::endl;
 #endif
     assert(ep.port() == 11264);
-    check_endpoint(ep);
+    check_endpoint(sockets, ep);
   }
 }
 
 void all_endpoints()
 {
-  auto endpoints = all_interfaces(any_port);
+  socket_layer_t sockets;
+  auto endpoints = all_interfaces(sockets, any_port);
   assert(!endpoints.empty());
 
   for(auto const& ep : endpoints)
@@ -123,13 +129,14 @@ void all_endpoints()
     std::cout << "all interfaces: " << ep << std::endl;
 #endif
     assert(ep.port() == any_port);
-    check_endpoint(ep);
+    check_endpoint(sockets, ep);
   }
 }
 
 void all_endpoints_with_port()
 {
-  auto endpoints = all_interfaces(11264);
+  socket_layer_t sockets;
+  auto endpoints = all_interfaces(sockets, 11264);
   assert(!endpoints.empty());
 
   for(auto const& ep : endpoints)
@@ -138,13 +145,14 @@ void all_endpoints_with_port()
     std::cout << "all interfaces port 11264: " << ep << std::endl;
 #endif
     assert(ep.port() == 11264);
-    check_endpoint(ep);
+    check_endpoint(sockets, ep);
   }
 }
 
 void localhost()
 {
-  auto endpoints = resolve_host("localhost", any_port);
+  socket_layer_t sockets;
+  auto endpoints = resolve_host(sockets, "localhost", any_port);
   assert(!endpoints.empty());
 
   for(auto const& ep : endpoints)
@@ -153,13 +161,14 @@ void localhost()
     std::cout << "localhost: " << ep << std::endl;
 #endif
     assert(ep.port() == any_port);
-    check_endpoint(ep);
+    check_endpoint(sockets, ep);
   }
 }
 
 void localhost_with_port()
 {
-  auto endpoints = resolve_host("localhost", 11264);
+  socket_layer_t sockets;
+  auto endpoints = resolve_host(sockets, "localhost", 11264);
   assert(!endpoints.empty());
 
   for(auto const& ep : endpoints)
@@ -168,13 +177,14 @@ void localhost_with_port()
     std::cout << "localhost port 11264: " << ep << std::endl;
 #endif
     assert(ep.port() == 11264);
-    check_endpoint(ep);
+    check_endpoint(sockets, ep);
   }
 }
 
 void remote_host()
 {
-  auto endpoints = resolve_host("a.root-servers.net", any_port);
+  socket_layer_t sockets;
+  auto endpoints = resolve_host(sockets, "a.root-servers.net", any_port);
   assert(!endpoints.empty());
 
   for(auto const& ep : endpoints)
@@ -183,13 +193,14 @@ void remote_host()
     std::cout << "a.root-servers.net: " << ep << std::endl;
 #endif
     assert(ep.port() == any_port);
-    check_endpoint(ep);
+    check_endpoint(sockets, ep);
   }
 }
 
 void remote_host_with_port()
 {
-  auto endpoints = resolve_host("a.root-servers.net", 53);
+  socket_layer_t sockets;
+  auto endpoints = resolve_host(sockets, "a.root-servers.net", 53);
   assert(!endpoints.empty());
 
   for(auto const& ep : endpoints)
@@ -198,16 +209,17 @@ void remote_host_with_port()
     std::cout << "a.root-servers.net port 53: " << ep << std::endl;
 #endif
     assert(ep.port() == 53);
-    check_endpoint(ep);
+    check_endpoint(sockets, ep);
   }
 }
 
 void unknown_host()
 {
+  socket_layer_t sockets;
   bool caught = false;
   try
   {
-    auto endpoints = resolve_host("mail.dev.null", any_port);
+    auto endpoints = resolve_host(sockets, "mail.dev.null", any_port);
   }
   catch(std::exception const& ex)
   {
@@ -224,10 +236,11 @@ void unknown_host()
 
 void unknown_host_with_port()
 {
+  socket_layer_t sockets;
   bool caught = false;
   try
   {
-    auto endpoints = resolve_host("mail.dev.null", 25);
+    auto endpoints = resolve_host(sockets, "mail.dev.null", 25);
   }
   catch(std::exception const& ex)
   {

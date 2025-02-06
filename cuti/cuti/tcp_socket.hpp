@@ -31,6 +31,8 @@
 namespace cuti
 {
 
+struct socket_layer_t;
+
 /*
  * Low-level interface for TCP sockets.
  *
@@ -41,17 +43,22 @@ namespace cuti
 struct CUTI_ABI tcp_socket_t
 {
   tcp_socket_t() noexcept
-  : fd_(-1)
+  : sockets_(nullptr)
+  , fd_(-1)
   { }
 
-  explicit tcp_socket_t(int family);
+  tcp_socket_t(socket_layer_t& sockets, int family);
 
   tcp_socket_t(tcp_socket_t const&) = delete;
   tcp_socket_t& operator=(tcp_socket_t const&) = delete;
 
   tcp_socket_t(tcp_socket_t&& rhs) noexcept
-  : fd_(rhs.fd_)
-  { rhs.fd_ = -1; }
+  : sockets_(rhs.sockets_)
+  , fd_(rhs.fd_)
+  {
+    rhs.sockets_ = nullptr;
+    rhs.fd_ = -1;
+  }
 
   tcp_socket_t& operator=(tcp_socket_t&& rhs) noexcept
   {
@@ -61,19 +68,20 @@ struct CUTI_ABI tcp_socket_t
   }
 
   bool empty() const noexcept
-  { return fd_ == -1; }
+  { return sockets_ == nullptr; }
 
   void swap(tcp_socket_t& that) noexcept
   {
     using std::swap;
+    swap(this->sockets_, that.sockets_);
     swap(this->fd_, that.fd_);
   }
 
   ~tcp_socket_t()
   {
-    if(fd_ != -1)
+    if(!empty())
     {
-      close_fd(fd_);
+      close_fd(*sockets_, fd_);
     }
   }
 
@@ -160,9 +168,10 @@ struct CUTI_ABI tcp_socket_t
   }
 
 private :
-  static void close_fd(int fd) noexcept;
+  static void close_fd(socket_layer_t&, int fd) noexcept;
 
 private :
+  socket_layer_t* sockets_;
   int fd_;
 };
 

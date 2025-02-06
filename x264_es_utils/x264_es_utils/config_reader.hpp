@@ -27,8 +27,13 @@ namespace x264_es_utils
 
 struct config_reader_t : cuti::service_config_reader_t
 {
+  explicit config_reader_t(cuti::socket_layer_t& sockets);
+
   std::unique_ptr<cuti::service_config_t>
   read_config(int argc, char const* const argv[]) const override;
+
+private :
+  cuti::socket_layer_t& sockets_;
 };
 
 } // x264_es_utils

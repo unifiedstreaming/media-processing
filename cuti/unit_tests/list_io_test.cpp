@@ -27,6 +27,7 @@
 #include <cuti/option_walker.hpp>
 #include <cuti/output_list_writer.hpp>
 #include <cuti/result.hpp>
+#include <cuti/socket_layer.hpp>
 #include <cuti/stack_marker.hpp>
 #include <cuti/streambuf_backend.hpp>
 #include <cuti/subroutine.hpp>
@@ -714,9 +715,11 @@ void do_run_tests(logging_context_t const& context, std::size_t bufsize)
     *msg << __func__ << ": starting; bufsize: " << bufsize;
   }
 
+  socket_layer_t sockets;
+
   std::unique_ptr<tcp_connection_t> this_end;
   std::unique_ptr<tcp_connection_t> that_end;
-  std::tie(this_end, that_end) = make_connected_pair();
+  std::tie(this_end, that_end) = make_connected_pair(sockets);
 
   std::unique_ptr<nb_inbuf_t> this_in;
   std::unique_ptr<nb_outbuf_t> this_out;

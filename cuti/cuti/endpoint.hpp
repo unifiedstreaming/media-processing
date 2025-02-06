@@ -35,6 +35,7 @@ namespace cuti
 
 struct args_reader_t;
 struct resolver_t;
+struct socket_layer_t;
 struct tcp_socket_t;
 
 struct CUTI_ABI endpoint_t
@@ -64,7 +65,8 @@ private :
   friend struct tcp_socket_t;
 
   // Constructs an endpoint from a socket address
-  endpoint_t(sockaddr const& addr, std::size_t addr_size);
+  endpoint_t(socket_layer_t& sockets,
+    sockaddr const& addr, std::size_t addr_size);
 
 private :
   std::shared_ptr<rep_t const> rep_;
@@ -81,8 +83,9 @@ inline bool operator!=(endpoint_t const& lhs, endpoint_t const& rhs) noexcept
 CUTI_ABI
 std::ostream& operator<<(std::ostream& os, endpoint_t const& endpoint);
 
-CUTI_ABI void parse_optval(char const* name, args_reader_t const& reader,
-                           char const* in, endpoint_t& out);
+CUTI_ABI void parse_endpoint(socket_layer_t& sockets,
+  char const* name, args_reader_t const& reader,
+  char const* in, endpoint_t& out);
 
 } // namespace cuti
 

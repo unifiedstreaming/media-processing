@@ -38,12 +38,13 @@ namespace x264_es_utils
 
 service_t::service_t(
   cuti::logging_context_t const& context,
+  cuti::socket_layer_t& sockets,
   cuti::dispatcher_config_t const& dispatcher_config,
   encoder_settings_t const& encoder_settings,
   std::vector<cuti::endpoint_t> const& endpoints)
 : map_(std::make_unique<cuti::method_map_t>())
 , dispatcher_(std::make_unique<cuti::dispatcher_t>(
-                context, dispatcher_config))
+                context, sockets, dispatcher_config))
 , endpoints_()
 {
   // add sample methods (for manual testing)

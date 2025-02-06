@@ -31,6 +31,7 @@
 #include <cuti/rpc_client.hpp>
 #include <cuti/scoped_thread.hpp>
 #include <cuti/simple_nb_client_cache.hpp>
+#include <cuti/socket_layer.hpp>
 #include <cuti/streambuf_backend.hpp>
 #include <cuti/subtract_handler.hpp>
 #include <cuti/tcp_connection.hpp>
@@ -505,6 +506,8 @@ void run_logic_tests(logging_context_t const& client_context,
       " bufsize: " << bufsize;
   }
 
+  socket_layer_t sockets;
+
   dispatcher_config_t dispatcher_config;
   dispatcher_config.selector_factory_ = std::move(factory);
   dispatcher_config.bufsize_ = bufsize;
@@ -520,12 +523,14 @@ void run_logic_tests(logging_context_t const& client_context,
       "subtract", default_method_factory<subtract_handler_t>());
 
   {
-    dispatcher_t dispatcher(server_context, dispatcher_config);
+    dispatcher_t dispatcher(server_context, sockets, dispatcher_config);
     endpoint_t server_endpoint = dispatcher.add_listener(
-      local_interfaces(any_port).front(), map);
+      local_interfaces(sockets, any_port).front(), map);
 
     simple_nb_client_cache_t cache(
-      simple_nb_client_cache_t::default_max_cachesize, bufsize, bufsize);
+      sockets,
+      simple_nb_client_cache_t::default_max_cachesize,
+      bufsize, bufsize);
     rpc_client_t client(client_context, cache, server_endpoint);
 
     {
@@ -554,6 +559,7 @@ void run_logic_tests(logging_context_t const& client_context,
 }
   
 void throughput_echo_client(logging_context_t const& context,
+                            socket_layer_t& sockets,
                             endpoint_t const& endpoint,
                             std::size_t bufsize,
                             throughput_settings_t const& settings,
@@ -565,7 +571,9 @@ void throughput_echo_client(logging_context_t const& context,
   }
 
   simple_nb_client_cache_t cache(
-    simple_nb_client_cache_t::default_max_cachesize, bufsize, bufsize);
+    sockets,
+    simple_nb_client_cache_t::default_max_cachesize,
+    bufsize, bufsize);
   rpc_client_t client(context, cache, endpoint, settings);
 
   std::vector<std::string> reply;
@@ -615,6 +623,8 @@ void test_throughput(logging_context_t const& client_context,
       " bufsize: " << bufsize;
   }
 
+  socket_layer_t sockets;
+
   dispatcher_config_t dispatcher_config;
   dispatcher_config.selector_factory_ = std::move(factory);
   dispatcher_config.bufsize_ = bufsize;
@@ -624,14 +634,14 @@ void test_throughput(logging_context_t const& client_context,
   map.add_method_factory("echo", default_method_factory<echo_handler_t>());
 
   {
-    dispatcher_t dispatcher(server_context, dispatcher_config);
+    dispatcher_t dispatcher(server_context, sockets, dispatcher_config);
     endpoint_t endpoint = dispatcher.add_listener(
-      local_interfaces(any_port).front(), map);
+      local_interfaces(sockets, any_port).front(), map);
     {
       scoped_thread_t dispatcher_thread([&] { dispatcher.run(); });
       auto guard = make_scoped_guard([&] { dispatcher.stop(SIGINT); });
 
-      throughput_echo_client(client_context, endpoint, bufsize,
+      throughput_echo_client(client_context, sockets, endpoint, bufsize,
         client_settings, must_fail);
     }
   }

@@ -35,6 +35,7 @@ namespace cuti
 
 struct logging_context_t;
 struct method_map_t;
+struct socket_layer_t;
 
 struct CUTI_ABI dispatcher_config_t
 {
@@ -72,6 +73,7 @@ struct CUTI_ABI dispatcher_config_t
 struct CUTI_ABI dispatcher_t
 {
   dispatcher_t(logging_context_t const& logging_context,
+               socket_layer_t& sockets,
                dispatcher_config_t config);
 
   dispatcher_t(dispatcher_t const&) = delete;

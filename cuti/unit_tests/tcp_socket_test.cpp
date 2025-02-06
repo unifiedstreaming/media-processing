@@ -18,7 +18,9 @@
  */
 
 #include <cuti/tcp_socket.hpp>
+
 #include <cuti/resolver.hpp>
+#include <cuti/socket_layer.hpp>
 
 #include <exception>
 #include <iostream>
@@ -44,12 +46,12 @@
 namespace // anonymous
 {
 
-void socket_state_for_family(int family)
+void socket_state_for_family(cuti::socket_layer_t& sockets, int family)
 {
   cuti::tcp_socket_t sock0;
   assert(sock0.empty());
 
-  cuti::tcp_socket_t sock1(family);
+  cuti::tcp_socket_t sock1(sockets, family);
   assert(!sock1.empty());
 
   cuti::tcp_socket_t sock2 = std::move(sock1);
@@ -77,10 +79,12 @@ void socket_state_for_family(int family)
 
 void socket_state()
 {
-  auto interfaces = cuti::local_interfaces(cuti::any_port);
+  cuti::socket_layer_t sockets;
+
+  auto interfaces = cuti::local_interfaces(sockets, cuti::any_port);
   for(auto const& interface : interfaces)
   {
-    socket_state_for_family(interface.address_family());
+    socket_state_for_family(sockets, interface.address_family());
   }
 }
 

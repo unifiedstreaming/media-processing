@@ -19,6 +19,7 @@
 
 #include "resolver.hpp"
 
+#include "socket_layer.hpp"
 #include "system_error.hpp"
 
 #include <cassert>
@@ -46,7 +47,8 @@ namespace // anonymous
 {
 
 std::shared_ptr<addrinfo const>
-make_addrinfo(int flags, char const* host, unsigned int port)
+make_addrinfo(socket_layer_t& sockets,
+              int flags, char const* host, unsigned int port)
 {
   if(port > max_port)
   {
@@ -62,7 +64,8 @@ make_addrinfo(int flags, char const* host, unsigned int port)
   hints.ai_socktype = SOCK_STREAM;
 
   addrinfo* head;
-  int r = getaddrinfo(host, std::to_string(port).c_str(), &hints, &head);
+  int r = sockets.getaddrinfo(
+    host, std::to_string(port).c_str(), &hints, &head);
   if(r != 0)
   {
 #ifdef _WIN32
@@ -78,12 +81,13 @@ make_addrinfo(int flags, char const* host, unsigned int port)
 #ifdef _WIN32
     builder << error_status_t(cause);
 #else
-    builder << gai_strerror(r);
+    builder << sockets.gai_strerror(r);
 #endif
     builder.explode();
   }
 
-  return std::shared_ptr<addrinfo const>(head, freeaddrinfo);
+  auto deleter = [&sockets](addrinfo *info) { sockets.freeaddrinfo(info); };
+  return std::shared_ptr<addrinfo const>(head, deleter);
 }
 
 } // anonymous
@@ -94,22 +98,24 @@ make_addrinfo(int flags, char const* host, unsigned int port)
  */
 struct resolver_t
 {
-  static endpoint_t resolve_ip(char const* ip, unsigned int port)
+  static endpoint_t resolve_ip(socket_layer_t& sockets,
+    char const* ip, unsigned int port)
   {
     assert(ip != nullptr);
 
     std::shared_ptr<addrinfo const> info =
-      make_addrinfo(AI_NUMERICHOST, ip, port);
+      make_addrinfo(sockets, AI_NUMERICHOST, ip, port);
     assert(info != nullptr);
     assert(info->ai_next == nullptr);
 
-    return endpoint_t(*info->ai_addr, info->ai_addrlen);
+    return endpoint_t(sockets, *info->ai_addr, info->ai_addrlen);
   }
 
-  static endpoints_t find_endpoints(
+  static endpoints_t find_endpoints(socket_layer_t& sockets,
     int flags, char const* host, unsigned int port)
   {
-    std::shared_ptr<addrinfo const> info = make_addrinfo(flags, host, port);
+    std::shared_ptr<addrinfo const> info =
+      make_addrinfo(sockets, flags, host, port);
     assert(info != nullptr);
 
     endpoints_t result;
@@ -117,41 +123,49 @@ struct resolver_t
         node != nullptr;
         node = node->ai_next)
     {
-      result.push_back(endpoint_t(*node->ai_addr, node->ai_addrlen));
+      result.push_back(
+        endpoint_t(sockets, *node->ai_addr, node->ai_addrlen)
+      );
     }
     return result;
   }
 };
 
-endpoint_t resolve_ip(char const* ip, unsigned int port)
+endpoint_t resolve_ip(socket_layer_t& sockets,
+                      char const* ip, unsigned int port)
 {
-  return resolver_t::resolve_ip(ip, port);
+  return resolver_t::resolve_ip(sockets, ip, port);
 }
 
-endpoint_t resolve_ip(std::string const& ip, unsigned int port)
+endpoint_t resolve_ip(socket_layer_t& sockets,
+                      std::string const& ip, unsigned int port)
 {
-  return resolve_ip(ip.c_str(), port);
+  return resolve_ip(sockets, ip.c_str(), port);
 }
 
-endpoints_t resolve_host(char const* host, unsigned int port)
+endpoints_t resolve_host(socket_layer_t& sockets,
+                         char const* host, unsigned int port)
 {
   assert(host != nullptr);
-  return resolver_t::find_endpoints(0, host, port);
+  return resolver_t::find_endpoints(sockets, 0, host, port);
 }
 
-endpoints_t resolve_host(std::string const& host, unsigned int port)
+endpoints_t resolve_host(socket_layer_t& sockets,
+                         std::string const& host, unsigned int port)
 {
-  return resolve_host(host.c_str(), port);
+  return resolve_host(sockets, host.c_str(), port);
 }
 
-endpoints_t local_interfaces(unsigned int port)
+endpoints_t local_interfaces(socket_layer_t& sockets,
+                             unsigned int port)
 {
-  return resolver_t::find_endpoints(0, nullptr, port);
+  return resolver_t::find_endpoints(sockets, 0, nullptr, port);
 }
 
-endpoints_t all_interfaces(unsigned int port)
+endpoints_t all_interfaces(socket_layer_t& sockets,
+                           unsigned int port)
 {
-  return resolver_t::find_endpoints(AI_PASSIVE, nullptr, port);
+  return resolver_t::find_endpoints(sockets, AI_PASSIVE, nullptr, port);
 }
 
 } // cuti

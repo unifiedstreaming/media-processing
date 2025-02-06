@@ -53,7 +53,7 @@ namespace // anonymous
 
 struct wakeup_flag_t
 {
-  wakeup_flag_t()
+  wakeup_flag_t(socket_layer_t& sockets)
   : counter_(0)
   , pipe_reader_(nullptr)
   , pipe_writer_(nullptr)
@@ -61,7 +61,7 @@ struct wakeup_flag_t
   , scheduler_(nullptr)
   , callback_()
   {
-    std::tie(pipe_reader_, pipe_writer_) = make_event_pipe();
+    std::tie(pipe_reader_, pipe_writer_) = make_event_pipe(sockets);
   }
 
   wakeup_flag_t(wakeup_flag_t const&) = delete;
@@ -172,10 +172,11 @@ private :
 struct listener_t
 {
   listener_t(logging_context_t const& context,
+             socket_layer_t& sockets,
              endpoint_t const& endpoint,
              method_map_t const& map)
   : context_(context)
-  , acceptor_(endpoint)
+  , acceptor_(sockets, endpoint)
   , map_(map)
   , ready_ticket_()
   , scheduler_()
@@ -347,11 +348,13 @@ private :
 struct core_dispatcher_t
 {
   core_dispatcher_t(logging_context_t const& context,
+                    socket_layer_t& sockets,
                     dispatcher_config_t const& config)
   : context_(context)
+  , sockets_(sockets)
   , config_(config)
   , scheduler_(config_.selector_factory_)
-  , wakeup_flag_()
+  , wakeup_flag_(sockets_)
   , listeners_()
   , monitored_clients_()
   , served_clients_()
@@ -389,7 +392,7 @@ struct core_dispatcher_t
   endpoint_t add_listener(endpoint_t const& endpoint, method_map_t const& map)
   {
     auto listener = listeners_.emplace(listeners_.begin(),
-      context_, endpoint, map);
+      context_, sockets_, endpoint, map);
     listener->call_when_ready(
       scheduler_,
       [this, listener](stack_marker_t&) { this->on_listener_ready(listener); }
@@ -555,6 +558,7 @@ private :
       
 private :
   logging_context_t const& context_;
+  socket_layer_t& sockets_;
   dispatcher_config_t const& config_;
   default_scheduler_t scheduler_;
   wakeup_flag_t wakeup_flag_;
@@ -692,6 +696,7 @@ struct pooled_thread_t
 {
   template<typename F>
   pooled_thread_t(logging_context_t const& context,
+                  socket_layer_t& sockets,
                   thread_pool_t& pool,
                   std::size_t id,
                   F&& f)
@@ -700,7 +705,7 @@ struct pooled_thread_t
   , id_(id)
   , interrupted_(false)
   , scheduler_()
-  , wakeup_flag_()
+  , wakeup_flag_(sockets)
   , mutex_()
   , joined_(false)
   , just_joined_()
@@ -825,8 +830,11 @@ private :
 
 struct thread_pool_t
 {
-  thread_pool_t(logging_context_t const& context, std::size_t max_size)
+  thread_pool_t(logging_context_t const& context,
+                socket_layer_t& sockets,
+                std::size_t max_size)
   : context_(context)
+  , sockets_(sockets)
   , max_size_(max_size)
   , mutex_()
   , frozen_(false)
@@ -847,7 +855,7 @@ struct thread_pool_t
     }
 
     threads_.emplace_back(
-      context_, *this, threads_.size(), std::forward<F>(f));
+      context_, sockets_, *this, threads_.size(), std::forward<F>(f));
 
     if(max_size_ > 1 && threads_.size() == max_size_)
     {
@@ -884,6 +892,7 @@ struct thread_pool_t
       
 private :
   logging_context_t const& context_;
+  socket_layer_t& sockets_;
   std::size_t const max_size_;
   std::mutex mutex_;
   bool frozen_;
@@ -934,17 +943,20 @@ bool handle_request(pooled_thread_t& current_thread, client_t& client)
 
 struct dispatcher_t::impl_t
 {
-  impl_t(logging_context_t const& context, dispatcher_config_t config)
+  impl_t(logging_context_t const& context,
+         socket_layer_t& sockets,
+         dispatcher_config_t config)
   : context_(context)
+  , sockets_(sockets)
   , config_(std::move(config))
-  , core_(context_, config_)
+  , core_(context_, sockets_, config_)
   , n_idle_threads_(0)
   , mutex_(core_)
   , dispatcher_stopping_(false)
   , signal_reader_()
   , signal_writer_()
   {
-    std::tie(signal_reader_, signal_writer_) = make_event_pipe();
+    std::tie(signal_reader_, signal_writer_) = make_event_pipe(sockets);
     signal_writer_->set_nonblocking();
   }
 
@@ -958,7 +970,8 @@ struct dispatcher_t::impl_t
   
   void run()
   {
-    thread_pool_t thread_pool(context_, config_.max_concurrent_requests_);
+    thread_pool_t thread_pool(
+      context_, sockets_, config_.max_concurrent_requests_);
 
     if(auto msg = context_.message_at(loglevel_t::info))
     {
@@ -1075,6 +1088,7 @@ private :
 
 private :
   logging_context_t const& context_;
+  socket_layer_t& sockets_;
   dispatcher_config_t const config_;
   core_dispatcher_t core_;
   std::size_t n_idle_threads_;
@@ -1088,8 +1102,9 @@ private :
 };
 
 dispatcher_t::dispatcher_t(logging_context_t const& context,
+                           socket_layer_t& sockets,
                            dispatcher_config_t config)
-: impl_(std::make_unique<impl_t>(context, std::move(config)))
+: impl_(std::make_unique<impl_t>(context, sockets, std::move(config)))
 { }
 
 endpoint_t dispatcher_t::add_listener(endpoint_t const& endpoint,

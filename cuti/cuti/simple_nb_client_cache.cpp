@@ -28,10 +28,12 @@ namespace cuti
 {
 
 simple_nb_client_cache_t::simple_nb_client_cache_t(
+  socket_layer_t& sockets,
   std::size_t max_cachesize,
   std::size_t inbufsize,
   std::size_t outbufsize)
-: max_cachesize_(max_cachesize)
+: sockets_(sockets)
+, max_cachesize_(max_cachesize)
 , inbufsize_(inbufsize)
 , outbufsize_(outbufsize)
 , mut_()
@@ -71,7 +73,7 @@ simple_nb_client_cache_t::obtain(logging_context_t const& context,
     try
     {
       result = std::make_unique<nb_client_t>(
-        server_address, inbufsize_, outbufsize_);
+        sockets_, server_address, inbufsize_, outbufsize_);
     }
     catch(std::exception const&)
     {

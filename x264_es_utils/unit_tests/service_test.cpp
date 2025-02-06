@@ -29,6 +29,7 @@
 #include <cuti/scoped_guard.hpp>
 #include <cuti/scoped_thread.hpp>
 #include <cuti/simple_nb_client_cache.hpp>
+#include <cuti/socket_layer.hpp>
 #include <cuti/streambuf_backend.hpp>
 #include <x264_proto/client.hpp>
 
@@ -240,16 +241,17 @@ void test_service(cuti::logging_context_t const& client_context,
     *msg << __func__ << ": starting";
   }
 
+  cuti::socket_layer_t sockets;
   cuti::dispatcher_config_t dispatcher_config;
 
   x264_es_utils::encoder_settings_t encoder_settings;
   encoder_settings.deterministic_ = true;
 
-  auto interfaces = cuti::local_interfaces(cuti::any_port);
+  auto interfaces = cuti::local_interfaces(sockets, cuti::any_port);
 
   {
     x264_es_utils::service_t service(
-      server_context, dispatcher_config, encoder_settings, interfaces);
+      server_context, sockets, dispatcher_config, encoder_settings, interfaces);
 
     cuti::scoped_thread_t server_thread([&] { service.run(); });
     cuti::scoped_guard_t stop_guard([&] { service.stop(SIGINT); });
@@ -257,7 +259,7 @@ void test_service(cuti::logging_context_t const& client_context,
     auto const& endpoints = service.endpoints();
     assert(!endpoints.empty());
 
-    cuti::simple_nb_client_cache_t cache;
+    cuti::simple_nb_client_cache_t cache(sockets);
     x264_proto::client_t client(client_context, cache, endpoints.front());
 
     test_add(client_context, client);

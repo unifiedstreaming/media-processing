@@ -26,8 +26,9 @@
 namespace cuti
 {
 
-tcp_acceptor_t::tcp_acceptor_t(endpoint_t const& endpoint)
-: socket_(endpoint.address_family())
+tcp_acceptor_t::tcp_acceptor_t(socket_layer_t&  sockets,
+                               endpoint_t const& endpoint)
+: socket_(sockets, endpoint.address_family())
 , local_endpoint_()
 {
   socket_.bind(endpoint);

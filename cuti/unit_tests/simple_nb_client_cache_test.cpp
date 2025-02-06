@@ -17,14 +17,16 @@
  * <http://www.gnu.org/licenses/>.
  */
 
+#include <cuti/simple_nb_client_cache.hpp>
+
 #include <cuti/cmdline_reader.hpp>
 #include <cuti/default_scheduler.hpp>
 #include <cuti/endpoint.hpp>
 #include <cuti/option_walker.hpp>
 #include <cuti/resolver.hpp>
-#include <cuti/simple_nb_client_cache.hpp>
 #include <cuti/streambuf_backend.hpp>
 #include <cuti/scoped_thread.hpp>
+#include <cuti/socket_layer.hpp>
 #include <cuti/tcp_acceptor.hpp>
 #include <cuti/tcp_connection.hpp>
 
@@ -47,8 +49,8 @@ using namespace cuti;
  */
 struct dummy_server_t
 {
-  explicit dummy_server_t()
-  : acceptor_(local_interfaces(any_port).front())
+  dummy_server_t(socket_layer_t& sockets)
+  : acceptor_(sockets, local_interfaces(sockets, any_port).front())
   , connections_()
   , stop_reader_(nullptr)
   , stop_writer_(nullptr)
@@ -60,7 +62,7 @@ struct dummy_server_t
     acceptor_.call_when_ready(scheduler_,
       [this](stack_marker_t&) { this->on_acceptor(); });
 
-    std::tie(stop_reader_, stop_writer_) = make_connected_pair();
+    std::tie(stop_reader_, stop_writer_) = make_connected_pair(sockets);
     stop_reader_->set_nonblocking();
     stop_reader_->call_when_readable(scheduler_,
       [this](stack_marker_t&) { this->on_stop_reader(); });
@@ -149,12 +151,14 @@ void test_dummy_server(logging_context_t const& context)
   }
 
   {
+    socket_layer_t sockets;
     std::vector<std::unique_ptr<nb_client_t>> clients;
-    dummy_server_t server;
+    dummy_server_t server(sockets);
 
     for(int i = 0; i != 100; ++i)
     {
-      clients.push_back(std::make_unique<nb_client_t>(server.address()));
+      clients.push_back(
+        std::make_unique<nb_client_t>(sockets, server.address()));
     }
 
     if(auto msg = context.message_at(loglevel_t::info))
@@ -177,8 +181,9 @@ void test_single_server_reuse(logging_context_t const& context)
   }
 
   {
-    simple_nb_client_cache_t cache;
-    dummy_server_t server;
+    socket_layer_t sockets;
+    simple_nb_client_cache_t cache(sockets);
+    dummy_server_t server(sockets);
 
     auto client_1 = cache.obtain(context, server.address());
     assert(client_1 != nullptr);
@@ -207,9 +212,10 @@ void test_multi_server_reuse(logging_context_t const& context)
   }
 
   {
-    simple_nb_client_cache_t cache;
-    dummy_server_t server_1;
-    dummy_server_t server_2;
+    socket_layer_t sockets;
+    simple_nb_client_cache_t cache(sockets);
+    dummy_server_t server_1(sockets);
+    dummy_server_t server_2(sockets);
 
     auto client_1_1 = cache.obtain(context, server_1.address());
     assert(client_1_1 != nullptr);
@@ -251,8 +257,9 @@ void test_single_server_invalidation(logging_context_t const& context)
   }
 
   {
-    simple_nb_client_cache_t cache;
-    dummy_server_t server;
+    socket_layer_t sockets;
+    simple_nb_client_cache_t cache(sockets);
+    dummy_server_t server(sockets);
 
     auto client_1 = cache.obtain(context, server.address());
     assert(client_1 != nullptr);
@@ -282,9 +289,10 @@ void test_multi_server_invalidation(logging_context_t const& context)
   }
 
   {
-    simple_nb_client_cache_t cache;
-    dummy_server_t server_1;
-    dummy_server_t server_2;
+    socket_layer_t sockets;
+    simple_nb_client_cache_t cache(sockets);
+    dummy_server_t server_1(sockets);
+    dummy_server_t server_2(sockets);
 
     auto client_1_1 = cache.obtain(context, server_1.address());
     assert(client_1_1 != nullptr);
@@ -328,8 +336,10 @@ void test_eviction(logging_context_t const& context)
 
   {
     std::size_t constexpr max_cachesize = 0;
-    simple_nb_client_cache_t cache(max_cachesize);
-    dummy_server_t server;
+
+    socket_layer_t sockets;
+    simple_nb_client_cache_t cache(sockets, max_cachesize);
+    dummy_server_t server(sockets);
 
     auto client_1 = cache.obtain(context, server.address());
     assert(client_1 != nullptr);

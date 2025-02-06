@@ -24,10 +24,14 @@
 namespace x264_es_utils
 {
 
+config_reader_t::config_reader_t(cuti::socket_layer_t& sockets)
+: sockets_(sockets)
+{ }
+
 std::unique_ptr<cuti::service_config_t>
 config_reader_t::read_config(int argc, char const* const argv[]) const
 {
-  return std::make_unique<config_t>(argc, argv);
+  return std::make_unique<config_t>(sockets_, argc, argv);
 }
 
 } // x264_es_utils

@@ -32,13 +32,16 @@
 namespace cuti
 {
 
+struct socket_layer_t;
+
 /*
  * A pair of non-blocking buffers representing the client side of a
  * TCP connection.
  */
 struct CUTI_ABI nb_client_t
 {
-  explicit nb_client_t(endpoint_t server_address,
+  explicit nb_client_t(socket_layer_t& sockets,
+                       endpoint_t server_address,
                        std::size_t inbufsize = nb_inbuf_t::default_bufsize,
                        std::size_t outbufsize = nb_outbuf_t::default_bufsize);
 

@@ -26,6 +26,7 @@
 #include <cuti/logging_context.hpp>
 #include <cuti/nb_tcp_buffers.hpp>
 #include <cuti/option_walker.hpp>
+#include <cuti/socket_layer.hpp>
 #include <cuti/stack_marker.hpp>
 #include <cuti/streambuf_backend.hpp>
 #include <cuti/tcp_connection.hpp>
@@ -244,9 +245,11 @@ void test_bad_method(logging_context_t const& context, std::size_t bufsize)
     *msg << __func__ << ": starting (bufsize: " << bufsize << ')';
   }
 
+  socket_layer_t sockets;
+
   std::unique_ptr<tcp_connection_t> server_side;
   std::unique_ptr<tcp_connection_t> client_side;
-  std::tie(server_side, client_side) = make_connected_pair();
+  std::tie(server_side, client_side) = make_connected_pair(sockets);
   
   std::unique_ptr<nb_inbuf_t> server_in;
   std::unique_ptr<nb_outbuf_t> server_out;

@@ -160,12 +160,12 @@ private :
 
 std::pair<std::unique_ptr<event_pipe_reader_t>,
           std::unique_ptr<event_pipe_writer_t>>
-make_event_pipe()
+make_event_pipe(socket_layer_t& sockets)
 {
   std::unique_ptr<tcp_connection_t> tcp_read_end;
   std::unique_ptr<tcp_connection_t> tcp_write_end;
   
-  std::tie(tcp_read_end, tcp_write_end) = make_connected_pair();
+  std::tie(tcp_read_end, tcp_write_end) = make_connected_pair(sockets);
 
   auto read_end = std::make_unique<event_pipe_reader_impl_t>(
     std::move(tcp_read_end));
@@ -300,7 +300,7 @@ private :
 
 std::pair<std::unique_ptr<event_pipe_reader_t>,
           std::unique_ptr<event_pipe_writer_t>>
-make_event_pipe()
+make_event_pipe(socket_layer_t&)
 {
   int fds[2];
 

@@ -56,10 +56,10 @@ struct CUTI_ABI socket_layer_t
   char const* gai_strerror(int errcode);
 #endif
 
- int getnameinfo(sockaddr const* addr, unsigned int addrlen,
-                 char* host, unsigned int hostlen,
-                 char* serv, unsigned int servlen,
-                 int flags);
+  int getnameinfo(sockaddr const* addr, unsigned int addrlen,
+                  char* host, unsigned int hostlen,
+                  char* serv, unsigned int servlen,
+                  int flags);
 
 private :
   struct initializer_t;

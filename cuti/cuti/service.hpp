@@ -32,6 +32,8 @@
 namespace cuti
 {
 
+struct socket_layer_t;
+
 /*
  * Abstract service application object interface.
  */
@@ -147,7 +149,8 @@ struct CUTI_ABI service_config_reader_t
  * from this call.
  */
 CUTI_ABI
-void run_service(service_config_reader_t const& config_reader,
+void run_service(socket_layer_t& sockets,
+                 service_config_reader_t const& config_reader,
                  int argc, char const* const argv[]);
 
 } // cuti

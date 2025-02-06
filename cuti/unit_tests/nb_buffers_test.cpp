@@ -27,6 +27,7 @@
 #include <cuti/nb_string_outbuf.hpp>
 #include <cuti/nb_tcp_buffers.hpp>
 #include <cuti/option_walker.hpp>
+#include <cuti/socket_layer.hpp>
 #include <cuti/stack_marker.hpp>
 #include <cuti/streambuf_backend.hpp>
 #include <cuti/system_error.hpp>
@@ -240,6 +241,7 @@ void do_test_string_buffers(logging_context_t const& context,
       " circ_bufsize: " << circ_bufsize;
   }
 
+  socket_layer_t sockets;
   default_scheduler_t scheduler; 
 
   std::string input = "Hello peer";
@@ -329,6 +331,7 @@ void do_test_tcp_buffers(logging_context_t const& context,
       " payload: " << input.size() << " bytes";
   }
 
+  socket_layer_t sockets;
   default_scheduler_t scheduler;
 
   auto producer_in = make_nb_string_inbuf(input, client_bufsize);
@@ -338,7 +341,7 @@ void do_test_tcp_buffers(logging_context_t const& context,
 
   std::unique_ptr<tcp_connection_t> client_side;
   std::unique_ptr<tcp_connection_t> server_side;
-  std::tie(client_side, server_side) = make_connected_pair();
+  std::tie(client_side, server_side) = make_connected_pair(sockets);
 
   std::unique_ptr<nb_inbuf_t> consumer_in;
   std::unique_ptr<nb_outbuf_t> producer_out;
@@ -478,11 +481,12 @@ void test_inbuf_throughput_checking(logging_context_t const& context,
       " low_ticks_limit: " << low_ticks_limit;
   }
 
+  socket_layer_t sockets;
   default_scheduler_t scheduler(factory);
 
   std::unique_ptr<tcp_connection_t> client_side;
   std::unique_ptr<tcp_connection_t> server_side;
-  std::tie(client_side, server_side) = make_connected_pair();
+  std::tie(client_side, server_side) = make_connected_pair(sockets);
 
   std::unique_ptr<nb_inbuf_t> client_in;
   std::unique_ptr<nb_outbuf_t> client_out;
@@ -550,11 +554,12 @@ void test_outbuf_throughput_checking(logging_context_t const& context,
       " low_ticks_limit: " << low_ticks_limit;
   }
 
+  socket_layer_t sockets;
   default_scheduler_t scheduler(factory);
 
   std::unique_ptr<tcp_connection_t> client_side;
   std::unique_ptr<tcp_connection_t> server_side;
-  std::tie(client_side, server_side) = make_connected_pair();
+  std::tie(client_side, server_side) = make_connected_pair(sockets);
 
   std::unique_ptr<nb_inbuf_t> client_in;
   std::unique_ptr<nb_outbuf_t> client_out;

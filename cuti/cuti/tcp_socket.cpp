@@ -164,7 +164,7 @@ void set_initial_connection_flags(int fd)
 
 } // anonymous
 
-tcp_socket_t::tcp_socket_t(int family)
+tcp_socket_t::tcp_socket_t(socket_layer_t& sockets, int family)
 : tcp_socket_t() // -> exceptions will not leak fd_
 {
 #if defined(SOCK_CLOEXEC)
@@ -180,6 +180,8 @@ tcp_socket_t::tcp_socket_t(int family)
     builder << "Can'\t create socket: " << error_status_t(cause);
     builder.explode();
   }
+
+  sockets_ = &sockets;
 
 #if !defined(_WIN32) && !defined(SOCK_CLOEXEC)
   set_cloexec(fd_, true);
@@ -259,7 +261,7 @@ endpoint_t tcp_socket_t::local_endpoint() const
     builder.explode();
   }
 
-  return endpoint_t(buffer.addr_, size);
+  return endpoint_t(*sockets_, buffer.addr_, size);
 }
 
 endpoint_t tcp_socket_t::remote_endpoint() const
@@ -278,7 +280,7 @@ endpoint_t tcp_socket_t::remote_endpoint() const
     builder.explode();
   }
 
-  return endpoint_t(buffer.addr_, size);
+  return endpoint_t(*sockets_, buffer.addr_, size);
 }
 
 void tcp_socket_t::set_blocking()
@@ -324,6 +326,8 @@ int tcp_socket_t::accept(tcp_socket_t& accepted)
   }
   else
   {
+    tmp_socket.sockets_ = this->sockets_;
+
 #if !defined(_WIN32) && !defined(SOCK_CLOEXEC)
     set_cloexec(tmp_socket.fd_, true);
 #endif
@@ -438,7 +442,7 @@ int tcp_socket_t::read(char* first, char const* last, char*& next)
   return result;
 }
 
-void tcp_socket_t::close_fd(int fd) noexcept
+void tcp_socket_t::close_fd(socket_layer_t&, int fd) noexcept
 {
   assert(fd != -1);
 

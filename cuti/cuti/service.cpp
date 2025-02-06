@@ -329,7 +329,8 @@ void WINAPI service_main(DWORD dwNumServiceArgs, LPSTR* lpServiceArgVectors)
 
 } // anonymous
 
-void run_service(service_config_reader_t const& config_reader,
+void run_service(socket_layer_t&,
+                 service_config_reader_t const& config_reader,
                  int argc, char const* const argv[])
 {
   assert(argc > 0);
@@ -374,11 +375,11 @@ namespace // anonymous
 
 struct confirmation_pipe_t
 {
-  confirmation_pipe_t()
+  explicit confirmation_pipe_t(socket_layer_t& sockets)
   : reader_()
   , writer_()
   {
-    std::tie(reader_, writer_) = make_event_pipe();
+    std::tie(reader_, writer_) = make_event_pipe(sockets);
   }
 
   confirmation_pipe_t(confirmation_pipe_t const&) = delete;
@@ -478,9 +479,11 @@ void await_child(pid_t pid)
   }
 }
 
-void run_as_daemon(service_config_t const& config, char const* argv0)
+void run_as_daemon(socket_layer_t& sockets,
+                   service_config_t const& config,
+                   char const* argv0)
 {
-  confirmation_pipe_t confirmation_pipe;
+  confirmation_pipe_t confirmation_pipe(sockets);
 
   auto child = ::fork();
   if(child == -1)
@@ -588,7 +591,8 @@ void run_in_foreground(service_config_t const& config, char const* argv0)
   
 } // anonymous
 
-void run_service(service_config_reader_t const& config_reader,
+void run_service(socket_layer_t& sockets,
+                 service_config_reader_t const& config_reader,
                  int argc, char const* const argv[])
 {
   assert(argc > 0);
@@ -598,7 +602,7 @@ void run_service(service_config_reader_t const& config_reader,
 
   if(config->run_as_daemon())
   {
-    run_as_daemon(*config, argv[0]);
+    run_as_daemon(sockets, *config, argv[0]);
   }
   else
   {

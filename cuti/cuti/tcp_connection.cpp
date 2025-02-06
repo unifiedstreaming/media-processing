@@ -36,8 +36,9 @@
 namespace cuti
 {
 
-tcp_connection_t::tcp_connection_t(endpoint_t const& peer)
-: socket_(peer.address_family())
+tcp_connection_t::tcp_connection_t(socket_layer_t& sockets,
+                                   endpoint_t const& peer)
+: socket_(sockets, peer.address_family())
 , local_endpoint_()
 , remote_endpoint_()
 {
@@ -86,13 +87,13 @@ std::ostream& operator<<(std::ostream& os, tcp_connection_t const& connection)
 
 std::pair<std::unique_ptr<tcp_connection_t>,
           std::unique_ptr<tcp_connection_t>>
-make_connected_pair(endpoint_t const& interface)
+make_connected_pair(socket_layer_t& sockets, endpoint_t const& interface)
 {
   std::pair<std::unique_ptr<tcp_connection_t>,
             std::unique_ptr<tcp_connection_t>> result;
 
-  tcp_acceptor_t acceptor(interface);
-  result.first.reset(new tcp_connection_t(acceptor.local_endpoint()));
+  tcp_acceptor_t acceptor(sockets, interface);
+  result.first.reset(new tcp_connection_t(sockets, acceptor.local_endpoint()));
   auto const& expected_remote = result.first->local_endpoint();
 
   do
@@ -111,11 +112,11 @@ make_connected_pair(endpoint_t const& interface)
 
 std::pair<std::unique_ptr<tcp_connection_t>,
           std::unique_ptr<tcp_connection_t>>
-make_connected_pair()
+make_connected_pair(socket_layer_t& sockets)
 {
-  auto interfaces = local_interfaces(any_port);
+  auto interfaces = local_interfaces(sockets, any_port);
   assert(!interfaces.empty());
-  return make_connected_pair(interfaces.front());
+  return make_connected_pair(sockets, interfaces.front());
 }
 
 } // cuti
