@@ -182,18 +182,19 @@ namespace // anonymous
 
 struct event_pipe_reader_impl_t : event_pipe_reader_t
 {
-  explicit event_pipe_reader_impl_t(int fd)
-  : fd_(fd)
+  explicit event_pipe_reader_impl_t(socket_layer_t& sockets, int fd)
+  : sockets_(sockets)
+  , fd_(fd)
   { }
 
   void set_blocking() override
   {
-    cuti::set_nonblocking(fd_, false);
+    cuti::set_nonblocking(sockets_, fd_, false);
   }
 
   void set_nonblocking() override
   {
-    cuti::set_nonblocking(fd_, true);
+    cuti::set_nonblocking(sockets_, fd_, true);
   }
 
   std::optional<int> read() override
@@ -208,7 +209,7 @@ struct event_pipe_reader_impl_t : event_pipe_reader_t
     case -1 :
       {
         int cause = last_system_error();
-        if(!is_wouldblock(cause))
+        if(!is_wouldblock(sockets_, cause))
         {
           system_exception_builder_t builder;
           builder << "event pipe read error: " << error_status_t(cause);
@@ -240,23 +241,25 @@ struct event_pipe_reader_impl_t : event_pipe_reader_t
   }
 
 private :
+  socket_layer_t& sockets_;
   int fd_;
 };
 
 struct event_pipe_writer_impl_t : event_pipe_writer_t
 {
-  explicit event_pipe_writer_impl_t(int fd)
-  : fd_(fd)
+  explicit event_pipe_writer_impl_t(socket_layer_t& sockets, int fd)
+  : sockets_(sockets)
+  , fd_(fd)
   { }
 
   void set_blocking() override
   {
-    cuti::set_nonblocking(fd_, false);
+    cuti::set_nonblocking(sockets_, fd_, false);
   }
 
   void set_nonblocking() override
   {
-    cuti::set_nonblocking(fd_, true);
+    cuti::set_nonblocking(sockets_, fd_, true);
   }
 
   bool write(unsigned char event) override
@@ -268,7 +271,7 @@ struct event_pipe_writer_impl_t : event_pipe_writer_t
     if(r == -1)
     {
       int cause = last_system_error();
-      if(!is_wouldblock(cause))
+      if(!is_wouldblock(sockets_, cause))
       {
         system_exception_builder_t builder;
         builder << "event pipe write error: " << error_status_t(cause);
@@ -293,6 +296,7 @@ struct event_pipe_writer_impl_t : event_pipe_writer_t
   }
 
 private :
+  socket_layer_t& sockets_;
   int fd_;
 };
 
@@ -300,7 +304,7 @@ private :
 
 std::pair<std::unique_ptr<event_pipe_reader_t>,
           std::unique_ptr<event_pipe_writer_t>>
-make_event_pipe(socket_layer_t&)
+make_event_pipe(socket_layer_t& sockets)
 {
   int fds[2];
 
@@ -322,14 +326,14 @@ make_event_pipe(socket_layer_t&)
   auto fds1_guard = make_scoped_guard([&] { ::close(fds[1]); });
   
 #if !defined(CUTI_HAS_PIPE2)
-  set_cloexec(fds[0], true);
-  set_cloexec(fds[1], true);
+  set_cloexec(sockets, fds[0], true);
+  set_cloexec(sockets, fds[1], true);
 #endif
 
-  auto read_end = std::make_unique<event_pipe_reader_impl_t>(fds[0]);
+  auto read_end = std::make_unique<event_pipe_reader_impl_t>(sockets, fds[0]);
   fds0_guard.dismiss();
 
-  auto write_end = std::make_unique<event_pipe_writer_impl_t>(fds[1]);
+  auto write_end = std::make_unique<event_pipe_writer_impl_t>(sockets, fds[1]);
   fds1_guard.dismiss();
   
   return std::make_pair(std::move(read_end), std::move(write_end));

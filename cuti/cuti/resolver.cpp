@@ -19,7 +19,6 @@
 
 #include "resolver.hpp"
 
-#include "socket_layer.hpp"
 #include "system_error.hpp"
 
 #include <cassert>
@@ -47,7 +46,7 @@ namespace // anonymous
 {
 
 std::shared_ptr<addrinfo const>
-make_addrinfo(socket_layer_t& sockets,
+make_addrinfo(socket_layer_t&,
               int flags, char const* host, unsigned int port)
 {
   if(port > max_port)
@@ -64,8 +63,7 @@ make_addrinfo(socket_layer_t& sockets,
   hints.ai_socktype = SOCK_STREAM;
 
   addrinfo* head;
-  int r = sockets.getaddrinfo(
-    host, std::to_string(port).c_str(), &hints, &head);
+  int r = ::getaddrinfo(host, std::to_string(port).c_str(), &hints, &head);
   if(r != 0)
   {
 #ifdef _WIN32
@@ -81,13 +79,12 @@ make_addrinfo(socket_layer_t& sockets,
 #ifdef _WIN32
     builder << error_status_t(cause);
 #else
-    builder << sockets.gai_strerror(r);
+    builder << ::gai_strerror(r);
 #endif
     builder.explode();
   }
 
-  auto deleter = [&sockets](addrinfo *info) { sockets.freeaddrinfo(info); };
-  return std::shared_ptr<addrinfo const>(head, deleter);
+  return std::shared_ptr<addrinfo const>(head, ::freeaddrinfo);
 }
 
 } // anonymous

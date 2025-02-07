@@ -27,12 +27,6 @@
 #include <ostream>
 #include <utility>
 
-#ifdef _WIN32
-#include <winsock2.h>
-#else
-#include <errno.h>
-#endif
-
 namespace cuti
 {
 

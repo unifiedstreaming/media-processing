@@ -21,7 +21,6 @@
 
 #include "args_reader.hpp"
 #include "resolver.hpp"
-#include "socket_layer.hpp"
 #include "system_error.hpp"
 
 #include <algorithm>
@@ -62,15 +61,15 @@ struct endpoint_t::rep_t
 namespace // anonymous
 {
 
-std::string get_ip_address(socket_layer_t& sockets,
+std::string get_ip_address(socket_layer_t&,
                            sockaddr const& addr, unsigned int addr_size)
 {
   static char const longest_expected[] =
     "ffff:ffff:ffff:ffff:ffff:ffff:255.255.255.255";
   char buf[sizeof longest_expected];
 
-  int r = sockets.getnameinfo(
-    &addr, addr_size, buf, sizeof buf,
+  int r = ::getnameinfo(&addr, addr_size,
+    buf, sizeof buf,
     nullptr, 0, NI_NUMERICHOST);
 
   if(r != 0)
@@ -83,7 +82,7 @@ std::string get_ip_address(socket_layer_t& sockets,
 #ifdef _WIN32
     builder << error_status_t(cause);
 #else
-    builder << sockets.gai_strerror(r);
+    builder << ::gai_strerror(r);
 #endif
     builder.explode();
   }

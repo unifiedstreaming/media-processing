@@ -29,9 +29,11 @@
 namespace cuti
 {
 
-CUTI_ABI bool is_wouldblock(int error);
-CUTI_ABI bool is_fatal_io_error(int error);
-CUTI_ABI void set_nonblocking(int fd, bool enable);
+struct socket_layer_t;
+
+CUTI_ABI bool is_wouldblock(socket_layer_t& sockets, int error);
+CUTI_ABI bool is_fatal_io_error(socket_layer_t& sockets, int error);
+CUTI_ABI void set_nonblocking(socket_layer_t& sockets, int fd, bool enable);
 
 #if !defined(_WIN32)
 
@@ -42,7 +44,7 @@ CUTI_ABI void set_nonblocking(int fd, bool enable);
  * used if the close-on-exec flag cannot be specified when the fd is
  * opened.
  */
-CUTI_ABI void set_cloexec(int fd, bool enable);
+CUTI_ABI void set_cloexec(socket_layer_t& sockets, int fd, bool enable);
 
 #endif
 

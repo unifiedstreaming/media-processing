@@ -53,11 +53,11 @@ union sockaddr_buffer_t
   sockaddr_in6 addr_in6_;
 };
 
-void set_v6only(int fd, bool enable)
+void set_v6only(socket_layer_t&, int fd, bool enable)
 {
   const int optval = enable;
-  int r = setsockopt(fd, IPPROTO_IPV6, IPV6_V6ONLY,
-                     reinterpret_cast<const char *>(&optval), sizeof optval);
+  int r = ::setsockopt(fd, IPPROTO_IPV6, IPV6_V6ONLY,
+                       reinterpret_cast<const char *>(&optval), sizeof optval);
   if(r == -1)
   {
     int cause = last_system_error();
@@ -67,11 +67,11 @@ void set_v6only(int fd, bool enable)
   }
 }
 
-void set_nodelay(int fd, bool enable)
+void set_nodelay(socket_layer_t&, int fd, bool enable)
 {
   const int optval = enable;
-  int r = setsockopt(fd, IPPROTO_TCP, TCP_NODELAY,
-                     reinterpret_cast<const char *>(&optval), sizeof optval);
+  int r = ::setsockopt(fd, IPPROTO_TCP, TCP_NODELAY,
+                       reinterpret_cast<const char *>(&optval), sizeof optval);
   if(r == -1)
   {
     int cause = last_system_error();
@@ -81,11 +81,11 @@ void set_nodelay(int fd, bool enable)
   }
 }
 
-void set_keepalive(int fd, bool enable)
+void set_keepalive(socket_layer_t&, int fd, bool enable)
 {
   const int optval = enable;
-  int r = setsockopt(fd, SOL_SOCKET, SO_KEEPALIVE,
-                     reinterpret_cast<const char *>(&optval), sizeof optval);
+  int r = ::setsockopt(fd, SOL_SOCKET, SO_KEEPALIVE,
+                       reinterpret_cast<const char *>(&optval), sizeof optval);
   if(r == -1)
   {
     int cause = last_system_error();
@@ -117,11 +117,11 @@ int to_fd(int fd)
   return fd;
 }
 
-void set_reuseaddr(int fd, bool enable)
+void set_reuseaddr(socket_layer_t&, int fd, bool enable)
 {
   const int optval = enable;
-  int r = setsockopt(fd, SOL_SOCKET, SO_REUSEADDR,
-                     reinterpret_cast<const char *>(&optval), sizeof optval);
+  int r = ::setsockopt(fd, SOL_SOCKET, SO_REUSEADDR,
+                       reinterpret_cast<const char *>(&optval), sizeof optval);
   if(r == -1)
   {
     int cause = last_system_error();
@@ -135,11 +135,11 @@ void set_reuseaddr(int fd, bool enable)
 
 #ifdef SO_NOSIGPIPE
 
-void set_nosigpipe(int fd, bool enable)
+void set_nosigpipe(socket_layer_t&, int fd, bool enable)
 {
   const int optval = enable;
-  int r = setsockopt(fd, SOL_SOCKET, SO_NOSIGPIPE,
-                     reinterpret_cast<const char *>(&optval), sizeof optval);
+  int r = ::setsockopt(fd, SOL_SOCKET, SO_NOSIGPIPE,
+                       reinterpret_cast<const char *>(&optval), sizeof optval);
   if(r == -1)
   {
     int cause = last_system_error();
@@ -151,14 +151,14 @@ void set_nosigpipe(int fd, bool enable)
 
 #endif // SO_NOSIGPIPE
 
-void set_initial_connection_flags(int fd)
+void set_initial_connection_flags(socket_layer_t& sockets, int fd)
 {
-  set_nonblocking(fd, false);
-  set_nodelay(fd, true);
-  set_keepalive(fd, true);
+  set_nonblocking(sockets, fd, false);
+  set_nodelay(sockets, fd, true);
+  set_keepalive(sockets, fd, true);
 
 #if defined(SO_NOSIGPIPE)
-  set_nosigpipe(fd, true);
+  set_nosigpipe(sockets, fd, true);
 #endif
 }
 
@@ -184,7 +184,7 @@ tcp_socket_t::tcp_socket_t(socket_layer_t& sockets, int family)
   sockets_ = &sockets;
 
 #if !defined(_WIN32) && !defined(SOCK_CLOEXEC)
-  set_cloexec(fd_, true);
+  set_cloexec(*sockets_, fd_, true);
 #endif
 }
 
@@ -194,11 +194,11 @@ void tcp_socket_t::bind(endpoint_t const& endpoint)
 
   if(endpoint.address_family() == AF_INET6)
   {
-    set_v6only(fd_, true);
+    set_v6only(*sockets_, fd_, true);
   }
 
 #ifndef _WIN32
-  set_reuseaddr(fd_, true);
+  set_reuseaddr(*sockets_, fd_, true);
 #endif
 
   int r = ::bind(fd_,
@@ -242,7 +242,7 @@ void tcp_socket_t::connect(endpoint_t const& peer)
     builder.explode();
   }
 
-  set_initial_connection_flags(fd_);
+  set_initial_connection_flags(*sockets_, fd_);
 }
 
 endpoint_t tcp_socket_t::local_endpoint() const
@@ -252,7 +252,7 @@ endpoint_t tcp_socket_t::local_endpoint() const
   sockaddr_buffer_t buffer;
   socklen_t size = static_cast<socklen_t>(sizeof buffer);
 
-  int r = getsockname(fd_, &buffer.addr_, &size);
+  int r = ::getsockname(fd_, &buffer.addr_, &size);
   if(r == -1)
   {
     int cause = last_system_error();
@@ -271,7 +271,7 @@ endpoint_t tcp_socket_t::remote_endpoint() const
   sockaddr_buffer_t buffer;
   socklen_t size = static_cast<socklen_t>(sizeof buffer);
 
-  int r = getpeername(fd_, &buffer.addr_, &size);
+  int r = ::getpeername(fd_, &buffer.addr_, &size);
   if(r == -1)
   {
     int cause = last_system_error();
@@ -287,14 +287,14 @@ void tcp_socket_t::set_blocking()
 {
   assert(!empty());
 
-  cuti::set_nonblocking(fd_, false);
+  cuti::set_nonblocking(*sockets_, fd_, false);
 }
 
 void tcp_socket_t::set_nonblocking()
 {
   assert(!empty());
 
-  cuti::set_nonblocking(fd_, true);
+  cuti::set_nonblocking(*sockets_, fd_, true);
 }
 
 int tcp_socket_t::accept(tcp_socket_t& accepted)
@@ -313,9 +313,9 @@ int tcp_socket_t::accept(tcp_socket_t& accepted)
   if(tmp_socket.fd_ == -1)
   {
     int cause = last_system_error();
-    if(!is_wouldblock(cause))
+    if(!is_wouldblock(*sockets_, cause))
     {
-      if(is_fatal_io_error(cause))
+      if(is_fatal_io_error(*sockets_, cause))
       {
         system_exception_builder_t builder;
         builder << "accept() failure: " << error_status_t(cause);
@@ -329,9 +329,9 @@ int tcp_socket_t::accept(tcp_socket_t& accepted)
     tmp_socket.sockets_ = this->sockets_;
 
 #if !defined(_WIN32) && !defined(SOCK_CLOEXEC)
-    set_cloexec(tmp_socket.fd_, true);
+    set_cloexec(*tmp_socket.sockets_, tmp_socket.fd_, true);
 #endif
-    set_initial_connection_flags(tmp_socket.fd_);
+    set_initial_connection_flags(*tmp_socket.sockets_, tmp_socket.fd_);
   }
 
   tmp_socket.swap(accepted);
@@ -360,11 +360,11 @@ int tcp_socket_t::write(char const* first, char const* last, char const*& next)
   if(n == -1)
   {
     int cause = last_system_error();
-    if(is_wouldblock(cause))
+    if(is_wouldblock(*sockets_, cause))
     {
       next = nullptr;
     }
-    else if(is_fatal_io_error(cause))
+    else if(is_fatal_io_error(*sockets_, cause))
     {
       system_exception_builder_t builder;
       builder << "send() failure: " << error_status_t(cause);
@@ -418,11 +418,11 @@ int tcp_socket_t::read(char* first, char const* last, char*& next)
   if(n == -1)
   {
     int cause = last_system_error();
-    if(is_wouldblock(cause))
+    if(is_wouldblock(*sockets_, cause))
     {
       next = nullptr;
     }
-    else if(is_fatal_io_error(cause))
+    else if(is_fatal_io_error(*sockets_, cause))
     {
       system_exception_builder_t builder;
       builder << "recv() failure: " << error_status_t(cause);

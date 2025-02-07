@@ -34,12 +34,12 @@ namespace cuti
 
 #ifdef _WIN32
 
-bool is_wouldblock(int error)
+bool is_wouldblock(socket_layer_t&, int error)
 {
   return error == WSAEWOULDBLOCK;
 }
 
-bool is_fatal_io_error(int error)
+bool is_fatal_io_error(socket_layer_t&, int error)
 {
   switch(error)
   {
@@ -60,10 +60,10 @@ bool is_fatal_io_error(int error)
   }
 }
 
-void set_nonblocking(int fd, bool enable)
+void set_nonblocking(socket_layer_t&, int fd, bool enable)
 {
   u_long arg = enable;
-  int r = ioctlsocket(fd, FIONBIO, &arg);
+  int r = ::ioctlsocket(fd, FIONBIO, &arg);
   if(r == SOCKET_ERROR)
   {
     int cause = last_system_error();
@@ -75,12 +75,12 @@ void set_nonblocking(int fd, bool enable)
 
 #else // POSIX
 
-bool is_wouldblock(int error)
+bool is_wouldblock(socket_layer_t&, int error)
 {
   return error == EAGAIN || error == EWOULDBLOCK;
 }
 
-bool is_fatal_io_error(int error)
+bool is_fatal_io_error(socket_layer_t&, int error)
 {
   switch(error)
   {
@@ -99,9 +99,9 @@ bool is_fatal_io_error(int error)
   }
 }
   
-void set_nonblocking(int fd, bool enable)
+void set_nonblocking(socket_layer_t&, int fd, bool enable)
 {
-  int r = fcntl(fd, F_GETFL);
+  int r = ::fcntl(fd, F_GETFL);
   if(r != -1)
   {
     if(enable)
@@ -112,7 +112,7 @@ void set_nonblocking(int fd, bool enable)
     {
       r &= ~O_NONBLOCK;
     }
-    r = fcntl(fd, F_SETFL, r);
+    r = ::fcntl(fd, F_SETFL, r);
   }
 
   if(r == -1)
@@ -124,9 +124,9 @@ void set_nonblocking(int fd, bool enable)
   }
 }
 
-void set_cloexec(int fd, bool enable)
+void set_cloexec(socket_layer_t&, int fd, bool enable)
 {
-  int r = fcntl(fd, F_GETFD);
+  int r = ::fcntl(fd, F_GETFD);
   if(r != -1)
   {
     if(enable)
@@ -137,7 +137,7 @@ void set_cloexec(int fd, bool enable)
     {
       r &= ~FD_CLOEXEC;
     }
-    r = fcntl(fd, F_SETFD, r);
+    r = ::fcntl(fd, F_SETFD, r);
   }
   if(r == -1)
   {
