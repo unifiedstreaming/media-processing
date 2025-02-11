@@ -24,6 +24,7 @@
 #include "selector.hpp"
 #include "socket_nifty.hpp"
 
+#include <cassert>
 #include <iosfwd>
 #include <memory>
 #include <vector>
@@ -32,6 +33,7 @@ namespace cuti
 {
 
 struct args_reader_t;
+struct socket_layer_t;
 
 struct CUTI_ABI selector_factory_t
 {
@@ -40,20 +42,20 @@ struct CUTI_ABI selector_factory_t
 
   template<int N>
   selector_factory_t(char const(&name)[N],
-                     std::unique_ptr<selector_t>(&creator)())
+                     std::unique_ptr<selector_t> (*creator)(socket_layer_t&))
   : name_(name)
-  , creator_(creator)
+  , creator_((assert(creator != nullptr), creator))
   { }
 
   char const* name() const noexcept
   { return name_; }
 
-  std::unique_ptr<selector_t> operator()() const
-  { return (*creator_)(); }
+  std::unique_ptr<selector_t> operator()(socket_layer_t& sockets) const
+  { return (*creator_)(sockets); }
 
 private :
   char const* name_;
-  std::unique_ptr<selector_t>(*creator_)();
+  std::unique_ptr<selector_t> (*creator_)(socket_layer_t&);
 };
 
 CUTI_ABI

@@ -55,6 +55,8 @@ struct CUTI_ABI simple_nb_client_cache_t : nb_client_cache_t
     std::size_t inbufsize = default_inbufsize,
     std::size_t outbufsize = default_outbufsize);
 
+  socket_layer_t& socket_layer() override;
+
   std::unique_ptr<nb_client_t> obtain(
     logging_context_t const& context,
     endpoint_t const& server_address) override;

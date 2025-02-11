@@ -27,13 +27,14 @@
 namespace cuti
 {
 
-default_scheduler_t::default_scheduler_t()
-: default_scheduler_t(available_selector_factories().front())
+default_scheduler_t::default_scheduler_t(socket_layer_t& sockets)
+: default_scheduler_t(sockets, available_selector_factories().front())
 { }
 
-default_scheduler_t::default_scheduler_t(selector_factory_t const& factory)
+default_scheduler_t::default_scheduler_t(
+  socket_layer_t& sockets, selector_factory_t const& factory)
 : alarms_()
-, selector_(factory())
+, selector_(factory(sockets))
 , poll_first_(false)
 { }
 

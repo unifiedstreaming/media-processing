@@ -255,7 +255,8 @@ void perform_rpc(logging_context_t const& context,
     *msg << __func__ << ": starting";
   }
 
-  default_scheduler_t scheduler;
+  socket_layer_t sockets;
+  default_scheduler_t scheduler(sockets);
 
   bound_inbuf_t inbuf(nb_inbuf, scheduler);
   bound_outbuf_t outbuf(nb_outbuf, scheduler);

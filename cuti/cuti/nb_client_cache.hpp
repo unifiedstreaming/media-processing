@@ -30,6 +30,8 @@
 namespace cuti
 {
 
+struct socket_layer_t;
+
 /*
  * Abstract interface for caching nb_client objects
  */
@@ -41,6 +43,11 @@ struct CUTI_ABI nb_client_cache_t
   nb_client_cache_t(nb_client_cache_t const&) = delete;
   nb_client_cache_t& operator=(nb_client_cache_t const&) = delete;
   
+  /*
+   * Returns a reference to the socket layer used by the cache.
+   */
+  virtual socket_layer_t& socket_layer() = 0;
+
   /*
    * Returns a (possibly previously used) nb_client instance connected
    * to server_address.

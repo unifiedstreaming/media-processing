@@ -40,6 +40,11 @@ simple_nb_client_cache_t::simple_nb_client_cache_t(
 , clients_()
 { }
 
+socket_layer_t& simple_nb_client_cache_t::socket_layer()
+{
+  return sockets_;
+}
+
 std::unique_ptr<nb_client_t>
 simple_nb_client_cache_t::obtain(logging_context_t const& context,
                                  endpoint_t const& server_address)

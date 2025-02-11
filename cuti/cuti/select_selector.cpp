@@ -57,7 +57,7 @@ namespace // anonymous
  */
 struct fd_set_t
 {
-  fd_set_t()
+  explicit fd_set_t(socket_layer_t&)
   : inline_impl_()
   , current_impl_(&inline_impl_)
   , impl_holder_(nullptr)
@@ -201,7 +201,7 @@ private :
 
 struct fd_set_t
 {
-  fd_set_t()
+  explicit fd_set_t(socket_layer_t&)
   { FD_ZERO(&set_); }
 
   fd_set_t(fd_set_t const&) = delete;
@@ -231,8 +231,9 @@ private :
 
 struct select_selector_t : selector_t
 {
-  select_selector_t()
+  explicit select_selector_t(socket_layer_t& sockets)
   : selector_t()
+  , sockets_(sockets)
   , registrations_()
   , watched_list_(registrations_.add_list())
   , pending_list_(registrations_.add_list())
@@ -270,8 +271,8 @@ struct select_selector_t : selector_t
 
     if(registrations_.list_empty(pending_list_))
     {
-      fd_set_t infds;
-      fd_set_t outfds;
+      fd_set_t infds(sockets_);
+      fd_set_t outfds(sockets_);
 
       int nfds = 0;
 
@@ -405,6 +406,7 @@ private :
     callback_t callback_;
   };
 
+  socket_layer_t& sockets_;
   list_arena_t<registration_t> registrations_;
   int const watched_list_;
   int const pending_list_;
@@ -412,9 +414,9 @@ private :
 
 } // anonymous
 
-std::unique_ptr<selector_t> create_select_selector()
+std::unique_ptr<selector_t> create_select_selector(socket_layer_t& sockets)
 {
-  return std::make_unique<select_selector_t>();
+  return std::make_unique<select_selector_t>(sockets);
 }
 
 } // cuti

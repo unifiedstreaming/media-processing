@@ -969,7 +969,7 @@ void selected_transfer(logging_context_t const& context,
       " bytes to transfer: " << payload.size();
   }
 
-  default_scheduler_t scheduler(factory);
+  default_scheduler_t scheduler(sockets, factory);
 
   start_event_handler<producer_t>(scheduler,
     context, *producer_out, first, last, bufsize);
@@ -1099,7 +1099,7 @@ void selected_client_server(logging_context_t const& context,
       " bytes to transfer: " << payload.size();
   }
 
-  default_scheduler_t scheduler(factory);
+  default_scheduler_t scheduler(sockets, factory);
 
   start_event_handler<producer_t>(scheduler,
     context, *client_side, first, last, bufsize);
@@ -1172,8 +1172,8 @@ void scheduler_switch(logging_context_t const& context,
                       selector_factory_t const& factory,
                       endpoint_t const& interface)
 {
-  default_scheduler_t sched1(factory);
-  default_scheduler_t sched2(factory);
+  default_scheduler_t sched1(sockets, factory);
+  default_scheduler_t sched2(sockets, factory);
   auto [client, server] = make_connected_pair(sockets, interface);
 
   // put some pressure on the server

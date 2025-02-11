@@ -261,7 +261,7 @@ void test_bad_method(logging_context_t const& context, std::size_t bufsize)
   std::tie(client_in, client_out) =
     make_nb_tcp_buffers(std::move(client_side), bufsize, bufsize);
   
-  default_scheduler_t scheduler;
+  default_scheduler_t scheduler(sockets);
 
   bound_inbuf_t bound_server_in(*server_in, scheduler);
   bound_outbuf_t bound_server_out(*server_out, scheduler);

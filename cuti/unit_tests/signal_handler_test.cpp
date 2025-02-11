@@ -157,7 +157,7 @@ int interactive_trap(socket_layer_t& sockets)
   signal_handler_t handler(SIGINT, send_sigint);
   std::cout << "Trapping SIGINT: 10 seconds to hit ^C..." << std::endl;
 
-  default_scheduler_t scheduler;
+  default_scheduler_t scheduler(sockets);
 
   bool timeout = false;
   scheduler.call_alarm(
@@ -205,7 +205,7 @@ int interactive_trap_then_ignore()
 
   std::cout << "Ignoring SIGINT: 10 seconds to hit ^C..." << std::endl;
 
-  default_scheduler_t scheduler;
+  default_scheduler_t scheduler(sockets);
 
   bool timeout = false;
   scheduler.call_alarm(

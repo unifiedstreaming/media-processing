@@ -54,7 +54,7 @@ struct dummy_server_t
   , connections_()
   , stop_reader_(nullptr)
   , stop_writer_(nullptr)
-  , scheduler_()
+  , scheduler_(sockets)
   , stopping_(false)
   , serving_thread_(nullptr)
   {

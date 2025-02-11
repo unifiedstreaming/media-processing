@@ -48,19 +48,24 @@ std::vector<selector_factory_t> available_selector_factories()
   std::vector<selector_factory_t> result;
 
 #if CUTI_HAS_POLL_SELECTOR
-  result.emplace_back("poll", create_poll_selector);
+  result.emplace_back("poll",
+    [](socket_layer_t&) { return create_poll_selector(); }
+  );
 #endif
 
 #if CUTI_HAS_SELECT_SELECTOR
-  result.emplace_back("select", create_select_selector);
+  result.emplace_back("select",
+    [](socket_layer_t& sockets) { return create_select_selector(sockets); });
 #endif
 
 #if CUTI_HAS_EPOLL_SELECTOR
-  result.emplace_back("epoll", create_epoll_selector);
+  result.emplace_back("epoll",
+    [](socket_layer_t&) { return create_epoll_selector(); });
 #endif
 
 #if CUTI_HAS_KQUEUE_SELECTOR
-  result.emplace_back("kqueue", create_kqueue_selector);
+  result.emplace_back("kqueue",
+    [](socket_layer_t&) { return create_kqueue_selector(); });
 #endif
 
   return result;

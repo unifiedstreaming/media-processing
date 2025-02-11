@@ -27,6 +27,7 @@
 #include <cuti/option_walker.hpp>
 #include <cuti/quoted.hpp>
 #include <cuti/request_handler.hpp>
+#include <cuti/socket_layer.hpp>
 #include <cuti/stack_marker.hpp>
 #include <cuti/subtract_handler.hpp>
 #include <cuti/streambuf_backend.hpp>
@@ -95,7 +96,8 @@ int run_int_request(logging_context_t const& client_context,
   std::string reply;
   auto reply_outbuf = make_nb_string_outbuf(reply, bufsize);
 
-  default_scheduler_t scheduler;
+  socket_layer_t sockets;
+  default_scheduler_t scheduler(sockets);
 
   {
     bound_inbuf_t bit(*request_inbuf, scheduler);

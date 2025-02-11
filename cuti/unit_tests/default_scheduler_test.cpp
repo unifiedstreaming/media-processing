@@ -209,6 +209,7 @@ private :
 };
 
 void check_alarm_order(logging_context_t const& context,
+                       socket_layer_t& sockets,
                        selector_factory_t const& factory)
 {
   if(auto msg = context.message_at(loglevel))
@@ -216,7 +217,7 @@ void check_alarm_order(logging_context_t const& context,
     *msg << "check_alarm_order(): using " << factory << " selector";
   }
 
-  default_scheduler_t scheduler(factory);
+  default_scheduler_t scheduler(sockets, factory);
 
   std::vector<int> order;
 
@@ -242,14 +243,16 @@ void check_alarm_order(logging_context_t const& context,
   
 void check_alarm_order(logging_context_t const& context)
 {
+  socket_layer_t sockets;
   auto factories = available_selector_factories();
   for(auto const& factory : factories)
   {
-    check_alarm_order(context, factory);
+    check_alarm_order(context, sockets, factory);
   }
 }
 
 void empty_scheduler(logging_context_t const& context,
+                     socket_layer_t& sockets,
                      selector_factory_t const& factory)
 {
   if(auto msg = context.message_at(loglevel))
@@ -257,17 +260,18 @@ void empty_scheduler(logging_context_t const& context,
     *msg << "empty_scheduler(): using " << factory << " selector";
   }
 
-  default_scheduler_t scheduler(factory);
+  default_scheduler_t scheduler(sockets, factory);
 
   assert(scheduler.wait() == nullptr);
 }
 
 void empty_scheduler(logging_context_t const& context)
 {
+  socket_layer_t sockets;
   auto factories = available_selector_factories();
   for(auto const& factory : factories)
   {
-    empty_scheduler(context, factory);
+    empty_scheduler(context, sockets, factory);
   }
 }
 
@@ -276,7 +280,7 @@ void no_client(logging_context_t const& context,
                selector_factory_t const& factory,
                endpoint_t const& interface)
 {
-  default_scheduler_t scheduler(factory);
+  default_scheduler_t scheduler(sockets, factory);
 
   auto protector = start_event_handler<dos_protector_t>(
     scheduler, context, sockets, interface, 1, milliseconds_t(1));
@@ -319,7 +323,7 @@ void single_client(logging_context_t const& context,
                    selector_factory_t const& factory,
                    endpoint_t const& interface)
 {
-  default_scheduler_t scheduler(factory);
+  default_scheduler_t scheduler(sockets, factory);
 
   auto protector = start_event_handler<dos_protector_t>(
     scheduler, context, sockets, interface, 1);
@@ -369,7 +373,7 @@ void multiple_clients(logging_context_t const& context,
                       selector_factory_t const& factory,
                       endpoint_t const& interface)
 {
-  default_scheduler_t scheduler(factory);
+  default_scheduler_t scheduler(sockets, factory);
   
   auto protector = start_event_handler<dos_protector_t>(
     scheduler, context, sockets, interface, 2);
@@ -420,7 +424,7 @@ void multiple_acceptors(logging_context_t const& context,
                         selector_factory_t const& factory,
                         endpoint_t const& interface)
 {
-  default_scheduler_t scheduler(factory);
+  default_scheduler_t scheduler(sockets, factory);
 
   auto protector1 = start_event_handler<dos_protector_t>(
     scheduler, context, sockets, interface, 1);
@@ -478,7 +482,7 @@ void one_idle_acceptor(logging_context_t const& context,
                        selector_factory_t const& factory,
                        endpoint_t const& interface)
 {
-  default_scheduler_t scheduler(factory);
+  default_scheduler_t scheduler(sockets, factory);
 
   auto protector1 = start_event_handler<dos_protector_t>(
     scheduler, context, sockets, interface, 2);
@@ -536,8 +540,8 @@ void scheduler_switch(logging_context_t const& context,
                       selector_factory_t const& factory,
                       endpoint_t const& interface)
 {
-  default_scheduler_t scheduler1(factory);
-  default_scheduler_t scheduler2(factory);
+  default_scheduler_t scheduler1(sockets, factory);
+  default_scheduler_t scheduler2(sockets, factory);
 
   tcp_acceptor_t acceptor(sockets, interface);
   acceptor.set_nonblocking();
