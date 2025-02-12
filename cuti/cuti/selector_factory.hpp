@@ -22,7 +22,6 @@
 
 #include "linkage.h"
 #include "selector.hpp"
-#include "socket_nifty.hpp"
 
 #include <cassert>
 #include <iosfwd>

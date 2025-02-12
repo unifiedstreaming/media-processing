@@ -21,7 +21,6 @@
 #define CUTI_IO_UTILS_HPP_
 
 #include "linkage.h"
-#include "socket_nifty.hpp"
 
 /*
  * Some portable, moderately useful I/O utiliies.

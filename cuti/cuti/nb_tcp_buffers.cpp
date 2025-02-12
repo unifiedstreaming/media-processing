@@ -18,10 +18,9 @@
  */
 
 #include "nb_tcp_buffers.hpp"
-
 #include "scheduler.hpp"
 
-#include <sstream>
+#include <ostream>
 
 namespace cuti
 {

@@ -23,7 +23,6 @@
 #include "endpoint.hpp"
 #include "linkage.h"
 #include "scheduler.hpp"
-#include "socket_nifty.hpp"
 
 #include <memory>
 #include <utility>

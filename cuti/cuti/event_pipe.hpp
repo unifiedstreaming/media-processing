@@ -24,7 +24,6 @@
 #include "charclass.hpp"
 #include "cancellation_ticket.hpp"
 #include "linkage.h"
-#include "socket_nifty.hpp"
 
 #include <memory>
 #include <optional>

@@ -22,7 +22,6 @@
 
 #include "endpoint.hpp"
 #include "linkage.h"
-#include "socket_nifty.hpp"
 
 #include <cinttypes>
 #include <limits>

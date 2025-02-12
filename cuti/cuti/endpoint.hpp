@@ -21,7 +21,6 @@
 #define CUTI_ENDPOINT_HPP_
 
 #include "linkage.h"
-#include "socket_nifty.hpp"
 
 #include <cstddef>
 #include <memory>

@@ -106,7 +106,6 @@ lib cuti
   signal_handler.cpp
   simple_nb_client_cache.cpp
   socket_layer.cpp
-  socket_nifty.cpp
   stack_marker.cpp
   streambuf_backend.cpp
   subresult.cpp

@@ -157,10 +157,6 @@ unit-test socket_layer_test
 : socket_layer_test.cpp
 ;
 
-unit-test socket_nifty_test
-: socket_nifty_test.cpp
-;
-
 unit-test streambuf_backend_test
 : streambuf_backend_test.cpp
 ;

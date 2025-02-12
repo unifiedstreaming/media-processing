@@ -23,7 +23,6 @@
 #include "callback.hpp"
 #include "chrono_types.hpp"
 #include "linkage.h"
-#include "socket_nifty.hpp"
 
 namespace cuti
 {
