@@ -941,7 +941,7 @@ struct encoding_session_t::impl_t
 
   x264_proto::sample_headers_t sample_headers() const
   {
-    if(auto msg = logging_context_.message_at(cuti::loglevel_t::info))
+    if(auto msg = logging_context_.message_at(cuti::loglevel_t::debug))
     {
       *msg << "encoding_session[" << this << "]: retrieving sample headers";
     }
@@ -1007,9 +1007,10 @@ struct encoding_session_t::impl_t
   {
     assert(! flush_called_);
 
-    if(auto msg = logging_context_.message_at(cuti::loglevel_t::info))
+    if(auto msg = logging_context_.message_at(cuti::loglevel_t::debug))
     {
-      *msg << "encoding_session[" << this << "]: encoding frame #" << frame_count_;
+      *msg << "encoding_session[" << this <<
+        "]: encoding frame #" << frame_count_;
     }
     ++frame_count_;
 
@@ -1024,7 +1025,7 @@ struct encoding_session_t::impl_t
     }
     else if(num_bytes == 0)
     {
-      if(auto msg = logging_context_.message_at(cuti::loglevel_t::info))
+      if(auto msg = logging_context_.message_at(cuti::loglevel_t::debug))
       {
         *msg << "encoding_session[" << this << "]: no sample available yet";
       }
@@ -1033,9 +1034,10 @@ struct encoding_session_t::impl_t
       return std::nullopt;
     }
 
-    if(auto msg = logging_context_.message_at(cuti::loglevel_t::info))
+    if(auto msg = logging_context_.message_at(cuti::loglevel_t::debug))
     {
-      *msg << "encoding_session[" << this << "]: returning sample #" << sample_count_;
+      *msg << "encoding_session[" << this <<
+        "]: returning sample #" << sample_count_;
     }
 
     return generate_sample(num_bytes, output);
@@ -1049,7 +1051,7 @@ struct encoding_session_t::impl_t
     assert(delayed_frames >= 0);
     if(delayed_frames == 0)
     {
-      if(auto msg = logging_context_.message_at(cuti::loglevel_t::info))
+      if(auto msg = logging_context_.message_at(cuti::loglevel_t::debug))
       {
         *msg << "encoding_session[" << this << "]: no more samples";
       }
@@ -1058,9 +1060,10 @@ struct encoding_session_t::impl_t
       return std::nullopt;
     }
 
-    if(auto msg = logging_context_.message_at(cuti::loglevel_t::info))
+    if(auto msg = logging_context_.message_at(cuti::loglevel_t::debug))
     {
-      *msg << "encoding_session[" << this << "]: flushing sample #" << sample_count_;
+      *msg << "encoding_session[" << this <<
+        "]: flushing sample #" << sample_count_;
     }
 
     x264_output_t output;
@@ -1157,7 +1160,8 @@ encoding_session_t::encoding_session_t(
   cuti::logging_context_t const& logging_context,
   encoder_settings_t const& encoder_settings,
   x264_proto::session_params_t const& session_params)
-: impl_(std::make_unique<impl_t>(logging_context, encoder_settings, session_params))
+: impl_(std::make_unique<impl_t>(
+    logging_context, encoder_settings, session_params))
 {
 }
 
