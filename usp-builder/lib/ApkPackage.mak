@@ -100,6 +100,21 @@ depends-listing = $(strip \
   $(foreach p,$2,$p=$(call get-package-version,$p)-r$(call get-package-revision,$p)) \
 )
 
+#
+# $(call so-provides-apk,apk-file)
+#
+so-provides-apk = $(shell tar -x -f "$1" -O .PKGINFO | $(usp-sed) -E -n -e 's/^provides = so:(.*)=0$$/\1/p')
+
+#
+# $(call apk-file,package-name)
+#
+apk-file = $(pkgs-dir)/$1-$(call get-package-version,$1)-r$(call get-package-revision,$1).apk
+
+#
+# $(call so-depends-listing,<prereq package>*)
+#
+so-depends-listing = $(foreach p,$1,$(call so-provides-apk,$(call apk-file,$p)))
+
 override package := $(call checked-apk-package-name,$(package))
 
 #
@@ -192,7 +207,8 @@ license="$7"
 depends="$(call depends-listing,$(15),$6)"
 subpackages="$(foreach s,$(if $(14),$$pkgname-dbg),$s)"
 source=""
-options="!fhs ignore-missing-so-files$(if $(14),, !dbg !strip)"
+options="!fhs$(if $(14),, !dbg !strip)"
+somask="$(call so-depends-listing,$6)"
 $(if $(strip $(16)),install="$(strip $(16))")
 
 prepare() {
