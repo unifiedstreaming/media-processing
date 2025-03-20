@@ -93,27 +93,36 @@ checked-apk-package-name = $(strip \
 )
 
 #
+# $(call version-and-revision,<package>)
+#
+version-and-revision = $(strip \
+  $(call get-package-version,$1)-r$(call get-package-revision,$1) \
+)
+
+#
 # $(call depends-listing,<system package>*,<prereq package>*)
 #
 depends-listing = $(strip \
   $(foreach p,$1,$p) \
-  $(foreach p,$2,$p=$(call get-package-version,$p)-r$(call get-package-revision,$p)) \
+  $(foreach p,$2,$p=$(call version-and-revision,$p)) \
 )
 
 #
-# $(call so-provides-apk,apk-file)
+# $(call provided-sos,<apk-file-name>)
 #
-so-provides-apk = $(shell tar -x -f "$1" -O .PKGINFO | $(usp-sed) -E -n -e 's/^provides = so:(.*)=0$$/\1/p')
+provided-sos = $(shell tar -x -f "$1" -O .PKGINFO | $(usp-sed) -n -e 's/^provides = so:\(.*\)=0$$/\1/p')
 
 #
-# $(call apk-file,package-name)
+# $(call prereq-apk-path,<package-name>)
 #
-apk-file = $(pkgs-dir)/$1-$(call get-package-version,$1)-r$(call get-package-revision,$1).apk
+prereq-apk-path = $(pkgs-dir)/$1-$(call version-and-revision,$1).apk
 
 #
-# $(call so-depends-listing,<prereq package>*)
+# $(call provided-sos-listing,<prereq-package>*)
 #
-so-depends-listing = $(foreach p,$1,$(call so-provides-apk,$(call apk-file,$p)))
+provided-sos-listing = $(strip \
+  $(foreach p,$1,$(call provided-sos,$(call prereq-apk-path,$p))) \
+)
 
 override package := $(call checked-apk-package-name,$(package))
 
@@ -208,7 +217,7 @@ depends="$(call depends-listing,$(15),$6)"
 subpackages="$(foreach s,$(if $(14),$$pkgname-dbg),$s)"
 source=""
 options="!fhs$(if $(14),, !dbg !strip)"
-somask="$(call so-depends-listing,$6)"
+somask="$(call provided-sos-listing,$6)"
 $(if $(strip $(16)),install="$(strip $(16))")
 
 prepare() {
