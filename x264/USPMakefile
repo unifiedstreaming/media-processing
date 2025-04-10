@@ -35,8 +35,6 @@ ifneq ($(build-x264),)
   #
   $(if $(unix-like),,$(error unix-like build environment required))
 
-  compiler := $(if $(filter msvc%,$(toolset)),cl.exe,$(toolset))
-
   extra-cflags := $(strip \
     $(if $(filter msvc%,$(toolset)), \
       $(if $(filter debug,$(variant)),-MDd,-MD -Z7) \
@@ -107,7 +105,7 @@ ifneq ($(build-x264),)
     | $(work-dir)
 	$(usp-rm-dir) "$(call to-shell,$(obj-dir))"
 	$(usp-mkdir-p) "$(call to-shell,$(obj-dir))"
-	cd "$(call to-shell,$(obj-dir))" && CC=$(compiler) $(x264-src-dir)/configure $(configure-options)
+	cd "$(call to-shell,$(obj-dir))" && CC=$(toolset-c-compiler) $(x264-src-dir)/configure $(configure-options)
 
   $(work-dir)/usp-stage-stamp: $(work-dir)/usp-build-stamp | $(work-dir)
 	$(MAKE) -C $(obj-dir) install
