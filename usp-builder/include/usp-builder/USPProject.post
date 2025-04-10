@@ -159,14 +159,14 @@ mapped-package-names = $(strip \
 )
   
 #
-# $(call native-packager-settings,<package>,<flavor>)
+# $(call native-packager-settings,<package>,<flavor>,<prereq package>*)
 #
 native-packager-settings = $(strip \
   $(build-settings) \
   package=$($1.package-$2-name) \
   pkgs-dir="$(if $(strip $(pkgs-dir)),$(call to-shell,$(call non-relative-path,$(pkgs-dir))))" \
   license="$($1.package-license)" \
-  prereq-packages="$(foreach p,$($1.package-prereqs),$($p.package-$2-name))" \
+  prereq-packages="$(foreach p,$3,$($p.package-$2-name))" \
   artifacts-dir="$(call to-shell,$(artifacts-dir)/$1)" \
   packaging-work-dir="$(call to-shell,$(packaging-work-dir)/$2)" \
   conf-files="$(foreach f,$($1.package-conf-files),$(call to-shell,$(call non-relative-path,$f)))" \
@@ -177,7 +177,7 @@ native-packager-settings = $(strip \
   apache-load-files="$(foreach f,$($1.package-apache-load-files),$(call to-shell,$(call non-relative-path,$f)))" \
   $($1.package-$2-name).package-version="$($1.package-version)" \
   $($1.package-$2-name).package-revision="$($1.package-revision)" \
-  $(foreach p,$($1.package-prereqs),$($p.package-$2-name).package-version="$($p.package-version)" $($p.package-$2-name).package-revision="$($p.package-revision)") \
+  $(foreach p,$3,$($p.package-$2-name).package-version="$($p.package-version)" $($p.package-$2-name).package-revision="$($p.package-revision)") \
   add-debug-package=$(if $($1.package-add-debug-package),yes,no) \
   extra-prereq-system-packages="$(call mapped-package-names,$($1.package-extra-prereq-system-packages),$2)" \
   require-user="$($1.package-require-user)" \
@@ -185,7 +185,7 @@ native-packager-settings = $(strip \
 )
 
 #
-# $(call artifact-targets,<package>)
+# $(call artifact-targets,<package>,<prereq package>*)
 #
 define artifact-targets =
 #
@@ -196,26 +196,26 @@ $(artifacts-dir)/$1: | $(artifacts-dir)
 	$(usp-rm-dir) "$$(call to-shell,$$@)"
 	$(usp-mkdir-p) "$$(call to-shell,$$@)"
 
-$(foreach prj,$($1.package-projects),$(prj).project-artifacts: $(artifacts-dir)/$1$(newline))
+$(foreach prj,$($1.package-projects),$(prj).project-artifacts): $(artifacts-dir)/$1
 
 .PHONY: $1.artifacts
-$1.artifacts: $(strip $(foreach pkg,$($1.package-prereqs),$(pkg).artifacts) $(foreach prj,$($1.package-projects),$(prj).project-artifacts))
+$1.artifacts: $(strip $(foreach pkg,$2,$(pkg).artifacts) $(foreach prj,$($1.package-projects),$(prj).project-artifacts))
 
 .PHONY: $1.deb-package
-$1.deb-package: $(strip $(foreach pkg,$($1.package-prereqs),$(pkg).deb-package) $1.artifacts)
-	$$(MAKE) -I $(usp-builder-include-dir) -f $(usp-builder-lib-dir)/DebPackage.mak $(call native-packager-settings,$1,deb) deb-package
+$1.deb-package: $(strip $(foreach pkg,$2,$(pkg).deb-package) $1.artifacts)
+	$$(MAKE) -I $(usp-builder-include-dir) -f $(usp-builder-lib-dir)/DebPackage.mak $(call native-packager-settings,$1,deb,$2) deb-package
 
 .PHONY: $1.rpm-package
-$1.rpm-package: $(strip $(foreach pkg,$($1.package-prereqs),$(pkg).rpm-package) $1.artifacts)
-	$$(MAKE) -I $(usp-builder-include-dir) -f $(usp-builder-lib-dir)/RpmPackage.mak $(call native-packager-settings,$1,rpm) rpm-package
+$1.rpm-package: $(strip $(foreach pkg,$2,$(pkg).rpm-package) $1.artifacts)
+	$$(MAKE) -I $(usp-builder-include-dir) -f $(usp-builder-lib-dir)/RpmPackage.mak $(call native-packager-settings,$1,rpm,$2) rpm-package
 
 .PHONY: $1.apk-package
-$1.apk-package: $(strip $(foreach pkg,$($1.package-prereqs),$(pkg).apk-package) $1.artifacts)
-	$$(MAKE) -I $(usp-builder-include-dir) -f $(usp-builder-lib-dir)/ApkPackage.mak $(call native-packager-settings,$1,apk) apk-package
+$1.apk-package: $(strip $(foreach pkg,$2,$(pkg).apk-package) $1.artifacts)
+	$$(MAKE) -I $(usp-builder-include-dir) -f $(usp-builder-lib-dir)/ApkPackage.mak $(call native-packager-settings,$1,apk,$2) apk-package
 
 .PHONY: $1.zip-file
-$1.zip-file: $(strip $(foreach pkg,$($1.package-prereqs),$(pkg).zip-file) $1.artifacts)
-	$$(MAKE) -I $(usp-builder-include-dir) -f $(usp-builder-lib-dir)/ZipFile.mak $(call native-packager-settings,$1,zip) zip-file
+$1.zip-file: $(strip $(foreach pkg,$2,$(pkg).zip-file) $1.artifacts)
+	$$(MAKE) -I $(usp-builder-include-dir) -f $(usp-builder-lib-dir)/ZipFile.mak $(call native-packager-settings,$1,zip,$2) zip-file
 
 .PHONY: $1.clean-artifacts
 $1.clean-artifacts:
@@ -262,13 +262,37 @@ all-zip-files :=
 $(foreach pkg,$(all-packages),$(eval all-zip-files := $(call add-package,$(all-zip-files),$($(pkg).package-zip-name))))
 
 #
-# Define artifact targets for all packages
+# $(call deep-package-prereqs,<direct-prereq>*,<resolved-prereq>*)
 #
-$(strip \
-  $(foreach pkg,$(all-packages), \
-    $(call expand,$(call artifact-targets,$(pkg))) \
+deep-package-prereqs = $(strip \
+  $(if $(firstword $1), \
+    $(call REM, more to resolve) \
+    $(if $(filter $(firstword $1),$2), \
+      $(call REM, first already resolved so just resolve rest) \
+      $(call deep-package-prereqs,$(wordlist 2,$(words $1),$1),$2) \
+    , \
+      $(call REM, resolve first then resolve rest) \
+      $(call deep-package-prereqs,$(wordlist 2,$(words $1),$1), \
+        $(call deep-package-prereqs,$($(firstword $1).package-prereqs),$2) \
+          $(firstword $1)) \
+    ) \
+  , \
+    $(call REM, all resolved) \
+    $2 \
   ) \
 )
+
+#
+# $(call recursive-package-prereqs,<package>)
+#
+recursive-package-prereqs = $(strip \
+  $(call deep-package-prereqs,$($1.package-prereqs)) \
+)
+
+#
+# Define artifact targets for all packages
+#
+$(foreach p,$(all-packages),$(call expand,$(call artifact-targets,$p,$(call recursive-package-prereqs,$p))))
 
 .PHONY: all.deploy
 all.deploy: $(foreach prj,$(all-projects),$(prj).deploy)
