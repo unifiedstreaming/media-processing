@@ -158,7 +158,7 @@ get-package-revision = $(call checked-package-version-or-revision,$1.package-rev
 $(call check-packaging-build-setting,address-model,$(default-address-model))
 $(call check-packaging-build-setting,address-sanitizer,)
 $(call check-packaging-build-setting,thread-sanitizer,)
-#$(call check-packaging-build-setting,toolset,$(default-toolset))
+$(call check-packaging-build-setting,toolset,$(default-toolset))
 $(call check-packaging-build-setting,undefined-sanitizer,)
 $(call check-packaging-build-setting,variant,release)
 
