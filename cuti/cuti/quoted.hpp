@@ -28,6 +28,7 @@
 #include <ostream>
 #include <streambuf>
 #include <string>
+#include <string_view>
 #include <utility>
 #include <vector>
 
@@ -115,6 +116,12 @@ quoted_string_t quoted_string(char const* str)
 
 inline CUTI_ABI
 quoted_string_t quoted_string(std::string const& str)
+{
+  return quoted_string_t(str.data(), str.data() + str.size());
+}
+
+inline CUTI_ABI
+quoted_string_t quoted_string(std::string_view str)
 {
   return quoted_string_t(str.data(), str.data() + str.size());
 }
