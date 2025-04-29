@@ -115,6 +115,13 @@ quoted_string_t quoted_string(char const* str)
 }
 
 inline CUTI_ABI
+quoted_string_t quoted_string(char const* first, char const* last)
+{
+  assert(first != nullptr);
+  return quoted_string_t(first, last);
+}
+
+inline CUTI_ABI
 quoted_string_t quoted_string(std::string const& str)
 {
   return quoted_string_t(str.data(), str.data() + str.size());
