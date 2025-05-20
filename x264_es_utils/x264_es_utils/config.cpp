@@ -254,6 +254,14 @@ void config_t::read_options(cuti::args_reader_t& reader,
       !walker.match("--selector",
         dispatcher_config_.selector_factory_) &&
       !walker.match("--session-threads", encoder_settings_.session_threads_) &&
+      !walker.match("--session-lookahead-threads",
+        encoder_settings_.session_lookahead_threads_) &&
+      !walker.match("--session-sliced-threads",
+        encoder_settings_.session_sliced_threads_) &&
+      !walker.match("--session-deterministic",
+        encoder_settings_.session_deterministic_) &&
+      !walker.match("--session-cpu-independent",
+        encoder_settings_.session_cpu_independent_) &&
       !walker.match("--tune", encoder_settings_.tune_) &&
 #ifndef _WIN32
       !walker.match("--umask", umask_) &&
@@ -341,6 +349,22 @@ void config_t::print_usage(std::ostream& os)
     "sets libx264 #encoding session threads" << std::endl;
   os << "                                     (default: " <<
     encoder_settings_t::default_session_threads() << "; 0=auto)" << std::endl;
+
+  os << "  --session-lookahead-threads <n>  " <<
+    "sets libx264 #encoding session lookahead threads" << std::endl;
+  os << "                                     (default: " <<
+    encoder_settings_t::default_session_lookahead_threads() << "; 0=auto)" <<
+    std::endl;
+
+  os << "  --session-sliced-threads         " <<
+    "sets libx264 use of slice-based threading" << std::endl;
+
+  os << "  --session-deterministic          " <<
+    "sets libx264 use of deterministic optimizations" << std::endl;
+
+  os << "  --session-cpu-independent        " <<
+    "sets libx264 use of CPU-independent algorithms" << std::endl;
+
   os << "  --syslog                         " <<
     "log to system log as " << cuti::default_syslog_name(argv0_) <<
     std::endl;

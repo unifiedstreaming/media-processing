@@ -340,7 +340,36 @@ wrap_x264_param_t::wrap_x264_param_t(
     param_.i_threads = static_cast<int>(encoder_settings.session_threads_);
   }
 
-  // CPU flags
+  // Number of session lookahead threads
+  if(encoder_settings.session_lookahead_threads_ != 0) // 0=auto
+  {
+    static unsigned int constexpr max_session_lookahead_threads =
+      std::numeric_limits<int>::max();
+    if(encoder_settings.session_lookahead_threads_ >
+       max_session_lookahead_threads)
+    {
+      x264_exception_builder_t builder;
+      builder << "number of session lookahead threads (" <<
+        encoder_settings.session_lookahead_threads_ << ") exceeds maximum (" <<
+	max_session_lookahead_threads << ')';
+      builder.explode();
+    }
+
+    param_.i_lookahead_threads = static_cast<int>(
+      encoder_settings.session_lookahead_threads_);
+  }
+
+  // Whether to use slice-based threading
+  param_.b_sliced_threads = encoder_settings.session_sliced_threads_ ? 1 : 0;
+
+  // Whether to allow non-deterministic optimizations when threaded
+  param_.b_deterministic = encoder_settings.session_deterministic_ ? 1 : 0;
+
+  // Forces canonical behavior rather than cpu-dependent optimal algorithms
+  param_.b_cpu_independent = encoder_settings.session_cpu_independent_ ? 1 : 0;
+
+  // The global --deterministic option overrides all of the above, for maximum
+  // reproducibility.
   if(encoder_settings.deterministic_)
   {
     param_.i_threads = 1;

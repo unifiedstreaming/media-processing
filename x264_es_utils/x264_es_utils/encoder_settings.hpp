@@ -32,16 +32,28 @@ struct encoder_settings_t
   static unsigned int constexpr default_session_threads()
   { return 0; }
 
+  static unsigned int constexpr default_session_lookahead_threads()
+  { return 0; }
+
   encoder_settings_t()
   : deterministic_()
   , preset_()
   , session_threads_(default_session_threads())
+  , session_lookahead_threads_(default_session_lookahead_threads())
+  , session_sliced_threads_()
+  , session_deterministic_()
+  , session_cpu_independent_()
   , tune_()
   { }
 
   cuti::flag_t deterministic_;
   std::string preset_;
   unsigned int session_threads_;
+  unsigned int session_lookahead_threads_;
+  cuti::flag_t session_sliced_threads_;
+  cuti::flag_t session_deterministic_;
+  cuti::flag_t session_cpu_independent_;
+
   std::string tune_;
 };
 
