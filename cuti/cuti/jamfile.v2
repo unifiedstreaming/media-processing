@@ -53,6 +53,7 @@ lib cuti
   flusher.cpp
   fs_utils.cpp
   format.cpp
+  hexdump.cpp
   identifier.cpp
   indexed_heap.cpp
   input_list.cpp
