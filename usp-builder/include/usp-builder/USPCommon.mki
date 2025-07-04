@@ -55,6 +55,7 @@ $(call check-make-version,4.1)
 
 .DELETE_ON_ERROR:
 .SECONDEXPANSION:
+.SUFFIXES:
 
 #
 # $(call REM,<word>*)
