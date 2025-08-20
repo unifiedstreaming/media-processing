@@ -32,54 +32,14 @@
 #include <utility>
 #include <vector>
 
+#include <cuti/thundering_herd.hpp>
+
 // enable assert()
 #undef NDEBUG
 #include <cassert>
 
 namespace // anonymous
 {
-
-struct thundering_herd_fence_t
-{
-  explicit thundering_herd_fence_t(unsigned int n_threads)
-  : mutex_()
-  , open_()
-  , countdown_(n_threads)
-  { }
-
-  thundering_herd_fence_t(thundering_herd_fence_t const&) = delete;
-  thundering_herd_fence_t& operator=(thundering_herd_fence_t const&) = delete;
-
-  void pass()
-  {
-    bool did_open = false;
-    {
-      std::unique_lock<std::mutex> lock(mutex_);
-      if(countdown_ != 0)
-      {
-        --countdown_;
-        if(countdown_ == 0)
-        {
-          did_open = true;
-        }
-        else while(countdown_ != 0)
-        {
-          open_.wait(lock);
-        }
-      }
-    }
-
-    if(did_open)
-    {
-      open_.notify_all();
-    }
-  }
-
-private :
-  std::mutex mutex_;
-  std::condition_variable open_;
-  unsigned int countdown_;
-};
 
 void log_away(cuti::logger_t& logger, unsigned int n, unsigned int tid)
 {
@@ -160,7 +120,7 @@ void test_multi_threaded(char const* argv0)
   std::stringstream strm;
   cuti::logger_t logger(std::make_unique<cuti::streambuf_backend_t>(strm));
 
-  thundering_herd_fence_t fence(n_threads);
+  cuti::thundering_herd_fence_t fence(n_threads);
   {
     std::vector<std::unique_ptr<cuti::scoped_thread_t>> threads;
     for(unsigned int tid = 0; tid != n_threads; ++tid)

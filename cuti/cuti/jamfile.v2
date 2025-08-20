@@ -51,8 +51,8 @@ lib cuti
   final_result.cpp
   flag.cpp
   flusher.cpp
-  fs_utils.cpp
   format.cpp
+  fs_utils.cpp
   hexdump.cpp
   identifier.cpp
   indexed_heap.cpp
@@ -118,6 +118,7 @@ lib cuti
   tcp_connection.cpp
   tcp_socket.cpp
   throughput_checker.cpp
+  thundering_herd.cpp
   tuple_mapping.cpp
   type_list.cpp
   viewbuf.cpp
