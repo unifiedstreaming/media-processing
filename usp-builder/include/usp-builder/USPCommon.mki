@@ -121,6 +121,7 @@ unix-like := $(if $(windows),$(cygwin),yes)
 uname-s := $(if $(unix-like),$(shell uname -s))
 darwin := $(if $(filter darwin% Darwin%,$(uname-s)),yes)
 freebsd := $(if $(filter freeBSD% FreeBSD%,$(uname-s)),yes)
+linux := $(if $(filter linux% Linux%,$(uname-s)),yes)
 
 #
 # $(dev-null) is the name of the system bitbucket
