@@ -3,10 +3,10 @@
 #
 # This file is part of the with_dll_dir python utility.
 #
-# The with_dll_dir python utility is free software: you can redistribute it
-# and/or modify it under the terms of version 2.1 of the GNU Lesser
-# General Public License as published by the Free Software
-# Foundation.
+# The with_dll_dir python utility is free software: you can
+# redistribute it and/or modify it under the terms of version 2.1 of
+# the GNU Lesser General Public License as published by the Free
+# Software Foundation.
 #
 # The with_dll_dir python utility is distributed in the hope that it
 # will be useful, but WITHOUT ANY WARRANTY; without even the implied
@@ -36,7 +36,8 @@ src-files := $(call find-files,%,$(src-dir))
 
 build-dir := $(work-dir)/$(notdir $(src-dir))
 
-pip-install-options := --upgrade --no-index --progress-bar off --no-cache 
+pip-install-options := --upgrade --no-index --progress-bar off --no-cache \
+  --use-pep517 --no-build-isolation 
 
 #
 # $(call setup-py-contents,<version> )

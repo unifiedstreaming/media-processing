@@ -19,8 +19,8 @@
 
 #
 # This makefile creates a Python virtual environment in the staging
-# directory, initially containing recent versions of pip, setuptools,
-# and wheel.  It is intended to be used as an environment providing
+# directory, initially containing recent versions of pip and
+# setuptools.  It is intended to be used as an environment providing
 # these tools, and for running unit tests.
 #
 

@@ -3,10 +3,10 @@
 #
 # This file is part of the with_dll_dir python utility.
 #
-# The with_dll_dir python utility is free software: you can redistribute it
-# and/or modify it under the terms of version 2.1 of the GNU Lesser
-# General Public License as published by the Free Software
-# Foundation.
+# The with_dll_dir python utility is free software: you can
+# redistribute it and/or modify it under the terms of version 2.1 of
+# the GNU Lesser General Public License as published by the Free
+# Software Foundation.
 #
 # The with_dll_dir python utility is distributed in the hope that it
 # will be useful, but WITHOUT ANY WARRANTY; without even the implied
@@ -18,12 +18,11 @@
 # General Public License along with the with_dll_dir python utility.
 # If not, see <http://www.gnu.org/licenses/>.
 #
-
 # This Windows-only python script is intended to be used as a frontend
 # for some other python script that imports a python extension which
 # in turn drags in a native DLL from a different directory (on
-# Windows, the python interpreter uses OS magic to ignore %PATH%
-# when finding such DLLs).
+# Windows, the python interpreter uses OS magic to ignore %PATH% when
+# finding such DLLs).
 #
 # See https://bugs.python.org/issue36085 or
 # https://github.com/python/cpython/issues/80266 for details.
