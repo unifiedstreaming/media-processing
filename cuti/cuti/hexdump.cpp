@@ -29,43 +29,10 @@ namespace cuti
 
 void hexdump_t::print(std::ostream& os) const &&
 {
-  // calculate the max number of bytes per line 
-  unsigned int available_width = 79;
-
-  // subtract leading spaces
-  if(available_width >= options_.leading_spaces_)
+  auto max_count = options_.bytes_per_line_;
+  if(max_count < 1)
   {
-    available_width -= options_.leading_spaces_;
-  }
-  else
-  {
-    available_width = 0;
-  }
-
-  // subtract width of offset field (8), the space after the offset
-  // field (1), and the spaces between the hex values and the char
-  // dump (2)
-  if(available_width >= 11)
-  {
-    available_width -= 11;
-  }
-  else
-  {
-    available_width = 0;
-  }
-
-  // each byte we report requires 4 positions: 1 for the space before
-  // the hex value, 2 for the hex value, and 1 for the char dump
-  auto max_count = available_width / 4;
-
-  // fix up if excessive
-  if(max_count < 4)
-  {
-    max_count = 4;
-  }
-  else if(max_count > 16)
-  {
-    max_count = 16;
+    max_count = 1;
   }
   
   auto saved_flags = os.flags();
