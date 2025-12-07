@@ -36,6 +36,7 @@ namespace cuti
 struct CUTI_ABI hexdump_options_t
 {
   unsigned int leading_spaces_ = 0;
+  unsigned int offset_width_ = 8;
   unsigned int bytes_per_line_ = 16;
 };
 

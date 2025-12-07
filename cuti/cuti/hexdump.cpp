@@ -29,6 +29,12 @@ namespace cuti
 
 void hexdump_t::print(std::ostream& os) const &&
 {
+  auto offset_width = options_.offset_width_;
+  if(offset_width < 1)
+  {
+    offset_width = 1;
+  }
+  
   auto max_count = options_.bytes_per_line_;
   if(max_count < 1)
   {
@@ -51,7 +57,7 @@ void hexdump_t::print(std::ostream& os) const &&
       os << ' ';
     }
 
-    os << std::setw(8) << offset;
+    os << std::setw(offset_width) << offset;
     os << ' ';
 
     unsigned char const* p;
