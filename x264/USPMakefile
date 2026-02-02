@@ -51,6 +51,7 @@ ifneq ($(build-x264),)
       -Wno-dangling-pointer \
     ) \
     $(if $(filter clang%,$(toolset)), \
+      -Wno-dangling-pointer \
       -Wno-nan-infinity-disabled \
       -Wno-unknown-warning-option \
     ) \
