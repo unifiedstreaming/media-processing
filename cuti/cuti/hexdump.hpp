@@ -72,6 +72,13 @@ hexdump_t hexdump(unsigned char const* first, unsigned char const* last,
   return hexdump_t(first, last, options);
 }
 
+inline CUTI_ABI
+hexdump_t hexdump(unsigned char const* first, std::size_t size,
+                  hexdump_options_t const& options = hexdump_options_t{})
+{
+  return hexdump_t(first, first + size, options);
+}
+
 template<std::size_t N>
 hexdump_t hexdump(std::array<unsigned char, N> const& arr,
                   hexdump_options_t const& options = hexdump_options_t{})
@@ -100,6 +107,17 @@ hexdump_t hexdump(char const* first, char const* last,
   return hexdump(
     reinterpret_cast<unsigned char const*>(first),
     reinterpret_cast<unsigned char const*>(last),
+    options
+  );
+}
+
+inline CUTI_ABI
+hexdump_t hexdump(char const* first, std::size_t size,
+                  hexdump_options_t const& options = hexdump_options_t{})
+{
+  return hexdump(
+    reinterpret_cast<unsigned char const*>(first),
+    reinterpret_cast<unsigned char const*>(first + size),
     options
   );
 }
