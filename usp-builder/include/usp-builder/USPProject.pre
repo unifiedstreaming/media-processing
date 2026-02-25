@@ -333,7 +333,6 @@ bjam-options = $(strip \
  $(if $(bjam-cores),-j$(bjam-cores)) \
  $(if $(verbose),-d+2) \
  --build-dir="$(call to-native,$(bjam-build-dir))" \
- -sin-usp-build=yes \
  $(if $(usp-system-python),-susp-system-python="$(call to-native,$(usp-system-python))") \
  -sstage-dir="$(call to-native,$(stage-dir))" \
  -sunit-test-out-dir="$(call to-native,$(unit-test-out-dir))" \
