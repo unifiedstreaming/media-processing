@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2021-2026 CodeShop B.V.
+ * Copyright (C) 2019-2026 CodeShop B.V.
  *
  * This file is part of the cuti library.
  *
@@ -19,8 +19,6 @@
 
 #include "membuf.hpp"
 
-#include "charclass.hpp"
-
 #include <algorithm>
 
 namespace cuti
@@ -30,7 +28,16 @@ membuf_t::membuf_t()
 : std::streambuf()
 , buf_(inline_buf_)
 {
-  this->setp(inline_buf_, inline_buf_ + sizeof inline_buf_);
+  this->setg(buf_, buf_, buf_);
+  this->setp(buf_, buf_ + sizeof inline_buf_);
+}
+
+void membuf_t::clear()
+{
+  char* epptr = this->epptr();
+  
+  this->setg(buf_, buf_, buf_);
+  this->setp(buf_ , epptr);
 }
 
 membuf_t::~membuf_t()
@@ -43,35 +50,58 @@ membuf_t::~membuf_t()
 
 membuf_t::int_type membuf_t::overflow(int_type c)
 {
+  char* gptr = this->gptr();
   char* pptr = this->pptr();
   char* epptr = this->epptr();
 
   if(pptr == epptr)
   {
-    std::size_t old_size = pptr - buf_;
-    std::size_t new_size = old_size + old_size / 2 + sizeof inline_buf_;
-    char* new_buf = new char[new_size];
-    std::copy(buf_, pptr, new_buf);
+    std::size_t count = pptr - gptr;
+    std::size_t capacity = epptr - buf_;
+    std::size_t minimum_capacity = count + count / 2 + 15;
 
-    if(buf_ != inline_buf_)
+    if(capacity >= minimum_capacity)
     {
-      delete[] buf_;
+      // shift left
+      std::copy(gptr, pptr, buf_);
+    }
+    else
+    {
+      // reallocate
+      char* new_buf = new char[minimum_capacity];
+      std::copy(gptr, pptr, new_buf);
+
+      if(buf_ != inline_buf_)
+      {
+        delete[] buf_;
+      }
+
+      buf_ = new_buf;
+      epptr = buf_ + minimum_capacity;
     }
 
-    buf_ = new_buf;
-    pptr = new_buf + old_size;
-    epptr = new_buf + new_size;
+    gptr = buf_;
+    pptr = buf_ + count;
   }
 
-  if(c != eof)
+  if(c != traits_type::eof())
   {
-    *pptr = traits_type::to_char_type(c);
-    ++pptr;
+    *pptr++ = traits_type::to_char_type(c);
   }
 
+  this->setg(buf_, gptr, pptr);
   this->setp(pptr, epptr);
 
   return traits_type::not_eof(c);
+}
+
+membuf_t::int_type membuf_t::underflow()
+{
+  char* gptr = this->gptr();
+  char* pptr = this->pptr();
+  this->setg(buf_, gptr, pptr);
+
+  return gptr != pptr ? traits_type::to_int_type(*gptr) : traits_type::eof();
 }
 
 } // namespace cuti

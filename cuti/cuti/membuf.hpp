@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2021-2026 CodeShop B.V.
+ * Copyright (C) 2019-2026 CodeShop B.V.
  *
  * This file is part of the cuti library.
  *
@@ -28,7 +28,8 @@ namespace cuti
 {
 
 /*
- * An output stream buffer that generates a character array.
+ * A writeable/readable in-core streambuf providing a read-only view on
+ * the characters it contains. 
  */
 struct CUTI_ABI membuf_t : std::streambuf
 {
@@ -38,19 +39,24 @@ struct CUTI_ABI membuf_t : std::streambuf
   membuf_t& operator=(membuf_t const&) = delete;
 
   char const* begin() const
-  {
-    return buf_;
-  }
+  { return this->gptr(); }
+
+  char const* cbegin() const
+  { return this->begin(); }
 
   char const* end() const
-  {
-    return this->pptr();
-  }
+  { return this->pptr(); }
+
+  char const* cend() const
+  { return this->end(); }
+
+  void clear();
 
   ~membuf_t() override;
 
 protected :
   int_type overflow(int_type c) override;
+  int_type underflow() override;
 
 private :
   char inline_buf_[256];

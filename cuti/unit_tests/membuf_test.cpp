@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2021-2026 CodeShop B.V.
+ * Copyright (C) 2019-2026 CodeShop B.V.
  *
  * This file is part of the cuti library.
  *
@@ -76,11 +76,117 @@ void test_long()
   assert(std::equal(buf.begin(), buf.end(), str.begin(), str.end()));
 }
 
+void empty_buf()
+{
+  cuti::membuf_t mb;
+  assert(mb.sgetc() == std::streambuf::traits_type::eof());
+}
+
+void echo()
+{
+  std::string const str = "Hello world\xFF";
+  cuti::membuf_t mb;
+  
+  for(char c : str)
+  {
+    mb.sputc(c);
+  }
+
+  std::size_t mb_size = mb.end() - mb.begin();
+  assert(mb_size == str.size());
+  assert(std::equal(mb.begin(), mb.end(), str.begin()));
+
+  for(char c : str)
+  {
+    assert(mb.sbumpc() == std::streambuf::traits_type::to_int_type(c));
+  }
+  assert(mb.sgetc() == std::streambuf::traits_type::eof());
+}
+
+void bulk()
+{
+  std::size_t out = 0;
+  std::size_t in = 0;
+  cuti::membuf_t mb;
+
+  for(int i = 0; i != 100; ++i)
+  {
+    for(int j = 0; j != 1000; ++j)
+    {
+      auto c = static_cast<char>(out);
+      mb.sputc(c);
+      ++out;
+    }
+
+    std::size_t k = in;
+    for(char const* p = mb.begin(); p != mb.end(); ++p)
+    {
+      assert(k != out);
+      auto c = static_cast<char>(k);
+      assert(*p == c);
+      ++k;
+    }
+    assert(k == out);
+
+    for(int j = 0; j != 750; ++j)
+    {
+      auto c = static_cast<char>(in);
+      assert(mb.sbumpc() == std::streambuf::traits_type::to_int_type(c));
+      ++in;
+    }
+  }
+
+  std::size_t k = in;
+  for(char const* p = mb.begin(); p != mb.end(); ++p)
+  {
+    assert(k != out);
+    auto c = static_cast<char>(k);
+    assert(*p == c);
+    ++k;
+  }
+  assert(k == out);
+
+  for (int c1 = mb.sgetc();
+       c1 != std::streambuf::traits_type::eof();
+       c1 = mb.snextc())
+  {
+    assert(in != out);
+    auto c2 = static_cast<char>(in);
+    assert(c1 == std::streambuf::traits_type::to_int_type(c2));
+    ++in;
+  }
+  assert(in == out);
+}
+
+void clear()
+{
+  std::string const str = "Hello world";
+  cuti::membuf_t mb;
+  
+  for(char c : str)
+  {
+    mb.sputc(c);
+  }
+
+  std::size_t count = mb.end() - mb.begin();
+  assert(count == str.length());
+
+  mb.clear();
+  
+  count = mb.end() - mb.begin();
+  assert(count == 0);
+}
+
 void run_tests(int, char const* const*)
 {
   test_short();
   test_zeros();
   test_long();
+
+  empty_buf();
+  echo();
+  bulk();
+  clear();
 }
 
 } // anonymous
