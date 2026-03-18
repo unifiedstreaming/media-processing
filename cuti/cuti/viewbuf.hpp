@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2021-2026 CodeShop B.V.
+ * Copyright (C) 2019-2026 CodeShop B.V.
  *
  * This file is part of the cuti library.
  *
@@ -22,7 +22,9 @@
 
 #include "linkage.h"
 
+#include <cstring>
 #include <streambuf>
+#include <string_view>
 
 namespace cuti
 {
@@ -34,8 +36,30 @@ struct CUTI_ABI viewbuf_t : std::streambuf
 {
   viewbuf_t(char const* begin, char const* end);
 
+  explicit viewbuf_t(char const *str)
+  : viewbuf_t(str, str + std::strlen(str))
+  { }
+
+  explicit viewbuf_t(std::string_view sv)
+  : viewbuf_t(sv.data(), sv.data() + sv.size())
+  { }
+
   viewbuf_t(viewbuf_t const&) = delete;
   viewbuf_t& operator=(viewbuf_t const&) = delete;
+
+  // begin()/cbegin() return a pointer to the first character not yet
+  // consumed.
+  char const* begin() const
+  { return this->gptr(); }
+
+  char const* cbegin() const
+  { return this->gptr(); }
+
+  char const* end() const
+  { return this->egptr(); }
+
+  char const* cend() const
+  { return this->egptr(); }
 
 protected :
   int_type underflow() override;
