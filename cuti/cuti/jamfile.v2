@@ -22,6 +22,7 @@ import usp-builder ;
 lib cuti
 :
   add_handler.cpp
+  alternative_index.cpp
   args_reader.cpp
   async_readers.cpp
   async_writers.cpp

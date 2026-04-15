@@ -25,6 +25,10 @@ project
   [ usp-builder.staged-library-requirement cuti ]
 ;
 
+unit-test alternative_index_test
+: alternative_index_test.cpp
+;
+
 unit-test boolean_io_test
 : boolean_io_test.cpp
 ;
