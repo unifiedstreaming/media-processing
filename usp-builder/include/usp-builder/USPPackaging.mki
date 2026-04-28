@@ -186,7 +186,7 @@ override add-debug-package := $(if $(filter yes,$(add-debug-package)),yes)
 #
 override pkg-description := $(if $(pkg-description),$(pkg-description),not specified)
 
-override pkg-maintainer := $(if $(pkg-maintainer),$(pkg-maintainer),not specified)
+override pkg-maintainer := $(if $(pkg-maintainer),$(pkg-maintainer),not specified <not@specified.tld>)
 
 override prereq-packages := $(foreach pkg,$(prereq-packages),$(pkg))
 

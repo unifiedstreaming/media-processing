@@ -83,7 +83,7 @@ $1 ($2) UNRELEASED; urgency=medium
 
   * Fake Entry
 
- -- Joe Coder <joe@dev.null>  $(shell date -R)
+ -- not specified <not@specified.tld>  $(shell date -R)
 
 endef
 
