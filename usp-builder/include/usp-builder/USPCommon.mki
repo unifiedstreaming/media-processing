@@ -536,7 +536,7 @@ required-value = $(strip \
   $(if $(strip $($1)), \
     $($1) \
   , \
-    $(error '$1' must be be set) \
+    $(error '$1' must be set) \
   ) \
 )
 
