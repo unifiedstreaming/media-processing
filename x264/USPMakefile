@@ -49,6 +49,7 @@ ifneq ($(build-x264),)
     $(if $(filter gcc%,$(toolset)), \
       -Wno-array-bounds \
       -Wno-dangling-pointer \
+      -Wno-discarded-qualifiers \
     ) \
     $(if $(filter clang%,$(toolset)), \
       -Wno-dangling-pointer \
