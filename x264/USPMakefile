@@ -41,22 +41,12 @@ ifneq ($(build-x264),)
     , \
       $(if $(filter debug,$(variant)),,-g) \
       -pthread \
+      -w \
       $(call REM, turn off stack protector when sanitized \
         otherwise we run into a bug with gcc's handling of alignment: \
         https://bugs.launchpad.net/ubuntu/+source/gcc-13/+bug/2023424) \
       $(if $(strip $(sanitizer-flags)),-fno-stack-protector) \
     ) \
-    $(if $(filter gcc%,$(toolset)), \
-      -Wno-array-bounds \
-      -Wno-dangling-pointer \
-      -Wno-discarded-qualifiers \
-    ) \
-    $(if $(filter clang%,$(toolset)), \
-      -Wno-dangling-pointer \
-      -Wno-nan-infinity-disabled \
-      -Wno-unknown-warning-option \
-    ) \
-    -Wno-unused-but-set-variable \
     $(sanitizer-flags) \
   )
 
