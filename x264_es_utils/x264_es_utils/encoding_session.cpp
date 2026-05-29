@@ -1038,8 +1038,12 @@ struct encoding_session_t::impl_t
 
     if(auto msg = logging_context_.message_at(cuti::loglevel_t::debug))
     {
-      *msg << "encoding_session[" << this <<
-        "]: encoding frame #" << frame_count_;
+      *msg << "encoding_session[" << this << "]: encoding frame #" <<
+        frame_count_ << " pts=" << frame.pts_ << '/' << frame.timescale_;
+      if(frame.keyframe_)
+      {
+        *msg << " (keyframe)";
+      }
     }
     ++frame_count_;
 
@@ -1135,6 +1139,7 @@ private :
       *msg << "sample[" << sample_count_ << "]"
         << " dts=" << output.pic_.i_dts
         << " pts=" << output.pic_.i_pts
+        << " cto=" << output.pic_.i_pts - output.pic_.i_dts
         << " size=" << size
         << " pic type=" << x264_type_to_string(output.pic_.i_type);
       for(int i = 0; i < output.n_nals_; ++i)
