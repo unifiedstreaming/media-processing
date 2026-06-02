@@ -499,6 +499,16 @@ wrap_x264_param_t::wrap_x264_param_t(
   // Turn off automatic insertion of keyframes on scenecuts.
   param_.i_scenecut_threshold = 0;
 
+  // Turn off B-frames, forcing keyframes to zero composition time offsets.
+  //
+  // If B-frames are turned on, x264 will start the first keyframe with a
+  // positive initial CTO, to make room for B-frame composition timestamps which
+  // can go backwards. For each following keyframe, it should use exactly the
+  // same CTO as the initial CTO, but when inserting keyframes in the middle of
+  // a GOP, it sometimes does not do so. This can lead to unexpected results
+  // when clipping on such an inserted keyframe.
+  param_.i_bframe = 0;
+
   // Turn on constant PPS (do not "optimize headers based on video content").
   param_.b_stitchable = 1;
 
