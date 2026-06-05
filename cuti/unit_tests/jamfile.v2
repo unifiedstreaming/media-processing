@@ -61,6 +61,10 @@ unit-test event_pipe_test
 : event_pipe_test.cpp
 ;
 
+unit-test exception_builder_test
+: exception_builder_test.cpp
+;
+
 unit-test flag_test
 : flag_test.cpp
 ;
