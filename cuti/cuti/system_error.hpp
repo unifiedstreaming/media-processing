@@ -33,7 +33,7 @@ CUTI_ABI int last_system_error();
 
 struct CUTI_ABI system_exception_t : std::runtime_error
 {
-  explicit system_exception_t(std::string complaint);
+  explicit system_exception_t(std::string const& complaint);
   ~system_exception_t() override;
 };
 

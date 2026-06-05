@@ -44,8 +44,8 @@ int last_system_error()
 
 #endif
 
-system_exception_t::system_exception_t(std::string complaint)
-: std::runtime_error(std::move(complaint))
+system_exception_t::system_exception_t(std::string const& complaint)
+: std::runtime_error(complaint)
 { }
 
 system_exception_t::~system_exception_t()

@@ -31,8 +31,8 @@ namespace cuti
 
 struct CUTI_ABI parse_error_t : std::runtime_error
 {
-  explicit parse_error_t(std::string message)
-  : std::runtime_error(std::move(message))
+  explicit parse_error_t(std::string const& message)
+  : std::runtime_error(message)
   { }
 
   ~parse_error_t() override;
