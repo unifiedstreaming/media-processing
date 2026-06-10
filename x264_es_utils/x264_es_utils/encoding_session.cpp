@@ -446,7 +446,7 @@ wrap_x264_param_t::wrap_x264_param_t(
   param_.rc.i_bitrate = (session_params.bitrate_ + 500) / 1000;
 
   // Muxing parameters
-  param_.b_repeat_headers = 1;
+  param_.b_repeat_headers = 0;
   param_.b_annexb = 1;
 
   // Assume Variable Frame Rate (VFR) input, if the VUI timing_info_present_flag
