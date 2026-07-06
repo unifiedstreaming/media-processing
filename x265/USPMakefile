@@ -1,0 +1,103 @@
+#
+# "THE BEER-WARE LICENSE" (Revision CS-42):
+#
+# This file was written by the CodeShop developers.  As long as you
+# retain this notice you can do whatever you want with it.
+# If we meet some day, and you think this file is worth it, you can
+# buy us a beer in return.  Even if you do that, this file still
+# comes WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+#
+
+x265-uspmakefile := $(abspath $(lastword $(MAKEFILE_LIST)))
+x265-src-dir := $(abspath $(dir $(x265-uspmakefile)))
+
+include usp-builder/USPCommon.mki
+
+$(if $(work-dir),,$(error work-dir must be set))
+$(call check-out-of-tree,$(work-dir),$(x265-src-dir))
+
+$(if $(stage-dir),,$(error stage-dir must be set))
+$(call check-out-of-tree,$(stage-dir),$(x265-src-dir))
+
+override build-dir := $(work-dir)/build
+override install-dir := $(work-dir)/install
+
+override sources := $(call find-files,%,$(x265-src-dir))
+override cmake-config-files := $(filter %/CMakeLists.txt %.cmake,$(sources))
+
+override cmake-build-type := \
+  $(if $(filter release,$(variant)),RelWithDebInfo,Debug)
+
+override compiler-flags := $(strip \
+  $(sanitizer-flags) \
+  $(if $(windows),,-w) \
+)
+
+override cmake-flags := $(strip \
+  -DCMAKE_C_COMPILER=$(toolset-c-compiler) \
+  -DCMAKE_CXX_COMPILER=$(toolset-cpp-compiler) \
+  -DCMAKE_BUILD_TYPE=$(cmake-build-type) \
+  -DENABLE_SHARED=OFF \
+  -DENABLE_CLI=OFF\
+  $(if $(compiler-flags),-DCMAKE_C_FLAGS="$(compiler-flags)") \
+  $(if $(compiler-flags),-DCMAKE_CXX_FLAGS="$(compiler-flags)") \
+  -G Ninja \
+)
+
+override usp-configure-stamp = $(work-dir)/usp-configure-stamp
+override usp-build-stamp := $(work-dir)/usp-build-stamp
+override usp-install-stamp := $(work-dir)/usp-install-stamp
+override usp-stage-stamp := $(work-dir)/usp-stage-stamp
+
+.PHONY: all
+all: $(usp-build-stamp)
+
+.PHONY: stage
+stage: $(usp-stage-stamp)
+
+.PHONY: clean
+clean:
+	$(usp-rm-dir) "$(call to-shell,$(work-dir))"
+
+# Static lib: nothing to deploy
+.PHONY: deploy
+deploy:
+
+$(usp-stage-stamp): $(usp-install-stamp)
+	$(MAKE) -I "$(usp-builder-include-dir)" \
+	  -f "$(usp-builder-lib-dir)/CollectBuildOutput.mak" \
+	  headers-dir="$(install-dir)/include" \
+	  libs-dir="$(install-dir)/lib" \
+	  dest-dir="$(stage-dir)" \
+	  with-devel=yes
+	echo timestamp >"$(call to-shell,$@)"
+
+$(usp-install-stamp): $(usp-build-stamp)
+	$(usp-rm-dir) "$(call to-shell,$(install-dir))"
+	$(usp-mkdir-p) "$(call to-shell,$(install-dir))"
+	unset MAKEFLAGS && cd "$(call to-shell,$(build-dir))" && \
+	  cmake --install . --prefix "$(call to-native,$(install-dir))"
+	cd $(install-dir) && find . -type f -exec touch '{}' ';'
+	echo timestamp >"$(call to-shell,$@)"
+
+$(usp-build-stamp): $(usp-configure-stamp) $(sources)
+	$(file >$@.dep.next,$(call dependency-listing,$@,$(sources)))
+	@echo updated $@.dep.next
+	unset MAKEFLAGS && cd "$(call to-shell,$(build-dir))" && \
+	  cmake --build . $(if $(verbose),--verbose)
+	echo timestamp >"$(call to-shell,$@)"
+	$(usp-mv-f) "$(call to-shell,$@.dep.next)" "$(call to-shell,$@.dep)"
+
+-include $(usp-build-stamp).dep
+
+$(usp-configure-stamp) : $(x265-uspmakefile) $(cmake-config-files) \
+  | $(work-dir)
+	$(usp-rm-dir) "$(call to-shell,$(build-dir))"
+	$(usp-mkdir-p) "$(call to-shell,$(build-dir))"
+	unset MAKEFLAGS && cd "$(call to-shell,$(build-dir))" && \
+	  cmake $(cmake-flags) "$(call to-native,$(x265-src-dir)/source)"
+	echo timestamp >"$(call to-shell,$@)"
+
+$(work-dir) :
+	$(usp-mkdir-p) "$(call to-shell,$@)"

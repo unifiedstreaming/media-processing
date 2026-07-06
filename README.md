@@ -46,6 +46,12 @@ media processing tools.
   sides of the network protocol used by the x264 encoding
   service. Distributed under the terms of the LGPLv2.1.
 
+* **x265**
+
+  Our fork of MulticoreWare's
+  [x265](https://www.x265.org/)
+  library. Distributed under the terms of the GPLv2.
+
 ## Build requirements
 
 * A recent *native* C++ compiler toolchain. We use g++ on Linux, and

@@ -72,6 +72,13 @@ $(call gmake-project, \
   staged-libs = x264 \
 )
 
+$(call gmake-project, \
+  name = x265 \
+  makefile = x265/USPMakefile \
+  distributable = no \
+  staged-libs = x265 \
+)
+
 #
 # Package definitions
 #
