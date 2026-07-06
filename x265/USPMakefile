@@ -27,7 +27,7 @@ override sources := $(call find-files,%,$(x265-src-dir))
 override cmake-config-files := $(filter %/CMakeLists.txt %.cmake,$(sources))
 
 override cmake-build-type := \
-  $(if $(filter release,$(variant)),RelWithDebInfo,Debug)
+  $(if $(filter release,$(variant)),$(if $(windows),Release,RelWithDebInfo),Debug)
 
 override compiler-flags := $(strip \
   $(sanitizer-flags) \
