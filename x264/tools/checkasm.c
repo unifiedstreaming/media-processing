@@ -1,7 +1,7 @@
 /*****************************************************************************
  * checkasm.c: assembly check tool
  *****************************************************************************
- * Copyright (C) 2003-2024 x264 project
+ * Copyright (C) 2003-2025 x264 project
  *
  * Authors: Loren Merritt <lorenm@u.washington.edu>
  *          Laurent Aimar <fenrir@via.ecp.fr>
@@ -115,6 +115,8 @@ static inline uint32_t read_time(void)
     uint64_t b = 0;
     asm volatile( "mrs %0, pmccntr_el0" : "=r"(b) :: "memory" );
     a = b;
+#elif ARCH_RISCV64
+    asm volatile( "rdtime %0" : "=r"(a) :: "memory" );
 #elif ARCH_MIPS
     asm volatile( "rdhwr %0, $2" : "=r"(a) :: "memory" );
 #elif ARCH_LOONGARCH
@@ -216,8 +218,12 @@ static void print_bench(void)
 #elif ARCH_AARCH64
                     b->cpu&X264_CPU_SVE2 ? "sve2" :
                     b->cpu&X264_CPU_SVE ? "sve" :
+                    b->cpu&X264_CPU_I8MM ? "i8mm" :
+                    b->cpu&X264_CPU_DOTPROD ? "dotprod" :
                     b->cpu&X264_CPU_NEON ? "neon" :
                     b->cpu&X264_CPU_ARMV8 ? "armv8" :
+#elif ARCH_RISCV64
+                    b->cpu&X264_CPU_RVV ? "rvv" :
 #elif ARCH_MIPS
                     b->cpu&X264_CPU_MSA ? "msa" :
 #elif ARCH_LOONGARCH
@@ -272,6 +278,10 @@ int x264_checkasm_sve_length( void );
 intptr_t x264_checkasm_call_neon( intptr_t (*func)(), int *ok, ... );
 intptr_t x264_checkasm_call_noneon( intptr_t (*func)(), int *ok, ... );
 intptr_t (*x264_checkasm_call)( intptr_t (*func)(), int *ok, ... ) = x264_checkasm_call_noneon;
+#endif
+
+#if ARCH_RISCV64
+intptr_t x264_checkasm_call( intptr_t (*func)(), int *ok, ... );
 #endif
 
 #if ARCH_LOONGARCH
@@ -2998,6 +3008,10 @@ static int check_all_flags( void )
         ret |= add_flags( &cpu0, &cpu1, X264_CPU_ARMV8, "ARMv8" );
     if( cpu_detect & X264_CPU_NEON )
         ret |= add_flags( &cpu0, &cpu1, X264_CPU_NEON, "NEON" );
+    if( cpu_detect & X264_CPU_DOTPROD )
+        ret |= add_flags( &cpu0, &cpu1, X264_CPU_DOTPROD, "DOTPROD" );
+    if( cpu_detect & X264_CPU_I8MM )
+        ret |= add_flags( &cpu0, &cpu1, X264_CPU_I8MM, "I8MM" );
 #if HAVE_SVE
     if( cpu_detect & X264_CPU_SVE ) {
         snprintf( buf, sizeof( buf ), "SVE (%d bits)", x264_checkasm_sve_length() );
@@ -3008,6 +3022,9 @@ static int check_all_flags( void )
         ret |= add_flags( &cpu0, &cpu1, X264_CPU_SVE2, buf );
     }
 #endif
+#elif ARCH_RISCV64
+    if( cpu_detect & X264_CPU_RVV )
+        ret |= add_flags( &cpu0, &cpu1, X264_CPU_RVV, "RVV" );
 #elif ARCH_MIPS
     if( cpu_detect & X264_CPU_MSA )
         ret |= add_flags( &cpu0, &cpu1, X264_CPU_MSA, "MSA" );
@@ -3029,7 +3046,7 @@ REALIGN_STACK int main( int argc, char **argv )
 
     if( argc > 1 && !strncmp( argv[1], "--bench", 7 ) )
     {
-#if !ARCH_X86 && !ARCH_X86_64 && !ARCH_PPC && !ARCH_ARM && !ARCH_AARCH64 && !ARCH_MIPS && !ARCH_LOONGARCH
+#if !ARCH_X86 && !ARCH_X86_64 && !ARCH_PPC && !ARCH_ARM && !ARCH_AARCH64 && !ARCH_MIPS && !ARCH_LOONGARCH && !ARCH_RISCV64
         fprintf( stderr, "no --bench for your cpu until you port rdtsc\n" );
         return 1;
 #endif

@@ -1,7 +1,7 @@
 /*****************************************************************************
  * cpu.c: cpu detection
  *****************************************************************************
- * Copyright (C) 2003-2024 x264 project
+ * Copyright (C) 2003-2025 x264 project
  *
  * Authors: Loren Merritt <lorenm@u.washington.edu>
  *          Laurent Aimar <fenrir@via.ecp.fr>
@@ -27,20 +27,19 @@
 
 #include "base.h"
 
-#if SYS_CYGWIN || SYS_SunOS || SYS_OPENBSD
+#if HAVE_GETAUXVAL || HAVE_ELF_AUX_INFO
+#include <sys/auxv.h>
+#endif
+#if HAVE_SYSCONF
 #include <unistd.h>
 #endif
 #if SYS_LINUX
-#ifdef __ANDROID__
-#include <unistd.h>
-#else
 #include <sched.h>
-#endif
 #endif
 #if SYS_BEOS
 #include <kernel/OS.h>
 #endif
-#if SYS_MACOSX || SYS_OPENBSD || SYS_FREEBSD
+#if SYS_MACOSX || SYS_FREEBSD || SYS_NETBSD || SYS_OPENBSD
 #include <sys/types.h>
 #include <sys/sysctl.h>
 #endif
@@ -96,8 +95,12 @@ const x264_cpu_name_t x264_cpu_names[] =
 #elif ARCH_AARCH64
     {"ARMv8",           X264_CPU_ARMV8},
     {"NEON",            X264_CPU_NEON},
+    {"DotProd",         X264_CPU_DOTPROD},
+    {"I8MM",            X264_CPU_I8MM},
     {"SVE",             X264_CPU_SVE},
     {"SVE2",            X264_CPU_SVE2},
+#elif ARCH_RISCV64
+    {"RVV",             X264_CPU_RVV},
 #elif ARCH_MIPS
     {"MSA",             X264_CPU_MSA},
 #elif ARCH_LOONGARCH
@@ -107,7 +110,20 @@ const x264_cpu_name_t x264_cpu_names[] =
     {"", 0},
 };
 
-#if (HAVE_ALTIVEC && SYS_LINUX) || (HAVE_ARMV6 && !HAVE_NEON)
+static unsigned long x264_getauxval( unsigned long type )
+{
+#if HAVE_GETAUXVAL
+    return getauxval( type );
+#elif HAVE_ELF_AUX_INFO
+    unsigned long aux = 0;
+    elf_aux_info( type, &aux, sizeof(aux) );
+    return aux;
+#else
+    return 0;
+#endif
+}
+
+#if ((HAVE_ALTIVEC && SYS_LINUX) || (HAVE_ARMV6 && !HAVE_NEON)) && !(HAVE_GETAUXVAL || HAVE_ELF_AUX_INFO)
 #include <signal.h>
 #include <setjmp.h>
 static sigjmp_buf jmpbuf;
@@ -310,7 +326,23 @@ uint32_t x264_cpu_detect( void )
 
 #elif HAVE_ALTIVEC
 
-#if SYS_MACOSX || SYS_OPENBSD || SYS_FREEBSD || SYS_NETBSD
+#if HAVE_GETAUXVAL || HAVE_ELF_AUX_INFO
+
+#define HWCAP_PPC_ALTIVEC   (1U << 28)
+
+uint32_t x264_cpu_detect( void )
+{
+    uint32_t flags = 0;
+
+    unsigned long hwcap = x264_getauxval( AT_HWCAP );
+
+    if ( hwcap & HWCAP_PPC_ALTIVEC )
+        flags |= X264_CPU_ALTIVEC;
+
+    return flags;
+}
+
+#elif SYS_MACOSX || SYS_FREEBSD || SYS_NETBSD || SYS_OPENBSD
 
 uint32_t x264_cpu_detect( void )
 {
@@ -380,11 +412,19 @@ uint32_t x264_cpu_detect( void )
 void x264_cpu_neon_test( void );
 int x264_cpu_fast_neon_mrc_test( void );
 
+#define HWCAP_ARM_NEON   (1U << 12)
+
 uint32_t x264_cpu_detect( void )
 {
     uint32_t flags = 0;
     flags |= X264_CPU_ARMV6;
 
+#if HAVE_GETAUXVAL || HAVE_ELF_AUX_INFO
+    unsigned long hwcap = x264_getauxval( AT_HWCAP );
+
+    if ( hwcap & HWCAP_ARM_NEON )
+        flags |= X264_CPU_NEON;
+#else
     // don't do this hack if compiled with -mfpu=neon
 #if !HAVE_NEON
     static void (* oldsig)( int );
@@ -402,6 +442,7 @@ uint32_t x264_cpu_detect( void )
 #endif
 
     flags |= X264_CPU_NEON;
+#endif
 
     // fast neon -> arm (Cortex-A9) detection relies on user access to the
     // cycle counter; this assumes ARMv7 performance counters.
@@ -411,27 +452,57 @@ uint32_t x264_cpu_detect( void )
     // x264 instance disables or reinits the counters while x264 is using them,
     // which may result in incorrect detection and the counters stuck enabled.
     // right now Apple does not seem to support performance counters for this test
-#ifndef __MACH__
+    // Don't test this on Windows; performance counters are readable, but
+    // the PMNC is not readable.
+#if !defined(__MACH__) && !defined(_WIN32)
     flags |= x264_cpu_fast_neon_mrc_test() ? X264_CPU_FAST_NEON_MRC : 0;
 #endif
     // TODO: write dual issue test? currently it's A8 (dual issue) vs. A9 (fast mrc)
     return flags;
 }
 
+#elif HAVE_RISCV64
+
+#define HWCAP_RISCV64_RVV     (1 << ('V' - 'A'))
+
+uint32_t x264_cpu_detect( void )
+{
+    uint32_t flags = 0;
+
+#if HAVE_GETAUXVAL || HAVE_ELF_AUX_INFO
+    unsigned long hwcap = x264_getauxval( AT_HWCAP );
+
+    if ( hwcap & HWCAP_RISCV64_RVV )
+        flags |= X264_CPU_RVV;
+#else
+#if HAVE_RVV
+    flags |= X264_CPU_RVV;
+#endif
+#endif
+
+    return flags;
+}
+
 #elif HAVE_AARCH64
 
-#ifdef __linux__
-#include <sys/auxv.h>
+#if defined(__linux__) || HAVE_ELF_AUX_INFO
 
-#define HWCAP_AARCH64_SVE   (1 << 22)
-#define HWCAP2_AARCH64_SVE2 (1 << 1)
+#define HWCAP_AARCH64_ASIMDDP (1U << 20)
+#define HWCAP_AARCH64_SVE     (1U << 22)
+#define HWCAP2_AARCH64_SVE2   (1U << 1)
+#define HWCAP2_AARCH64_I8MM   (1U << 13)
 
 static uint32_t detect_flags( void )
 {
     uint32_t flags = 0;
 
-    unsigned long hwcap = getauxval( AT_HWCAP );
-    unsigned long hwcap2 = getauxval( AT_HWCAP2 );
+    unsigned long hwcap = x264_getauxval( AT_HWCAP );
+    unsigned long hwcap2 = x264_getauxval( AT_HWCAP2 );
+
+    if ( hwcap & HWCAP_AARCH64_ASIMDDP )
+        flags |= X264_CPU_DOTPROD;
+    if ( hwcap2 & HWCAP2_AARCH64_I8MM )
+        flags |= X264_CPU_I8MM;
     if ( hwcap & HWCAP_AARCH64_SVE )
         flags |= X264_CPU_SVE;
     if ( hwcap2 & HWCAP2_AARCH64_SVE2 )
@@ -439,6 +510,60 @@ static uint32_t detect_flags( void )
 
     return flags;
 }
+
+#elif defined(__APPLE__)
+#include <sys/sysctl.h>
+
+static int have_feature( const char *feature )
+{
+    int supported = 0;
+    size_t size = sizeof(supported);
+    if ( sysctlbyname( feature, &supported, &size, NULL, 0 ) )
+        return 0;
+    return supported;
+}
+
+static uint32_t detect_flags( void )
+{
+    uint32_t flags = 0;
+
+    if ( have_feature( "hw.optional.arm.FEAT_DotProd" ) )
+        flags |= X264_CPU_DOTPROD;
+    if ( have_feature( "hw.optional.arm.FEAT_I8MM" ) )
+        flags |= X264_CPU_I8MM;
+    /* No SVE and SVE2 feature detection available on Apple platforms. */
+    return flags;
+}
+
+#elif defined(_WIN32)
+#include <windows.h>
+
+static uint32_t detect_flags( void )
+{
+    uint32_t flags = 0;
+
+#ifdef PF_ARM_V82_DP_INSTRUCTIONS_AVAILABLE
+    if ( IsProcessorFeaturePresent( PF_ARM_V82_DP_INSTRUCTIONS_AVAILABLE ) )
+        flags |= X264_CPU_DOTPROD;
+#endif
+#ifdef PF_ARM_SVE_INSTRUCTIONS_AVAILABLE
+    if ( IsProcessorFeaturePresent( PF_ARM_SVE_INSTRUCTIONS_AVAILABLE ) )
+        flags |= X264_CPU_SVE;
+#endif
+#ifdef PF_ARM_SVE2_INSTRUCTIONS_AVAILABLE
+    if ( IsProcessorFeaturePresent( PF_ARM_SVE2_INSTRUCTIONS_AVAILABLE ) )
+        flags |= X264_CPU_SVE2;
+#endif
+#ifdef PF_ARM_SVE_I8MM_INSTRUCTIONS_AVAILABLE
+    /* There's no PF_* flag that indicates whether plain I8MM is available
+     * or not. But if SVE_I8MM is available, that also implies that
+     * regular I8MM is available. */
+    if ( IsProcessorFeaturePresent( PF_ARM_SVE_I8MM_INSTRUCTIONS_AVAILABLE ) )
+        flags |= X264_CPU_I8MM;
+#endif
+    return flags;
+}
+
 #endif
 
 uint32_t x264_cpu_detect( void )
@@ -450,6 +575,12 @@ uint32_t x264_cpu_detect( void )
 
     // If these features are enabled unconditionally in the compiler, we can
     // assume that they are available.
+#ifdef __ARM_FEATURE_DOTPROD
+    flags |= X264_CPU_DOTPROD;
+#endif
+#ifdef __ARM_FEATURE_MATMUL_INT8
+    flags |= X264_CPU_I8MM;
+#endif
 #ifdef __ARM_FEATURE_SVE
     flags |= X264_CPU_SVE;
 #endif
@@ -458,7 +589,8 @@ uint32_t x264_cpu_detect( void )
 #endif
 
     // Where possible, try to do runtime detection as well.
-#ifdef __linux__
+#if defined(__linux__) || HAVE_ELF_AUX_INFO || \
+    defined(__APPLE__) || defined(_WIN32)
     flags |= detect_flags();
 #endif
 
@@ -473,7 +605,6 @@ uint32_t x264_cpu_detect( void )
 }
 
 #elif HAVE_LSX
-#include <sys/auxv.h>
 
 #define LA_HWCAP_LSX    ( 1U << 4 )
 #define LA_HWCAP_LASX   ( 1U << 5 )
@@ -481,7 +612,7 @@ uint32_t x264_cpu_detect( void )
 uint32_t x264_cpu_detect( void )
 {
     uint32_t flags = 0;
-    uint32_t hwcap = (uint32_t)getauxval( AT_HWCAP );
+    uint32_t hwcap = (uint32_t)x264_getauxval( AT_HWCAP );
 
     if( hwcap & LA_HWCAP_LSX )
         flags |= X264_CPU_LSX;
@@ -508,14 +639,7 @@ int x264_cpu_num_processors( void )
 #elif SYS_WINDOWS
     return x264_pthread_num_processors_np();
 
-#elif SYS_CYGWIN || SYS_SunOS || SYS_OPENBSD
-    return sysconf( _SC_NPROCESSORS_ONLN );
-
 #elif SYS_LINUX
-#ifdef __ANDROID__
-    // Android NDK does not expose sched_getaffinity
-    return sysconf( _SC_NPROCESSORS_CONF );
-#else
     cpu_set_t p_aff;
     memset( &p_aff, 0, sizeof(p_aff) );
     if( sched_getaffinity( 0, sizeof(p_aff), &p_aff ) )
@@ -528,21 +652,26 @@ int x264_cpu_num_processors( void )
         np += (((uint8_t *)&p_aff)[bit / 8] >> (bit % 8)) & 1;
     return np;
 #endif
-#endif
 
 #elif SYS_BEOS
     system_info info;
     get_system_info( &info );
     return info.cpu_count;
 
-#elif SYS_MACOSX || SYS_FREEBSD
+#elif SYS_MACOSX
     int ncpu;
     size_t length = sizeof( ncpu );
-    if( sysctlbyname("hw.ncpu", &ncpu, &length, NULL, 0) )
+    if( sysctlbyname("hw.logicalcpu", &ncpu, &length, NULL, 0) )
     {
         ncpu = 1;
     }
     return ncpu;
+
+#elif defined(_SC_NPROCESSORS_ONLN)
+    return sysconf( _SC_NPROCESSORS_ONLN );
+
+#elif defined(_SC_NPROCESSORS_CONF)
+    return sysconf( _SC_NPROCESSORS_CONF );
 
 #else
     return 1;
