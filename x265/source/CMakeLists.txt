@@ -240,9 +240,9 @@ if(MSVC)
             string(REPLACE "/MD" "/MT" ${CompilerFlag} "${${CompilerFlag}}")
         endforeach()
     endif(STATIC_LINK_CRT)
-    add_definitions(/W4)  # Full warnings
-    add_definitions(/Ob2) # always inline
-    add_definitions(/MP)  # multithreaded build
+    #add_definitions(/W4)  # Full warnings
+    #add_definitions(/Ob2) # always inline
+    #add_definitions(/MP)  # multithreaded build
 
     # disable Microsofts suggestions for proprietary secure APIs
     add_definitions(/D_CRT_SECURE_NO_WARNINGS)
