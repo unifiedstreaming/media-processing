@@ -78,6 +78,7 @@ $(usp-install-stamp): $(usp-build-stamp)
 	$(usp-mkdir-p) "$(call to-shell,$(install-dir))"
 	unset MAKEFLAGS && cd "$(call to-shell,$(build-dir))" && \
 	  cmake --install . --prefix "$(call to-native,$(install-dir))"
+	$(if $(windows),$(usp-mv-f) "$(call to-shell,$(install-dir)/lib/x265-static.lib)" "$(call to-shell,$(install-dir)/lib/libx265.lib)",:)
 	cd $(install-dir) && find . -type f -exec touch '{}' ';'
 	echo timestamp >"$(call to-shell,$@)"
 
