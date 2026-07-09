@@ -20,7 +20,8 @@ $(call check-out-of-tree,$(work-dir),$(x265-src-dir))
 $(if $(stage-dir),,$(error stage-dir must be set))
 $(call check-out-of-tree,$(stage-dir),$(x265-src-dir))
 
-override build-dir := $(work-dir)/build
+override build-dir-10bit := $(work-dir)/build-10bit
+override build-dir-8bit := $(work-dir)/build-8bit
 override install-dir := $(work-dir)/install
 
 override sources := $(call find-files,%,$(x265-src-dir))
@@ -34,24 +35,63 @@ override compiler-flags := $(strip \
   $(if $(windows),,-w) \
 )
 
-override cmake-flags := $(strip \
+override x265-libname := $(if $(windows),x265-static.lib,libx265.a)
+override x265-libname-10bit := $(if $(windows),x265-static-10bit.lib,libx265-10bit.a)
+override x265-libname-8bit := $(if $(windows),x265-static-8bit.lib,libx265-8bit.a)
+
+override cmake-flags-10bit := $(strip \
   -DCMAKE_C_COMPILER=$(toolset-c-compiler) \
   -DCMAKE_CXX_COMPILER=$(toolset-cpp-compiler) \
   -DCMAKE_BUILD_TYPE=$(cmake-build-type) \
+  -DENABLE_LIBNUMA=OFF \
   -DENABLE_SHARED=OFF \
-  -DENABLE_CLI=OFF\
+  -DENABLE_CLI=OFF \
+  -DHIGH_BIT_DEPTH=ON \
+  -DEXPORT_C_API=OFF \
   $(if $(compiler-flags),-DCMAKE_C_FLAGS="$(compiler-flags)") \
   $(if $(compiler-flags),-DCMAKE_CXX_FLAGS="$(compiler-flags)") \
   -G Ninja \
 )
 
-override usp-configure-stamp = $(work-dir)/usp-configure-stamp
-override usp-build-stamp := $(work-dir)/usp-build-stamp
+override cmake-flags-8bit := $(strip \
+  -DCMAKE_C_COMPILER=$(toolset-c-compiler) \
+  -DCMAKE_CXX_COMPILER=$(toolset-cpp-compiler) \
+  -DCMAKE_BUILD_TYPE=$(cmake-build-type) \
+  -DENABLE_LIBNUMA=OFF \
+  -DENABLE_SHARED=OFF \
+  -DENABLE_CLI=OFF \
+  -DEXPORT_C_API=ON \
+  -DEXTRA_LIB="$(call to-native,$(build-dir-10bit)/$(x265-libname-10bit))" \
+  -DLINKED_10BIT=ON \
+  $(if $(compiler-flags),-DCMAKE_C_FLAGS="$(compiler-flags)") \
+  $(if $(compiler-flags),-DCMAKE_CXX_FLAGS="$(compiler-flags)") \
+  -G Ninja \
+)
+
+#
+# $(call combine-libraries,<library 1>,<library 2>,<combined library>)
+#
+override combine-libraries = $(strip \
+  $(if $(windows), \
+    lib /out:$(call to-native,$3) $(call to-native,$1) $(call to-native,$2) \
+  , \
+    $(if $(darwin), \
+      libtool -static -o $(call to-native,$3) $(call to-native,$1) $(call to-native,$2) \
+    , \
+      { echo "CREATE $(call to-shell,$3)"; echo "ADDLIB $(call to-shell,$1)"; echo "ADDLIB $(call to-shell,$2)"; echo "SAVE"; } | ar -M \
+    ) \
+  ) \
+)
+
+override usp-configure-stamp-10bit = $(work-dir)/usp-configure-stamp-10bit
+override usp-configure-stamp-8bit = $(work-dir)/usp-configure-stamp-8bit
+override usp-build-stamp-10bit := $(work-dir)/usp-build-stamp-10bit
+override usp-build-stamp-8bit := $(work-dir)/usp-build-stamp-8bit
 override usp-install-stamp := $(work-dir)/usp-install-stamp
 override usp-stage-stamp := $(work-dir)/usp-stage-stamp
 
 .PHONY: all
-all: $(usp-build-stamp)
+all: $(usp-build-stamp-8bit)
 
 .PHONY: stage
 stage: $(usp-stage-stamp)
@@ -73,31 +113,51 @@ $(usp-stage-stamp): $(usp-install-stamp)
 	  with-devel=yes
 	echo timestamp >"$(call to-shell,$@)"
 
-$(usp-install-stamp): $(usp-build-stamp)
+$(usp-install-stamp): $(usp-build-stamp-8bit)
 	$(usp-rm-dir) "$(call to-shell,$(install-dir))"
 	$(usp-mkdir-p) "$(call to-shell,$(install-dir))"
-	unset MAKEFLAGS && cd "$(call to-shell,$(build-dir))" && \
+	unset MAKEFLAGS && cd "$(call to-shell,$(build-dir-8bit))" && \
 	  cmake --install . --prefix "$(call to-native,$(install-dir))"
-	$(if $(windows),$(usp-mv-f) "$(call to-shell,$(install-dir)/lib/x265-static.lib)" "$(call to-shell,$(install-dir)/lib/libx265.lib)",:)
+	$(if $(windows),$(usp-mv-f) "$(call to-shell,$(install-dir)/lib/$(x265-libname))" "$(call to-shell,$(install-dir)/lib/libx265.lib)",:)
 	cd $(install-dir) && find . -type f -exec touch '{}' ';'
 	echo timestamp >"$(call to-shell,$@)"
 
-$(usp-build-stamp): $(usp-configure-stamp) $(sources)
+$(usp-build-stamp-10bit): $(usp-configure-stamp-10bit) $(sources)
 	$(file >$@.dep.next,$(call dependency-listing,$@,$(sources)))
 	@echo updated $@.dep.next
-	unset MAKEFLAGS && cd "$(call to-shell,$(build-dir))" && \
+	unset MAKEFLAGS && cd "$(call to-shell,$(build-dir-10bit))" && \
 	  cmake --build . $(if $(verbose),--verbose)
+	$(usp-mv-f) "$(call to-shell,$(build-dir-10bit)/$(x265-libname))" "$(call to-shell,$(build-dir-10bit)/$(x265-libname-10bit))"
 	echo timestamp >"$(call to-shell,$@)"
 	$(usp-mv-f) "$(call to-shell,$@.dep.next)" "$(call to-shell,$@.dep)"
 
--include $(usp-build-stamp).dep
+-include $(usp-build-stamp-10bit).dep
 
-$(usp-configure-stamp) : $(x265-uspmakefile) $(cmake-config-files) \
+$(usp-configure-stamp-10bit) : $(x265-uspmakefile) $(cmake-config-files) \
   | $(work-dir)
-	$(usp-rm-dir) "$(call to-shell,$(build-dir))"
-	$(usp-mkdir-p) "$(call to-shell,$(build-dir))"
-	unset MAKEFLAGS && cd "$(call to-shell,$(build-dir))" && \
-	  cmake $(cmake-flags) "$(call to-native,$(x265-src-dir)/source)"
+	$(usp-rm-dir) "$(call to-shell,$(build-dir-10bit))"
+	$(usp-mkdir-p) "$(call to-shell,$(build-dir-10bit))"
+	unset MAKEFLAGS && cd "$(call to-shell,$(build-dir-10bit))" && \
+	  cmake $(cmake-flags-10bit) "$(call to-native,$(x265-src-dir)/source)"
+	echo timestamp >"$(call to-shell,$@)"
+
+$(usp-build-stamp-8bit): $(usp-configure-stamp-8bit) $(sources)
+	$(file >$@.dep.next,$(call dependency-listing,$@,$(sources)))
+	@echo updated $@.dep.next
+	unset MAKEFLAGS && cd "$(call to-shell,$(build-dir-8bit))" && \
+	  cmake --build . $(if $(verbose),--verbose)
+	$(usp-mv-f) "$(call to-shell,$(build-dir-8bit)/$(x265-libname))" "$(call to-shell,$(build-dir-8bit)/$(x265-libname-8bit))"
+	$(call combine-libraries,$(build-dir-8bit)/$(x265-libname-8bit),$(build-dir-10bit)/$(x265-libname-10bit),$(build-dir-8bit)/$(x265-libname))
+	echo timestamp >"$(call to-shell,$@)"
+	$(usp-mv-f) "$(call to-shell,$@.dep.next)" "$(call to-shell,$@.dep)"
+
+-include $(usp-build-stamp-8bit).dep
+
+$(usp-configure-stamp-8bit) : $(usp-build-stamp-10bit)
+	$(usp-rm-dir) "$(call to-shell,$(build-dir-8bit))"
+	$(usp-mkdir-p) "$(call to-shell,$(build-dir-8bit))"
+	unset MAKEFLAGS && cd "$(call to-shell,$(build-dir-8bit))" && \
+	  cmake $(cmake-flags-8bit) "$(call to-native,$(x265-src-dir)/source)"
 	echo timestamp >"$(call to-shell,$@)"
 
 $(work-dir) :
