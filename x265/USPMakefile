@@ -39,33 +39,29 @@ override x265-libname := $(if $(windows),x265-static.lib,libx265.a)
 override x265-libname-10bit := $(if $(windows),x265-static-10bit.lib,libx265-10bit.a)
 override x265-libname-8bit := $(if $(windows),x265-static-8bit.lib,libx265-8bit.a)
 
-override cmake-flags-10bit := $(strip \
+override cmake-flags-common := $(strip \
+  -GNinja \
   -DCMAKE_C_COMPILER=$(toolset-c-compiler) \
   -DCMAKE_CXX_COMPILER=$(toolset-cpp-compiler) \
+  $(if $(compiler-flags),-DCMAKE_C_FLAGS="$(compiler-flags)") \
+  $(if $(compiler-flags),-DCMAKE_CXX_FLAGS="$(compiler-flags)") \
   -DCMAKE_BUILD_TYPE=$(cmake-build-type) \
   -DENABLE_LIBNUMA=OFF \
   -DENABLE_SHARED=OFF \
   -DENABLE_CLI=OFF \
+)
+
+override cmake-flags-10bit := $(strip \
+  $(cmake-flags-common) \
   -DHIGH_BIT_DEPTH=ON \
   -DEXPORT_C_API=OFF \
-  $(if $(compiler-flags),-DCMAKE_C_FLAGS="$(compiler-flags)") \
-  $(if $(compiler-flags),-DCMAKE_CXX_FLAGS="$(compiler-flags)") \
-  -G Ninja \
 )
 
 override cmake-flags-8bit := $(strip \
-  -DCMAKE_C_COMPILER=$(toolset-c-compiler) \
-  -DCMAKE_CXX_COMPILER=$(toolset-cpp-compiler) \
-  -DCMAKE_BUILD_TYPE=$(cmake-build-type) \
-  -DENABLE_LIBNUMA=OFF \
-  -DENABLE_SHARED=OFF \
-  -DENABLE_CLI=OFF \
+  $(cmake-flags-common) \
   -DEXPORT_C_API=ON \
   -DEXTRA_LIB="$(call to-native,$(build-dir-10bit)/$(x265-libname-10bit))" \
   -DLINKED_10BIT=ON \
-  $(if $(compiler-flags),-DCMAKE_C_FLAGS="$(compiler-flags)") \
-  $(if $(compiler-flags),-DCMAKE_CXX_FLAGS="$(compiler-flags)") \
-  -G Ninja \
 )
 
 #
