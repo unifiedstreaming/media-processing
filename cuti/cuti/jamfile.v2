@@ -110,6 +110,7 @@ lib cuti
   socket_layer.cpp
   stack_marker.cpp
   streambuf_backend.cpp
+  string_builder.cpp
   subresult.cpp
   subroutine.cpp
   subtract_handler.cpp
