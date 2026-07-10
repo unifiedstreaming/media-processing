@@ -46,7 +46,7 @@ override cmake-flags-common := $(strip \
   $(if $(compiler-flags),-DCMAKE_C_FLAGS="$(compiler-flags)") \
   $(if $(compiler-flags),-DCMAKE_CXX_FLAGS="$(compiler-flags)") \
   -DCMAKE_BUILD_TYPE=$(cmake-build-type) \
-  -DENABLE_LIBNUMA=OFF \
+  $(if $(windows),,-DENABLE_LIBNUMA=OFF) \
   -DENABLE_SHARED=OFF \
   -DENABLE_CLI=OFF \
 )
