@@ -19,7 +19,10 @@
 
 #include "membuf.hpp"
 
+#include "system_error.hpp"
+
 #include <algorithm>
+#include <limits>
 
 namespace cuti
 {
@@ -37,7 +40,7 @@ void membuf_t::clear()
   char* epptr = this->epptr();
   
   this->setg(buf_, buf_, buf_);
-  this->setp(buf_ , epptr);
+  this->setp(buf_, epptr);
 }
 
 membuf_t::~membuf_t()
@@ -58,9 +61,17 @@ membuf_t::int_type membuf_t::overflow(int_type c)
   {
     std::size_t count = pptr - gptr;
     std::size_t capacity = epptr - buf_;
-    std::size_t minimum_capacity = count + count / 2 + 15;
 
-    if(capacity >= minimum_capacity)
+    static constexpr std::size_t max_capacity =
+      std::numeric_limits<std::size_t>::max();
+    if(count > max_capacity - count / 2 ||
+       count + count / 2 > max_capacity - 15)
+    {
+      throw system_exception_t("cuti::membuf_t: maximum capacity exceeded");
+    }
+    std::size_t required_capacity = count + count / 2 + 15;
+
+    if(capacity >= required_capacity)
     {
       // shift left
       std::copy(gptr, pptr, buf_);
@@ -68,7 +79,7 @@ membuf_t::int_type membuf_t::overflow(int_type c)
     else
     {
       // reallocate
-      char* new_buf = new char[minimum_capacity];
+      char* new_buf = new char[required_capacity];
       std::copy(gptr, pptr, new_buf);
 
       if(buf_ != inline_buf_)
@@ -77,7 +88,7 @@ membuf_t::int_type membuf_t::overflow(int_type c)
       }
 
       buf_ = new_buf;
-      epptr = buf_ + minimum_capacity;
+      epptr = buf_ + required_capacity;
     }
 
     gptr = buf_;
