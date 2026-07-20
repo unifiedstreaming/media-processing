@@ -106,6 +106,14 @@ void general_log(const x265_param* param, const char* caller, int level, const c
 {
     if (param && level > param->logLevel)
         return;
+    if (param->logCallback != NULL)
+    {
+        va_list arg;
+        va_start(arg, fmt);
+        param->logCallback(param->logContext, caller, level, fmt, arg);
+        va_end(arg);
+        return;
+    }
     const int bufferSize = 4096;
     char buffer[bufferSize];
     int p = 0;
@@ -148,6 +156,14 @@ void general_log_file(const x265_param* param, const char* caller, int level, co
 {
     if (param && level > param->logLevel)
         return;
+    if (param->logCallback != NULL)
+    {
+        va_list arg;
+        va_start(arg, fmt);
+        param->logCallback(param->logContext, caller, level, fmt, arg);
+        va_end(arg);
+        return;
+    }
     const int bufferSize = 4096;
     char buffer[bufferSize];
     int p = 0;

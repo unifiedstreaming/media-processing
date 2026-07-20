@@ -1198,6 +1198,13 @@ typedef struct x265_param
     /* Enable the measurement and reporting of SSIM. Default is disabled */
     int       bEnableSsim;
 
+    /* Logging callback. Default is NULL, and will log to stderr */
+    void      (*logCallback)(void* context, const char* caller, int level, const char* fmt, va_list args);
+
+    /* Logging context, passed as first parameter to the logging callback.
+     * Default is NULL. */
+    void      *logContext;
+
     /* The level of logging detail emitted by the encoder. X265_LOG_NONE to
      * X265_LOG_FULL, default is X265_LOG_INFO */
     int       logLevel;

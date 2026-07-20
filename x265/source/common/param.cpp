@@ -150,6 +150,8 @@ void x265_param_default(x265_param* param)
     param->bEnableWavefront = 1;
     param->frameNumThreads = 0;
 
+    param->logCallback = NULL;
+    param->logContext = NULL;
     param->logLevel = X265_LOG_INFO;
     param->csvLogLevel = 0;
     param->csvfn[0] = 0;
@@ -2739,6 +2741,8 @@ void x265_copy_params(x265_param* dst, x265_param* src)
     dst->bLogCuStats = src->bLogCuStats;
     dst->bEnablePsnr = src->bEnablePsnr;
     dst->bEnableSsim = src->bEnableSsim;
+    dst->logCallback = src->logCallback;
+    dst->logContext = src->logContext;
     dst->logLevel = src->logLevel;
     dst->csvLogLevel = src->csvLogLevel;
     if (strlen(src->csvfn)) snprintf(dst->csvfn, X265_MAX_STRING_SIZE, "%s", src->csvfn);
