@@ -21,6 +21,7 @@
 
 #include <exception>
 #include <iostream>
+#include <string_view>
 
 // enable assert()
 #undef NDEBUG
@@ -35,6 +36,8 @@ void test_once()
 {
   string_builder_t builder;
   builder << "error " << 42;
+
+  assert(std::string_view(builder.begin(), builder.end()) == "error 42");
   assert(builder.result() == "error 42");
 }
 
@@ -42,7 +45,11 @@ void test_twice()
 {
   string_builder_t builder;
   builder << "error " << 42;
+
+  assert(std::string_view(builder.begin(), builder.end()) == "error 42");
   assert(builder.result() == "error 42");
+
+  assert(std::string_view(builder.begin(), builder.end()) == "error 42");
   assert(builder.result() == "error 42");
 }
 
@@ -50,10 +57,14 @@ void test_again()
 {
   string_builder_t builder;
   builder << "error " << 42;
+  assert(std::string_view(builder.begin(), builder.end()) == "error 42");
   assert(builder.result() == "error 42");
 
   builder << " (as expected!)";
-  assert(builder.result() == "error 42 (as expected!)");
+  assert(std::string_view(builder.begin(), builder.end()) ==
+    "error 42 (as expected!)");
+  assert(builder.result() ==
+    "error 42 (as expected!)");
 }
 
 void run_tests(int, char const* const*)

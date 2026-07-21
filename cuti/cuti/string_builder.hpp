@@ -36,8 +36,14 @@ struct CUTI_ABI string_builder_t : std::ostream
   string_builder_t(string_builder_t const&) = delete;
   string_builder_t& operator=(string_builder_t const&) = delete;
 
+  char const* begin() const
+  { return buf_.begin(); }
+
+  char const* end() const
+  { return buf_.end(); }
+
   std::string result() const
-  { return std::string(buf_.begin(), buf_.end()); }
+  { return std::string(this->begin(), this->end()); }
 
   ~string_builder_t() override;
 
