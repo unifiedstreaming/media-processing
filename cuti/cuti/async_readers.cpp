@@ -61,11 +61,14 @@ private :
   subroutine_t<exception_handler_t, reader_t<remote_error_t>> error_reader_;
 };
   
-void whitespace_skipper_t::exception_handler_deleter_t::operator()(
-  exception_handler_t* handler) const noexcept
-{
-  delete handler;
-}
+whitespace_skipper_t::whitespace_skipper_t(result_t<int>& result,
+                                           bound_inbuf_t& buf)
+: result_(result)
+, buf_(buf)
+, exception_handler_()
+{ }
+
+whitespace_skipper_t::~whitespace_skipper_t() = default;
 
 void whitespace_skipper_t::start_exception_handler(stack_marker_t& base_marker)
 {

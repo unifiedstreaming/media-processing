@@ -78,11 +78,7 @@ struct CUTI_ABI whitespace_skipper_t
 {
   using result_value_t = int;
 
-  whitespace_skipper_t(result_t<int>& result, bound_inbuf_t& buf)
-  : result_(result)
-  , buf_(buf)
-  , exception_handler_()
-  { }
+  whitespace_skipper_t(result_t<int>& result, bound_inbuf_t& buf);
 
   whitespace_skipper_t(whitespace_skipper_t const&) = delete;
   whitespace_skipper_t& operator=(whitespace_skipper_t const&) = delete;
@@ -99,6 +95,8 @@ struct CUTI_ABI whitespace_skipper_t
       [this](stack_marker_t& marker) { this->skip_spaces(marker); }
     );
   }
+
+  ~whitespace_skipper_t();
 
 private :
   void skip_spaces(stack_marker_t& base_marker)
@@ -132,15 +130,9 @@ private :
 private :
   struct exception_handler_t;
 
-  struct CUTI_ABI exception_handler_deleter_t
-  {
-    void operator()(exception_handler_t* handler) const noexcept;
-  };
-
   result_t<int>& result_;
   bound_inbuf_t& buf_;
-  std::unique_ptr<exception_handler_t, exception_handler_deleter_t>
-    exception_handler_;
+  std::unique_ptr<exception_handler_t> exception_handler_;
 };
 
 template<int C>
