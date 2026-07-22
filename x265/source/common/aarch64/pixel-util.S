@@ -938,7 +938,7 @@ function PFX(costCoeffNxN_neon)
     // x5 - scanFlagMask
     // x6 - baseCtx
     mov             x0, #0
-#ifdef __ELF__
+#if defined(__ELF__) && defined(__PIC__)
     adrp            x1, :got:PFX_C(entropyStateBits)
     ldr             x1, [x1, :got_lo12:PFX_C(entropyStateBits)]
 #else
