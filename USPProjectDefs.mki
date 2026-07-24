@@ -12,69 +12,70 @@
 #
 # Project definitions
 #
-cuti_version := 0.0.0
-x264_encoding_service_version := 0.0.0
-x264_proto_version := 0.0.0
+mpu-base-dir ?= .
+cuti-version ?= 0.0.0
+x264-encoding-service-version ?= 0.0.0
+x264-proto-version ?= 0.0.0
 
 $(call bjam-exe-project, \
   name = x264_encoding_service \
-  source-dir = x264_encoding_service \
+  source-dir = $(mpu-base-dir)/x264_encoding_service \
   prereqs = x264_es_utils cuti \
   distributable = yes \
 )
 
 $(call bjam-statlib-project, \
   name = x264_es_utils \
-  source-dir = x264_es_utils/x264_es_utils \
-  include-dir = x264_es_utils \
+  source-dir = $(mpu-base-dir)/x264_es_utils/x264_es_utils \
+  include-dir = $(mpu-base-dir)/x264_es_utils \
   prereqs = x264_proto cuti x264 \
 )
 
 $(call bjam-test-project, \
   name = x264_es_utils_unit_tests \
-  source-dir = x264_es_utils/unit_tests \
+  source-dir = $(mpu-base-dir)/x264_es_utils/unit_tests \
   prereqs = x264_es_utils \
 )
 
 $(call bjam-dll-project, \
   name = x264_proto \
-  version = $(x264_proto_version) \
-  source-dir = x264_proto/x264_proto \
-  include-dir = x264_proto \
+  version = $(x264-proto-version) \
+  source-dir = $(mpu-base-dir)/x264_proto/x264_proto \
+  include-dir = $(mpu-base-dir)/x264_proto \
   prereqs = cuti \
   distributable = yes \
 )
 
 $(call bjam-test-project, \
   name = x264_proto_unit_tests \
-  source-dir = x264_proto/unit_tests \
+  source-dir = $(mpu-base-dir)/x264_proto/unit_tests \
   prereqs = x264_proto \
 )
 
 $(call bjam-dll-project, \
   name = cuti \
-  version = $(cuti_version) \
-  source-dir = cuti/cuti \
-  include-dir = cuti \
+  version = $(cuti-version) \
+  source-dir = $(mpu-base-dir)/cuti/cuti \
+  include-dir = $(mpu-base-dir)/cuti \
   distributable = yes \
 )
 
 $(call bjam-test-project, \
   name = cuti_unit_tests \
-  source-dir = cuti/unit_tests \
+  source-dir = $(mpu-base-dir)/cuti/unit_tests \
   prereqs = cuti \
 )
 
 $(call gmake-project, \
   name = x264 \
-  makefile = x264/USPMakefile \
+  makefile = $(mpu-base-dir)/x264/USPMakefile \
   distributable = no \
   staged-libs = x264 \
 )
 
 $(call gmake-project, \
   name = x265 \
-  makefile = x265/USPMakefile \
+  makefile = $(mpu-base-dir)/x265/USPMakefile \
   distributable = no \
   staged-libs = x265 \
 )
@@ -84,38 +85,40 @@ $(call gmake-project, \
 #
 $(call package, \
   name = x264-encoding-service \
-  version = $(x264_encoding_service_version) \
+  version = $(x264-encoding-service-version) \
   projects = x264_encoding_service \
   prereq-packages = libx264-proto libcuti \
   license = GPLv2 \
   doc-files = \
-    x264_encoding_service/doc/copyright \
-    x264_encoding_service/COPYING \
+    $(mpu-base-dir)/x264_encoding_service/doc/copyright \
+    $(mpu-base-dir)/x264_encoding_service/COPYING \
   conf-files = \
-    x264_encoding_service/etc/x264_encoding_service.conf \
+    $(mpu-base-dir)/x264_encoding_service/etc/x264_encoding_service.conf \
   service-files  = \
-    x264_encoding_service/lib/x264_encoding_service.service \
+    $(mpu-base-dir)/x264_encoding_service/lib/x264_encoding_service.service \
   openrc-files  = \
-    x264_encoding_service/lib/x264_encoding_service \
+    $(mpu-base-dir)/x264_encoding_service/lib/x264_encoding_service \
+  require-user = x264-es \
+  require-group = x264-es \
 )
 
 $(call package, \
   name = libx264-proto \
-  version = $(x264_proto_version) \
+  version = $(x264-proto-version) \
   projects = x264_proto \
   prereq-packages = libcuti \
   license = LGPLv2.1 \
   doc-files = \
-    x264_proto/doc/copyright \
-    x264_proto/COPYING.LIB \
+    $(mpu-base-dir)/x264_proto/doc/copyright \
+    $(mpu-base-dir)/x264_proto/COPYING.LIB \
 )
 
 $(call package, \
   name = libcuti \
-  version = $(cuti_version) \
+  version = $(cuti-version) \
   projects = cuti \
   license = LGPLv2.1 \
   doc-files = \
-    cuti/doc/copyright \
-    cuti/COPYING.LIB \
+    $(mpu-base-dir)/cuti/doc/copyright \
+    $(mpu-base-dir)/cuti/COPYING.LIB \
 )
