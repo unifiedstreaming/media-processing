@@ -91,10 +91,7 @@ struct X264_PROTO_ABI session_params_t
   std::optional<uint32_t> vui_time_scale_;
   std::optional<bool> vui_fixed_frame_rate_flag_;
 
-  bool operator==(session_params_t const& rhs) const;
-
-  bool operator!=(session_params_t const& rhs) const
-  { return !(*this == rhs); }
+  bool operator==(session_params_t const& rhs) const = default;
 };
 
 struct X264_PROTO_ABI frame_t
@@ -109,10 +106,7 @@ struct X264_PROTO_ABI frame_t
   bool keyframe_;
   std::vector<uint8_t> data_;
 
-  bool operator==(frame_t const& rhs) const;
-
-  bool operator!=(frame_t const& rhs) const
-  { return !(*this == rhs); }
+  bool operator==(frame_t const& rhs) const = default;
 };
 
 X264_PROTO_ABI std::size_t frame_size(uint32_t width, uint32_t height,
@@ -125,10 +119,7 @@ struct X264_PROTO_ABI sample_headers_t
   std::vector<uint8_t> sps_;
   std::vector<uint8_t> pps_;
 
-  bool operator==(sample_headers_t const& rhs) const;
-
-  bool operator!=(sample_headers_t const& rhs) const
-  { return !(*this == rhs); }
+  bool operator==(sample_headers_t const& rhs) const = default;
 };
 
 struct X264_PROTO_ABI sample_t
@@ -140,10 +131,7 @@ struct X264_PROTO_ABI sample_t
   enum class type_t { i, p, b, b_ref } type_;
   std::vector<uint8_t> data_;
 
-  bool operator==(sample_t const& rhs) const;
-
-  bool operator!=(sample_t const& rhs) const
-  { return !(*this == rhs); }
+  bool operator==(sample_t const& rhs) const = default;
 };
 
 X264_PROTO_ABI std::string to_string(sample_t::type_t type);

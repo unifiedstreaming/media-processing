@@ -89,32 +89,6 @@ session_params_t::session_params_t()
 {
 }
 
-bool session_params_t::operator==(session_params_t const& rhs) const
-{
-  return timescale_ == rhs.timescale_
-    && bitrate_ == rhs.bitrate_
-    && width_ == rhs.width_
-    && height_ == rhs.height_
-    && sar_width_ == rhs.sar_width_
-    && sar_height_ == rhs.sar_height_
-    && format_ == rhs.format_
-    && profile_idc_ == rhs.profile_idc_
-    && level_idc_ == rhs.level_idc_
-    && vui_overscan_appropriate_flag_ == rhs.vui_overscan_appropriate_flag_
-    && vui_video_format_ == rhs.vui_video_format_
-    && vui_video_full_range_flag_ == rhs.vui_video_full_range_flag_
-    && vui_colour_primaries_ == rhs.vui_colour_primaries_
-    && vui_transfer_characteristics_ == rhs.vui_transfer_characteristics_
-    && vui_matrix_coefficients_ == rhs.vui_matrix_coefficients_
-    && vui_chroma_sample_loc_type_top_field_ ==
-         rhs.vui_chroma_sample_loc_type_top_field_
-    && vui_chroma_sample_loc_type_bottom_field_ ==
-         rhs.vui_chroma_sample_loc_type_bottom_field_
-    && vui_num_units_in_tick_ == rhs.vui_num_units_in_tick_
-    && vui_time_scale_ == rhs.vui_time_scale_
-    && vui_fixed_frame_rate_flag_ == rhs.vui_fixed_frame_rate_flag_;
-}
-
 frame_t::frame_t()
 : width_(0)
 , height_(0)
@@ -124,17 +98,6 @@ frame_t::frame_t()
 , keyframe_(false)
 , data_()
 {
-}
-
-bool frame_t::operator==(frame_t const& rhs) const
-{
-  return width_ == rhs.width_
-    && height_ == rhs.height_
-    && format_ == rhs.format_
-    && pts_ == rhs.pts_
-    && timescale_ == rhs.timescale_
-    && keyframe_ == rhs.keyframe_
-    && data_ == rhs.data_;
 }
 
 std::size_t frame_size(uint32_t width, uint32_t height, format_t format)
@@ -149,26 +112,12 @@ sample_headers_t::sample_headers_t()
 {
 }
 
-bool sample_headers_t::operator==(sample_headers_t const& rhs) const
-{
-  return sps_ == rhs.sps_
-    && pps_ == rhs.pps_;
-}
-
 sample_t::sample_t()
 : dts_(0)
 , pts_(0)
 , type_(type_t::i)
 , data_()
 {
-}
-
-bool sample_t::operator==(sample_t const& rhs) const
-{
-  return dts_ == rhs.dts_
-    && pts_ == rhs.pts_
-    && type_ == rhs.type_
-    && data_ == rhs.data_;
 }
 
 std::string to_string(sample_t::type_t type)

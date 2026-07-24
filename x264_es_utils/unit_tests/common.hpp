@@ -82,11 +82,7 @@ struct yuv_t
   , v_(v)
   {}
 
-  constexpr bool operator==(yuv_t const& rhs) const
-  { return y_ == rhs.y_ && u_ == rhs.u_ && v_ == rhs.v_; }
-
-  constexpr bool operator!=(yuv_t const& rhs) const
-  { return !(*this == rhs); }
+  constexpr bool operator==(yuv_t const& rhs) const = default;
 
   component_t y_;
   component_t u_;
