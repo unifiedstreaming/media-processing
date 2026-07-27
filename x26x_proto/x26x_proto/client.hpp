@@ -42,7 +42,7 @@ namespace x26x_proto
 {
 
 template<typename SessionParams, typename SampleHeaders>
-struct X26X_PROTO_ABI client_t
+struct client_t
 {
   // 'add' is for testing purposes
   using add_reply_types_t =
