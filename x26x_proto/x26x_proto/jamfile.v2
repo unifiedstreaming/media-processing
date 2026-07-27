@@ -23,6 +23,7 @@ import usp-builder ;
 
 lib x26x_proto
 :
+  client.cpp
   types.cpp
   [ usp-builder.staged-library cuti ]
 :
