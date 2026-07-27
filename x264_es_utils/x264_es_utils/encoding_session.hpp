@@ -51,8 +51,8 @@ struct encoding_session_t
 
   x264_proto::sample_headers_t sample_headers() const;
 
-  std::optional<x264_proto::sample_t> encode(x264_proto::frame_t frame);
-  std::optional<x264_proto::sample_t> flush();
+  std::optional<x26x_proto::sample_t> encode(x26x_proto::frame_t frame);
+  std::optional<x26x_proto::sample_t> flush();
 
   ~encoding_session_t();
 

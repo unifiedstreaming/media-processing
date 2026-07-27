@@ -33,16 +33,16 @@ namespace common
 x264_proto::session_params_t make_test_session_params(
   uint32_t timescale, uint32_t bitrate,
   uint32_t width, uint32_t height,
-  x264_proto::format_t format)
+  x26x_proto::format_t format)
 {
   x264_proto::session_params_t session_params;
 
-  session_params.timescale_ = timescale;
-  session_params.bitrate_ = bitrate;
-  session_params.width_ = width;
-  session_params.height_ = height;
-  session_params.format_ = format;
-  session_params.profile_idc_ = format == x264_proto::format_t::YUV420P10LE ?
+  session_params.common_.timescale_ = timescale;
+  session_params.common_.bitrate_ = bitrate;
+  session_params.common_.width_ = width;
+  session_params.common_.height_ = height;
+  session_params.common_.format_ = format;
+  session_params.profile_idc_ = format == x26x_proto::format_t::YUV420P10LE ?
     x264_proto::profile_t::HIGH10 : x264_proto::profile_t::MAIN;
 
   return session_params;
@@ -166,35 +166,35 @@ uint8_t to_8bit(component_t component)
 
 std::vector<uint8_t> make_test_frame_data(
   uint32_t width, uint32_t height,
-  x264_proto::format_t format, yuv_t yuv)
+  x26x_proto::format_t format, yuv_t yuv)
 {
   switch(format)
   {
-  case x264_proto::format_t::NV12:
+  case x26x_proto::format_t::NV12:
     return make_test_frame_data_nv12(width, height,
       to_8bit(yuv.y_), to_8bit(yuv.u_), to_8bit(yuv.v_));
-  case x264_proto::format_t::YUV420P:
+  case x26x_proto::format_t::YUV420P:
     return make_test_frame_data_yuv420p(width, height,
       to_8bit(yuv.y_), to_8bit(yuv.u_), to_8bit(yuv.v_));
-  case x264_proto::format_t::YUV420P10LE:
+  case x26x_proto::format_t::YUV420P10LE:
     return make_test_frame_data_yuv420p10le(width, height,
       yuv.y_, yuv.u_, yuv.v_);
   default:
     cuti::system_exception_builder_t builder;
-    builder << "bad x264_proto::format_t value " <<
+    builder << "bad x26x_proto::format_t value " <<
       std::to_string(cuti::to_underlying(format));
     builder.explode();
   }
 }
 
-x264_proto::frame_t make_test_frame(
+x26x_proto::frame_t make_test_frame(
   uint32_t width, uint32_t height,
-  x264_proto::format_t format,
+  x26x_proto::format_t format,
   uint64_t pts, uint32_t timescale,
   bool keyframe,
   std::vector<uint8_t>&& data)
 {
-  x264_proto::frame_t frame;
+  x26x_proto::frame_t frame;
 
   frame.width_ = width;
   frame.height_ = height;
@@ -207,9 +207,9 @@ x264_proto::frame_t make_test_frame(
   return frame;
 }
 
-x264_proto::frame_t make_test_frame(
+x26x_proto::frame_t make_test_frame(
   uint32_t width, uint32_t height,
-  x264_proto::format_t format,
+  x26x_proto::format_t format,
   uint64_t pts, uint32_t timescale,
   bool keyframe,
   yuv_t yuv)
@@ -218,14 +218,14 @@ x264_proto::frame_t make_test_frame(
     make_test_frame_data(width, height, format, yuv));
 }
 
-std::vector<x264_proto::frame_t> make_test_frames(
+std::vector<x26x_proto::frame_t> make_test_frames(
   std::size_t count, std::size_t gop_size,
   uint32_t width, uint32_t height,
-  x264_proto::format_t format,
+  x26x_proto::format_t format,
   uint32_t timescale, uint32_t duration,
   yuv_t yuv)
 {
-  std::vector<x264_proto::frame_t> frames;
+  std::vector<x26x_proto::frame_t> frames;
 
   uint64_t pts = 0;
   for(std::size_t i = 0; i < count; ++i, pts += duration)
@@ -373,22 +373,22 @@ rgb_t hsv2rgb(double h, double s, double v, double full)
   return {round(r * full), round(g * full), round(b * full)};
 }
 
-yuv_t hsv2yuv(double h, double s, double v, x264_proto::format_t format)
+yuv_t hsv2yuv(double h, double s, double v, x26x_proto::format_t format)
 {
-  return format == x264_proto::format_t::YUV420P10LE ?
+  return format == x26x_proto::format_t::YUV420P10LE ?
     rgb2yuv_bt709(hsv2rgb(h, s, v, 0x3ff)) :
     rgb2yuv_bt601(hsv2rgb(h, s, v, 0xff));
 }
 
 } // anonymous
 
-std::vector<x264_proto::frame_t> make_test_rainbow_frames(
+std::vector<x26x_proto::frame_t> make_test_rainbow_frames(
   std::size_t count, std::size_t gop_size,
   uint32_t width, uint32_t height,
-  x264_proto::format_t format,
+  x26x_proto::format_t format,
   uint32_t timescale, uint32_t duration)
 {
-  std::vector<x264_proto::frame_t> frames;
+  std::vector<x26x_proto::frame_t> frames;
 
   uint64_t pts = 0;
   double hue = 0;
@@ -407,10 +407,10 @@ std::vector<x264_proto::frame_t> make_test_rainbow_frames(
   return frames;
 }
 
-std::vector<x264_proto::frame_t> make_test_frames_from_file(
+std::vector<x26x_proto::frame_t> make_test_frames_from_file(
   std::string filename, std::size_t gop_size,
   uint32_t width, uint32_t height,
-  x264_proto::format_t format,
+  x26x_proto::format_t format,
   uint32_t timescale, uint32_t duration)
 {
   std::ifstream ifs(filename, std::ios::binary);
@@ -421,8 +421,8 @@ std::vector<x264_proto::frame_t> make_test_frames_from_file(
     builder.explode();
   }
 
-  std::vector<x264_proto::frame_t> frames;
-  std::size_t frame_size = x264_proto::frame_size(width, height, format);
+  std::vector<x26x_proto::frame_t> frames;
+  std::size_t frame_size = x26x_proto::frame_size(width, height, format);
 
   uint64_t pts = 0;
   for(std::size_t i = 0; ; ++i, pts += duration)

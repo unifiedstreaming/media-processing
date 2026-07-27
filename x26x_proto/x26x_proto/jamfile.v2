@@ -1,35 +1,32 @@
 #
-# Copyright (C) 2022-2026 CodeShop B.V.
+# Copyright (C) 2026 CodeShop B.V.
 #
-# This file is part of the x264 service protocol library.
+# This file is part of the x26x service protocol library.
 #
-# The x264 service protocol library is free software: you can
+# The x26x service protocol library is free software: you can
 # redistribute it and/or modify it under the terms of version 2.1 of
 # the GNU Lesser General Public License as published by the Free
 # Software Foundation.
 #
-# The x264 service protocol library is distributed in the hope that
+# The x26x service protocol library is distributed in the hope that
 # it will be useful, but WITHOUT ANY WARRANTY; without even the
 # implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 # PURPOSE.  See version 2.1 of the GNU Lesser General Public License
 # for more details.
-# 
+#
 # You should have received a copy of version 2.1 of the GNU Lesser
-# General Public License along with the x264 service protocol
+# General Public License along with the x26x service protocol
 # library.  If not, see <http://www.gnu.org/licenses/>.
 #
 
 import usp-builder ;
 
-lib x264_proto
+lib x26x_proto
 :
-  client.cpp
-  default_endpoints.cpp
   types.cpp
   [ usp-builder.staged-library cuti ]
-  [ usp-builder.staged-library x26x_proto ]
 :
-  <define>BUILDING_X264_PROTO
+  <define>BUILDING_X26X_PROTO
   <link>shared
   <tag>@usp-builder.dll-name
 :
@@ -38,7 +35,7 @@ lib x264_proto
 ;
 
 explicit uspb-all ;
-alias uspb-all : x264_proto ;
+alias uspb-all : x26x_proto ;
 
 explicit uspb-stage ;
 alias uspb-stage : uspb-stage-implib uspb-stage-dll ;
@@ -46,7 +43,7 @@ alias uspb-stage : uspb-stage-implib uspb-stage-dll ;
 explicit uspb-stage-implib ;
 install uspb-stage-implib
 :
-  x264_proto
+  x26x_proto
 :
   <install-dependencies>off
   <install-type>IMPORT_LIB
@@ -56,7 +53,7 @@ install uspb-stage-implib
 explicit uspb-stage-dll ;
 install uspb-stage-dll
 :
-  x264_proto
+  x26x_proto
 :
   <install-dependencies>off
   <install-type>SHARED_LIB
@@ -67,7 +64,7 @@ install uspb-stage-dll
 explicit uspb-deploy ;
 install uspb-deploy
 :
-  x264_proto
+  x26x_proto
 :
   <install-dependencies>off
   <install-type>SHARED_LIB

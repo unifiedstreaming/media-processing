@@ -49,7 +49,7 @@ std::ostream& operator<<(std::ostream& os, std::vector<uint8_t> rhs)
 }
 #endif
 
-void run_session(cuti::logging_context_t const& context, x264_proto::format_t format)
+void run_session(cuti::logging_context_t const& context, x26x_proto::format_t format)
 {
   x264_es_utils::encoder_settings_t encoder_settings;
   encoder_settings.deterministic_ = true;
@@ -103,7 +103,7 @@ void run_session(cuti::logging_context_t const& context, x264_proto::format_t fo
       " hash=0x" << std::hex << hash;
   }
 
-  std::vector<x264_proto::sample_t> samples;
+  std::vector<x26x_proto::sample_t> samples;
 
   for(auto& frame : frames)
   {
@@ -152,9 +152,9 @@ void test_session_in_main_thread(cuti::logging_context_t const& context)
   }
 
   for(auto format : {
-    x264_proto::format_t::NV12,
-    x264_proto::format_t::YUV420P,
-    x264_proto::format_t::YUV420P10LE })
+    x26x_proto::format_t::NV12,
+    x26x_proto::format_t::YUV420P,
+    x26x_proto::format_t::YUV420P10LE })
   {
     run_session(context, format);
   }
@@ -173,9 +173,9 @@ void test_session_in_separate_thread(cuti::logging_context_t const& context)
   }
 
   for(auto format : {
-    x264_proto::format_t::NV12,
-    x264_proto::format_t::YUV420P,
-    x264_proto::format_t::YUV420P10LE })
+    x26x_proto::format_t::NV12,
+    x26x_proto::format_t::YUV420P,
+    x26x_proto::format_t::YUV420P10LE })
   {
     cuti::scoped_thread_t runner([&] { run_session(context, format); });
   }

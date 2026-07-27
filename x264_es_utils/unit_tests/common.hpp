@@ -92,46 +92,46 @@ struct yuv_t
 constexpr yuv_t yuv_black_8{0x10, 0x80, 0x80}; // (1<<8)/16, (1<<8)/2
 constexpr yuv_t yuv_black_10{0x40, 0x200, 0x200}; // (1<<10)/16, (1<<10)/2
 
-inline constexpr yuv_t yuv_black(x264_proto::format_t format)
+inline constexpr yuv_t yuv_black(x26x_proto::format_t format)
 {
-  return format == x264_proto::format_t::YUV420P10LE ?
+  return format == x26x_proto::format_t::YUV420P10LE ?
     yuv_black_10 : yuv_black_8;
 }
 
 x264_proto::session_params_t make_test_session_params(
   uint32_t timescale, uint32_t bitrate,
   uint32_t width, uint32_t height,
-  x264_proto::format_t format);
+  x26x_proto::format_t format);
 
 std::vector<uint8_t> make_test_frame_data(
   uint32_t width, uint32_t height,
-  x264_proto::format_t format,
+  x26x_proto::format_t format,
   yuv_t yuv);
 
-x264_proto::frame_t make_test_frame(
+x26x_proto::frame_t make_test_frame(
   uint32_t width, uint32_t height,
-  x264_proto::format_t format,
+  x26x_proto::format_t format,
   uint64_t pts, uint32_t timescale,
   bool keyframe,
   yuv_t yuv);
 
-std::vector<x264_proto::frame_t> make_test_frames(
+std::vector<x26x_proto::frame_t> make_test_frames(
   size_t count, size_t gop_size,
   uint32_t width, uint32_t height,
-  x264_proto::format_t format,
+  x26x_proto::format_t format,
   uint32_t timescale, uint32_t duration,
   yuv_t yuv);
 
-std::vector<x264_proto::frame_t> make_test_rainbow_frames(
+std::vector<x26x_proto::frame_t> make_test_rainbow_frames(
   size_t count, size_t gop_size,
   uint32_t width, uint32_t height,
-  x264_proto::format_t format,
+  x26x_proto::format_t format,
   uint32_t timescale, uint32_t duration);
 
-std::vector<x264_proto::frame_t> make_test_frames_from_file(
+std::vector<x26x_proto::frame_t> make_test_frames_from_file(
   std::string filename, size_t gop_size,
   uint32_t width, uint32_t height,
-  x264_proto::format_t format,
+  x26x_proto::format_t format,
   uint32_t timescale, uint32_t duration);
 
 } // common

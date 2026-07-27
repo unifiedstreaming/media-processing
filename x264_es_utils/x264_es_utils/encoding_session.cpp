@@ -110,7 +110,7 @@ struct input_picture_t
 {
 public:
   input_picture_t(
-    x264_proto::frame_t const& frame);
+    x26x_proto::frame_t const& frame);
 
   input_picture_t(input_picture_t const&) = delete;
   input_picture_t& operator=(input_picture_t const&) = delete;
@@ -263,15 +263,15 @@ wrap_x264_param_t::wrap_x264_param_t(
   }
 }
 
-int to_x264_csp(x264_proto::format_t format)
+int to_x264_csp(x26x_proto::format_t format)
 {
   switch(format)
   {
-  case x264_proto::format_t::NV12:
+  case x26x_proto::format_t::NV12:
     return X264_CSP_NV12;
-  case x264_proto::format_t::YUV420P:
+  case x26x_proto::format_t::YUV420P:
     return X264_CSP_I420;
-  case x264_proto::format_t::YUV420P10LE:
+  case x26x_proto::format_t::YUV420P10LE:
     return X264_CSP_I420 | X264_CSP_HIGH_DEPTH;
   default:
     x264_exception_builder_t builder;
@@ -281,14 +281,14 @@ int to_x264_csp(x264_proto::format_t format)
   }
 }
 
-int to_x264_bitdepth(x264_proto::format_t format)
+int to_x264_bitdepth(x26x_proto::format_t format)
 {
   switch(format)
   {
-  case x264_proto::format_t::NV12:
-  case x264_proto::format_t::YUV420P:
+  case x26x_proto::format_t::NV12:
+  case x26x_proto::format_t::YUV420P:
     return 8;
-  case x264_proto::format_t::YUV420P10LE:
+  case x26x_proto::format_t::YUV420P10LE:
     return 10;
   default:
     x264_exception_builder_t builder;
@@ -309,17 +309,17 @@ wrap_x264_param_t::wrap_x264_param_t(
   {
     *msg << "encoding to avc profile=" << to_string(session_params.profile_idc_)
       << " level=" << session_params.level_idc_
-      << " bitrate=" << session_params.bitrate_
-      << " width=" << session_params.width_
-      << " height=" << session_params.height_
-      << " format=" << to_string(session_params.format_);
+      << " bitrate=" << session_params.common_.bitrate_
+      << " width=" << session_params.common_.width_
+      << " height=" << session_params.common_.height_
+      << " format=" << to_string(session_params.common_.format_);
   }
 
-  if(session_params.bitrate_ == 0)
+  if(session_params.common_.bitrate_ == 0)
   {
     x264_exception_builder_t builder;
-    builder << "bad x264_proto::session_params.bitrate_ value " <<
-      session_params.bitrate_;
+    builder << "bad x264_proto::session_params.common_.bitrate_ value " <<
+      session_params.common_.bitrate_;
     builder.explode();
   }
 
@@ -380,15 +380,15 @@ wrap_x264_param_t::wrap_x264_param_t(
   }
 
   // Video properties
-  param_.i_width  = session_params.width_;
-  param_.i_height = session_params.height_;
-  param_.i_csp = to_x264_csp(session_params.format_);
-  param_.i_bitdepth = to_x264_bitdepth(session_params.format_);
+  param_.i_width  = session_params.common_.width_;
+  param_.i_height = session_params.common_.height_;
+  param_.i_csp = to_x264_csp(session_params.common_.format_);
+  param_.i_bitdepth = to_x264_bitdepth(session_params.common_.format_);
   param_.i_level_idc = session_params.level_idc_;
 
   // VUI parameters
-  param_.vui.i_sar_width = session_params.sar_width_;
-  param_.vui.i_sar_height = session_params.sar_height_;
+  param_.vui.i_sar_width = session_params.common_.sar_width_;
+  param_.vui.i_sar_height = session_params.common_.sar_height_;
 
   if(session_params.vui_overscan_appropriate_flag_)
   {
@@ -443,7 +443,7 @@ wrap_x264_param_t::wrap_x264_param_t(
 
   // Rate control parameters
   param_.rc.i_rc_method = X264_RC_ABR;
-  param_.rc.i_bitrate = (session_params.bitrate_ + 500) / 1000;
+  param_.rc.i_bitrate = (session_params.common_.bitrate_ + 500) / 1000;
 
   // Muxing parameters
   param_.b_repeat_headers = 0;
@@ -486,7 +486,7 @@ wrap_x264_param_t::wrap_x264_param_t(
   }
 
   param_.i_timebase_num = 1;
-  param_.i_timebase_den = session_params.timescale_;
+  param_.i_timebase_den = session_params.common_.timescale_;
 
   // We will signal IDR keyframes ourselves, so turn off forced IDR keyframes at
   // specific intervals.
@@ -786,7 +786,7 @@ std::ostream& operator<<(std::ostream& os, x264_picture_t const& rhs)
   return os;
 }
 
-input_picture_t::input_picture_t(x264_proto::frame_t const& frame)
+input_picture_t::input_picture_t(x26x_proto::frame_t const& frame)
 {
   int x264_csp = to_x264_csp(frame.format_);
 
@@ -1042,7 +1042,7 @@ struct encoding_session_t::impl_t
     return sample_headers;
   }
 
-  std::optional<x264_proto::sample_t> encode(x264_proto::frame_t frame)
+  std::optional<x26x_proto::sample_t> encode(x26x_proto::frame_t frame)
   {
     assert(! flush_called_);
 
@@ -1086,7 +1086,7 @@ struct encoding_session_t::impl_t
     return generate_sample(num_bytes, output);
   }
 
-  std::optional<x264_proto::sample_t> flush()
+  std::optional<x26x_proto::sample_t> flush()
   {
     flush_called_ = true;
 
@@ -1137,7 +1137,7 @@ private :
     return param.create_x264_handle();
   }
 
-  x264_proto::sample_t generate_sample(
+  x26x_proto::sample_t generate_sample(
     int size, x264_output_t const& output)
   {
     assert(output.nals_ != nullptr);
@@ -1159,23 +1159,23 @@ private :
     }
     ++sample_count_;
 
-    x264_proto::sample_t sample;
+    x26x_proto::sample_t sample;
     sample.dts_ = output.pic_.i_dts;
     sample.pts_ = output.pic_.i_pts;
     switch(output.pic_.i_type)
     {
     case X264_TYPE_IDR:
-      sample.type_ = x264_proto::sample_t::type_t::i;
+      sample.type_ = x26x_proto::sample_t::type_t::i;
       break;
     case X264_TYPE_I:
     case X264_TYPE_P:
-      sample.type_ = x264_proto::sample_t::type_t::p;
+      sample.type_ = x26x_proto::sample_t::type_t::p;
       break;
     case X264_TYPE_B:
-      sample.type_ = x264_proto::sample_t::type_t::b;
+      sample.type_ = x26x_proto::sample_t::type_t::b;
       break;
     case X264_TYPE_BREF:
-      sample.type_ = x264_proto::sample_t::type_t::b_ref;
+      sample.type_ = x26x_proto::sample_t::type_t::b_ref;
       break;
     default:
       x264_exception_builder_t builder;
@@ -1214,14 +1214,14 @@ x264_proto::sample_headers_t encoding_session_t::sample_headers() const
   return impl_->sample_headers();
 }
 
-std::optional<x264_proto::sample_t>
-encoding_session_t::encode(x264_proto::frame_t frame)
+std::optional<x26x_proto::sample_t>
+encoding_session_t::encode(x26x_proto::frame_t frame)
 {
   return impl_->encode(std::move(frame));
 
 }
 
-std::optional<x264_proto::sample_t>
+std::optional<x26x_proto::sample_t>
 encoding_session_t::flush()
 {
   return impl_->flush();

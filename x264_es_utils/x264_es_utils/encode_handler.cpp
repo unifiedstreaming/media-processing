@@ -104,11 +104,11 @@ void encode_handler_t::handle_eos_check(
 
 void encode_handler_t::encode_frame(
   cuti::stack_marker_t& marker,
-  x264_proto::frame_t frame)
+  x26x_proto::frame_t frame)
 {
   assert(encoding_session_ != std::nullopt);
 
-  std::optional<x264_proto::sample_t> opt_sample;
+  std::optional<x26x_proto::sample_t> opt_sample;
   try
   {
     opt_sample = encoding_session_->encode(std::move(frame));
@@ -136,7 +136,7 @@ void encode_handler_t::flush_samples(cuti::stack_marker_t& marker)
 {
   assert(encoding_session_ != std::nullopt);
 
-  std::optional<x264_proto::sample_t> opt_sample;
+  std::optional<x26x_proto::sample_t> opt_sample;
   try
   {
     opt_sample = encoding_session_->flush();

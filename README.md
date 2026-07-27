@@ -52,6 +52,12 @@ media processing tools.
   [x265](https://www.x265.org/)
   library. Distributed under the terms of the GPLv2.
 
+* **x26x_proto**
+
+  A shared library/DLL that implements the common parts for the client
+  and server sides of the network protocols used by both the x264 and
+  x265 encoding services. Distributed under the terms of the LGPLv2.1.
+
 ## Build requirements
 
 * A recent *native* C++ compiler toolchain. We use g++ on Linux, and

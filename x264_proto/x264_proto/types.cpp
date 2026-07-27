@@ -27,22 +27,6 @@
 namespace x264_proto
 {
 
-std::string to_string(format_t format)
-{
-  switch(format)
-  {
-  case format_t::NV12:
-    return "NV12";
-  case format_t::YUV420P:
-    return "YUV420P";
-  case format_t::YUV420P10LE:
-    return "YUV420P10LE";
-  default:
-    return "bad x264_proto::format_t value " +
-      std::to_string(cuti::to_underlying(format));
-  }
-}
-
 std::string to_string(profile_t profile)
 {
   switch(profile)
@@ -66,13 +50,7 @@ std::string to_string(profile_t profile)
 }
 
 session_params_t::session_params_t()
-: timescale_(0)
-, bitrate_(0)
-, width_(0)
-, height_(0)
-, sar_width_(1)
-, sar_height_(1)
-, format_(format_t::NV12)
+: common_()
 , profile_idc_(profile_t::BASELINE)
 , level_idc_(30)
 , vui_overscan_appropriate_flag_(std::nullopt)
@@ -89,71 +67,13 @@ session_params_t::session_params_t()
 {
 }
 
-frame_t::frame_t()
-: width_(0)
-, height_(0)
-, format_(format_t::NV12)
-, pts_(0)
-, timescale_(0)
-, keyframe_(false)
-, data_()
-{
-}
-
-std::size_t frame_size(uint32_t width, uint32_t height, format_t format)
-{
-  return static_cast<std::size_t>(width) * height * 3 /
-    (format == format_t::YUV420P10LE ? 1 : 2);
-}
-
 sample_headers_t::sample_headers_t()
 : sps_()
 , pps_()
 {
 }
 
-sample_t::sample_t()
-: dts_(0)
-, pts_(0)
-, type_(type_t::i)
-, data_()
-{
-}
-
-std::string to_string(sample_t::type_t type)
-{
-  switch(type)
-  {
-  case sample_t::type_t::i:
-    return "I";
-  case sample_t::type_t::p:
-    return "P";
-  case sample_t::type_t::b:
-    return "B";
-  case sample_t::type_t::b_ref:
-    return "B_ref";
-  default:
-    return "unknown x264_proto::sample_t::type_t value " +
-      std::to_string(cuti::to_underlying(type));
-  }
-}
 } // x264_proto
-
-x264_proto::format_t
-cuti::enum_mapping_t<x264_proto::format_t>::from_underlying(underlying_t value)
-{
-  switch(value)
-  {
-  case to_underlying(x264_proto::format_t::NV12):
-  case to_underlying(x264_proto::format_t::YUV420P):
-  case to_underlying(x264_proto::format_t::YUV420P10LE):
-    return x264_proto::format_t{value};
-  default:
-    exception_builder_t<parse_error_t> builder;
-    builder << "bad x264_proto::format_t value " << to_serialized(value);
-    builder.explode();
-  }
-}
 
 x264_proto::profile_t
 cuti::enum_mapping_t<x264_proto::profile_t>::from_underlying(
@@ -180,79 +100,40 @@ cuti::tuple_mapping_t<x264_proto::session_params_t>::to_tuple(
   x264_proto::session_params_t value)
 {
   return tuple_t(
-   value.timescale_,
-   value.bitrate_,
-   value.width_,
-   value.height_,
-   value.sar_width_,
-   value.sar_height_,
-   value.format_,
-   value.profile_idc_,
-   value.level_idc_,
-   value.vui_overscan_appropriate_flag_,
-   value.vui_video_format_,
-   value.vui_video_full_range_flag_,
-   value.vui_colour_primaries_,
-   value.vui_transfer_characteristics_,
-   value.vui_matrix_coefficients_,
-   value.vui_chroma_sample_loc_type_top_field_,
-   value.vui_chroma_sample_loc_type_bottom_field_,
-   value.vui_num_units_in_tick_,
-   value.vui_time_scale_,
-   value.vui_fixed_frame_rate_flag_);
+    value.common_,
+    value.profile_idc_,
+    value.level_idc_,
+    value.vui_overscan_appropriate_flag_,
+    value.vui_video_format_,
+    value.vui_video_full_range_flag_,
+    value.vui_colour_primaries_,
+    value.vui_transfer_characteristics_,
+    value.vui_matrix_coefficients_,
+    value.vui_chroma_sample_loc_type_top_field_,
+    value.vui_chroma_sample_loc_type_bottom_field_,
+    value.vui_num_units_in_tick_,
+    value.vui_time_scale_,
+    value.vui_fixed_frame_rate_flag_);
 }
 
 x264_proto::session_params_t
 cuti::tuple_mapping_t<x264_proto::session_params_t>::from_tuple(tuple_t tuple)
 {
   x264_proto::session_params_t value;
-  value.timescale_ = std::get<0>(tuple);
-  value.bitrate_ = std::get<1>(tuple);
-  value.width_ = std::get<2>(tuple);
-  value.height_ = std::get<3>(tuple);
-  value.sar_width_ = std::get<4>(tuple);
-  value.sar_height_ = std::get<5>(tuple);
-  value.format_ = std::get<6>(tuple);
-  value.profile_idc_ = std::get<7>(tuple);
-  value.level_idc_ = std::get<8>(tuple);
-  value.vui_overscan_appropriate_flag_ = std::get<9>(tuple);
-  value.vui_video_format_ = std::get<10>(tuple);
-  value.vui_video_full_range_flag_ = std::get<11>(tuple);
-  value.vui_colour_primaries_ = std::get<12>(tuple);
-  value.vui_transfer_characteristics_ = std::get<13>(tuple);
-  value.vui_matrix_coefficients_ = std::get<14>(tuple);
-  value.vui_chroma_sample_loc_type_top_field_ = std::get<15>(tuple);
-  value.vui_chroma_sample_loc_type_bottom_field_ = std::get<16>(tuple);
-  value.vui_num_units_in_tick_ = std::get<17>(tuple);
-  value.vui_time_scale_ = std::get<18>(tuple);
-  value.vui_fixed_frame_rate_flag_ = std::get<19>(tuple);
-  return value;
-}
-
-cuti::tuple_mapping_t<x264_proto::frame_t>::tuple_t
-cuti::tuple_mapping_t<x264_proto::frame_t>::to_tuple(x264_proto::frame_t value)
-{
-  return tuple_t(
-    value.width_,
-    value.height_,
-    value.format_,
-    value.pts_,
-    value.timescale_,
-    value.keyframe_,
-    std::move(value.data_));
-}
-
-x264_proto::frame_t
-cuti::tuple_mapping_t<x264_proto::frame_t>::from_tuple(tuple_t tuple)
-{
-  x264_proto::frame_t value;
-  value.width_ = std::get<0>(tuple);
-  value.height_ = std::get<1>(tuple);
-  value.format_ = std::get<2>(tuple);
-  value.pts_ = std::get<3>(tuple);
-  value.timescale_ = std::get<4>(tuple);
-  value.keyframe_ = std::get<5>(tuple);
-  value.data_ = std::move(std::get<6>(tuple));
+  value.common_ = std::get<0>(tuple);
+  value.profile_idc_ = std::get<1>(tuple);
+  value.level_idc_ = std::get<2>(tuple);
+  value.vui_overscan_appropriate_flag_ = std::get<3>(tuple);
+  value.vui_video_format_ = std::get<4>(tuple);
+  value.vui_video_full_range_flag_ = std::get<5>(tuple);
+  value.vui_colour_primaries_ = std::get<6>(tuple);
+  value.vui_transfer_characteristics_ = std::get<7>(tuple);
+  value.vui_matrix_coefficients_ = std::get<8>(tuple);
+  value.vui_chroma_sample_loc_type_top_field_ = std::get<9>(tuple);
+  value.vui_chroma_sample_loc_type_bottom_field_ = std::get<10>(tuple);
+  value.vui_num_units_in_tick_ = std::get<11>(tuple);
+  value.vui_time_scale_ = std::get<12>(tuple);
+  value.vui_fixed_frame_rate_flag_ = std::get<13>(tuple);
   return value;
 }
 
@@ -269,46 +150,5 @@ cuti::tuple_mapping_t<x264_proto::sample_headers_t>::from_tuple(tuple_t tuple)
   x264_proto::sample_headers_t value;
   value.sps_ = std::move(std::get<0>(tuple));
   value.pps_ = std::move(std::get<1>(tuple));
-  return value;
-}
-
-x264_proto::sample_t::type_t
-cuti::enum_mapping_t<x264_proto::sample_t::type_t>::from_underlying(
-  underlying_t value)
-{
-  switch(value)
-  {
-  case to_underlying(x264_proto::sample_t::type_t::i):
-  case to_underlying(x264_proto::sample_t::type_t::p):
-  case to_underlying(x264_proto::sample_t::type_t::b):
-  case to_underlying(x264_proto::sample_t::type_t::b_ref):
-    return x264_proto::sample_t::type_t{value};
-  default:
-    exception_builder_t<parse_error_t> builder;
-    builder << "bad x264_proto::sample_t::type_t value " <<
-      to_serialized(value);
-    builder.explode();
-  }
-}
-
-cuti::tuple_mapping_t<x264_proto::sample_t>::tuple_t
-cuti::tuple_mapping_t<x264_proto::sample_t>::to_tuple(
-  x264_proto::sample_t value)
-{
-  return tuple_t(
-    value.dts_,
-    value.pts_,
-    value.type_,
-    std::move(value.data_));
-}
-
-x264_proto::sample_t
-cuti::tuple_mapping_t<x264_proto::sample_t>::from_tuple(tuple_t tuple)
-{
-  x264_proto::sample_t value;
-  value.dts_ = std::get<0>(tuple);
-  value.pts_ = std::get<1>(tuple);
-  value.type_ = std::get<2>(tuple);
-  value.data_ = std::move(std::get<3>(tuple));
   return value;
 }

@@ -1,21 +1,21 @@
 /*
- * Copyright (C) 2023-2026 CodeShop B.V.
+ * Copyright (C) 2026 CodeShop B.V.
  *
- * This file is part of the x264 service protocol library.
+ * This file is part of the x26x service protocol library.
  *
- * The x264 service protocol library is free software: you can
+ * The x26x service protocol library is free software: you can
  * redistribute it and/or modify it under the terms of version 2.1 of
  * the GNU Lesser General Public License as published by the Free
  * Software Foundation.
  *
- * The x264 service protocol library is distributed in the hope that
+ * The x26x service protocol library is distributed in the hope that
  * it will be useful, but WITHOUT ANY WARRANTY; without even the
  * implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
  * PURPOSE.  See version 2.1 of the GNU Lesser General Public License
  * for more details.
- * 
+ *
  * You should have received a copy of version 2.1 of the GNU Lesser
- * General Public License along with the x264 service protocol
+ * General Public License along with the x26x service protocol
  * library.  If not, see <http://www.gnu.org/licenses/>.
  */
 
@@ -25,7 +25,7 @@
 #include <cuti/option_walker.hpp>
 #include <cuti/streambuf_backend.hpp>
 
-#include <x264_proto/types.hpp>
+#include <x26x_proto/types.hpp>
 
 #include <iostream>
 
@@ -35,27 +35,39 @@
 namespace // anonymous
 {
 
-using namespace x264_proto;
+using namespace x26x_proto;
 
-session_params_t make_example_session_params()
+common_session_params_t make_example_common_session_params()
 {
-  session_params_t params;
-  params.common_.timescale_ = 25;
-  params.common_.bitrate_ = 1000000;
-  params.common_.width_ = 1280;
-  params.common_.height_ = 720;
-  params.common_.sar_width_ = 1;
-  params.common_.sar_height_ = 1;
-  params.level_idc_ = 30;
+  common_session_params_t params;
+  params.timescale_ = 25;
+  params.bitrate_ = 1000000;
+  params.width_ = 1280;
+  params.height_ = 720;
+  params.sar_width_ = 1;
+  params.sar_height_ = 1;
   return params;
 }
 
-sample_headers_t make_example_sample_headers()
+frame_t make_example_frame()
 {
-  sample_headers_t headers;
-  headers.sps_.insert(headers.sps_.begin(), 32, 43);
-  headers.pps_.insert(headers.pps_.begin(), 16, 44);
-  return headers;
+  frame_t frame;
+  frame.width_ = 1280;
+  frame.height_ = 720;
+  frame.pts_ = 1000;
+  frame.timescale_ = 25;
+  frame.data_.insert(frame.data_.begin(), 200, 42);
+  return frame;
+}
+
+sample_t make_example_sample()
+{
+  sample_t sample;
+  sample.dts_ = 1000;
+  sample.pts_ = 1100;
+  sample.type_ = sample_t::type_t::b;
+  sample.data_.insert(sample.data_.begin(), 200, 45);
+  return sample;
 }
 
 void test_serialization(
@@ -64,8 +76,9 @@ void test_serialization(
 {
   using cuti::io_test_utils::test_roundtrip;
 
-  test_roundtrip(context, bufsize, make_example_session_params());
-  test_roundtrip(context, bufsize, make_example_sample_headers());
+  test_roundtrip(context, bufsize, make_example_common_session_params());
+  test_roundtrip(context, bufsize, make_example_frame());
+  test_roundtrip(context, bufsize, make_example_sample());
 }
 
 struct options_t
@@ -121,7 +134,7 @@ int run_tests(int argc, char const* const* argv)
 
   return 0;
 }
-  
+
 } // anonymous
 
 int main(int argc, char* argv[])

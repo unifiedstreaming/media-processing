@@ -16,6 +16,7 @@ mpu-base-dir ?= .
 cuti-version ?= 0.0.0
 x264-encoding-service-version ?= 0.0.0
 x264-proto-version ?= 0.0.0
+x26x-proto-version ?= 0.0.0
 
 $(call bjam-exe-project, \
   name = x264_encoding_service \
@@ -42,7 +43,7 @@ $(call bjam-dll-project, \
   version = $(x264-proto-version) \
   source-dir = $(mpu-base-dir)/x264_proto/x264_proto \
   include-dir = $(mpu-base-dir)/x264_proto \
-  prereqs = cuti \
+  prereqs = cuti x26x_proto \
   distributable = yes \
 )
 
@@ -50,6 +51,21 @@ $(call bjam-test-project, \
   name = x264_proto_unit_tests \
   source-dir = $(mpu-base-dir)/x264_proto/unit_tests \
   prereqs = x264_proto \
+)
+
+$(call bjam-dll-project, \
+  name = x26x_proto \
+  version = $(x26x-proto-version) \
+  source-dir = $(mpu-base-dir)/x26x_proto/x26x_proto \
+  include-dir = $(mpu-base-dir)/x26x_proto \
+  prereqs = cuti \
+  distributable = yes \
+)
+
+$(call bjam-test-project, \
+  name = x26x_proto_unit_tests \
+  source-dir = $(mpu-base-dir)/x26x_proto/unit_tests \
+  prereqs = x26x_proto \
 )
 
 $(call bjam-dll-project, \
@@ -87,7 +103,7 @@ $(call package, \
   name = x264-encoding-service \
   version = $(x264-encoding-service-version) \
   projects = x264_encoding_service \
-  prereq-packages = libx264-proto libcuti \
+  prereq-packages = libx264-proto libx26x-proto libcuti \
   license = GPLv2 \
   doc-files = \
     $(mpu-base-dir)/x264_encoding_service/doc/copyright \
@@ -106,11 +122,22 @@ $(call package, \
   name = libx264-proto \
   version = $(x264-proto-version) \
   projects = x264_proto \
-  prereq-packages = libcuti \
+  prereq-packages = libx26x-proto libcuti \
   license = LGPLv2.1 \
   doc-files = \
     $(mpu-base-dir)/x264_proto/doc/copyright \
     $(mpu-base-dir)/x264_proto/COPYING.LIB \
+)
+
+$(call package, \
+  name = libx26x-proto \
+  version = $(x26x-proto-version) \
+  projects = x26x_proto \
+  prereq-packages = libcuti \
+  license = LGPLv2.1 \
+  doc-files = \
+    $(mpu-base-dir)/x26x_proto/doc/copyright \
+    $(mpu-base-dir)/x26x_proto/COPYING.LIB \
 )
 
 $(call package, \

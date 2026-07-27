@@ -52,10 +52,10 @@ std::vector<std::string> client_t::echo(std::vector<std::string> strings)
   return result;
 }
 
-std::pair<sample_headers_t, std::vector<sample_t>>
-client_t::encode(session_params_t session_params, std::vector<frame_t> frames)
+std::pair<sample_headers_t, std::vector<x26x_proto::sample_t>>
+client_t::encode(session_params_t session_params, std::vector<x26x_proto::frame_t> frames)
 {
-  std::pair<sample_headers_t, std::vector<sample_t>> result;
+  std::pair<sample_headers_t, std::vector<x26x_proto::sample_t>> result;
 
   this->start_encode(result.first, result.second,
     std::move(session_params), std::move(frames));

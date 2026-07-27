@@ -112,7 +112,7 @@ void test_encode(cuti::logging_context_t const& context,
   constexpr uint32_t bitrate = 400000;
   constexpr uint32_t width = 640;
   constexpr uint32_t height = 480;
-  constexpr auto format = x264_proto::format_t::YUV420P;
+  constexpr auto format = x26x_proto::format_t::YUV420P;
   auto session_params = common::make_test_session_params(
     timescale, bitrate, width, height, format);
 
@@ -141,13 +141,13 @@ void test_streaming_encode(cuti::logging_context_t const& context,
   }
 
   x264_proto::sample_headers_t sample_headers;
-  std::vector<x264_proto::sample_t> samples;
+  std::vector<x26x_proto::sample_t> samples;
 
   constexpr uint32_t timescale = 600;
   constexpr uint32_t bitrate = 400000;
   constexpr uint32_t width = 640;
   constexpr uint32_t height = 480;
-  constexpr auto format = x264_proto::format_t::NV12;
+  constexpr auto format = x26x_proto::format_t::NV12;
   auto session_params = common::make_test_session_params(
     timescale, bitrate, width, height, format);
 
@@ -168,7 +168,7 @@ void test_streaming_encode(cuti::logging_context_t const& context,
     sample_headers_received = true;
   };
 
-  auto samples_consumer = [&](std::optional<x264_proto::sample_t> opt_sample)
+  auto samples_consumer = [&](std::optional<x26x_proto::sample_t> opt_sample)
   {
     assert(sample_headers_received);
     if(opt_sample != std::nullopt)
@@ -200,7 +200,7 @@ void test_streaming_encode(cuti::logging_context_t const& context,
   std::size_t frame_index = 0;
   auto frames_producer = [&]
   {
-    std::optional<x264_proto::frame_t> result = std::nullopt;
+    std::optional<x26x_proto::frame_t> result = std::nullopt;
     if(frame_index != frames.size())
     {
       if(auto msg = context.message_at(cuti::loglevel_t::info))

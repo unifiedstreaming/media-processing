@@ -34,6 +34,8 @@
 #include <cuti/throughput_checker.hpp>
 #include <cuti/type_list.hpp>
 
+#include <x26x_proto/types.hpp>
+
 #include <string>
 #include <utility>
 #include <vector>
@@ -56,9 +58,9 @@ struct X264_PROTO_ABI client_t
     cuti::type_list_t<cuti::sequence_t<std::string>>;
 
   using encode_reply_types_t =
-    cuti::type_list_t<sample_headers_t, cuti::sequence_t<sample_t>>;
+    cuti::type_list_t<sample_headers_t, cuti::sequence_t<x26x_proto::sample_t>>;
   using encode_request_types_t =
-    cuti::type_list_t<session_params_t, cuti::sequence_t<frame_t>>;
+    cuti::type_list_t<session_params_t, cuti::sequence_t<x26x_proto::frame_t>>;
     
   // 'subtract' is for testing purposes
   using subtract_reply_types_t =
@@ -150,8 +152,8 @@ struct X264_PROTO_ABI client_t
 
   std::vector<std::string> echo(std::vector<std::string> strings);
 
-  std::pair<sample_headers_t, std::vector<sample_t>>
-  encode(session_params_t session_params, std::vector<frame_t> frames);
+  std::pair<sample_headers_t, std::vector<x26x_proto::sample_t>>
+  encode(session_params_t session_params, std::vector<x26x_proto::frame_t> frames);
   
   int subtract(int arg1, int arg2);
    

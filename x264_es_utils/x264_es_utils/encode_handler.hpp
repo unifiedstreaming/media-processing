@@ -63,7 +63,7 @@ private :
 
   void check_eos(cuti::stack_marker_t& marker);
   void handle_eos_check(cuti::stack_marker_t& marker, bool at_end);
-  void encode_frame(cuti::stack_marker_t& marker, x264_proto::frame_t frame);
+  void encode_frame(cuti::stack_marker_t& marker, x26x_proto::frame_t frame);
   void flush_samples(cuti::stack_marker_t& marker);
   void report_success(cuti::stack_marker_t& marker);
   
@@ -86,9 +86,9 @@ private :
   cuti::subroutine_t<encode_handler_t,
     cuti::end_sequence_checker_t> end_sequence_checker_;
   cuti::subroutine_t<encode_handler_t,
-    cuti::reader_t<x264_proto::frame_t>> frame_reader_;
+    cuti::reader_t<x26x_proto::frame_t>> frame_reader_;
   cuti::subroutine_t<encode_handler_t,
-    cuti::writer_t<x264_proto::sample_t>> sample_writer_;
+    cuti::writer_t<x26x_proto::sample_t>> sample_writer_;
   cuti::subroutine_t<encode_handler_t,
     cuti::end_sequence_writer_t> end_sequence_writer_;
 };
