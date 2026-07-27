@@ -1,0 +1,21 @@
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-name: x265_proto
+Source: https://github.com/unifiedstreaming/media-processing
+
+Files: *
+Copyright: 2026 CodeShop B.V.
+License: LGPL-2.1
+ The x265 service protocol library is free software: you can
+ redistribute it and/or modify it under the terms of version 2.1 of
+ the GNU Lesser General Public License as published by the Free
+ Software Foundation.
+ .
+ The x265 service protocol library is distributed in the hope that
+ it will be useful, but WITHOUT ANY WARRANTY; without even the
+ implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
+ PURPOSE.  See version 2.1 of the GNU Lesser General Public License
+ for more details.
+ .
+ You should have received a copy of version 2.1 of the GNU Lesser
+ General Public License along with the x265 service protocol
+ library.  If not, see <http://www.gnu.org/licenses/>.

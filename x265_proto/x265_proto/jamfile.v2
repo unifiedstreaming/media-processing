@@ -1,0 +1,77 @@
+#
+# Copyright (C) 2026 CodeShop B.V.
+#
+# This file is part of the x265 service protocol library.
+#
+# The x265 service protocol library is free software: you can
+# redistribute it and/or modify it under the terms of version 2.1 of
+# the GNU Lesser General Public License as published by the Free
+# Software Foundation.
+#
+# The x265 service protocol library is distributed in the hope that
+# it will be useful, but WITHOUT ANY WARRANTY; without even the
+# implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
+# PURPOSE.  See version 2.1 of the GNU Lesser General Public License
+# for more details.
+#
+# You should have received a copy of version 2.1 of the GNU Lesser
+# General Public License along with the x265 service protocol
+# library.  If not, see <http://www.gnu.org/licenses/>.
+#
+
+import usp-builder ;
+
+lib x265_proto
+:
+  client.cpp
+  default_endpoints.cpp
+  types.cpp
+  [ usp-builder.staged-library cuti ]
+  [ usp-builder.staged-library x26x_proto ]
+:
+  <define>BUILDING_X265_PROTO
+  <link>shared
+  <tag>@usp-builder.dll-name
+:
+:
+  <include>..
+;
+
+explicit uspb-all ;
+alias uspb-all : x265_proto ;
+
+explicit uspb-stage ;
+alias uspb-stage : uspb-stage-implib uspb-stage-dll ;
+
+explicit uspb-stage-implib ;
+install uspb-stage-implib
+:
+  x265_proto
+:
+  <install-dependencies>off
+  <install-type>IMPORT_LIB
+  <conditional>@usp-builder.stage-lib-location
+;
+
+explicit uspb-stage-dll ;
+install uspb-stage-dll
+:
+  x265_proto
+:
+  <install-dependencies>off
+  <install-type>SHARED_LIB
+  <install-type>PDB
+  <conditional>@usp-builder.stage-dll-location
+;
+
+explicit uspb-deploy ;
+install uspb-deploy
+:
+  x265_proto
+:
+  <install-dependencies>off
+  <install-type>SHARED_LIB
+  <install-type>PDB
+  <conditional>@usp-builder.deploy-dll-location
+;
+

@@ -16,6 +16,7 @@ mpu-base-dir ?= .
 cuti-version ?= 0.0.0
 x264-encoding-service-version ?= 0.0.0
 x264-proto-version ?= 0.0.0
+x265-proto-version ?= 0.0.0
 x26x-proto-version ?= 0.0.0
 
 $(call bjam-exe-project, \
@@ -51,6 +52,21 @@ $(call bjam-test-project, \
   name = x264_proto_unit_tests \
   source-dir = $(mpu-base-dir)/x264_proto/unit_tests \
   prereqs = x264_proto \
+)
+
+$(call bjam-dll-project, \
+  name = x265_proto \
+  version = $(x265-proto-version) \
+  source-dir = $(mpu-base-dir)/x265_proto/x265_proto \
+  include-dir = $(mpu-base-dir)/x265_proto \
+  prereqs = cuti x26x_proto \
+  distributable = yes \
+)
+
+$(call bjam-test-project, \
+  name = x265_proto_unit_tests \
+  source-dir = $(mpu-base-dir)/x265_proto/unit_tests \
+  prereqs = x265_proto \
 )
 
 $(call bjam-dll-project, \
@@ -127,6 +143,17 @@ $(call package, \
   doc-files = \
     $(mpu-base-dir)/x264_proto/doc/copyright \
     $(mpu-base-dir)/x264_proto/COPYING.LIB \
+)
+
+$(call package, \
+  name = libx265-proto \
+  version = $(x265-proto-version) \
+  projects = x265_proto \
+  prereq-packages = libx26x-proto libcuti \
+  license = LGPLv2.1 \
+  doc-files = \
+    $(mpu-base-dir)/x265_proto/doc/copyright \
+    $(mpu-base-dir)/x265_proto/COPYING.LIB \
 )
 
 $(call package, \
