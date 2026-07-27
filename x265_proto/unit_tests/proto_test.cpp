@@ -53,7 +53,7 @@ session_params_t make_example_session_params()
 sample_headers_t make_example_sample_headers()
 {
   sample_headers_t headers;
-  headers.vps_.insert(headers.sps_.begin(), 32, 42);
+  headers.vps_.insert(headers.vps_.begin(), 32, 42);
   headers.sps_.insert(headers.sps_.begin(), 32, 43);
   headers.pps_.insert(headers.pps_.begin(), 16, 44);
   return headers;
