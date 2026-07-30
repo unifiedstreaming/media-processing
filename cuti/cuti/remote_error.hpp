@@ -52,8 +52,8 @@ struct CUTI_ABI remote_error_t : std::runtime_error
 
   ~remote_error_t() override;
 
-  friend std::ostream& operator<<(
-    std::ostream& os, remote_error_t const& error)
+  friend CUTI_ABI
+  std::ostream& operator<<(std::ostream& os, remote_error_t const& error)
   {
     return os << error.type() << ": " << error.description();
   }

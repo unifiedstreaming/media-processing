@@ -70,7 +70,8 @@ struct identifier_t
   std::string const& as_string() const
   { return wrapped_; }
 
-  friend std::ostream& operator<<(std::ostream& os, identifier_t const& value)
+  friend CUTI_ABI
+  std::ostream& operator<<(std::ostream& os, identifier_t const& value)
   { return os << value.wrapped_; }
   
   /*

@@ -98,7 +98,8 @@ struct CUTI_ABI bound_inbuf_t
     this->disable_throughput_checking();
   }
 
-  friend std::ostream& operator<<(std::ostream& os, bound_inbuf_t& buf)
+  friend CUTI_ABI
+  std::ostream& operator<<(std::ostream& os, bound_inbuf_t& buf)
   {
     return os << buf.inbuf_;
   }

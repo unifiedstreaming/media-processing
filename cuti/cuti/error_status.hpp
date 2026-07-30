@@ -81,8 +81,8 @@ struct CUTI_ABI error_status_t : relational_ops_t<error_status_t>
 
   void print(std::ostream& os) const;
 
-  friend std::ostream& operator<<(
-    std::ostream& os, error_status_t const& status)
+  friend CUTI_ABI
+  std::ostream& operator<<(std::ostream& os, error_status_t const& status)
   {
     status.print(os);
     return os;

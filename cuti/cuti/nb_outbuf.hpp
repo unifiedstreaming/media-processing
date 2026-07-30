@@ -127,7 +127,8 @@ struct CUTI_ABI nb_outbuf_t
 
   ~nb_outbuf_t();
 
-  friend std::ostream& operator<<(std::ostream& os, nb_outbuf_t const& buf)
+  friend CUTI_ABI
+  std::ostream& operator<<(std::ostream& os, nb_outbuf_t const& buf)
   {
     buf.sink_->print(os);
     return os;

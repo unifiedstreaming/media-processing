@@ -51,8 +51,8 @@ struct CUTI_ABI quoted_char_t
 
   void print(std::streambuf& sb) const;
 
-  friend std::ostream& operator<<(std::ostream& os,
-                                  quoted_char_t const& q)
+  friend CUTI_ABI
+  std::ostream& operator<<(std::ostream& os, quoted_char_t const& q)
   {
     std::streambuf* sb = os.rdbuf();
     assert(sb != nullptr);
@@ -74,8 +74,8 @@ struct CUTI_ABI quoted_string_t
 
   void print(std::streambuf& sb) const &&;
 
-  friend std::ostream& operator<<(std::ostream& os,
-                                  quoted_string_t const&& q)
+  friend CUTI_ABI
+  std::ostream& operator<<(std::ostream& os, quoted_string_t const&& q)
   {
     std::streambuf* sb = os.rdbuf();
     assert(sb != nullptr);

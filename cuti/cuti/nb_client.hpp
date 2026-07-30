@@ -63,7 +63,8 @@ struct CUTI_ABI nb_client_t
   nb_outbuf_t const& nb_outbuf() const
   { return *nb_outbuf_; }
 
-  friend std::ostream& operator<<(std::ostream& os, nb_client_t const& client)
+  friend CUTI_ABI
+  std::ostream& operator<<(std::ostream& os, nb_client_t const& client)
   { return os << *client.nb_inbuf_; }
 
 private :

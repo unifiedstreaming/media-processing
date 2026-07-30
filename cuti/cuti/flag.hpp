@@ -48,16 +48,20 @@ struct CUTI_ABI flag_t
   constexpr bool operator!=(flag_t const& that) const noexcept
   { return !(*this == that); }
 
-  constexpr friend bool operator==(flag_t const& lhs, bool rhs) noexcept
+  constexpr friend CUTI_ABI
+  bool operator==(flag_t const& lhs, bool rhs) noexcept
   { return lhs.value_ == rhs; }
 
-  constexpr friend bool operator==(bool lhs, flag_t const& rhs) noexcept
+  constexpr friend CUTI_ABI
+  bool operator==(bool lhs, flag_t const& rhs) noexcept
   { return rhs == lhs; }
 
-  constexpr friend bool operator!=(flag_t const& lhs, bool rhs) noexcept
+  constexpr friend CUTI_ABI
+  bool operator!=(flag_t const& lhs, bool rhs) noexcept
   { return !(lhs == rhs); }
 
-  constexpr friend bool operator!=(bool lhs, flag_t const& rhs) noexcept
+  constexpr friend CUTI_ABI
+  bool operator!=(bool lhs, flag_t const& rhs) noexcept
   { return !(lhs == rhs); }
 
 private :

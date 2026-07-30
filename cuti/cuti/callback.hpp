@@ -95,22 +95,26 @@ struct CUTI_ABI callback_t
     (*impl_)(base_marker);
   }
 
-  friend bool operator==(callback_t const& lhs, std::nullptr_t) noexcept
+  friend CUTI_ABI
+  bool operator==(callback_t const& lhs, std::nullptr_t) noexcept
   {
     return !lhs.operator bool();
   }
 
-  friend bool operator==(std::nullptr_t, callback_t const& rhs) noexcept
+  friend CUTI_ABI
+  bool operator==(std::nullptr_t, callback_t const& rhs) noexcept
   {
     return !rhs.operator bool();
   }
 
-  friend bool operator!=(callback_t const& lhs, std::nullptr_t) noexcept
+  friend CUTI_ABI
+  bool operator!=(callback_t const& lhs, std::nullptr_t) noexcept
   {
     return lhs.operator bool();
   }
 
-  friend bool operator!=(std::nullptr_t, callback_t const& rhs) noexcept
+  friend CUTI_ABI
+  bool operator!=(std::nullptr_t, callback_t const& rhs) noexcept
   {
     return rhs.operator bool();
   }
