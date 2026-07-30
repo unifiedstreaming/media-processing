@@ -1,34 +1,30 @@
 #
-# Copyright (C) 2022-2026 CodeShop B.V.
+# Copyright (C) 2026 CodeShop B.V.
 #
-# This file is part of the x264_es_utils library.
+# This file is part of the x26x_es_utils library.
 #
-# The x264_es_utils library is free software: you can redistribute it
+# The x26x_es_utils library is free software: you can redistribute it
 # and/or modify it under the terms of version 2 of the GNU General
 # Public License as published by the Free Software Foundation.
 #
-# The x264_es_utils library is distributed in the hope that it will
+# The x26x_es_utils library is distributed in the hope that it will
 # be useful, but WITHOUT ANY WARRANTY; without even the implied
 # warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 # See version 2 of the GNU General Public License for more details.
 #
 # You should have received a copy of version 2 of the GNU General
-# Public License along with the x264_es_utils library.  If not, see
+# Public License along with the x26x_es_utils library.  If not, see
 # <http://www.gnu.org/licenses/>.
 #
 
 import usp-builder ;
 
-lib x264_es_utils
+lib x26x_es_utils
 :
-  config.cpp
-  config_reader.cpp
-  encoder_settings.cpp
-  encoding_session.cpp
+  encode_handler.cpp
+  service.cpp
   [ usp-builder.staged-library cuti ]
-  [ usp-builder.staged-library x264 ]
-  [ usp-builder.staged-library x264_proto ]
-  [ usp-builder.staged-library x26x_es_utils ]
+  [ usp-builder.staged-library x26x_proto ]
 :
   <link>static
 :
@@ -37,12 +33,12 @@ lib x264_es_utils
 ;
 
 explicit uspb-all ;
-alias uspb-all : x264_es_utils ;
+alias uspb-all : x26x_es_utils ;
 
 explicit upsb-stage ;
 install uspb-stage
 :
-  x264_es_utils
+  x26x_es_utils
 :
   <install-dependencies>off
   <conditional>@usp-builder.stage-lib-location

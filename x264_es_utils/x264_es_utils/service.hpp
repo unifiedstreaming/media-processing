@@ -21,49 +21,17 @@
 #define X264_ES_UTILS_SERVICE_HPP_
 
 #include "encoder_settings.hpp"
+#include "encoding_session.hpp"
 
-#include <cuti/dispatcher.hpp>
-#include <cuti/endpoint.hpp>
-#include <cuti/service.hpp>
-
-#include <memory>
-#include <vector>
-
-namespace cuti
-{
-
-struct logging_context_t;
-struct method_map_t;
-struct socket_layer_t;
-
-} // cuti
+#include <x264_proto/types.hpp>
+#include <x26x_es_utils/service.hpp>
 
 namespace x264_es_utils
 {
 
-struct service_t : cuti::service_t
-{
-  service_t(cuti::logging_context_t const& context,
-            cuti::socket_layer_t& sockets,
-            cuti::dispatcher_config_t const& dispatcher_config,
-            encoder_settings_t const& encoder_settings,
-            std::vector<cuti::endpoint_t> const& endpoints);
-
-  std::vector<cuti::endpoint_t> const& endpoints() const
-  {
-    return endpoints_;
-  }
-
-  void run() override;
-  void stop(int sig) override;
-
-  ~service_t() override;
-      
-private :
-  std::unique_ptr<cuti::method_map_t> map_;
-  std::unique_ptr<cuti::dispatcher_t> dispatcher_;
-  std::vector<cuti::endpoint_t> endpoints_;
-};
+using service_t = x26x_es_utils::service_t<encoder_settings_t,
+  encoding_session_t, x264_proto::session_params_t,
+  x264_proto::sample_headers_t>;
 
 } // x264_es_utils
 

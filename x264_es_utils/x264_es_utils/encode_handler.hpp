@@ -23,75 +23,14 @@
 #include "encoder_settings.hpp"
 #include "encoding_session.hpp"
 
-#include <cuti/async_readers.hpp>
-#include <cuti/async_writers.hpp>
-#include <cuti/bound_inbuf.hpp>
-#include <cuti/bound_outbuf.hpp>
-#include <cuti/logging_context.hpp>
-#include <cuti/result.hpp>
-#include <cuti/stack_marker.hpp>
-#include <cuti/subroutine.hpp>
-
 #include <x264_proto/types.hpp>
-
-#include <optional>
+#include <x26x_es_utils/encode_handler.hpp>
 
 namespace x264_es_utils
 {
 
-struct encode_handler_t
-{
-  using result_value_t = void;
-
-  encode_handler_t(cuti::result_t<void>& result,
-                   cuti::logging_context_t const& context,
-		   cuti::bound_inbuf_t& inbuf,
-		   cuti::bound_outbuf_t& outbuf,
-		   encoder_settings_t encoder_settings);
-
-  encode_handler_t(encode_handler_t const&) = delete;
-  encode_handler_t& operator=(encode_handler_t const&) = delete;
-  
-  void start(cuti::stack_marker_t& marker);
-
-private :
-  void create_session(
-    cuti::stack_marker_t& marker,
-    x264_proto::session_params_t session_params);
-  void read_begin_sequence(cuti::stack_marker_t& marker);
-  void write_begin_sequence(cuti::stack_marker_t& marker);
-
-  void check_eos(cuti::stack_marker_t& marker);
-  void handle_eos_check(cuti::stack_marker_t& marker, bool at_end);
-  void encode_frame(cuti::stack_marker_t& marker, x26x_proto::frame_t frame);
-  void flush_samples(cuti::stack_marker_t& marker);
-  void report_success(cuti::stack_marker_t& marker);
-  
-private :
-  cuti::result_t<void>& result_;
-  cuti::logging_context_t const& context_;
-  encoder_settings_t encoder_settings_;
-  std::optional<encoding_session_t> encoding_session_;
-
-  cuti::subroutine_t<encode_handler_t,
-    cuti::reader_t<x264_proto::session_params_t>> session_params_reader_;
-  cuti::subroutine_t<encode_handler_t,
-    cuti::writer_t<x264_proto::sample_headers_t>> sample_headers_writer_;
-
-  cuti::subroutine_t<encode_handler_t,
-    cuti::begin_sequence_reader_t> begin_sequence_reader_;
-  cuti::subroutine_t<encode_handler_t,
-    cuti::begin_sequence_writer_t> begin_sequence_writer_;
-
-  cuti::subroutine_t<encode_handler_t,
-    cuti::end_sequence_checker_t> end_sequence_checker_;
-  cuti::subroutine_t<encode_handler_t,
-    cuti::reader_t<x26x_proto::frame_t>> frame_reader_;
-  cuti::subroutine_t<encode_handler_t,
-    cuti::writer_t<x26x_proto::sample_t>> sample_writer_;
-  cuti::subroutine_t<encode_handler_t,
-    cuti::end_sequence_writer_t> end_sequence_writer_;
-};
+using encode_handler_t = x26x_es_utils::encoder_handler_t<encoder_settings_t,
+  encoding_session_t, session_params_t, sample_headers_t>;
 
 } // x264_es_utils
 
