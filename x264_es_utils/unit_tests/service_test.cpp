@@ -31,8 +31,9 @@
 #include <cuti/simple_nb_client_cache.hpp>
 #include <cuti/socket_layer.hpp>
 #include <cuti/streambuf_backend.hpp>
-#include <x264_proto/client.hpp>
 
+#include <x264_proto/client.hpp>
+#include <x26x_es_utils/unit_tests_common.hpp>
 #include <x264_es_utils/service.hpp>
 
 #include "common.hpp"

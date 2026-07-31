@@ -24,6 +24,8 @@ project
 : requirements
   [ usp-builder.staged-library-requirement x264_es_utils ]
   [ usp-builder.staged-library-requirement x264_proto ]
+  [ usp-builder.staged-library-requirement x26x_es_utils_unit_tests_common ]
+  [ usp-builder.staged-library-requirement x26x_proto ]
   [ usp-builder.staged-library-requirement cuti ]
 ;
 

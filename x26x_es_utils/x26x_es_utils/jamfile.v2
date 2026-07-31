@@ -33,13 +33,26 @@ lib x26x_es_utils
   <include>..
 ;
 
+lib x26x_es_utils_unit_tests_common
+:
+  unit_tests_common.cpp
+  [ usp-builder.staged-library cuti ]
+  [ usp-builder.staged-library x26x_proto ]
+:
+  <link>static
+:
+:
+  <include>..
+;
+
 explicit uspb-all ;
-alias uspb-all : x26x_es_utils ;
+alias uspb-all : x26x_es_utils x26x_es_utils_unit_tests_common ;
 
 explicit upsb-stage ;
 install uspb-stage
 :
   x26x_es_utils
+  x26x_es_utils_unit_tests_common
 :
   <install-dependencies>off
   <conditional>@usp-builder.stage-lib-location

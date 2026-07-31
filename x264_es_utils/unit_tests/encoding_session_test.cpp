@@ -27,6 +27,7 @@
 #include <cuti/streambuf_backend.hpp>
 
 #include <x264_proto/client.hpp>
+#include <x26x_es_utils/unit_tests_common.hpp>
 
 #include "common.hpp"
 

@@ -36,11 +36,18 @@ $(call bjam-statlib-project, \
 $(call bjam-test-project, \
   name = x264_es_utils_unit_tests \
   source-dir = $(mpu-base-dir)/x264_es_utils/unit_tests \
-  prereqs = x264_es_utils \
+  prereqs = x264_es_utils x26x_es_utils_unit_tests_common \
 )
 
 $(call bjam-statlib-project, \
   name = x26x_es_utils \
+  source-dir = $(mpu-base-dir)/x26x_es_utils/x26x_es_utils \
+  include-dir = $(mpu-base-dir)/x26x_es_utils \
+  prereqs = x26x_proto cuti \
+)
+
+$(call bjam-statlib-project, \
+  name = x26x_es_utils_unit_tests_common \
   source-dir = $(mpu-base-dir)/x26x_es_utils/x26x_es_utils \
   include-dir = $(mpu-base-dir)/x26x_es_utils \
   prereqs = x26x_proto cuti \
