@@ -73,6 +73,10 @@ unit-test fs_utils_test
 : fs_utils_test.cpp
 ;
 
+unit-test function_test
+: function_test.cpp
+;
+
 unit-test identifier_test
 : identifier_test.cpp
 ;
