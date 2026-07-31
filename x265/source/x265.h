@@ -32,7 +32,7 @@
 extern "C" {
 #endif
 
-#if _MSC_VER
+#ifdef _MSC_VER
 #pragma warning(disable: 4201) // non-standard extension used (nameless struct/union)
 #endif
 
@@ -183,7 +183,7 @@ typedef struct x265_weight_param
     int      wtPresent;
 }x265_weight_param;
 
-#if X265_DEPTH < 10
+#if defined(X265_DEPTH) && X265_DEPTH < 10
 typedef uint32_t sse_t;
 #else
 typedef uint64_t sse_t;
@@ -320,6 +320,8 @@ typedef struct x265_frame_stats
     int64_t          currTrBitrate;
     double           currTrCRF;
     int              currTrQP;
+    int32_t          frameNoise;       /* noise score at GOP start (selective-mcstf); -1 for non-GOP-start frames */
+    int              isMCSTFEnabled;   /* 1 if MCSTF bilateral filter will be applied to this frame */
 } x265_frame_stats;
 
 typedef struct x265_ctu_info_t
@@ -650,6 +652,7 @@ typedef enum
 #define X265_MAX_GOP_CONFIG 3
 #define X265_MAX_GOP_LENGTH 16
 #define MAX_T_LAYERS 7
+#define NOISE_THRESHOLD         40000
 
 #if ENABLE_MULTIVIEW
 #define MAX_VIEWS 2
@@ -2345,11 +2348,9 @@ typedef struct x265_param
 
     /*Motion compensated temporal filter*/
     int      bEnableTemporalFilter;
-    double   temporalFilterStrength;
-    /*Search Range for L0, L1 and L2 in MCTF*/
-    int      searchRangeForLayer0;
-    int      searchRangeForLayer1;
-    int      searchRangeForLayer2;
+    int      mcstfFrameRange;
+    /* When enabled, estimate noise at each GOP boundary and skip MCSTF for clean GOPs */
+    int      bSelectiveMCSTF;
 
     /* Threaded ME */
     /* Number of CTUs processed at once when a worker thread picks up a task from ThreadedME. */
@@ -2358,9 +2359,12 @@ typedef struct x265_param
     /* Number of rows upto which ThreadedME processes tasks ahead of WPP */
     int      tmeNumBufferRows;
 
+    /* Number of worker threads assigned to the ThreadedME thread pools.
+     * Not configurable by the user. */
+    int      tmeNumThreads;
+
     /*SBRC*/
     int      bEnableSBRC;
-    int mcstfFrameRange;
 
     /*Alpha channel encoding*/
     int      bEnableAlpha;
@@ -2381,6 +2385,30 @@ typedef struct x265_param
 
     /*tune*/
     const char* tune;
+
+    /* === FOVEATED ENCODING PARAMETERS (added for gaze-contingent QP mapping) ===
+     * All zero/NULL = disabled; encoder behavior is bit-for-bit identical to
+     * upstream x265 when foveaDelta == 0 or foveaGazeFile == NULL with no gaze set. */
+
+    /* Gaze fixation point in pixel coordinates. (0,0) = top-left.
+     * Ignored when foveaDelta == 0. */
+    float    foveaGazeX;
+
+    /* Gaze fixation point Y in pixel coordinates. */
+    float    foveaGazeY;
+
+    /* Maximum QP offset applied at the periphery (positive = lower quality).
+     * 0 = foveated encoding disabled. Recommended range: 5..40. */
+    float    foveaDelta;
+
+    /* Gaussian sigma in pixels defining the foveal quality falloff radius.
+     * 0 = use default (95px = 2.5 degrees visual angle at 60cm / 24-inch monitor). */
+    float    foveaSigma;
+
+    /* Path to a per-frame gaze file (one line per frame: "frame_num x y").
+     * When set, overrides foveaGazeX/foveaGazeY with per-frame values.
+     * NULL = use static gaze from foveaGazeX/foveaGazeY. */
+    char* foveaGazeFile;
 } x265_param;
 
 /* x265_param_alloc:
@@ -2652,7 +2680,7 @@ void x265_csvlog_encode(const x265_param*, const x265_stats *, int padx, int pad
 /* In-place downshift from a bit-depth greater than 8 to a bit-depth of 8, using
  * the residual bits to dither each row. */
 void x265_dither_image(x265_picture *, int picWidth, int picHeight, int16_t *errorBuf, int bitDepth);
-#if ENABLE_LIBVMAF
+#if defined(ENABLE_LIBVMAF) && ENABLE_LIBVMAF
 /* x265_calculate_vmafScore:
  *    returns VMAF score for the input video.
  *    This api must be called only after encoding was done. */
@@ -2724,7 +2752,7 @@ typedef struct x265_api
     void          (*csvlog_encode)(const x265_param*, const x265_stats *, int, int, int, char**);
     void          (*dither_image)(x265_picture*, int, int, int16_t*, int);
     int           (*set_analysis_data)(x265_encoder *encoder, x265_analysis_data *analysis_data, int poc, uint32_t cuBytes);
-#if ENABLE_LIBVMAF
+#if defined(ENABLE_LIBVMAF) && ENABLE_LIBVMAF
     double        (*calculate_vmafscore)(x265_param *, x265_vmaf_data *);
     double        (*calculate_vmaf_framelevelscore)(x265_param *, x265_vmaf_framedata *);
     void          (*vmaf_encoder_log)(x265_encoder*, int, char**, x265_param *, x265_vmaf_data *);
