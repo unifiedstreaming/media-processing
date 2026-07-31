@@ -98,7 +98,7 @@ struct service_t : cuti::service_t
 
   ~service_t() override
   { }
-      
+
 private :
   std::unique_ptr<cuti::method_map_t> map_;
   std::unique_ptr<cuti::dispatcher_t> dispatcher_;

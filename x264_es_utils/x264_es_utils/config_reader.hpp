@@ -20,21 +20,14 @@
 #ifndef X264_ES_UTILS_CONFIG_READER_HPP_
 #define X264_ES_UTILS_CONFIG_READER_HPP_
 
-#include <cuti/service.hpp>
+#include "config.hpp"
+
+#include <x26x_es_utils/config_reader.hpp>
 
 namespace x264_es_utils
 {
 
-struct config_reader_t : cuti::service_config_reader_t
-{
-  explicit config_reader_t(cuti::socket_layer_t& sockets);
-
-  std::unique_ptr<cuti::service_config_t>
-  read_config(int argc, char const* const argv[]) const override;
-
-private :
-  cuti::socket_layer_t& sockets_;
-};
+using config_reader_t = x26x_es_utils::config_reader_t<config_t>;
 
 } // x264_es_utils
     

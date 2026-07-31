@@ -21,6 +21,7 @@ import usp-builder ;
 
 lib x26x_es_utils
 :
+  config_reader.cpp
   encode_handler.cpp
   service.cpp
   [ usp-builder.staged-library cuti ]

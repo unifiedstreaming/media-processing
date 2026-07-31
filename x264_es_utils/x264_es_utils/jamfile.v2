@@ -22,7 +22,6 @@ import usp-builder ;
 lib x264_es_utils
 :
   config.cpp
-  config_reader.cpp
   encoder_settings.cpp
   encoding_session.cpp
   [ usp-builder.staged-library cuti ]

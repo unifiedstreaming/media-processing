@@ -66,7 +66,7 @@ struct encode_handler_t
 
   encode_handler_t(encode_handler_t const&) = delete;
   encode_handler_t& operator=(encode_handler_t const&) = delete;
-  
+
   void start(cuti::stack_marker_t& marker)
   {
     session_params_reader_.start(marker, &encode_handler_t::create_session);
@@ -182,7 +182,7 @@ private :
   {
     result_.submit(marker);
   }
-  
+
 private :
   cuti::result_t<void>& result_;
   cuti::logging_context_t const& context_;
