@@ -32,8 +32,7 @@ namespace cuti
 /*
  * A stopgap replacement for std::function that does not suffer from
  * const correctness-related race conditions.  Enforces deep-const by
- * simply requiring that the wrapped callable is const-callable (and
- * copyable).
+ * simply requiring that the wrapped callable is const-callable.
  */
 
 template<typename Signature>
@@ -52,29 +51,14 @@ struct function_t<R(Args...)>
 
   template<typename F>
   function_t(F* f)
-  : impl_(f == nullptr ? nullptr : std::make_unique<impl_t<F*>>(f))
+  : impl_(f == nullptr ? nullptr : std::make_shared<impl_t<F*>>(f))
   { }
 
   template<typename F, typename = std::enable_if_t<
     !std::is_convertible_v<std::decay_t<F>*, function_t const*>>>
   function_t(F&& f) 
-  : impl_(std::make_unique<impl_t<std::decay_t<F>>>(std::forward<F>(f)))
+  : impl_(std::make_shared<impl_t<std::decay_t<F>>>(std::forward<F>(f)))
   { }
-
-  function_t(function_t const& rhs)
-  : impl_(rhs.impl_ == nullptr ? nullptr : rhs.impl_->clone())
-  { }
-
-  function_t(function_t&&) = default;
-
-  function_t& operator=(function_t const& rhs)
-  {
-    function_t tmp(rhs);
-    swap(*this, tmp);
-    return *this;
-  }
-
-  function_t& operator=(function_t&&) = default;
 
   explicit operator bool() const noexcept
   { return impl_ != nullptr; }
@@ -93,8 +77,6 @@ struct function_t<R(Args...)>
     }
   }
 
-  ~function_t() = default;
-
   friend bool operator==(function_t const& lhs, std::nullptr_t) noexcept
   { return lhs.impl_ == nullptr; }
   
@@ -112,7 +94,7 @@ struct function_t<R(Args...)>
     using namespace std;
     swap(f1.impl_, f2.impl_);
   }
-    
+
 private :
   struct abstract_impl_t
   {
@@ -122,7 +104,6 @@ private :
     abstract_impl_t& operator=(abstract_impl_t const&) = delete;
 
     virtual R invoke(Args... args) const = 0;
-    virtual std::unique_ptr<abstract_impl_t> clone() const = 0;
 
     virtual ~abstract_impl_t() = default;
   };
@@ -154,17 +135,12 @@ private :
       }
     }
      
-    std::unique_ptr<abstract_impl_t> clone() const override
-    {
-      return std::make_unique<impl_t>(f_);
-    }
-
   private :
     F f_;
   };
 
 private :
-  std::unique_ptr<abstract_impl_t const> impl_;
+  std::shared_ptr<abstract_impl_t const> impl_;
 };
 
 } // cuti

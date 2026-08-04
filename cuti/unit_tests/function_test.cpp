@@ -353,6 +353,19 @@ void test_pass_by_rvalue_reference()
     assert(text == "Wolfgang Amadeus Mozart");
   }
 }
+
+void test_wrapped_noncopyable()
+{
+  int i = 17;
+
+  auto lambda = [&i, p = std::make_unique<int>(42) ] { i = *p; };
+  static_assert(!std::is_copy_constructible_v<decltype(lambda)>);
+
+  function_t<void()> f = std::move(lambda);
+  f();
+
+  assert(i == 42);
+}
   
 int run_tests(int /* argc */, char const* const* /* argv */)
 {
@@ -367,6 +380,8 @@ int run_tests(int /* argc */, char const* const* /* argv */)
   test_pass_by_value();
   test_pass_by_const_reference();
   test_pass_by_rvalue_reference();
+
+  test_wrapped_noncopyable();
 
   return 0;
 }
