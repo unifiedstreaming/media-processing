@@ -61,6 +61,9 @@ struct function_t<R(Args...)>
 
   explicit operator bool() const noexcept
   { return impl_ != nullptr; }
+
+  bool operator==(std::nullptr_t) const noexcept
+  { return impl_ == nullptr; }
   
   R operator()(Args... args) const
   {
@@ -75,18 +78,6 @@ struct function_t<R(Args...)>
       return impl_->invoke(std::forward<Args>(args)...);
     }
   }
-
-  friend bool operator==(function_t const& lhs, std::nullptr_t) noexcept
-  { return lhs.impl_ == nullptr; }
-  
-  friend bool operator==(std::nullptr_t, function_t const& rhs) noexcept
-  { return rhs.impl_ == nullptr; }
-  
-  friend bool operator!=(function_t const& lhs, std::nullptr_t) noexcept
-  { return lhs.impl_ != nullptr; }
-  
-  friend bool operator!=(std::nullptr_t, function_t const& rhs) noexcept
-  { return rhs.impl_ != nullptr; }
 
   friend void swap(function_t& f1, function_t& f2) noexcept
   {
