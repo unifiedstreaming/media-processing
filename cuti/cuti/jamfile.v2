@@ -124,6 +124,7 @@ lib cuti
   thundering_herd.cpp
   tuple_mapping.cpp
   type_list.cpp
+  type_traits.cpp
   viewbuf.cpp
 :
   <define>BUILDING_CUTI
