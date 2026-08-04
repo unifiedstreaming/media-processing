@@ -20,6 +20,8 @@
 #ifndef CUTI_FUNCTION_HPP_
 #define CUTI_FUNCTION_HPP_
 
+#include "type_traits.hpp"
+
 #include <cassert>
 #include <cstddef>
 #include <memory>
@@ -49,15 +51,12 @@ struct function_t<R(Args...)>
   : impl_(nullptr)
   { }
 
-  template<typename F>
-  function_t(F* f)
-  : impl_(f == nullptr ? nullptr : std::make_shared<impl_t<F*>>(f))
-  { }
-
   template<typename F, typename = std::enable_if_t<
     !std::is_convertible_v<std::decay_t<F>*, function_t const*>>>
-  function_t(F&& f) 
-  : impl_(std::make_shared<impl_t<std::decay_t<F>>>(std::forward<F>(f)))
+  function_t(F&& f)
+  : impl_(is_null(f) ?
+          nullptr :
+          std::make_shared<impl_t<std::decay_t<F>>>(std::forward<F>(f)))
   { }
 
   explicit operator bool() const noexcept
@@ -96,6 +95,23 @@ struct function_t<R(Args...)>
   }
 
 private :
+  template<typename F>
+  static bool is_null(F const& f)
+  {
+    if constexpr(std::is_function_v<F>)
+    {
+      return false;
+    }
+    else if constexpr(!cuti::equality_comparable_v<F, std::nullptr_t>)
+    {
+      return false;
+    }
+    else
+    {
+      return f == nullptr;
+    }
+  }
+
   struct abstract_impl_t
   {
     abstract_impl_t() = default;

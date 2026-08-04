@@ -50,6 +50,8 @@ static_assert(equality_comparable_v<bar_t, std::nullptr_t>);
 static_assert(!equality_comparable_v<foo_t, bar_t>);
 static_assert(!equality_comparable_v<foo_t* , bar_t*>);
 
+static_assert(equality_comparable_v<void(), std::nullptr_t>);
+
 } // anonymous
 
 int main()

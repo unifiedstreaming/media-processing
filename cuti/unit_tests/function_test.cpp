@@ -19,6 +19,7 @@
 
 #include <cuti/function.hpp>
 
+#include <functional>
 #include <iostream>
 #include <string>
 #include <type_traits>
@@ -366,6 +367,21 @@ void test_wrapped_noncopyable()
 
   assert(i == 42);
 }
+
+void test_wrapped_null_function()
+{
+  {
+    function_t<void(int, int)> f1 = nullptr;
+    function_t<void(short, short)> f2 = f1;
+    assert(f2 == nullptr);
+  }
+
+  {
+    std::function<void(int, int)> f1 = nullptr;
+    function_t<void(short, short)> f2 = f1;
+    assert(f2 == nullptr);
+  }
+}
   
 int run_tests(int /* argc */, char const* const* /* argv */)
 {
@@ -382,6 +398,7 @@ int run_tests(int /* argc */, char const* const* /* argv */)
   test_pass_by_rvalue_reference();
 
   test_wrapped_noncopyable();
+  test_wrapped_null_function();
 
   return 0;
 }
