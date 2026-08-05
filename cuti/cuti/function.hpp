@@ -93,7 +93,7 @@ private :
     {
       return false;
     }
-    else if constexpr(!equality_comparable_v<F, std::nullptr_t>)
+    else if constexpr(!is_equality_comparable_v<F, std::nullptr_t>)
     {
       return false;
     }

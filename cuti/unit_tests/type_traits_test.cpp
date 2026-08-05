@@ -33,24 +33,24 @@ struct bar_t
   bool operator==(std::nullptr_t) const;
 };
 
-static_assert(equality_comparable_v<int, int>);
-static_assert(equality_comparable_v<int, short>);
-static_assert(equality_comparable_v<void*, void*>);
-static_assert(equality_comparable_v<void*, void const*>);
-static_assert(!equality_comparable_v<int, void*>);
-static_assert(!equality_comparable_v<int, std::nullptr_t>);
+static_assert(is_equality_comparable_v<int, int>);
+static_assert(is_equality_comparable_v<int, short>);
+static_assert(is_equality_comparable_v<void*, void*>);
+static_assert(is_equality_comparable_v<void*, void const*>);
+static_assert(!is_equality_comparable_v<int, void*>);
+static_assert(!is_equality_comparable_v<int, std::nullptr_t>);
 
-static_assert(equality_comparable_v<foo_t*, void*>);
-static_assert(equality_comparable_v<foo_t*, std::nullptr_t>);
-static_assert(!equality_comparable_v<foo_t, std::nullptr_t>);
+static_assert(is_equality_comparable_v<foo_t*, void*>);
+static_assert(is_equality_comparable_v<foo_t*, std::nullptr_t>);
+static_assert(!is_equality_comparable_v<foo_t, std::nullptr_t>);
 
-static_assert(equality_comparable_v<bar_t*, std::nullptr_t>);
-static_assert(equality_comparable_v<bar_t, std::nullptr_t>);
+static_assert(is_equality_comparable_v<bar_t*, std::nullptr_t>);
+static_assert(is_equality_comparable_v<bar_t, std::nullptr_t>);
 
-static_assert(!equality_comparable_v<foo_t, bar_t>);
-static_assert(!equality_comparable_v<foo_t* , bar_t*>);
+static_assert(!is_equality_comparable_v<foo_t, bar_t>);
+static_assert(!is_equality_comparable_v<foo_t* , bar_t*>);
 
-static_assert(equality_comparable_v<void(), std::nullptr_t>);
+static_assert(is_equality_comparable_v<void(), std::nullptr_t>);
 
 } // anonymous
 

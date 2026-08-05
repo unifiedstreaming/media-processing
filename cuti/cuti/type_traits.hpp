@@ -31,10 +31,10 @@ namespace cuti
  */
 
 template<typename T, typename U, typename = void>
-struct equality_comparable : std::false_type { };
+struct is_equality_comparable : std::false_type { };
 
 template<typename T, typename U>
-struct equality_comparable<T, U, std::void_t<decltype(
+struct is_equality_comparable<T, U, std::void_t<decltype(
   std::declval<T const&>() == std::declval<U const&>() &&
   std::declval<U const&>() == std::declval<T const&>() &&
   std::declval<T const&>() != std::declval<U const&>() &&
@@ -42,7 +42,7 @@ struct equality_comparable<T, U, std::void_t<decltype(
 )>> : std::true_type { };
 
 template<typename T, typename U>
-bool constexpr equality_comparable_v = equality_comparable<T, U>::value;
+bool constexpr is_equality_comparable_v = is_equality_comparable<T, U>::value;
   
 } // cuti
 
