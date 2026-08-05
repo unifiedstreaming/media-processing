@@ -94,7 +94,7 @@ void run_attended(service_config_t const& config, char const* argv0)
   if(auto service = config.create_service(context))
   {
     signal_handler_t handler(SIGINT,
-      [&service](stack_marker_t&) { service->stop(SIGINT); });
+      [&service]() { service->stop(SIGINT); });
     service->run();
   }
 }
@@ -547,7 +547,7 @@ void run_as_daemon(socket_layer_t& sockets,
       logging_context_t context(logger, default_loglevel);
       auto service = config.create_service(context);
 
-      auto request_stop = [&service](stack_marker_t&)
+      auto request_stop = [&service]()
       {
         if(service != nullptr)
         {

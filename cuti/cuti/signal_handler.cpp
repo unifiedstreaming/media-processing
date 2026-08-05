@@ -56,7 +56,7 @@ signal_handler_t::impl_t* curr_impl = nullptr;
 
 struct signal_handler_t::impl_t
 {
-  impl_t(int sig, callback_t callback)
+  impl_t(int sig, function_t<void()> callback)
   : callback_(std::move(callback))
   , prev_impl_(nullptr)
   {
@@ -108,8 +108,7 @@ private :
 
       if(curr_impl->callback_ != nullptr)
       {
-        stack_marker_t base_marker;
-        curr_impl->callback_(base_marker);
+        curr_impl->callback_();
       }
 
       result = TRUE;
@@ -119,7 +118,7 @@ private :
   }
 
 private :
-  callback_t callback_;
+  function_t<void()> callback_;
   impl_t* prev_impl_;
 }; 
 
@@ -159,7 +158,7 @@ signal_handler_t::impl_t* curr_impls[n_sigs];
 
 struct signal_handler_t::impl_t
 {
-  impl_t(int sig, callback_t callback)
+  impl_t(int sig, function_t<void()> callback)
   : sig_(sig)
   , callback_(std::move(callback))
   , prev_impl_(nullptr)
@@ -219,8 +218,7 @@ private :
     {
       auto saved_errno = errno;
 
-      stack_marker_t base_marker;
-      curr_impls[sig]->callback_(base_marker);
+      curr_impls[sig]->callback_();
 
       errno = saved_errno;
     }
@@ -228,15 +226,15 @@ private :
 
 private :
   int sig_;
-  callback_t callback_;
+  function_t<void()> callback_;
   impl_t* prev_impl_;
   struct sigaction prev_action_;
 };
 
 #endif // POSIX
 
-signal_handler_t::signal_handler_t(int sig, callback_t callback)
-: impl_(std::make_unique<impl_t>(sig, std::move(callback)))
+signal_handler_t::signal_handler_t(int sig, function_t<void()> handler)
+: impl_(std::make_unique<impl_t>(sig, std::move(handler)))
 { }
 
 signal_handler_t::~signal_handler_t()

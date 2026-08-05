@@ -70,7 +70,7 @@ void trap(int sig1, int sig2)
   std::tie(sender, receiver) = make_connected_pair(sockets);
   sender->set_nonblocking();
 
-  auto send_sig1 = [&](stack_marker_t&)
+  auto send_sig1 = [&]()
   {
     char buf[1];
     buf[0] = static_cast<char>(sig1);
@@ -79,7 +79,7 @@ void trap(int sig1, int sig2)
   };
   signal_handler_t handler1(sig1, send_sig1);
     
-  auto send_sig2 = [&](stack_marker_t&)
+  auto send_sig2 = [&]()
   {
     char buf[1];
     buf[0] = static_cast<char>(sig2);
@@ -124,8 +124,8 @@ void ignore(int sig1, int sig2)
 
 void nested(int sig1, int sig2)
 {
-  signal_handler_t handler1(sig1, [](stack_marker_t&){ });
-  signal_handler_t handler2(sig2, [](stack_marker_t&){ });
+  signal_handler_t handler1(sig1, [](){ });
+  signal_handler_t handler2(sig2, [](){ });
   trap(sig1, sig2);
   ignore(sig1, sig2);
 }
@@ -147,7 +147,7 @@ int interactive_trap(socket_layer_t& sockets)
   std::tie(sender, receiver) = make_connected_pair(sockets);
   sender->set_nonblocking();
 
-  auto send_sigint = [&](stack_marker_t&)
+  auto send_sigint = [&]()
   {
     char buf[1];
     buf[0] = static_cast<char>(SIGINT);
