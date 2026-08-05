@@ -68,14 +68,14 @@ struct function_t<R(Args...)>
   R operator()(Args... args) const
   {
     assert(impl_ != nullptr);
-    
-    if constexpr(std::is_void_v<R>)
+
+    if constexpr(std::is_same_v<R, void>)
     {
-      impl_->invoke(std::forward<Args>(args)...);
+      (*impl_)(std::forward<Args>(args)...);
     }
     else
     {
-      return impl_->invoke(std::forward<Args>(args)...);
+      return (*impl_)(std::forward<Args>(args)...);
     }
   }
 
@@ -93,7 +93,7 @@ private :
     {
       return false;
     }
-    else if constexpr(!cuti::equality_comparable_v<F, std::nullptr_t>)
+    else if constexpr(!equality_comparable_v<F, std::nullptr_t>)
     {
       return false;
     }
@@ -110,7 +110,7 @@ private :
     abstract_impl_t(abstract_impl_t const&) = delete;
     abstract_impl_t& operator=(abstract_impl_t const&) = delete;
 
-    virtual R invoke(Args... args) const = 0;
+    virtual R operator()(Args... args) const = 0;
 
     virtual ~abstract_impl_t() = default;
   };
@@ -124,15 +124,18 @@ private :
     : abstract_impl_t()
     , f_(std::forward<FF>(ff))
     {
-      if constexpr(std::is_pointer_v<F>)
-      {
-        assert(f_ != nullptr);
-      }
+      assert(!is_null(f_));
     }
 
-    R invoke(Args... args) const override
+    R operator()(Args... args) const override
     {
-      if constexpr(std::is_void_v<R>)
+      /*
+       * Calling f_ with std::invoke() is supposed to enable the use
+       * of pointer to member types as callables, but causes weird g++
+       * -Warray-bounds warnings from the bowels of <tuple> at -O2 or
+       * higher.
+       */
+      if constexpr(std::is_same_v<R, void>)
       {
         f_(std::forward<Args>(args)...);
       }
