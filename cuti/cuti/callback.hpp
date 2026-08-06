@@ -21,14 +21,7 @@
 #define CUTI_CALLBACK_HPP_
 
 #include "function.hpp"
-#include "linkage.h"
 #include "stack_marker.hpp"
-
-#include <cassert>
-#include <cstddef>
-#include <memory>
-#include <type_traits>
-#include <utility>
 
 namespace cuti
 {
