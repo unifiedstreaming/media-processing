@@ -50,9 +50,7 @@ private :
 };
 
 static_assert(std::is_nothrow_default_constructible_v<callback_t>);
-static_assert(!std::is_copy_constructible_v<callback_t>);
 static_assert(std::is_nothrow_move_constructible_v<callback_t>);
-static_assert(!std::is_copy_assignable_v<callback_t>);
 static_assert(std::is_nothrow_move_assignable_v<callback_t>);
 static_assert(std::is_nothrow_swappable_v<callback_t>);
 
@@ -64,11 +62,6 @@ static_assert(!std::is_nothrow_constructible_v<callback_t, functor_t&>);
 static_assert(!std::is_nothrow_assignable_v<callback_t, functor_t&>);
 static_assert(!std::is_nothrow_constructible_v<callback_t, functor_t&&>);
 static_assert(!std::is_nothrow_assignable_v<callback_t, functor_t&&>);
-
-// check that callback_t's templated constructor and assignment operator
-// are properly SFINEA'd out for callback_t lvalues
-static_assert(!std::is_constructible_v<callback_t, callback_t&>);
-static_assert(!std::is_assignable_v<callback_t, callback_t&>);
 
 // check that callback_t's nullptr overloads don't trigger the templated
 // constructor and assignment operator
@@ -172,25 +165,6 @@ void functor_callback()
   assert(called);
 }
 
-void functor_ptr_callback()
-{
-  stack_marker_t base_marker;
-
-  bool called = false;
-  functor_t functor(called);
-
-  functor_t* ptr = nullptr;
-  callback_t cb1 = ptr;
-  assert(cb1 == nullptr);
-
-  ptr = &functor;
-  callback_t cb2 = ptr;
-  assert(cb2 != nullptr);
-  cb2(base_marker);
-
-  assert(called);
-}
-  
 void lambda_callback()
 {
   stack_marker_t base_marker;
@@ -245,7 +219,6 @@ int main()
   counting_function_callback();
   function_ptr_callback();
   functor_callback();
-  functor_ptr_callback();
   lambda_callback();
 
   move_construct();

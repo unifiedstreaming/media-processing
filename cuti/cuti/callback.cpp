@@ -18,11 +18,3 @@
  */
 
 #include "callback.hpp"
-
-namespace cuti
-{
-
-callback_t::impl_t::~impl_t()
-{ }
-
-} // cuti
