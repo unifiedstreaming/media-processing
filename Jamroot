@@ -24,7 +24,7 @@ project oss
 
   # gcc's -Warray-bounds is famous for its false positives
   # at -O2 or higher
-  <toolset>gcc <variant>release:<cflags>-Warray-bounds=0
+  <toolset>gcc,<variant>release:<cflags>-Warray-bounds=0
 
   <target-os>windows:<define>NOMINMAX
   <target-os>windows:<define>WIN32_LEAN_AND_MEAN
