@@ -21,6 +21,11 @@ project oss
   <toolset>msvc:<cxxflags>/wd4251 # class needs to have dll-interface
   <toolset>msvc:<cxxflags>/wd4275 # non dll-interface class used as base
   <toolset>msvc:<cxxflags>/wd4910 # dllexport on extern template
+
+  # gcc's -Warray-bounds is famous for its false positives
+  # at -O2 or higher
+  <toolset>gcc <variant>release:<cflags>-Warray-bounds=0
+
   <target-os>windows:<define>NOMINMAX
   <target-os>windows:<define>WIN32_LEAN_AND_MEAN
   <target-os>darwin:<linkflags>-Wl,-rpath,@loader_path/../lib
