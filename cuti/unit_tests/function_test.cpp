@@ -30,6 +30,19 @@
 
 namespace { // anonymous
 
+struct multiplier_t
+{
+  explicit multiplier_t(int by)
+  : by_(by)
+  { }
+
+  int multiply(int i) const
+  { return i * by_; }
+
+public :
+  int by_;
+};
+
 using namespace cuti;
 
 int n_calls = 0;
@@ -382,6 +395,62 @@ void test_wrapped_null_function()
     assert(f2 == nullptr);
   }
 }
+
+void test_pointer_to_member_function()
+{
+  {
+    function_t<int(multiplier_t const&, int)> f = &multiplier_t::multiply;
+    multiplier_t multiplier{6};
+    int r = f(multiplier, 7);
+    assert(r == 42);
+  }
+
+  {
+    function_t<int(multiplier_t const*, int)> f = &multiplier_t::multiply;
+    multiplier_t multiplier{6};
+    int r = f(&multiplier, 7);
+    assert(r == 42);
+  }
+}
+
+void test_pointer_to_data_member()
+{
+  {
+    function_t<int(multiplier_t const&)> f = &multiplier_t::by_;
+    multiplier_t multiplier{6};
+
+    assert(multiplier.by_ == 6);
+    int r = f(multiplier);
+    assert(r == 6);
+  }
+
+  {
+    function_t<int(multiplier_t const*)> f = &multiplier_t::by_;
+    multiplier_t multiplier{6};
+
+    assert(multiplier.by_ == 6);
+    int r = f(&multiplier);
+    assert(r == 6);
+  }
+
+  {
+    function_t<int&(multiplier_t&)> f = &multiplier_t::by_;
+    multiplier_t multiplier{6};
+
+    assert(multiplier.by_ == 6);
+    f(multiplier) = 5;
+    assert(multiplier.by_ == 5);
+  }
+
+  {
+    function_t<int&(multiplier_t*)> f = &multiplier_t::by_;
+    multiplier_t multiplier{6};
+
+    assert(multiplier.by_ == 6);
+    f(&multiplier) = 5;
+    assert(multiplier.by_ == 5);
+  }
+}
   
 int run_tests(int /* argc */, char const* const* /* argv */)
 {
@@ -399,6 +468,9 @@ int run_tests(int /* argc */, char const* const* /* argv */)
 
   test_wrapped_noncopyable();
   test_wrapped_null_function();
+
+  test_pointer_to_member_function();
+  test_pointer_to_data_member();
 
   return 0;
 }

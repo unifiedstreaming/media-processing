@@ -24,6 +24,7 @@
 
 #include <cassert>
 #include <cstddef>
+#include <functional>
 #include <memory>
 #include <type_traits>
 #include <utility>
@@ -52,6 +53,7 @@ struct function_t<R(Args...)>
   { }
 
   template<typename F, typename = std::enable_if_t<
+    std::is_invocable_r_v<R, std::decay_t<F> const, Args...> &&
     !std::is_convertible_v<std::decay_t<F>*, function_t const*>>>
   function_t(F&& f)
   : impl_(is_null(f) ?
@@ -71,11 +73,11 @@ struct function_t<R(Args...)>
 
     if constexpr(std::is_same_v<R, void>)
     {
-      (*impl_)(std::forward<Args>(args)...);
+      std::invoke(*impl_, std::forward<Args>(args)...);
     }
     else
     {
-      return (*impl_)(std::forward<Args>(args)...);
+      return std::invoke(*impl_, std::forward<Args>(args)...);
     }
   }
 
@@ -129,19 +131,13 @@ private :
 
     R operator()(Args... args) const override
     {
-      /*
-       * Calling f_ with std::invoke() is supposed to enable the use
-       * of pointer to member types as callables, but causes weird g++
-       * -Warray-bounds warnings from the bowels of <tuple> at -O2 or
-       * higher.
-       */
       if constexpr(std::is_same_v<R, void>)
       {
-        f_(std::forward<Args>(args)...);
+        std::invoke(f_, std::forward<Args>(args)...);
       }
       else
       {
-        return f_(std::forward<Args>(args)...);
+        return std::invoke(f_, std::forward<Args>(args)...);
       }
     }
      
