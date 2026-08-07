@@ -23,8 +23,11 @@ project oss
   <toolset>msvc:<cxxflags>/wd4910 # dllexport on extern template
 
   # gcc's -Warray-bounds is famous for its false positives
-  # at -O2 or higher
+  # at -O2 or higher...
   <toolset>gcc,<variant>release:<cflags>-Warray-bounds=0
+
+  # ...and so is -Wmaybe-uninitialized
+  <toolset>gcc,<variant>release:<cflags>-Wno-maybe-uninitialized
 
   <target-os>windows:<define>NOMINMAX
   <target-os>windows:<define>WIN32_LEAN_AND_MEAN
