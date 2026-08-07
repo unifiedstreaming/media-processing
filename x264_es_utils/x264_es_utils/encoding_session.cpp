@@ -20,6 +20,7 @@
 #include "encoding_session.hpp"
 
 #include <cuti/exception_builder.hpp>
+#include <cuti/stringprintf.hpp>
 #include <x264_proto/types.hpp>
 
 #include <iomanip>
@@ -177,24 +178,6 @@ cuti::loglevel_t x264_log_level_to_cuti(int x264_log_level)
   }
 }
 
-std::string vstringprintf(char const* fmt, va_list args)
-{
-  // NOTE: a copy of the incoming va_list must be saved, before the first
-  // vsnprintf() call uses up the arguments, otherwise we cannot retry.
-  va_list retry_args;
-  va_copy(retry_args, args);
-  std::vector<char> buffer(1024);
-  int length = vsnprintf(buffer.data(), buffer.size(), fmt, args);
-  if(length >= 0 && static_cast<size_t>(length) >= buffer.size())
-  {
-    buffer.resize(static_cast<size_t>(length) + 1);
-    length = vsnprintf(buffer.data(), buffer.size(), fmt, retry_args);
-  }
-  va_end(retry_args);
-  assert(length >= 0);
-  return {buffer.data(), static_cast<size_t>(length)};
-}
-
 void x264_log_callback(void* ctx, int x264_level, char const *fmt, va_list args)
 {
   assert(ctx != nullptr);
@@ -204,7 +187,7 @@ void x264_log_callback(void* ctx, int x264_level, char const *fmt, va_list args)
 
   if(auto msg = logging_context.message_at(cuti_level))
   {
-    auto text = vstringprintf(fmt, args);
+    auto text = cuti::vstringprintf(fmt, args);
     if(!text.empty() && text.back() == '\n')
     {
       text.pop_back();
