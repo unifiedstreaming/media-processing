@@ -1,0 +1,12 @@
+#! /sbin/openrc-run
+
+name=x265_encoding_service
+cfgfile=/etc/x265_encoding_service.conf
+pidfile=/tmp/x265_encoding_service.pid
+command=/usr/bin/x265_encoding_service
+command_args="--config $cfgfile --daemon --user x265-es --umask 0002 --pidfile $pidfile"
+
+depend() {
+  use dns logger netmount
+  before apache2
+}

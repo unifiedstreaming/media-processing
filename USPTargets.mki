@@ -13,7 +13,9 @@
 # Common targets
 #
 .PHONY: all
-all: x264_encoding_service
+all: \
+  x264_encoding_service \
+  x265_encoding_service
 
 .PHONY: unit_tests
 unit_tests: \
@@ -25,4 +27,6 @@ unit_tests: \
   x26x_proto_unit_tests
 
 .PHONY: deploy
-deploy: x264_encoding_service.deploy
+deploy: \
+  x264_encoding_service.deploy \
+  x265_encoding_service.deploy

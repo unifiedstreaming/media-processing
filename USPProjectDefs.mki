@@ -16,6 +16,7 @@ mpu-base-dir ?= .
 cuti-version ?= 0.0.0
 x264-encoding-service-version ?= 0.0.0
 x264-proto-version ?= 0.0.0
+x265-encoding-service-version ?= 0.0.0
 x265-proto-version ?= 0.0.0
 x26x-proto-version ?= 0.0.0
 
@@ -37,6 +38,13 @@ $(call bjam-test-project, \
   name = x264_es_utils_unit_tests \
   source-dir = $(mpu-base-dir)/x264_es_utils/unit_tests \
   prereqs = x264_es_utils x26x_es_utils_unit_tests_common \
+)
+
+$(call bjam-exe-project, \
+  name = x265_encoding_service \
+  source-dir = $(mpu-base-dir)/x265_encoding_service \
+  prereqs = x265_es_utils cuti \
+  distributable = yes \
 )
 
 $(call bjam-statlib-project, \
@@ -159,6 +167,25 @@ $(call package, \
     $(mpu-base-dir)/x264_encoding_service/lib/x264_encoding_service \
   require-user = x264-es \
   require-group = x264-es \
+)
+
+$(call package, \
+  name = x265-encoding-service \
+  version = $(x265-encoding-service-version) \
+  projects = x265_encoding_service \
+  prereq-packages = libx265-proto libx26x-proto libcuti \
+  license = GPLv2 \
+  doc-files = \
+    $(mpu-base-dir)/x265_encoding_service/doc/copyright \
+    $(mpu-base-dir)/x265_encoding_service/COPYING \
+  conf-files = \
+    $(mpu-base-dir)/x265_encoding_service/etc/x265_encoding_service.conf \
+  service-files  = \
+    $(mpu-base-dir)/x265_encoding_service/lib/x265_encoding_service.service \
+  openrc-files  = \
+    $(mpu-base-dir)/x265_encoding_service/lib/x265_encoding_service \
+  require-user = x265-es \
+  require-group = x265-es \
 )
 
 $(call package, \

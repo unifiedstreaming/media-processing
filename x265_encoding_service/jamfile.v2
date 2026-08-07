@@ -1,0 +1,43 @@
+#
+# Copyright (C) 2026 CodeShop B.V.
+#
+# This file is part of the x265_encoding_service.
+#
+# The x265_encoding_service is free software: you can redistribute it
+# and/or modify it under the terms of version 2 of the GNU General
+# Public License as published by the Free Software Foundation.
+#
+# The x265_encoding_service is distributed in the hope that it will
+# be useful, but WITHOUT ANY WARRANTY; without even the implied
+# warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+# See version 2 of the GNU General Public License for more details.
+#
+# You should have received a copy of version 2 of the GNU General
+# Public License along with the x265_encoding_service.  If not, see
+# <http://www.gnu.org/licenses/>.
+#
+
+import usp-builder ;
+
+exe x265_encoding_service
+: main.cpp
+  [ usp-builder.staged-library x265_es_utils ]
+  [ usp-builder.staged-library cuti ]
+: # On Windows, x265 requires a few registry functions.
+  <target-os>windows:<find-shared-library>advapi32
+;
+
+explicit uspb-all ;
+alias uspb-all : x265_encoding_service ;
+
+explicit uspb-deploy ;
+install uspb-deploy
+:
+  x265_encoding_service
+:
+  <install-dependencies>off
+  <install-type>EXE
+  <install-type>PDB
+  <conditional>@usp-builder.deploy-exe-location
+;
+
