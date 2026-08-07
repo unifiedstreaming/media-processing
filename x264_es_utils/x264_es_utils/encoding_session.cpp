@@ -426,6 +426,7 @@ wrap_x264_param_t::wrap_x264_param_t(
 
   // Rate control parameters
   param_.rc.i_rc_method = X264_RC_ABR;
+  // NOTE: x264's bitrate is specified in kbps.
   param_.rc.i_bitrate = (session_params.common_.bitrate_ + 500) / 1000;
 
   // Muxing parameters
@@ -444,8 +445,8 @@ wrap_x264_param_t::wrap_x264_param_t(
     if(vui_num_units_in_tick == 0)
     {
       x264_exception_builder_t builder;
-      builder << "bad x264_proto::session_params.num_units_in_tick value " <<
-        vui_num_units_in_tick;
+      builder << "bad x264_proto::session_params.vui_num_units_in_tick value "
+        << vui_num_units_in_tick;
       builder.explode();
     }
 
@@ -454,8 +455,8 @@ wrap_x264_param_t::wrap_x264_param_t(
     if(vui_time_scale == 0 || vui_time_scale % 2 != 0)
     {
       x264_exception_builder_t builder;
-      builder << "bad x264_proto::session_params.time_scale value " <<
-        vui_time_scale;
+      builder << "bad x264_proto::session_params.vui_time_scale value "
+        << vui_time_scale;
       builder.explode();
     }
 
