@@ -30,6 +30,8 @@
 
 namespace { // anonymous
 
+using namespace cuti;
+
 struct multiplier_t
 {
   explicit multiplier_t(int by)
@@ -43,7 +45,47 @@ public :
   int by_;
 };
 
-using namespace cuti;
+struct counter_t
+{
+  counter_t()
+  : n_copies_(0)
+  , n_moves_(0)
+  { }
+
+  counter_t(counter_t const& rhs)
+  : n_copies_(rhs.n_copies_ + 1)
+  , n_moves_(rhs.n_moves_)
+  { }
+
+  counter_t(counter_t&& rhs) noexcept
+  : n_copies_(rhs.n_copies_)
+  , n_moves_(rhs.n_moves_ + 1)
+  { }
+
+  counter_t& operator=(counter_t const& rhs)
+  {
+    n_copies_ = rhs.n_copies_ + 1;
+    n_moves_ = rhs.n_moves_;
+    return *this;
+  }
+
+  counter_t& operator=(counter_t&& rhs) noexcept
+  {
+    n_copies_ = rhs.n_copies_;
+    n_moves_ = rhs.n_moves_ + 1;
+    return *this;
+  }
+
+  int n_copies() const
+  { return n_copies_; }
+
+  int n_moves() const
+  { return n_moves_; }
+
+private :
+  int n_copies_;
+  int n_moves_;
+};
 
 int n_calls = 0;
 
@@ -105,7 +147,7 @@ void test_emptiness()
   }
 
   {
-    function_t<void()> f = [&] { count_call(); };
+    function_t<void()> f = [] { count_call(); };
   
     assert(bool(f) == true);
     assert(!(f == nullptr));
@@ -147,7 +189,7 @@ void test_copying()
   }
 
   {
-    function_t<void()> f1 = [&] { count_call(); };
+    function_t<void()> f1 = [] { count_call(); };
     function_t<void()> f2 = f1;
   
     n_calls = 0;
@@ -173,7 +215,7 @@ void test_copying()
   }
 
   {
-    function_t<void()> f1 = [&] { count_call(); };
+    function_t<void()> f1 = [] { count_call(); };
     function_t<void()> f2;
     assert(f1 != nullptr);
     assert(f2 == nullptr);
@@ -233,7 +275,7 @@ void test_moving()
   }
 
   {
-    function_t<void()> f1 = [&] { count_call(); };
+    function_t<void()> f1 = [] { count_call(); };
     function_t<void()> f2;
     assert(f1 != nullptr);
     assert(f2 == nullptr);
@@ -451,6 +493,51 @@ void test_pointer_to_data_member()
     assert(multiplier.by_ == 5);
   }
 }
+
+void test_copies_and_moves()
+{
+  {
+    // passing an lvalue by value
+    function_t<void(counter_t)> f = [](counter_t const& delivered) {
+      assert(delivered.n_copies() == 1);
+      assert(delivered.n_moves() == 1);
+    };
+
+    counter_t arg{};
+    f(arg);
+  }
+
+  {
+    // passing an rvalue by value
+    function_t<void(counter_t)> f = [](counter_t const& delivered) {
+      assert(delivered.n_copies() == 0);
+      assert(delivered.n_moves() == 1);
+    };
+
+    f(counter_t{});
+  }
+
+  {
+    // passing by const reference
+    function_t<void(counter_t const&)> f = [](counter_t const& delivered) {
+      assert(delivered.n_copies() == 0);
+      assert(delivered.n_moves() == 0);
+    };
+
+    counter_t arg{};
+    f(arg);
+  }
+
+  {
+    // passing by rvalue reference
+    function_t<void(counter_t&&)> f = [](counter_t const& delivered) {
+      assert(delivered.n_copies() == 0);
+      assert(delivered.n_moves() == 0);
+    };
+
+    f(counter_t{});
+  }
+}
   
 int run_tests(int /* argc */, char const* const* /* argv */)
 {
@@ -471,6 +558,8 @@ int run_tests(int /* argc */, char const* const* /* argv */)
 
   test_pointer_to_member_function();
   test_pointer_to_data_member();
+
+  test_copies_and_moves();
 
   return 0;
 }
