@@ -1140,6 +1140,7 @@ const x265_api* x265_api_get(int bitDepth)
         if (bitDepth == 12) return x265_12bit::x265_api_get(0);
 #endif
 
+#ifdef ENABLE_DYNAMIC_LOADING
         const char* libname = NULL;
         const char* method = "x265_api_get_" xstr(X265_BUILD);
         const char* multilibname = "libx265" ext;
@@ -1198,6 +1199,7 @@ const x265_api* x265_api_get(int bitDepth)
         }
 
         return api;
+#endif // ENABLE_DYNAMIC_LOADING
     }
 
     return &libapi;
@@ -1226,6 +1228,7 @@ const x265_api* x265_api_query(int bitDepth, int apiVersion, int* err)
         if (bitDepth == 12) return x265_12bit::x265_api_query(0, apiVersion, err);
 #endif
 
+#ifdef ENABLE_DYNAMIC_LOADING
         const char* libname = NULL;
         const char* method = "x265_api_query";
         const char* multilibname = "libx265" ext;
@@ -1295,6 +1298,7 @@ const x265_api* x265_api_query(int bitDepth, int apiVersion, int* err)
 
         if (err) *err = api ? X265_API_QUERY_ERR_NONE : e;
         return api;
+#endif // ENABLE_DYNAMIC_LOADING
     }
 
     return &libapi;
