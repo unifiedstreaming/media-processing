@@ -1,0 +1,48 @@
+#
+# Copyright (C) 2026 CodeShop B.V.
+#
+# This file is part of the x265_es_utils library.
+#
+# The x265_es_utils library is free software: you can redistribute it
+# and/or modify it under the terms of version 2 of the GNU General
+# Public License as published by the Free Software Foundation.
+#
+# The x265_es_utils library is distributed in the hope that it will
+# be useful, but WITHOUT ANY WARRANTY; without even the implied
+# warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+# See version 2 of the GNU General Public License for more details.
+#
+# You should have received a copy of version 2 of the GNU General
+# Public License along with the x265_es_utils library.  If not, see
+# <http://www.gnu.org/licenses/>.
+#
+
+import usp-builder ;
+
+lib x265_es_utils
+:
+  config.cpp
+  encoder_settings.cpp
+  encoding_session.cpp
+  [ usp-builder.staged-library cuti ]
+  [ usp-builder.staged-library x265 ]
+  [ usp-builder.staged-library x265_proto ]
+  [ usp-builder.staged-library x26x_es_utils ]
+:
+  <link>static
+:
+:
+  <include>..
+;
+
+explicit uspb-all ;
+alias uspb-all : x265_es_utils ;
+
+explicit upsb-stage ;
+install uspb-stage
+:
+  x265_es_utils
+:
+  <install-dependencies>off
+  <conditional>@usp-builder.stage-lib-location
+;
