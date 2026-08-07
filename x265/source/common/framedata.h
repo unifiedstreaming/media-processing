@@ -129,7 +129,7 @@ public:
     /* Rate control data used during encode and by references */
     struct RCStatCU
     {
-        uint32_t totalBits;     /* total bits to encode this CTU */
+        AtomicUInt32 totalBits; /* total bits to encode this CTU */
         uint32_t vbvCost;       /* sum of lowres costs for 16x16 sub-blocks */
         uint32_t intraVbvCost;  /* sum of lowres intra costs for 16x16 sub-blocks */
         uint64_t avgCost[4];    /* stores the avg cost of CU's in frame for each depth */
