@@ -181,6 +181,10 @@ unit-test string_io_test
 : string_io_test.cpp
 ;
 
+unit-test stringprintf_test
+: stringprintf_test.cpp
+;
+
 unit-test tcp_acceptor_test
 : tcp_acceptor_test.cpp
 ;

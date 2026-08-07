@@ -112,6 +112,7 @@ lib cuti
   stack_marker.cpp
   streambuf_backend.cpp
   string_builder.cpp
+  stringprintf.cpp
   subresult.cpp
   subroutine.cpp
   subtract_handler.cpp
