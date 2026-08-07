@@ -32,11 +32,15 @@ project
 unit-test encoding_session_test
 : encoding_session_test.cpp
   common.cpp
+: # On Windows, x265 requires a few registry functions.
+  <target-os>windows:<find-shared-library>advapi32
 ;
 
 unit-test service_test
 : service_test.cpp
   common.cpp
+: # On Windows, x265 requires a few registry functions.
+  <target-os>windows:<find-shared-library>advapi32
 ;
 
 explicit uspb-all ;
