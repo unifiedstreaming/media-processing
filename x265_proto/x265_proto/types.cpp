@@ -66,6 +66,8 @@ session_params_t::session_params_t()
 , vui_def_disp_win_right_offset_(std::nullopt)
 , vui_def_disp_win_top_offset_(std::nullopt)
 , vui_def_disp_win_bottom_offset_(std::nullopt)
+, vui_num_units_in_tick_(std::nullopt)
+, vui_time_scale_(std::nullopt)
 {
 }
 
@@ -118,7 +120,9 @@ cuti::tuple_mapping_t<x265_proto::session_params_t>::to_tuple(
     value.vui_def_disp_win_left_offset_,
     value.vui_def_disp_win_right_offset_,
     value.vui_def_disp_win_top_offset_,
-    value.vui_def_disp_win_bottom_offset_);
+    value.vui_def_disp_win_bottom_offset_,
+    value.vui_num_units_in_tick_,
+    value.vui_time_scale_);
 }
 
 x265_proto::session_params_t
@@ -141,6 +145,8 @@ cuti::tuple_mapping_t<x265_proto::session_params_t>::from_tuple(tuple_t tuple)
   value.vui_def_disp_win_right_offset_ = std::get<13>(tuple);
   value.vui_def_disp_win_top_offset_ = std::get<14>(tuple);
   value.vui_def_disp_win_bottom_offset_ = std::get<15>(tuple);
+  value.vui_num_units_in_tick_ = std::get<15>(tuple);
+  value.vui_time_scale_ = std::get<16>(tuple);
   return value;
 }
 

@@ -74,6 +74,8 @@ struct X265_PROTO_ABI session_params_t
   std::optional<uint32_t> vui_def_disp_win_right_offset_;
   std::optional<uint32_t> vui_def_disp_win_top_offset_;
   std::optional<uint32_t> vui_def_disp_win_bottom_offset_;
+  std::optional<uint32_t> vui_num_units_in_tick_;
+  std::optional<uint32_t> vui_time_scale_;
 
   bool operator==(session_params_t const& rhs) const = default;
 };
@@ -115,6 +117,8 @@ struct X265_PROTO_ABI cuti::tuple_mapping_t<x265_proto::session_params_t>
     std::optional<uint16_t>,
     std::optional<uint16_t>,
     std::optional<uint16_t>,
+    std::optional<uint32_t>,
+    std::optional<uint32_t>,
     std::optional<uint32_t>,
     std::optional<uint32_t>,
     std::optional<uint32_t>,
