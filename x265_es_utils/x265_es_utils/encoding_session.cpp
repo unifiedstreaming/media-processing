@@ -1759,6 +1759,7 @@ struct encoding_session_t::impl_t
   , encoder_(logging_context_, encoder_settings, session_params)
   , frame_count_(0)
   , sample_count_(0)
+  , first_cto_(std::nullopt)
   , flush_called_(false)
   {
     if(auto msg = logging_context_.message_at(cuti::loglevel_t::info))
@@ -1946,12 +1947,23 @@ private :
     assert(output.nals_ != nullptr);
     assert(output.num_nals_ == 1);
 
+    auto encoder_cto = output.picture_->pts - output.picture_->dts;
+    assert(encoder_cto >= std::numeric_limits<int32_t>::min());
+    assert(encoder_cto <= std::numeric_limits<int32_t>::max());
+    if(!first_cto_)
+    {
+      first_cto_ = static_cast<int32_t>(encoder_cto);
+    }
+    auto dts = output.picture_->dts + *first_cto_;
+    auto cto = output.picture_->pts - dts;
+
     if(auto msg = logging_context_.message_at(cuti::loglevel_t::debug))
     {
       *msg << "sample[" << sample_count_ << "]"
-        << " dts=" << output.picture_->dts
+        << " dts=" << dts << " (was " << output.picture_->dts << ")"
         << " pts=" << output.picture_->pts
-        << " cto=" << output.picture_->pts - output.picture_->dts
+        << " cto=" << cto << " (was " << encoder_cto << ")"
+        << " first_cto=" << *first_cto_
         << " size=" << output.nals_[0].sizeBytes
         << " pic type=" << slice_type_t(output.picture_->sliceType)
         << " nal type=" << nal_type_t(output.nals_[0].type);
@@ -1959,7 +1971,9 @@ private :
     ++sample_count_;
 
     x26x_proto::sample_t sample;
-    sample.dts_ = output.picture_->dts;
+    assert(dts >= 0);
+    assert(output.picture_->pts >= 0);
+    sample.dts_ = dts;
     sample.pts_ = output.picture_->pts;
     switch(output.picture_->sliceType)
     {
@@ -1993,6 +2007,7 @@ private :
   x265_encoder_t encoder_;
   uint64_t frame_count_;
   uint64_t sample_count_;
+  std::optional<int32_t> first_cto_;
   bool flush_called_;
 };
 
