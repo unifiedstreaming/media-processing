@@ -46,6 +46,7 @@ common_session_params_t make_example_common_session_params()
   params.height_ = 720;
   params.sar_width_ = 1;
   params.sar_height_ = 1;
+  params.framerate_ = {30000, 1001};
   return params;
 }
 

@@ -62,6 +62,8 @@ struct X26X_PROTO_ABI common_session_params_t
   uint16_t sar_height_;
   format_t format_;
 
+  std::optional<std::pair<uint32_t, uint32_t>> framerate_;
+
   bool operator==(common_session_params_t const& rhs) const = default;
 };
 
@@ -119,7 +121,8 @@ struct X26X_PROTO_ABI cuti::tuple_mapping_t<x26x_proto::common_session_params_t>
     uint32_t,
     uint16_t,
     uint16_t,
-    x26x_proto::format_t>;
+    x26x_proto::format_t,
+    std::optional<std::pair<uint32_t, uint32_t>>>;
 
   static tuple_t to_tuple(x26x_proto::common_session_params_t value);
 

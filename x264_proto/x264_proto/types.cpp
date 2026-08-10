@@ -61,9 +61,6 @@ session_params_t::session_params_t()
 , vui_matrix_coefficients_(std::nullopt)
 , vui_chroma_sample_loc_type_top_field_(std::nullopt)
 , vui_chroma_sample_loc_type_bottom_field_(std::nullopt)
-, vui_num_units_in_tick_(std::nullopt)
-, vui_time_scale_(std::nullopt)
-, vui_fixed_frame_rate_flag_(std::nullopt)
 {
 }
 
@@ -110,10 +107,7 @@ cuti::tuple_mapping_t<x264_proto::session_params_t>::to_tuple(
     value.vui_transfer_characteristics_,
     value.vui_matrix_coefficients_,
     value.vui_chroma_sample_loc_type_top_field_,
-    value.vui_chroma_sample_loc_type_bottom_field_,
-    value.vui_num_units_in_tick_,
-    value.vui_time_scale_,
-    value.vui_fixed_frame_rate_flag_);
+    value.vui_chroma_sample_loc_type_bottom_field_);
 }
 
 x264_proto::session_params_t
@@ -131,9 +125,6 @@ cuti::tuple_mapping_t<x264_proto::session_params_t>::from_tuple(tuple_t tuple)
   value.vui_matrix_coefficients_ = std::get<8>(tuple);
   value.vui_chroma_sample_loc_type_top_field_ = std::get<9>(tuple);
   value.vui_chroma_sample_loc_type_bottom_field_ = std::get<10>(tuple);
-  value.vui_num_units_in_tick_ = std::get<11>(tuple);
-  value.vui_time_scale_ = std::get<12>(tuple);
-  value.vui_fixed_frame_rate_flag_ = std::get<13>(tuple);
   return value;
 }
 

@@ -1467,33 +1467,16 @@ struct x265_encoder_t
     param_->logContext = const_cast<cuti::logging_context_t*>(&logging_context_);
     assert(param_->internalBitDepth == api_->bit_depth);
     assert(param_->internalCsp == X265_CSP_I420);
-    if(session_params.vui_num_units_in_tick_)
+    if(session_params.common_.framerate_)
     {
-      auto vui_num_units_in_tick = *session_params.vui_num_units_in_tick_;
-      if(vui_num_units_in_tick == 0)
-      {
-        x265_exception_builder_t builder;
-        builder << "bad x265_proto::session_params.vui_num_units_in_tick value "
-          << vui_num_units_in_tick;
-        builder.explode();
-      }
-
-      auto vui_time_scale = session_params.vui_time_scale_.value_or(0);
-      if(vui_time_scale == 0)
-      {
-        x265_exception_builder_t builder;
-        builder << "bad x265_proto::session_params.vui_time_scale value "
-          << vui_time_scale;
-      }
-
-      param_->fpsNum = vui_num_units_in_tick;
-      param_->fpsDenom = vui_time_scale;
+      param_->fpsNum = session_params.common_.framerate_->first;
+      param_->fpsDenom = session_params.common_.framerate_->second;
     }
     else
     {
       // x265 requires fps fields to be filled in.
-      param_->fpsNum = 1;
-      param_->fpsDenom = 25;
+      param_->fpsNum = 25;
+      param_->fpsDenom = 1;
     }
     param_->sourceWidth = session_params.common_.width_;;
     param_->sourceHeight = session_params.common_.height_;

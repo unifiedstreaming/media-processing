@@ -51,6 +51,7 @@ common_session_params_t::common_session_params_t()
 , sar_width_(1)
 , sar_height_(1)
 , format_(format_t::NV12)
+, framerate_(std::nullopt)
 {
 }
 
@@ -125,7 +126,8 @@ cuti::tuple_mapping_t<x26x_proto::common_session_params_t>::to_tuple(
     value.height_,
     value.sar_width_,
     value.sar_height_,
-    value.format_);
+    value.format_,
+    value.framerate_);
 }
 
 x26x_proto::common_session_params_t
@@ -139,6 +141,7 @@ cuti::tuple_mapping_t<x26x_proto::common_session_params_t>::from_tuple(tuple_t t
   value.sar_width_ = std::get<4>(tuple);
   value.sar_height_ = std::get<5>(tuple);
   value.format_ = std::get<6>(tuple);
+  value.framerate_ = std::get<7>(tuple);
   return value;
 }
 

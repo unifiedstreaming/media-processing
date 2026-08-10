@@ -69,9 +69,6 @@ struct X264_PROTO_ABI session_params_t
   std::optional<uint16_t> vui_matrix_coefficients_;
   std::optional<uint32_t> vui_chroma_sample_loc_type_top_field_;
   std::optional<uint32_t> vui_chroma_sample_loc_type_bottom_field_;
-  std::optional<uint32_t> vui_num_units_in_tick_;
-  std::optional<uint32_t> vui_time_scale_;
-  std::optional<bool> vui_fixed_frame_rate_flag_;
 
   bool operator==(session_params_t const& rhs) const = default;
 };
@@ -112,10 +109,7 @@ struct X264_PROTO_ABI cuti::tuple_mapping_t<x264_proto::session_params_t>
     std::optional<uint16_t>,
     std::optional<uint16_t>,
     std::optional<uint32_t>,
-    std::optional<uint32_t>,
-    std::optional<uint32_t>,
-    std::optional<uint32_t>,
-    std::optional<bool>>;
+    std::optional<uint32_t>>;
 
   static tuple_t to_tuple(x264_proto::session_params_t value);
 

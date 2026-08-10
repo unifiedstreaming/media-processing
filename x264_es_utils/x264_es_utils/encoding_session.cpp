@@ -433,40 +433,15 @@ wrap_x264_param_t::wrap_x264_param_t(
   param_.b_repeat_headers = 0;
   param_.b_annexb = 1;
 
-  // Assume Variable Frame Rate (VFR) input, if the VUI timing_info_present_flag
-  // is not there are all, hence the fixed_frame_rate_flag is also not there.
-  // Otherwise, VFR is true when the fixed_frame_rate_flag is false.
-  param_.b_vfr_input =
-    session_params.vui_fixed_frame_rate_flag_.value_or(false) ? 0 : 1;
+  // Assume Variable Frame Rate (VFR) input, if we do not know the frame rate.
+  param_.b_vfr_input = session_params.common_.framerate_ ? 0 : 1;
 
-  if(session_params.vui_num_units_in_tick_)
+  if(session_params.common_.framerate_)
   {
-    auto vui_num_units_in_tick = *session_params.vui_num_units_in_tick_;
-    if(vui_num_units_in_tick == 0)
-    {
-      x264_exception_builder_t builder;
-      builder << "bad x264_proto::session_params.vui_num_units_in_tick value "
-        << vui_num_units_in_tick;
-      builder.explode();
-    }
-
-    auto vui_time_scale = session_params.vui_time_scale_.value_or(0);
-    // NOTE: vui_time_scale MUST be even.
-    if(vui_time_scale == 0 || vui_time_scale % 2 != 0)
-    {
-      x264_exception_builder_t builder;
-      builder << "bad x264_proto::session_params.vui_time_scale value "
-        << vui_time_scale;
-      builder.explode();
-    }
-
-    if(!param_.b_vfr_input)
-    {
-      // NOTE: x264's "fps" is reversed, similar to FFmpeg. That means: 25 fps
-      // is represented as 25/1, 29.97 fps is 30000/1001, etc.
-      param_.i_fps_num = vui_time_scale / 2;
-      param_.i_fps_den = vui_num_units_in_tick;
-    }
+    // NOTE: x264's "fps" is reversed, similar to FFmpeg. That means: 25 fps
+    // is represented as 25/1, 29.97 fps is 30000/1001, etc.
+    param_.i_fps_num = session_params.common_.framerate_->first;
+    param_.i_fps_den = session_params.common_.framerate_->second;
   }
 
   param_.i_timebase_num = 1;
