@@ -1489,6 +1489,7 @@ struct x265_encoder_t
     // the integer value 51 in x265_param::levelIdc.
     param_->levelIdc = session_params.general_level_idc_ / 3;
     param_->bHighTier = session_params.general_tier_flag_;
+    param_->bEmitInfoSEI = 0;
     param_->bOpenGOP = 0;
     param_->keyframeMax = -1;
     if(param_->sourceHeight < 720)
@@ -1584,8 +1585,6 @@ struct x265_encoder_t
     {
       *msg << "encoder param:\n" << encoder_param;
     }
-
-    /// ... XXX TODO
   }
 
   x265_encoder_t(const x265_encoder_t&) = delete;
@@ -1804,9 +1803,10 @@ struct encoding_session_t::impl_t
       }
     }
 
-    // Sanity checks: x265 is supposed to return VPS, SPS, PPS and PREFIX_SEI
-    // (disposable, containing x265 copyright banner and parameter text).
-    assert(num_headers == 4);
+    // Sanity checks: x265 is supposed to return VPS, SPS, PPS and optionally
+    // PREFIX_SEI (disposable, containing x265 copyright banner and parameter
+    // text, see the bEmitInfoSEI setting above).
+    assert(num_headers == 3);
 
     assert(headers[0].type == NAL_UNIT_VPS);
     assert(headers[0].sizeBytes > 5);
@@ -1832,12 +1832,14 @@ struct encoding_session_t::impl_t
     assert(headers[2].payload[3] == 0x01);
     assert(headers[2].payload[4] == 0x44); // NAL_UNIT_PPS
 
+#if 0
     assert(headers[3].type == NAL_UNIT_PREFIX_SEI);
     assert(headers[3].sizeBytes > 4);
     assert(headers[3].payload[0] == 0x00);
     assert(headers[3].payload[1] == 0x00);
     assert(headers[3].payload[2] == 0x01);
     assert(headers[3].payload[3] == 0x4e); // NAL_UNIT_PREFIX_SEI
+#endif
 
     x265_proto::sample_headers_t sample_headers;
     sample_headers.vps_.insert(sample_headers.vps_.end(),
