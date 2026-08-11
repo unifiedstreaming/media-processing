@@ -34,8 +34,10 @@ namespace cuti
 
 /*
  * A stopgap replacement for std::function that does not suffer from
- * const correctness-related race conditions.  Enforces deep-const by
- * simply requiring that the wrapped callable is const-callable.
+ * const correctness-related race conditions. See
+ * https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2014/n4159.pdf.
+ * cuti::function_t enforces deep-const by simply requiring that the
+ * wrapped callable is const-callable.
  */
 
 template<typename Signature>
