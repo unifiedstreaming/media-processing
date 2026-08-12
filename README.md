@@ -52,6 +52,16 @@ media processing tools.
   [x265](https://www.x265.org/)
   library. Distributed under the terms of the GPLv2.
 
+* **x265_encoding_service**
+
+  A daemon/service that provides x265 encoding over a TCP
+  connection. Distributed under the terms of the GPLv2.
+
+* **x265_es_utils**
+
+  A static library providing some utilities for the x265 encoding
+  service. Distributed under the terms of the GPLv2.
+
 * **x265_proto**
 
   A shared library/DLL that implements both the client and server
