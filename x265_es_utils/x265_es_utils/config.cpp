@@ -241,6 +241,7 @@ void config_t::read_options(cuti::args_reader_t& reader,
       !walker.match("--directory", directory_) &&
       !walker.match("--dry-run", dry_run_) &&
       !walker.match("--endpoint", handle_endpoint) &&
+      !walker.match("--frame-threads", encoder_settings_.frame_threads_) &&
       !walker.match("--logfile-rotation-depth", logfile_rotation_depth_) &&
       !walker.match("--logfile-size-limit", logfile_size_limit_) &&
       !walker.match("--loglevel", loglevel_) &&
@@ -306,6 +307,8 @@ void config_t::print_usage(std::ostream& os)
     }
     os << ")" << std::endl;
   }
+  os << "  --frame-threads <number>         " <<
+    "sets libx265 frame threads (default: 0)" << std::endl;
   os << "  --logfile <path>                 " <<
     "log to file <path>" << std::endl;
   os << "  --logfile-rotation-depth <depth> " <<

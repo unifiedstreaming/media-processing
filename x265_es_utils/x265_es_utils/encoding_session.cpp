@@ -1463,6 +1463,7 @@ struct x265_encoder_t
       *msg << "initial param:\n" << param_;
     }
 
+    param_->frameNumThreads = encoder_settings.frame_threads_;
     param_->logCallback = x265_log_callback;
     param_->logContext = const_cast<cuti::logging_context_t*>(&logging_context_);
     assert(param_->internalBitDepth == api_->bit_depth);

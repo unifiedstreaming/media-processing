@@ -32,10 +32,12 @@ struct encoder_settings_t
   encoder_settings_t()
   : preset_()
   , tune_()
+  , frame_threads_(0)
   { }
 
   std::string preset_;
   std::string tune_;
+  unsigned int frame_threads_;
 };
 
 } // x265_es_utils
