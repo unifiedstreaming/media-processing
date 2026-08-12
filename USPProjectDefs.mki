@@ -17,6 +17,7 @@ cuti-version ?= 0.0.0
 x264-encoding-service-version ?= 0.0.0
 x264-proto-version ?= 0.0.0
 x265-encoding-service-version ?= 0.0.0
+x265-encoding-service-version ?= 0.0.0
 x265-proto-version ?= 0.0.0
 x26x-proto-version ?= 0.0.0
 
