@@ -296,6 +296,14 @@ wrap_x264_param_t::wrap_x264_param_t(
       << " width=" << session_params.common_.width_
       << " height=" << session_params.common_.height_
       << " format=" << to_string(session_params.common_.format_);
+    if(!encoder_settings.preset_.empty())
+    {
+      *msg << " preset=" << encoder_settings.preset_;
+    }
+    if(!encoder_settings.tune_.empty())
+    {
+      *msg << " tune=" << encoder_settings.tune_;
+    }
   }
 
   if(session_params.common_.bitrate_ == 0)
