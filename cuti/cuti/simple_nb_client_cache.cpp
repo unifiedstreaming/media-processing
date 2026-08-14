@@ -28,14 +28,9 @@ namespace cuti
 {
 
 simple_nb_client_cache_t::simple_nb_client_cache_t(
-  socket_layer_t& sockets,
-  std::size_t max_cachesize,
-  std::size_t inbufsize,
-  std::size_t outbufsize)
+  socket_layer_t& sockets, settings_t settings)
 : sockets_(sockets)
-, max_cachesize_(max_cachesize)
-, inbufsize_(inbufsize)
-, outbufsize_(outbufsize)
+, settings_(std::move(settings))
 , mut_()
 , clients_()
 { }
@@ -78,7 +73,8 @@ simple_nb_client_cache_t::obtain(logging_context_t const& context,
     try
     {
       result = std::make_unique<nb_client_t>(
-        sockets_, server_address, inbufsize_, outbufsize_);
+        sockets_, server_address,
+        settings_.inbufsize_, settings_.outbufsize_);
     }
     catch(std::exception const&)
     {
@@ -112,7 +108,7 @@ void simple_nb_client_cache_t::store(logging_context_t const& context,
     std::size_t old_size = clients_.size();
     clients_.push_front(std::move(client));
 
-    if(old_size == max_cachesize_)
+    if(old_size == settings_.max_cachesize_)
     {
       evict = std::move(clients_.back());
       clients_.pop_back();

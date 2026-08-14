@@ -43,17 +43,29 @@ struct socket_layer_t;
  */
 struct CUTI_ABI simple_nb_client_cache_t : nb_client_cache_t
 {
-  static std::size_t constexpr default_max_cachesize = 64;
-  static std::size_t constexpr default_inbufsize =
-    nb_inbuf_t::default_bufsize;
-  static std::size_t constexpr default_outbufsize =
-    nb_outbuf_t::default_bufsize;
+  struct CUTI_ABI settings_t
+  {
+    static std::size_t constexpr default_max_cachesize = 64;
+    static std::size_t constexpr default_inbufsize =
+      nb_inbuf_t::default_bufsize;
+    static std::size_t constexpr default_outbufsize =
+      nb_outbuf_t::default_bufsize;
+
+    settings_t()
+    : max_cachesize_(default_max_cachesize)
+    , inbufsize_(default_inbufsize)
+    , outbufsize_(default_outbufsize)
+    { }
+
+    std::size_t max_cachesize_;
+    std::size_t inbufsize_;
+    std::size_t outbufsize_;
+  };
 
   explicit simple_nb_client_cache_t(
     socket_layer_t& sockets,
-    std::size_t max_cachesize = default_max_cachesize,
-    std::size_t inbufsize = default_inbufsize,
-    std::size_t outbufsize = default_outbufsize);
+    settings_t settings = settings_t{}
+  );
 
   socket_layer_t& socket_layer() override;
 
@@ -74,9 +86,7 @@ struct CUTI_ABI simple_nb_client_cache_t : nb_client_cache_t
 
 private :
   socket_layer_t& sockets_;
-  std::size_t max_cachesize_;
-  std::size_t inbufsize_;
-  std::size_t outbufsize_;
+  settings_t const settings_;
 
   std::mutex mut_;
   std::list<std::unique_ptr<nb_client_t>> clients_;

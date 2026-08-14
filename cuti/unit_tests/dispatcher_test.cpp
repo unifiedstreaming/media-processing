@@ -361,17 +361,15 @@ void test_eviction(logging_context_t const& client_context,
     scoped_thread_t server_thread([&] { dispatcher.run(); });
     auto stop_guard = make_scoped_guard([&] { dispatcher.stop(SIGINT); });
 
-    simple_nb_client_cache_t cache1(
-      sockets,
-      simple_nb_client_cache_t::default_max_cachesize,
-      bufsize, bufsize);
+    simple_nb_client_cache_t::settings_t cache_settings{};
+    cache_settings.inbufsize_ = bufsize;
+    cache_settings.outbufsize_ = bufsize;
+    
+    simple_nb_client_cache_t cache1(sockets, cache_settings);
     rpc_client_t client1(client_context, cache1, server_address);
     echo_nothing(client1);
 
-    simple_nb_client_cache_t cache2(
-      sockets,
-      simple_nb_client_cache_t::default_max_cachesize,
-      bufsize, bufsize);
+    simple_nb_client_cache_t cache2(sockets, cache_settings);
     rpc_client_t client2(client_context, cache2, server_address);
     echo_nothing(client2);
 
@@ -427,10 +425,11 @@ void test_remote_sleeps(logging_context_t const& client_context,
     scoped_thread_t server_thread([&] { dispatcher.run(); });
     auto stop_guard = make_scoped_guard([&] { dispatcher.stop(SIGINT); });
 
-    simple_nb_client_cache_t cache(
-      sockets,
-      simple_nb_client_cache_t::default_max_cachesize,
-      bufsize, bufsize);
+    simple_nb_client_cache_t::settings_t cache_settings{};
+    cache_settings.inbufsize_ = bufsize;
+    cache_settings.outbufsize_ = bufsize;
+    
+    simple_nb_client_cache_t cache(sockets, cache_settings);
 
     std::list<rpc_client_t> clients;
     while(clients.size() != n_clients)
@@ -523,10 +522,11 @@ void do_test_interrupted_server(logging_context_t const& client_context,
     endpoint_t server_address = dispatcher->add_listener(
       local_interfaces(sockets, any_port).front(), map);
 
-    simple_nb_client_cache_t cache(
-      sockets,
-      simple_nb_client_cache_t::default_max_cachesize,
-      bufsize, bufsize);
+    simple_nb_client_cache_t::settings_t cache_settings{};
+    cache_settings.inbufsize_ = bufsize;
+    cache_settings.outbufsize_ = bufsize;
+    
+    simple_nb_client_cache_t cache(sockets, cache_settings);
 
     std::list<scoped_thread_t> client_threads;
     for(std::size_t i = 0; i != n_clients; ++i)
@@ -641,10 +641,11 @@ void test_restart(logging_context_t const& client_context,
      */
     for(int i = 0; i != 2; ++i)
     {
-      simple_nb_client_cache_t cache(
-        sockets,
-        simple_nb_client_cache_t::default_max_cachesize,
-        bufsize, bufsize);
+      simple_nb_client_cache_t::settings_t cache_settings{};
+      cache_settings.inbufsize_ = bufsize;
+      cache_settings.outbufsize_ = bufsize;
+    
+      simple_nb_client_cache_t cache(sockets, cache_settings);
 
       scoped_thread_t runner(
         [&dispatcher] { dispatcher.run(); });

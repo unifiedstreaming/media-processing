@@ -527,10 +527,11 @@ void run_logic_tests(logging_context_t const& client_context,
     endpoint_t server_endpoint = dispatcher.add_listener(
       local_interfaces(sockets, any_port).front(), map);
 
-    simple_nb_client_cache_t cache(
-      sockets,
-      simple_nb_client_cache_t::default_max_cachesize,
-      bufsize, bufsize);
+    simple_nb_client_cache_t::settings_t cache_settings{};
+    cache_settings.inbufsize_ = bufsize;
+    cache_settings.inbufsize_ = bufsize;
+    simple_nb_client_cache_t cache(sockets, cache_settings);
+
     rpc_client_t client(client_context, cache, server_endpoint);
 
     {
@@ -570,10 +571,11 @@ void throughput_echo_client(logging_context_t const& context,
     *msg << __func__ << ": starting";
   }
 
-  simple_nb_client_cache_t cache(
-    sockets,
-    simple_nb_client_cache_t::default_max_cachesize,
-    bufsize, bufsize);
+  simple_nb_client_cache_t::settings_t cache_settings{};
+  cache_settings.inbufsize_ = bufsize;
+  cache_settings.inbufsize_ = bufsize;
+  simple_nb_client_cache_t cache(sockets, cache_settings);
+
   rpc_client_t client(context, cache, endpoint, settings);
 
   std::vector<std::string> reply;

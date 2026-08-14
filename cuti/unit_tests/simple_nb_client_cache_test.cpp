@@ -336,9 +336,11 @@ void test_eviction(logging_context_t const& context)
 
   {
     std::size_t constexpr max_cachesize = 0;
-
+    simple_nb_client_cache_t::settings_t settings{};
+    settings.max_cachesize_ = max_cachesize;
+    
     socket_layer_t sockets;
-    simple_nb_client_cache_t cache(sockets, max_cachesize);
+    simple_nb_client_cache_t cache(sockets, settings);
     dummy_server_t server(sockets);
 
     auto client_1 = cache.obtain(context, server.address());
