@@ -18,8 +18,8 @@
  */
 
 #include "encoding_session.hpp"
+#include "x264_exception.hpp"
 
-#include <cuti/exception_builder.hpp>
 #include <cuti/stringprintf.hpp>
 #include <x264_proto/types.hpp>
 
@@ -912,13 +912,6 @@ int wrap_x264_encoder_t::flush(x264_output_t& output) const
 }
 
 } // anonymous namespace
-
-x264_exception_t::x264_exception_t(std::string complaint)
-: std::runtime_error(std::move(complaint))
-{ }
-
-x264_exception_t::~x264_exception_t()
-{ }
 
 struct encoding_session_t::impl_t
 {

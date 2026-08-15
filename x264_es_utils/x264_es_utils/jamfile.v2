@@ -24,6 +24,7 @@ lib x264_es_utils
   config.cpp
   encoder_settings.cpp
   encoding_session.cpp
+  x264_exception.cpp
   [ usp-builder.staged-library cuti ]
   [ usp-builder.staged-library x264 ]
   [ usp-builder.staged-library x264_proto ]
