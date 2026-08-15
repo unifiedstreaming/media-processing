@@ -90,4 +90,18 @@ void parse_optval(char const* name, cuti::args_reader_t const& reader,
   }
 }
 
+void parse_optval(char const* name, cuti::args_reader_t const& reader,
+  char const* in, encoder_settings_t::numa_pools_t& out)
+{
+  if(std::strlen(in) > X265_MAX_STRING_SIZE - 1)
+  {
+    x265_exception_builder_t builder;
+    builder << reader.current_origin() <<
+      ": invalid value '" << in << "' for option '" << name <<
+      "'; string must be less than " << X265_MAX_STRING_SIZE << " characters";
+    builder.explode();
+  }
+  out.value_ = in;
+}
+
 } // x265_es_utils

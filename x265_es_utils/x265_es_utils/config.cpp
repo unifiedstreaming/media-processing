@@ -249,6 +249,7 @@ void config_t::read_options(cuti::args_reader_t& reader,
         dispatcher_config_.max_concurrent_requests_) &&
       !walker.match("--max-connections",
         dispatcher_config_.max_connections_) &&
+      !walker.match("--numa-pools", encoder_settings_.numa_pools_) &&
       !walker.match("--pidfile", pidfile_) &&
       !walker.match("--preset", encoder_settings_.preset_) &&
       !walker.match("--selector",
@@ -330,6 +331,9 @@ void config_t::print_usage(std::ostream& os)
   os << "                                     (default: " <<
     cuti::dispatcher_config_t::default_max_connections() <<
     "; 0=unlimited) " << std::endl;
+  os << "  --numa-pools <string>            " <<
+    "sets libx265 numa pools (default: \"" <<
+    encoder_settings_t::default_numa_pools() << "\")" << std::endl;
   os << "  --pidfile <path>                 " <<
     "create PID file <path> (default: none)" << std::endl;
   os << "  --preset <presets>               " <<

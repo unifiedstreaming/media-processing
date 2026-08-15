@@ -1474,6 +1474,10 @@ struct x265_encoder_t
     }
 
     param_->frameNumThreads = encoder_settings.frame_threads_.value_;
+    auto const np_size = encoder_settings.numa_pools_.value_.size() + 1;
+    assert(np_size <= X265_MAX_STRING_SIZE);
+    auto const* np_cstr = encoder_settings.numa_pools_.value_.c_str();
+    std::copy(np_cstr, np_cstr + np_size, param_->numaPools);
     param_->logCallback = x265_log_callback;
     param_->logContext = const_cast<cuti::logging_context_t*>(&logging_context_);
     assert(param_->internalBitDepth == api_->bit_depth);
