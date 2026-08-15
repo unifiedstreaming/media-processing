@@ -20,7 +20,6 @@
 #include "encoding_session.hpp"
 #include "x265_exception.hpp"
 
-#include <cuti/exception_builder.hpp>
 #include <cuti/hexdump.hpp>
 #include <cuti/stringprintf.hpp>
 #include <x265_proto/types.hpp>
@@ -1752,15 +1751,6 @@ std::ostream& operator<<(std::ostream& os, x265_nal const& rhs)
 }
 
 } // anonymous namespace
-
-////////////////////////////////////////////////////////////////////////////////
-
-x265_exception_t::x265_exception_t(std::string complaint)
-: std::runtime_error(std::move(complaint))
-{ }
-
-x265_exception_t::~x265_exception_t()
-{ }
 
 ////////////////////////////////////////////////////////////////////////////////
 

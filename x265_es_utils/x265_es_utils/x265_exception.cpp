@@ -18,3 +18,15 @@
  */
 
 #include "x265_exception.hpp"
+
+namespace x265_es_utils
+{
+
+x265_exception_t::x265_exception_t(std::string complaint)
+: std::runtime_error(std::move(complaint))
+{ }
+
+x265_exception_t::~x265_exception_t()
+{ }
+
+} // x265_es_utils
