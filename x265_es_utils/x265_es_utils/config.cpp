@@ -308,7 +308,8 @@ void config_t::print_usage(std::ostream& os)
     os << ")" << std::endl;
   }
   os << "  --frame-threads <number>         " <<
-    "sets libx265 frame threads (default: 0)" << std::endl;
+    "sets libx265 frame threads (default: " <<
+    encoder_settings_t::default_frame_threads() << ")" << std::endl;
   os << "  --logfile <path>                 " <<
     "log to file <path>" << std::endl;
   os << "  --logfile-rotation-depth <depth> " <<
@@ -332,7 +333,8 @@ void config_t::print_usage(std::ostream& os)
   os << "  --pidfile <path>                 " <<
     "create PID file <path> (default: none)" << std::endl;
   os << "  --preset <presets>               " <<
-    "sets libx265 session presets (default: none)" << std::endl;
+    "sets libx265 session presets (default: \"" <<
+    encoder_settings_t::default_preset() << "\")" << std::endl;
   os << "  --selector <type>                " <<
     "sets selector type (default: " <<
     cuti::dispatcher_config_t::default_selector_factory() << ")" << std::endl;
@@ -342,7 +344,8 @@ void config_t::print_usage(std::ostream& os)
   os << "  --syslog-name <name>             " <<
     "log to system log as <name>" << std::endl;
   os << "  --tune <tunings>                 " <<
-    "sets libx265 session tunings (default: none)" << std::endl;
+    "sets libx265 session tunings (default: \"" <<
+    encoder_settings_t::default_tune() << "\")" << std::endl;
 #ifndef _WIN32
   os << "  --umask <mask>                   " <<
     "set umask (default: no change)" << std::endl;
