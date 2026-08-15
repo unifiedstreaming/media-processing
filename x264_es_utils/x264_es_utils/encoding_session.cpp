@@ -26,6 +26,7 @@
 #include <iomanip>
 #include <limits>
 #include <thread>
+
 #include <x264.h>
 
 #undef NDEBUG
@@ -229,8 +230,8 @@ wrap_x264_param_t::wrap_x264_param_t(
   encoder_settings_t const& encoder_settings)
 : logging_context_(logging_context)
 {
-  auto const& preset = encoder_settings.preset_;
-  auto const& tune = encoder_settings.tune_;
+  auto const& preset = encoder_settings.preset_.value_;
+  auto const& tune = encoder_settings.tune_.value_;
   if(x264_param_default_preset(&param_,
     preset.empty() ? nullptr : preset.c_str(),
     tune.empty() ? nullptr : tune.c_str()) < 0)
@@ -296,13 +297,13 @@ wrap_x264_param_t::wrap_x264_param_t(
       << " width=" << session_params.common_.width_
       << " height=" << session_params.common_.height_
       << " format=" << to_string(session_params.common_.format_);
-    if(!encoder_settings.preset_.empty())
+    if(!encoder_settings.preset_.value_.empty())
     {
-      *msg << " preset=" << encoder_settings.preset_;
+      *msg << " preset=" << encoder_settings.preset_.value_;
     }
-    if(!encoder_settings.tune_.empty())
+    if(!encoder_settings.tune_.value_.empty())
     {
-      *msg << " tune=" << encoder_settings.tune_;
+      *msg << " tune=" << encoder_settings.tune_.value_;
     }
   }
 
@@ -315,40 +316,10 @@ wrap_x264_param_t::wrap_x264_param_t(
   }
 
   // Number of session threads
-  if(encoder_settings.session_threads_ != 0) // 0=auto
-  {
-    static unsigned int constexpr max_session_threads =
-      std::numeric_limits<int>::max();
-    if(encoder_settings.session_threads_ > max_session_threads)
-    {
-      x264_exception_builder_t builder;
-      builder << "number of session threads (" <<
-        encoder_settings.session_threads_ << ") exceeds maximum (" <<
-	max_session_threads << ')';
-      builder.explode();
-    }
-
-    param_.i_threads = static_cast<int>(encoder_settings.session_threads_);
-  }
+  param_.i_threads = encoder_settings.session_threads_.value_;
 
   // Number of session lookahead threads
-  if(encoder_settings.session_lookahead_threads_ != 0) // 0=auto
-  {
-    static unsigned int constexpr max_session_lookahead_threads =
-      std::numeric_limits<int>::max();
-    if(encoder_settings.session_lookahead_threads_ >
-       max_session_lookahead_threads)
-    {
-      x264_exception_builder_t builder;
-      builder << "number of session lookahead threads (" <<
-        encoder_settings.session_lookahead_threads_ << ") exceeds maximum (" <<
-	max_session_lookahead_threads << ')';
-      builder.explode();
-    }
-
-    param_.i_lookahead_threads = static_cast<int>(
-      encoder_settings.session_lookahead_threads_);
-  }
+  param_.i_lookahead_threads = encoder_settings.session_lookahead_threads_.value_;
 
   // Whether to use slice-based threading
   param_.b_sliced_threads = encoder_settings.session_sliced_threads_ ? 1 : 0;

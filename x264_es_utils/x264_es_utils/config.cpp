@@ -341,7 +341,8 @@ void config_t::print_usage(std::ostream& os)
   os << "  --pidfile <path>                 " <<
     "create PID file <path> (default: none)" << std::endl;
   os << "  --preset <presets>               " <<
-    "sets libx264 session presets (default: none)" << std::endl;
+    "sets libx264 session presets (default: \"" <<
+    encoder_settings_t::default_preset() << "\")" << std::endl;
   os << "  --selector <type>                " <<
     "sets selector type (default: " <<
     cuti::dispatcher_config_t::default_selector_factory() << ")" << std::endl;
@@ -371,7 +372,8 @@ void config_t::print_usage(std::ostream& os)
   os << "  --syslog-name <name>             " <<
     "log to system log as <name>" << std::endl;
   os << "  --tune <tunings>                 " <<
-    "sets libx264 session tunings (default: none)" << std::endl;
+    "sets libx264 session tunings (default: \"" <<
+    encoder_settings_t::default_tune() << "\")" << std::endl;
 #ifndef _WIN32
   os << "  --umask <mask>                   " <<
     "set umask (default: no change)" << std::endl;
