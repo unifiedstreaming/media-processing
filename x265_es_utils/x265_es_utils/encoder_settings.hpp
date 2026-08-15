@@ -37,7 +37,7 @@ struct encoder_settings_t
 
   struct tune_t
   {
-    tune_t(std::string value) : value_(std::move(value)) {}
+    tune_t(std::string value) : value_(std::move(value)) { }
     std::string value_;
   };
 
@@ -53,16 +53,16 @@ struct encoder_settings_t
     std::string value_;
   };
 
-  static std::string default_preset() { return {}; }
-  static std::string default_tune() { return {}; }
-  static unsigned int default_frame_threads() { return 0; }
-  static std::string default_numa_pools() { return {}; }
+  static constexpr std::string default_preset() { return {}; }
+  static constexpr std::string default_tune() { return {}; }
+  static constexpr unsigned int default_frame_threads() { return 0; }
+  static constexpr std::string default_numa_pools() { return {}; }
 
   encoder_settings_t()
-  : preset_(preset_t(default_preset()))
-  , tune_(tune_t(default_tune()))
-  , frame_threads_(frame_threads_t(default_frame_threads()))
-  , numa_pools_(numa_pools_t(default_numa_pools()))
+  : preset_(default_preset())
+  , tune_(default_tune())
+  , frame_threads_(default_frame_threads())
+  , numa_pools_(default_numa_pools())
   { }
 
   preset_t preset_;

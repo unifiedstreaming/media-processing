@@ -32,7 +32,8 @@ namespace x265_es_utils
 namespace // anonymous
 {
 
-void parse_optval(char const* name, cuti::args_reader_t const& reader, char const* in, std::string& out, char const* const* choices)
+void parse_optval(char const* name, cuti::args_reader_t const& reader,
+  char const* in, std::string& out, char const* const* choices)
 {
   for(auto const* const* choice = choices; *choice != nullptr; ++choice)
   {
