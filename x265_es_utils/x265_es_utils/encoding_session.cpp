@@ -18,6 +18,7 @@
  */
 
 #include "encoding_session.hpp"
+#include "x265_exception.hpp"
 
 #include <cuti/exception_builder.hpp>
 #include <cuti/hexdump.hpp>
@@ -639,7 +640,8 @@ struct wrap_x265_param_t
     encoder_settings_t const& encoder_settings,
     x265_proto::session_params_t const& session_params)
   : api_(api)
-  , param_(make_param(api_, encoder_settings.preset_, encoder_settings.tune_))
+  , param_(make_param(api_, encoder_settings.preset_.value_,
+                      encoder_settings.tune_.value_))
   { }
 
   x265_param const* get() const
@@ -1448,13 +1450,13 @@ struct x265_encoder_t
         << " width=" << session_params.common_.width_
         << " height=" << session_params.common_.height_
         << " format=" << to_string(session_params.common_.format_);
-      if(!encoder_settings.preset_.empty())
+      if(!encoder_settings.preset_.value_.empty())
       {
-        *msg << " preset=" << encoder_settings.preset_;
+        *msg << " preset=" << encoder_settings.preset_.value_;
       }
-      if(!encoder_settings.tune_.empty())
+      if(!encoder_settings.tune_.value_.empty())
       {
-        *msg << " tune=" << encoder_settings.tune_;
+        *msg << " tune=" << encoder_settings.tune_.value_;
       }
     }
 
@@ -1471,7 +1473,7 @@ struct x265_encoder_t
       *msg << "initial param:\n" << param_;
     }
 
-    param_->frameNumThreads = encoder_settings.frame_threads_;
+    param_->frameNumThreads = encoder_settings.frame_threads_.value_;
     param_->logCallback = x265_log_callback;
     param_->logContext = const_cast<cuti::logging_context_t*>(&logging_context_);
     assert(param_->internalBitDepth == api_->bit_depth);

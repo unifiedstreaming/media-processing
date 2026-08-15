@@ -84,13 +84,18 @@ void parse_optval(char const* name, args_reader_t const& reader,
     system_exception_builder_t builder;
     builder << reader.current_origin() << ": " <<
       "invalid selector type '" << in << "'. Valid types are: ";
-    auto pos = factories.begin();
-    builder << *pos;
-    for(++pos; pos != factories.end(); ++pos)
+    for(auto pos = factories.begin(); pos != factories.end(); ++pos)
     {
-      builder << ", " << *pos;
+      if(pos + 1 == factories.end())
+      {
+        builder << " and ";
+      }
+      else if(pos != factories.begin())
+      {
+        builder << ", ";
+      }
+      builder << "'" << *pos << "'";
     }
-    builder << ".";
     builder.explode();
   }
 

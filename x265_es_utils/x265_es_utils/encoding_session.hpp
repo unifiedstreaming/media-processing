@@ -22,7 +22,6 @@
 
 #include "encoder_settings.hpp"
 
-#include <cuti/exception_builder.hpp>
 #include <cuti/logging_context.hpp>
 
 #include <x265_proto/types.hpp>
@@ -31,14 +30,6 @@
 
 namespace x265_es_utils
 {
-
-struct x265_exception_t : std::runtime_error
-{
-  explicit x265_exception_t(std::string complaint);
-  ~x265_exception_t() override;
-};
-
-using x265_exception_builder_t = cuti::exception_builder_t<x265_exception_t>;
 
 struct encoding_session_t
 {

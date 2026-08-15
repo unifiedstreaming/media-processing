@@ -24,6 +24,7 @@ lib x265_es_utils
   config.cpp
   encoder_settings.cpp
   encoding_session.cpp
+  x265_exception.cpp
   [ usp-builder.staged-library cuti ]
   [ usp-builder.staged-library x265 ]
   [ usp-builder.staged-library x265_proto ]
