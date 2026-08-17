@@ -20,6 +20,7 @@
 #ifndef CUTI_SIMPLE_NB_CLIENT_CACHE_HPP_
 #define CUTI_SIMPLE_NB_CLIENT_CACHE_HPP_
 
+#include "chrono_types.hpp"
 #include "linkage.h"
 #include "logging_context.hpp"
 #include "nb_inbuf.hpp"
@@ -27,11 +28,13 @@
 #include "nb_client.hpp"
 #include "nb_client_cache.hpp"
 
+#include <cassert>
 #include <cstddef>
 #include <list>
 #include <memory>
 #include <mutex>
 #include <ostream>
+#include <utility>
 
 namespace cuti
 {
@@ -50,16 +53,19 @@ struct CUTI_ABI simple_nb_client_cache_t : nb_client_cache_t
       nb_inbuf_t::default_bufsize;
     static std::size_t constexpr default_outbufsize =
       nb_outbuf_t::default_bufsize;
+    static duration_t constexpr default_max_age = seconds_t{118};
 
     settings_t()
     : max_cachesize_(default_max_cachesize)
     , inbufsize_(default_inbufsize)
     , outbufsize_(default_outbufsize)
+    , max_age_(default_max_age)
     { }
 
     std::size_t max_cachesize_;
     std::size_t inbufsize_;
     std::size_t outbufsize_;
+    duration_t max_age_;
   };
 
   explicit simple_nb_client_cache_t(
@@ -85,11 +91,24 @@ struct CUTI_ABI simple_nb_client_cache_t : nb_client_cache_t
     std::ostream& os, simple_nb_client_cache_t const& cache);
 
 private :
+  struct CUTI_ABI entry_t
+  {
+    explicit entry_t(std::unique_ptr<nb_client_t> client)
+    : timestamp_(cuti_clock_t::now())
+    , client_((assert(client != nullptr), std::move(client)))
+    { }
+
+    time_point_t const timestamp_;
+    std::unique_ptr<nb_client_t> client_;
+  };
+
+  using entry_list_t = std::list<entry_t>;
+    
   socket_layer_t& sockets_;
   settings_t const settings_;
 
   std::mutex mut_;
-  std::list<std::unique_ptr<nb_client_t>> clients_;
+  entry_list_t entries_; // in reverse timestamp order (highest first)
 };
 
 } // cuti

@@ -362,6 +362,73 @@ void test_eviction(logging_context_t const& context)
   }
 }
 
+void test_aging(logging_context_t const& context)
+{
+  if(auto msg = context.message_at(loglevel_t::info))
+  {
+    *msg << __func__ << ": starting";
+  }
+
+  {
+    socket_layer_t sockets;
+
+    simple_nb_client_cache_t::settings_t cache_settings;
+    cache_settings.max_age_ = cuti::duration_t{0};
+    simple_nb_client_cache_t cache(sockets, cache_settings);
+
+    dummy_server_t server_1(sockets);
+    dummy_server_t server_2(sockets);
+
+    auto client_1_1 = cache.obtain(context, server_1.address());
+    assert(client_1_1 != nullptr);
+    auto id_1_1 = connection_id(*client_1_1);
+
+    auto client_2_1 = cache.obtain(context, server_2.address());
+    assert(client_2_1 != nullptr);
+    auto id_2_1 = connection_id(*client_2_1);
+
+    assert(id_1_1 != id_2_1);
+
+    cache.store(context, std::move(client_1_1));
+    cache.store(context, std::move(client_2_1));
+
+    auto client_1_2 = cache.obtain(context, server_1.address());
+    assert(client_1_2 != nullptr);
+    auto id_1_2 = connection_id(*client_1_2);
+    assert(id_1_2 != id_1_1);
+
+    auto client_2_2 = cache.obtain(context, server_2.address());
+    assert(client_2_2 != nullptr);
+    auto id_2_2 = connection_id(*client_2_2);
+    assert(id_2_2 != id_2_1);
+
+    assert(id_1_2 != id_2_2);
+
+    cache.store(context, std::move(client_1_2));
+    cache.store(context, std::move(client_2_2));
+
+    cache.invalidate_entries(context, server_1.address());
+    cache.invalidate_entries(context, server_2.address());
+    
+    auto client_1_3 = cache.obtain(context, server_1.address());
+    assert(client_1_3 != nullptr);
+    auto id_1_3 = connection_id(*client_1_3);
+    assert(id_1_3 != id_1_2);
+
+    auto client_2_3 = cache.obtain(context, server_2.address());
+    assert(client_2_3 != nullptr);
+    auto id_2_3 = connection_id(*client_2_3);
+    assert(id_2_3 != id_2_2);
+
+    assert(id_1_3 != id_2_3);
+  }
+    
+  if(auto msg = context.message_at(loglevel_t::info))
+  {
+    *msg << __func__ << ": done";
+  }
+}
+
 struct options_t
 {
   static loglevel_t constexpr default_loglevel = loglevel_t::error;
@@ -416,6 +483,7 @@ int run_tests(int argc, char const* const* argv)
   test_single_server_invalidation(context);
   test_multi_server_invalidation(context);
   test_eviction(context);
+  test_aging(context);
 
   return 0;
 }
