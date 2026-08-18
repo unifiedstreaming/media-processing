@@ -94,6 +94,7 @@ void rpc_client_t::call_t::step()
 
 rpc_client_t::call_t::~call_t()
 {
+  // TODO: Do not let exceptions escape
   if(done_ && result_.exception() == nullptr)
   {
     // No RPC errors detected: connection reusable
