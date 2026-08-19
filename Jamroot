@@ -12,6 +12,13 @@
 path-constant ROOT : . ;
 modules.load usp-builder : usp-builder.jam : $(ROOT)/usp-builder/lib ;
 
+import usp-builder ;
+
+if [ usp-builder.has-musl-libc ]
+{
+  constant LD_STACK_SIZE : "-Wl,-z,stack-size=262144" ;
+}
+
 project oss
 : requirements
   <cxxstd>20
@@ -36,6 +43,7 @@ project oss
   <target-os>freebsd:<linkflags>-Wl,-rpath,\\$ORIGIN/../lib
   <target-os>linux:<linkflags>-Wl,--enable-new-dtags
   <target-os>linux:<linkflags>-Wl,-rpath,\\$ORIGIN/../lib
+  <target-os>linux:<linkflags>$(LD_STACK_SIZE)
 : default-build
 # <variant>release
   <address-model>64

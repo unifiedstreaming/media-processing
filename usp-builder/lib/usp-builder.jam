@@ -22,6 +22,7 @@
 # to provide usp-builder-required targets.
 #
 
+import common ;
 import os ;
 import errors ;
 import path ;
@@ -307,6 +308,44 @@ rule python-extension-filename ( name : type ? : properties * )
   else if $(type) = IMPORT_LIB
   {
     result = $(name)$(dll-suffix:B).lib ;
+  }
+
+  return $(result) ;
+}
+
+#
+# With musl libc, "ldd --version" prints information similar to:
+#
+#   musl libc (x86_64)
+#   Version 1.2.6
+#   Dynamic Program Loader
+#   Usage: /lib/ld-musl-x86_64.so.1 [options] [--] pathname
+#
+# The first line tells us that it is musl. In contrast, with
+# glibc, the output looks similar to:
+#
+#   ldd (Ubuntu GLIBC 2.43-2ubuntu2.3) 2.43
+#   Copyright (C) 2024 Free Software Foundation, Inc.
+#   This is free software; see the source for copying conditions.  There is NO
+#   warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+#   Written by Roland McGrath and Ulrich Drepper.
+#
+
+rule has-musl-libc ( )
+{
+  local result ;
+
+  if [ os.name ] = LINUX
+  {
+    local ldd = [ common.find-tool ldd ] ;
+    if $(ldd)
+    {
+      local output = [ SPLIT_BY_CHARACTERS [ SHELL $(ldd)" --version 2>&1" ] : "\r\n" ] ;
+      if [ MATCH "(musl libc)" : $(output[1]) ]
+      {
+        result = "yes" ;
+      }
+    }
   }
 
   return $(result) ;
