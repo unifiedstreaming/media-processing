@@ -277,7 +277,8 @@ bool endpoint_t::less_than(endpoint_t const& that) const noexcept
     return cmp < 0;
   }
 
-  if(int cmp = this->port() - that.port(); cmp != 0)
+  if(int cmp = static_cast<int>(this->port()) - static_cast<int>(that.port());
+     cmp != 0)
   {
     return cmp < 0;
   }
