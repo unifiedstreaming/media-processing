@@ -267,20 +267,24 @@ bool endpoint_t::less_than(endpoint_t const& that) const noexcept
     return false;
   }
 
-  if(int cmp = this->address_family() - that.address_family(); cmp != 0)
+
+  if(auto this_family = this->address_family(),
+          that_family = that.address_family();
+     this_family != that_family)
   {
-    return cmp < 0;
+    return this_family < that_family;
   }
 
-  if(int cmp = this->ip_address().compare(that.ip_address()); cmp != 0)
-  {
-    return cmp < 0;
-  }
-
-  if(int cmp = static_cast<int>(this->port()) - static_cast<int>(that.port());
+  if(auto cmp = this->ip_address().compare(that.ip_address());
      cmp != 0)
   {
     return cmp < 0;
+  }
+
+  if(auto this_port = this->port(), that_port = that.port();
+     this_port != that_port)
+  {
+    return this_port < that_port;
   }
 
   return false;
