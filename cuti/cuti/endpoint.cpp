@@ -234,7 +234,7 @@ unsigned int endpoint_t::port() const
   return rep_->port();
 }
 
-bool endpoint_t::equals(endpoint_t const& that) const noexcept
+bool endpoint_t::equal_to(endpoint_t const& that) const noexcept
 {
   if(this->rep_ == that.rep_)
   {
@@ -247,9 +247,42 @@ bool endpoint_t::equals(endpoint_t const& that) const noexcept
   }
 
   return
+     this->address_family() == that.address_family() &&
      this->port() == that.port() &&
-     this->ip_address() == that.ip_address() &&
-     this->address_family() == that.address_family();
+     this->ip_address() == that.ip_address();
+}
+
+bool endpoint_t::less_than(endpoint_t const& that) const noexcept
+{
+  if(this->rep_ == that.rep_)
+  {
+    return false;
+  }
+  if(this->rep_ == nullptr)
+  {
+    return true;
+  }
+  if(that.rep_ == nullptr)
+  {
+    return false;
+  }
+
+  if(int cmp = this->address_family() - that.address_family(); cmp != 0)
+  {
+    return cmp < 0;
+  }
+
+  if(int cmp = this->ip_address().compare(that.ip_address()); cmp != 0)
+  {
+    return cmp < 0;
+  }
+
+  if(int cmp = this->port() - that.port(); cmp != 0)
+  {
+    return cmp < 0;
+  }
+
+  return false;
 }
 
 endpoint_t::endpoint_t(socket_layer_t& sockets,
@@ -257,18 +290,16 @@ endpoint_t::endpoint_t(socket_layer_t& sockets,
 : rep_(make_rep(sockets, addr, addr_size))
 { }
 
-std::ostream& operator<<(std::ostream& os, endpoint_t const& endpoint)
+void endpoint_t::print(std::ostream& os) const
 {
-  if(endpoint.empty())
+  if(this->empty())
   {
     os << "<EMPTY ENDPOINT>";
   }
   else
   {
-    os << endpoint.port() << '@' << endpoint.ip_address();
+    os << this->port() << '@' << this->ip_address();
   }
-
-  return os;
 }
 
 void parse_endpoint(socket_layer_t& sockets,

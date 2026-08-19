@@ -44,6 +44,24 @@ void check_endpoint(socket_layer_t& sockets, endpoint_t const& ep)
   assert(refetched.socket_address_size() == ep.socket_address_size());
   assert(refetched.ip_address() == ep.ip_address());
   assert(refetched.port() == ep.port());
+
+  assert(refetched == ep);
+  assert(!(refetched != ep));
+
+  assert(!(refetched < ep));
+  assert(refetched <= ep);
+  assert(!(refetched > ep));
+  assert(refetched >= ep);
+  
+  endpoint_t empty{};
+
+  assert(!(empty == ep));
+  assert(empty != ep);
+
+  assert(empty < ep);
+  assert(empty <= ep);
+  assert(!(empty > ep));
+  assert(!(empty >= ep));
 }
 
 void ip_address()
