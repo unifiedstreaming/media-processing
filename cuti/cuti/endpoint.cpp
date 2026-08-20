@@ -65,14 +65,12 @@ struct endpoint_t::rep_t
 
   std::strong_ordering operator<=>(rep_t const& that) const noexcept
   {
-    if(auto cmp = this->address_family() <=> that.address_family();
-       cmp != std::strong_ordering::equal)
+    if(auto cmp = this->address_family() <=> that.address_family(); cmp != 0)
     {
       return cmp;
     }
   
-    if(auto cmp = this->ip_address() <=> that.ip_address();
-       cmp != std::strong_ordering::equal)
+    if(auto cmp = this->ip_address() <=> that.ip_address(); cmp != 0)
     {
       return cmp;
     }
