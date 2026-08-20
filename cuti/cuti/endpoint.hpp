@@ -21,8 +21,8 @@
 #define CUTI_ENDPOINT_HPP_
 
 #include "linkage.h"
-#include "relational_ops.hpp"
 
+#include <compare>
 #include <cstddef>
 #include <memory>
 #include <iosfwd>
@@ -38,7 +38,7 @@ struct resolver_t;
 struct socket_layer_t;
 struct tcp_socket_t;
 
-struct CUTI_ABI endpoint_t : relational_ops_t<endpoint_t>
+struct CUTI_ABI endpoint_t
 {
   struct rep_t;
 
@@ -58,8 +58,8 @@ struct CUTI_ABI endpoint_t : relational_ops_t<endpoint_t>
   std::string const& ip_address() const;
   unsigned int port() const;
 
-  bool equal_to(endpoint_t const& that) const noexcept;
-  bool less_than(endpoint_t const& that) const noexcept;
+  bool operator==(endpoint_t const& that) const noexcept;
+  std::strong_ordering operator<=>(endpoint_t const& that) const noexcept;
 
   friend CUTI_ABI
   std::ostream& operator<<(std::ostream& os, endpoint_t const& endpoint)

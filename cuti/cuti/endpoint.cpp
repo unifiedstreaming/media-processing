@@ -55,6 +55,31 @@ struct endpoint_t::rep_t
   virtual std::string const& ip_address() const = 0;
   virtual unsigned int port() const = 0;
 
+  bool operator==(rep_t const& that) const noexcept
+  {
+    return
+      this->port() == that.port() &&
+      this->address_family() == that.address_family() &&
+      this->ip_address() == that.ip_address();
+  }
+
+  std::strong_ordering operator<=>(rep_t const& that) const noexcept
+  {
+    if(auto cmp = this->address_family() <=> that.address_family();
+       cmp != std::strong_ordering::equal)
+    {
+      return cmp;
+    }
+  
+    if(auto cmp = this->ip_address() <=> that.ip_address();
+       cmp != std::strong_ordering::equal)
+    {
+      return cmp;
+    }
+
+    return this->port() <=> that.port();
+  }
+  
   virtual ~rep_t();
 };
   
@@ -64,7 +89,7 @@ namespace // anonymous
 std::string get_ip_address(socket_layer_t&,
                            sockaddr const& addr, unsigned int addr_size)
 {
-  static char const longest_expected[] =
+  static char constexpr longest_expected[] =
     "ffff:ffff:ffff:ffff:ffff:ffff:255.255.255.255";
   char buf[sizeof longest_expected];
 
@@ -234,7 +259,7 @@ unsigned int endpoint_t::port() const
   return rep_->port();
 }
 
-bool endpoint_t::equal_to(endpoint_t const& that) const noexcept
+bool endpoint_t::operator==(endpoint_t const& that) const noexcept
 {
   if(this->rep_ == that.rep_)
   {
@@ -246,48 +271,26 @@ bool endpoint_t::equal_to(endpoint_t const& that) const noexcept
     return false;
   }
 
-  return
-     this->address_family() == that.address_family() &&
-     this->port() == that.port() &&
-     this->ip_address() == that.ip_address();
+  return *this->rep_ == *that.rep_;
 }
 
-bool endpoint_t::less_than(endpoint_t const& that) const noexcept
+std::strong_ordering
+endpoint_t::operator<=>(endpoint_t const& that) const noexcept
 {
   if(this->rep_ == that.rep_)
   {
-    return false;
+    return std::strong_ordering::equal;
   }
   if(this->rep_ == nullptr)
   {
-    return true;
+    return std::strong_ordering::less;
   }
   if(that.rep_ == nullptr)
   {
-    return false;
+    return std::strong_ordering::greater;
   }
 
-
-  if(auto this_family = this->address_family(),
-          that_family = that.address_family();
-     this_family != that_family)
-  {
-    return this_family < that_family;
-  }
-
-  if(auto cmp = this->ip_address().compare(that.ip_address());
-     cmp != 0)
-  {
-    return cmp < 0;
-  }
-
-  if(auto this_port = this->port(), that_port = that.port();
-     this_port != that_port)
-  {
-    return this_port < that_port;
-  }
-
-  return false;
+  return *this->rep_ <=> *that.rep_;
 }
 
 endpoint_t::endpoint_t(socket_layer_t& sockets,
