@@ -43,17 +43,28 @@ namespace cuti
 
 struct endpoint_t::rep_t
 {
-  rep_t()
+  rep_t(int address_family,
+        std::string ip_address,
+        unsigned int port)
+  : address_family_(address_family)
+  , ip_address_(std::move(ip_address))
+  , port_(port)
   { }
 
   rep_t(rep_t const&) = delete;
   rep_t& operator=(rep_t const&) = delete;
 
-  virtual int address_family() const = 0;
+  int address_family() const
+  { return address_family_; }
+
+  std::string const& ip_address() const
+  { return ip_address_; }
+
+  unsigned int port() const
+  { return port_; }
+
   virtual sockaddr const& socket_address() const = 0;
   virtual unsigned int socket_address_size() const = 0;
-  virtual std::string const& ip_address() const = 0;
-  virtual unsigned int port() const = 0;
 
   bool operator==(rep_t const& that) const noexcept
   {
@@ -79,6 +90,11 @@ struct endpoint_t::rep_t
   }
   
   virtual ~rep_t();
+
+private :
+  int address_family_;
+  std::string ip_address_;
+  unsigned int port_;
 };
   
 namespace // anonymous
@@ -126,13 +142,11 @@ std::string get_ip_address(socket_layer_t& sockets, AddrT const& addr)
 struct ipv4_rep_t : endpoint_t::rep_t
 {
   ipv4_rep_t(socket_layer_t& sockets, sockaddr_in const& addr)
-  : endpoint_t::rep_t()
-  , addr_(addr)
-  , ip_address_(get_ip_address(sockets, addr_))
+  : endpoint_t::rep_t(AF_INET,
+                      get_ip_address(sockets, addr),
+                      ntohs(addr.sin_port))
+  , addr_(addr) 
   { }
-
-  int address_family() const override
-  { return AF_INET; }
 
   sockaddr const& socket_address() const override
   { return *reinterpret_cast<sockaddr const*>(&addr_); }
@@ -140,27 +154,18 @@ struct ipv4_rep_t : endpoint_t::rep_t
   unsigned int socket_address_size() const override
   { return sizeof addr_; }
 
-  std::string const& ip_address() const override
-  { return ip_address_; }
-
-  unsigned int port() const override
-  { return ntohs(addr_.sin_port); }
-
 private :
   sockaddr_in addr_;
-  std::string ip_address_;
 };
 
 struct ipv6_rep_t : endpoint_t::rep_t
 {
   ipv6_rep_t(socket_layer_t& sockets, sockaddr_in6 const& addr)
-  : endpoint_t::rep_t()
+  : endpoint_t::rep_t(AF_INET6,
+                      get_ip_address(sockets, addr),
+                      ntohs(addr.sin6_port))
   , addr_(addr)
-  , ip_address_(get_ip_address(sockets, addr_))
   { }
-
-  int address_family() const override
-  { return AF_INET6; }
 
   sockaddr const& socket_address() const override
   { return *reinterpret_cast<sockaddr const*>(&addr_); }
@@ -168,15 +173,8 @@ struct ipv6_rep_t : endpoint_t::rep_t
   unsigned int socket_address_size() const override
   { return sizeof addr_; }
 
-  std::string const& ip_address() const override
-  { return ip_address_; }
-
-  unsigned int port() const override
-  { return ntohs(addr_.sin6_port); }
-
 private :
   sockaddr_in6 addr_;
-  std::string ip_address_;
 };
 
 std::shared_ptr<endpoint_t::rep_t const>
