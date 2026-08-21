@@ -22,10 +22,10 @@
 
 #include "charclass.hpp"
 #include "linkage.h"
-#include "relational_ops.hpp"
 
 #include <algorithm>
 #include <cassert>
+#include <compare>
 #include <ostream>
 #include <string>
 #include <utility>
@@ -34,12 +34,11 @@ namespace cuti
 {
 
 /*
- * Value type for C-style identifiers: [A-Za-z_][A-Za-z_0-9]*
- * Please note: due to the implicit use of move semantics,
- * identifier_t instances may be in an invalid state. 
+ * Value type for C-style identifiers: [A-Za-z_][A-Za-z_0-9]*.
+ * Please note: identifier_t instances may not be valid; use
+ * is_valid() to check.
  */
 struct identifier_t
-  : relational_ops_t<identifier_t, std::string, char const*>
 {
   static constexpr bool is_leader(int c)
   { return is_alpha(c) || c == '_'; }
@@ -56,7 +55,7 @@ struct identifier_t
   { }
 
   identifier_t(char const* wrapped)
-  : identifier_t((assert(wrapped != nullptr), std::string(wrapped)))
+  : wrapped_((assert(wrapped != nullptr), wrapped))
   { }
 
   bool is_valid() const
@@ -70,37 +69,28 @@ struct identifier_t
   std::string const& as_string() const
   { return wrapped_; }
 
+  bool operator==(identifier_t const& that) const
+  { return this->wrapped_ == that.wrapped_; }
+  
+  bool operator==(std::string const& that) const
+  { return this->wrapped_ == that; }
+  
+  bool operator==(char const* that) const
+  { assert(that != nullptr); return this->wrapped_ == that; }
+  
+  auto operator<=>(identifier_t const& that) const
+  { return this->wrapped_ <=> that.wrapped_; }
+  
+  auto operator<=>(std::string const& that) const
+  { return this->wrapped_ <=> that; }
+  
+  auto operator<=>(char const* that) const
+  { assert(that != nullptr); return this->wrapped_ <=> that; }
+  
   friend CUTI_ABI
   std::ostream& operator<<(std::ostream& os, identifier_t const& value)
   { return os << value.wrapped_; }
   
-  /*
-   * Required by relational ops_t<identifier_t, std::string, char const*>:
-   */
-  bool less_than(identifier_t const& that) const
-  { return this->wrapped_ < that.wrapped_; }
-
-  bool equal_to(identifier_t const& that) const
-  { return this->wrapped_ == that.wrapped_; }
-
-  bool less_than(std::string const& that) const
-  { return this->wrapped_ < that; }
-
-  bool equal_to(std::string const& that) const
-  { return this->wrapped_ == that; }
-
-  bool greater_than(std::string const& that) const
-  { return this->wrapped_ > that; }
-
-  bool less_than(char const* that) const
-  { assert(that != nullptr); return this->wrapped_ < that; }
-
-  bool equal_to(char const* that) const
-  { assert(that != nullptr); return this->wrapped_ == that; }
-
-  bool greater_than(char const* that) const
-  { assert(that != nullptr); return this->wrapped_ > that; }
-
 private :
   std::string wrapped_;
 };
