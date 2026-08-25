@@ -61,6 +61,7 @@ lib cuti
   input_list.cpp
   input_list_reader.cpp
   io_utils.cpp
+  ios_flags.cpp
   kqueue_selector.cpp
   linkage.cpp
   list_arena.cpp

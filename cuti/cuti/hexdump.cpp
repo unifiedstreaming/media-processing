@@ -20,6 +20,7 @@
 #include "hexdump.hpp"
 
 #include "charclass.hpp"
+#include "ios_flags.hpp"
 
 #include <cstddef>
 #include <iomanip>
@@ -40,8 +41,8 @@ void hexdump_t::print(std::ostream& os) const &&
   {
     max_count = 1;
   }
-  
-  auto saved_flags = os.flags();
+
+  ios_flags_t flags(os);
   os << std::hex << std::setfill('0') << std::uppercase << std::noshowbase;
 
   unsigned char const* first = this->first_;
@@ -95,8 +96,6 @@ void hexdump_t::print(std::ostream& os) const &&
     first = p;
     offset += count;
   }
-
-  os.flags(saved_flags);
 }
 
 } // cuti
