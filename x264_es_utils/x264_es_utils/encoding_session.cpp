@@ -20,6 +20,7 @@
 #include "encoding_session.hpp"
 #include "x264_exception.hpp"
 
+#include <cuti/hexdump.hpp>
 #include <cuti/stringprintf.hpp>
 #include <x264_proto/types.hpp>
 
@@ -765,74 +766,6 @@ input_picture_t::~input_picture_t()
   x264_picture_clean(&picture_);
 }
 
-// Utility class for easy hex dumping
-struct hexdump_t
-{
-  static constexpr size_t default_columns = 16;
-
-  hexdump_t(uint8_t const* data, size_t size,
-            size_t columns = default_columns)
-  : data_(data)
-  , size_(size)
-  , columns_(columns)
-  {
-  }
-
-  hexdump_t(std::vector<uint8_t> const& blob,
-            size_t columns = default_columns)
-  : data_(blob.data())
-  , size_(blob.size())
-  , columns_(columns)
-  {
-  }
-
-  uint8_t const* data_;
-  size_t size_;
-  size_t columns_;
-};
-
-std::ostream& operator<<(std::ostream& os, hexdump_t const& hex)
-{
-  std::ios_base::fmtflags fmtflags = os.flags();
-  for(size_t i = 0; i < hex.size_; i += hex.columns_)
-  {
-    if(i > 0)
-    {
-      os << '\n';
-    }
-    os << std::hex << std::setfill('0') << std::setw(8) << i << ':';
-    for(size_t j = i, k = i + hex.columns_; j < k; ++j)
-    {
-      if(j < hex.size_)
-      {
-        unsigned char ch = hex.data_[j];
-        os << ' ' << std::hex << std::setfill('0') << std::setw(2)
-           << static_cast<unsigned>(ch);
-      }
-      else
-      {
-        os << "   ";
-      }
-    }
-    os << "  |";
-    for(size_t j = i, k = i + hex.columns_; j < k; ++j)
-    {
-      if(j < hex.size_)
-      {
-        unsigned char ch = hex.data_[j];
-        os << (std::isprint(ch) != 0 ? ch : static_cast<unsigned char>('.'));
-      }
-      else
-      {
-        break;
-      }
-    }
-    os << '|';
-  }
-  os.flags(fmtflags);
-  return os;
-}
-
 std::ostream& operator<<(std::ostream& os, x264_nal_t const& rhs)
 {
   os << "{x264_nal_t at "    << &rhs << ":"
@@ -846,7 +779,7 @@ std::ostream& operator<<(std::ostream& os, x264_nal_t const& rhs)
   }
   os << " i_payload="        << rhs.i_payload
      << " p_payload:\n"
-     << hexdump_t(rhs.p_payload, std::min(64, rhs.i_payload))
+     << cuti::hexdump(rhs.p_payload, std::min(64, rhs.i_payload))
      << '}';
   return os;
 }
