@@ -73,6 +73,7 @@ lib cuti
   method.cpp
   method_map.cpp
   method_runner.cpp
+  mutex_wrapper.cpp
   nb_client.cpp
   nb_client_cache.cpp
   nb_inbuf.cpp

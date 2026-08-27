@@ -117,6 +117,10 @@ unit-test method_runner_test
 : method_runner_test.cpp
 ;
 
+unit-test mutex_wrapper_test
+: mutex_wrapper_test.cpp
+;
+
 unit-test nb_buffers_test
 : nb_buffers_test.cpp
 ;
