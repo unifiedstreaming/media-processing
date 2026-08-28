@@ -400,7 +400,23 @@ void concurrent_access()
     }
   }
 }
-    
+
+void unlock()
+{
+  mutex_wrapper_t<int> wrapper{42};
+  auto main_lock = wrapper.lock();
+
+  scoped_thread_t thread{[&wrapper]()
+  {
+    auto thread_lock = wrapper.lock();
+    assert(*thread_lock == 43);
+  }};
+
+  *main_lock = 43;
+  main_lock.unlock();
+  assert(main_lock == nullptr);
+}
+  
 } // anonymous
 
 int main()
@@ -413,6 +429,7 @@ int main()
   read_access();
   write_access();
   concurrent_access();
+  unlock();
 
   return 0;
 }
