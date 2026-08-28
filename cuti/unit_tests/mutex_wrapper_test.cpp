@@ -25,6 +25,7 @@
 #include <atomic>
 #include <memory>
 #include <thread>
+#include <type_traits>
 #include <vector>
 
 // enable assert()
@@ -35,6 +36,9 @@ namespace // anonymous
 {
 
 using namespace cuti;
+
+struct base_t { };
+struct derived_t : base_t { };
 
 struct point_t
 {
@@ -69,6 +73,26 @@ struct unprotected_t
 private :
   std::atomic<bool> consistent_;
 };
+
+void static_checks()
+{
+  using wrapper_t = mutex_wrapper_t<int>;
+  using lock_t = wrapper_t::lock_t;
+
+  static_assert(!std::is_copy_constructible_v<wrapper_t>);
+  static_assert(!std::is_move_constructible_v<wrapper_t>);
+
+  static_assert(!std::is_copy_assignable_v<wrapper_t>);
+  static_assert(!std::is_move_assignable_v<wrapper_t>);
+
+  static_assert(std::is_nothrow_default_constructible_v<lock_t>);
+
+  static_assert(!std::is_copy_constructible_v<lock_t>);
+  static_assert(std::is_nothrow_move_constructible_v<lock_t>);
+
+  static_assert(!std::is_copy_assignable_v<lock_t>);
+  static_assert(std::is_nothrow_move_assignable_v<lock_t>);
+}
 
 void null_locks()
 {
@@ -237,6 +261,48 @@ void lock_conversions()
     assert(lock1 == nullptr);
     assert(lock2 != nullptr);
   }
+
+  {
+    mutex_wrapper_t<derived_t>::lock_t lock1{};
+    assert(lock1 == nullptr);
+
+    mutex_wrapper_t<base_t>::lock_t lock2{std::move(lock1)};
+    assert(lock1 == nullptr);
+    assert(lock2 == nullptr);
+  }
+  
+  {
+    mutex_wrapper_t<derived_t> wrapper{};
+
+    mutex_wrapper_t<derived_t>::lock_t lock1{wrapper.lock()};
+    assert(lock1 != nullptr);
+
+    mutex_wrapper_t<base_t>::lock_t lock2{std::move(lock1)};
+    assert(lock1 == nullptr);
+    assert(lock2 != nullptr);
+  }
+
+  {
+    mutex_wrapper_t<derived_t>::lock_t lock1{};
+    assert(lock1 == nullptr);
+
+    mutex_wrapper_t<base_t>::lock_t lock2{};
+    lock2 = std::move(lock1);
+    assert(lock1 == nullptr);
+    assert(lock2 == nullptr);
+  }
+  
+  {
+    mutex_wrapper_t<derived_t> wrapper{};
+
+    mutex_wrapper_t<derived_t>::lock_t lock1{wrapper.lock()};
+    assert(lock1 != nullptr);
+
+    mutex_wrapper_t<base_t>::lock_t lock2{};
+    lock2 = std::move(lock1);
+    assert(lock1 == nullptr);
+    assert(lock2 != nullptr);
+  }
 }
 
 void read_access()
@@ -339,6 +405,7 @@ void concurrent_access()
 
 int main()
 {
+  static_checks();
   null_locks();
   non_null_locks();
   moving_locks();

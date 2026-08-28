@@ -35,17 +35,17 @@ struct mutex_wrapper_t;
 template<typename T>
 struct mutex_wrapper_lock_t
 {
-  mutex_wrapper_lock_t()
+  mutex_wrapper_lock_t() noexcept
   : lock_()
   , data_(nullptr)
   { }
 
-  mutex_wrapper_lock_t(std::nullptr_t)
+  mutex_wrapper_lock_t(std::nullptr_t) noexcept
   : lock_()
   , data_(nullptr)
   { }
 
-  mutex_wrapper_lock_t(mutex_wrapper_lock_t&& rhs)
+  mutex_wrapper_lock_t(mutex_wrapper_lock_t&& rhs) noexcept
   : lock_(std::move(rhs.lock_))
   , data_(rhs.data_)
   {
@@ -55,53 +55,65 @@ struct mutex_wrapper_lock_t
   template<typename U, typename = std::enable_if_t<
     std::is_convertible_v<U*, T*>
   >>
-  mutex_wrapper_lock_t(mutex_wrapper_lock_t<U>&& rhs)
+  mutex_wrapper_lock_t(mutex_wrapper_lock_t<U>&& rhs) noexcept
   : lock_(std::move(rhs.lock_))
   , data_(rhs.data_)
   {
     rhs.data_ = nullptr;
   }
 
-  mutex_wrapper_lock_t& operator=(mutex_wrapper_lock_t&& rhs)
+  mutex_wrapper_lock_t& operator=(mutex_wrapper_lock_t&& rhs) noexcept
   {
-    using std::swap;
-
     mutex_wrapper_lock_t tmp{std::move(rhs)};
-    this->lock_.swap(tmp.lock_);
-    swap(this->data_, tmp.data_);
-
+    this->swap(tmp);
     return *this;
   }
 
   template<typename U, typename = std::enable_if_t<
     std::is_convertible_v<U*, T*>
   >>
-  mutex_wrapper_lock_t& operator=(mutex_wrapper_lock_t<U>&& rhs)
+  mutex_wrapper_lock_t& operator=(mutex_wrapper_lock_t<U>&& rhs) noexcept
   {
-    return *this = mutex_wrapper_lock_t{std::move(rhs)};
+    mutex_wrapper_lock_t tmp{std::move(rhs)};
+    this->swap(tmp);
+    return *this;
   }
 
-  explicit operator bool() const
+  explicit operator bool() const noexcept
   { return data_ != nullptr; }
 
-  bool operator==(std::nullptr_t) const
+  bool operator==(std::nullptr_t) const noexcept
   { return data_ == nullptr; }
 
-  T* operator->() const
+  T* operator->() const noexcept
   {
     assert(*this != nullptr);
     return data_;
   }
 
-  T& operator*() const
+  T& operator*() const noexcept
   {
     assert(*this != nullptr);
     return *data_;
   }
 
-  void unlock()
+  void unlock() noexcept
   { *this = mutex_wrapper_lock_t{}; }
-  
+
+  void swap(mutex_wrapper_lock_t& that) noexcept
+  {
+    using std::swap;
+
+    swap(this->lock_, that.lock_);
+    swap(this->data_, that.data_);
+  }
+
+  friend
+  void swap(mutex_wrapper_lock_t& lhs, mutex_wrapper_lock_t& rhs) noexcept
+  {
+    lhs.swap(rhs);
+  }
+    
 private :
   template<typename U>
   friend struct mutex_wrapper_lock_t;
