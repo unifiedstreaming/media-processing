@@ -1222,7 +1222,7 @@ private:
   x265_picture picture_;
 };
 
-inline
+[[maybe_unused]]
 std::ostream& operator<<(std::ostream& os, wrap_x265_picture_t const& rhs)
 {
   rhs.print(os);
