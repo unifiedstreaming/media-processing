@@ -32,7 +32,7 @@ namespace cuti
  */
 struct CUTI_ABI ios_flags_t
 {
-  ios_flags_t(std::ios_base& ios)
+  explicit ios_flags_t(std::ios_base& ios)
   : ios_(ios)
   , flags_(ios_.flags())
   { }
