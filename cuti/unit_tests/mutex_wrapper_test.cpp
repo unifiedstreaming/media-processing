@@ -54,24 +54,23 @@ struct point_t
 struct unprotected_t
 {
   unprotected_t()
-  : consistent_(true)
-  { }
+  : busy_()
+  {
+    busy_.clear(std::memory_order_relaxed); // default only in C++20 or later
+  }
 
   void modify()
   {
-    assert(consistent_.load() == true);
-    consistent_.store(false);
-    assert(consistent_.load() == false);
+    bool already_busy = busy_.test_and_set(std::memory_order_acquire);
+    assert(!already_busy);
 
     std::this_thread::sleep_for(milliseconds_t{100});
-    
-    assert(consistent_.load() == false);
-    consistent_.store(true);
-    assert(consistent_.load() == true);
+
+    busy_.clear(std::memory_order_release);
   }
 
 private :
-  std::atomic<bool> consistent_;
+  std::atomic_flag busy_;
 };
 
 void static_checks()
