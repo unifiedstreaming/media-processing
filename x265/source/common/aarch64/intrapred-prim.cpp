@@ -22,7 +22,7 @@ void intraFilter_neon(const pixel* samples, pixel* filtered) /* 1:2:1 filtering 
     uint16x8_t two_vec = vdupq_n_u16(2);
 #if !HIGH_BIT_DEPTH
     {
-        for(int i = 1; i < tuSize2 + tuSize2; i+=8)
+        for(int i = 0; i < tuSize2 + tuSize2; i+=8)
          {
             uint16x8_t sample1 = vmovl_u8(vld1_u8(&samples[i]));
             uint16x8_t sample2 = vmovl_u8(vld1_u8(&samples[i-1]));
@@ -36,7 +36,7 @@ void intraFilter_neon(const pixel* samples, pixel* filtered) /* 1:2:1 filtering 
     }
 #else
     {
-        for(int i = 1; i < tuSize2 + tuSize2; i+=8)
+        for(int i = 0; i < tuSize2 + tuSize2; i+=8)
         {
             uint16x8_t sample1 = vld1q_u16(&samples[i]);
             uint16x8_t sample2 = vld1q_u16(&samples[i-1]);
