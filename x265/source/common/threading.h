@@ -44,23 +44,6 @@
 #include <sys/sysctl.h>
 #endif
 
-#ifdef __SANITIZE_THREAD__
-#include <sanitizer/tsan_interface.h>
-#define TSAN_MUTEX_CREATE(p) __tsan_mutex_create((p), 0)
-#define TSAN_MUTEX_DESTROY(p) __tsan_mutex_destroy((p), 0)
-#define TSAN_MUTEX_PRE_LOCK(p) __tsan_mutex_pre_lock((p), 0)
-#define TSAN_MUTEX_POST_LOCK(p) __tsan_mutex_post_lock((p), 0, 0)
-#define TSAN_MUTEX_PRE_UNLOCK(p) __tsan_mutex_pre_unlock((p), 0)
-#define TSAN_MUTEX_POST_UNLOCK(p) __tsan_mutex_post_unlock((p), 0)
-#else
-#define TSAN_MUTEX_CREATE(p)
-#define TSAN_MUTEX_DESTROY(p)
-#define TSAN_MUTEX_PRE_LOCK(p)
-#define TSAN_MUTEX_POST_LOCK(p)
-#define TSAN_MUTEX_PRE_UNLOCK(p)
-#define TSAN_MUTEX_POST_UNLOCK(p)
-#endif
-
 #if NO_ATOMICS
 
 #include <sys/time.h>
@@ -848,20 +831,10 @@ protected:
 class SpinLock
 {
 public:
-    SpinLock() : m_val(0)
-    {
-        TSAN_MUTEX_CREATE(this);
-    }
+    SpinLock() : m_val(0) {}
     /* Copy-construct as a fresh unlocked instance — the lock state itself
      * must never be copied (same semantics as std::mutex). */
-    SpinLock(const SpinLock&) : m_val(0)
-    {
-        TSAN_MUTEX_CREATE(this);
-    }
-    ~SpinLock()
-    {
-        TSAN_MUTEX_DESTROY(this);
-    }
+    SpinLock(const SpinLock&) : m_val(0) {}
     /* Intentionally does not touch m_val: copying another instance's lock
      * state into this one would be a real bug, not the omission cppcheck
      * suspects (see class comment above). */
@@ -870,17 +843,13 @@ public:
 
     void acquire()
     {
-        TSAN_MUTEX_PRE_LOCK(this);
         while (ATOMIC_OR(&m_val, 1) & 1)
             GIVE_UP_TIME();
-        TSAN_MUTEX_POST_LOCK(this);
     }
 
     void release()
     {
-        TSAN_MUTEX_PRE_UNLOCK(this);
         ATOMIC_STORE(&m_val, 0);
-        TSAN_MUTEX_POST_UNLOCK(this);
     }
 
 private:
