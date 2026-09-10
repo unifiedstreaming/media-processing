@@ -149,6 +149,10 @@ unit-test resolver_test
 : resolver_test.cpp
 ;
 
+unit-test resource_cache_test
+: resource_cache_test.cpp
+;
+
 unit-test rpc_client_test
 : rpc_client_test.cpp
 ;

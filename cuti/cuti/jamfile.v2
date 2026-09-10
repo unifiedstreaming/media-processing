@@ -96,6 +96,7 @@ lib cuti
   request_handler.cpp
   request_writer.cpp
   resolver.cpp
+  resource_cache.cpp
   result.cpp
   rpc_client.cpp
   rpc_engine.cpp
