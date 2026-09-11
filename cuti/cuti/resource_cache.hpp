@@ -112,16 +112,17 @@ struct resource_cache_t
   std::unique_ptr<R> obtain(K const& key)
   {
     std::unique_ptr<R> result = nullptr;
-    std::list<stored_resource_t> removed{};
-
     {
-      auto impl = wrapped_impl_.lock();
-      auto resource_list = impl->try_lock_resource_list(removed, key);
-      impl.unlock();
-
-      if(resource_list != nullptr)
+      std::list<stored_resource_t> removed{};
       {
-        result = resource_list->try_obtain(removed);
+        auto impl = wrapped_impl_.lock();
+        auto resource_list = impl->try_lock_resource_list(removed, key);
+        impl.unlock();
+
+        if(resource_list != nullptr)
+        {
+          result = resource_list->try_obtain(removed);
+        }
       }
     }
 
