@@ -20,6 +20,7 @@
 #include <cuti/add_handler.hpp>
 #include <cuti/async_readers.hpp>
 #include <cuti/cmdline_reader.hpp>
+#include <cuti/default_nb_client_cache.hpp>
 #include <cuti/default_scheduler.hpp>
 #include <cuti/dispatcher.hpp>
 #include <cuti/echo_handler.hpp>
@@ -30,7 +31,6 @@
 #include <cuti/resolver.hpp>
 #include <cuti/rpc_client.hpp>
 #include <cuti/scoped_thread.hpp>
-#include <cuti/simple_nb_client_cache.hpp>
 #include <cuti/socket_layer.hpp>
 #include <cuti/streambuf_backend.hpp>
 #include <cuti/subtract_handler.hpp>
@@ -527,10 +527,10 @@ void run_logic_tests(logging_context_t const& client_context,
     endpoint_t server_endpoint = dispatcher.add_listener(
       local_interfaces(sockets, any_port).front(), map);
 
-    simple_nb_client_cache_t::settings_t cache_settings{};
+    default_nb_client_cache_t::settings_t cache_settings{};
     cache_settings.inbufsize_ = bufsize;
     cache_settings.inbufsize_ = bufsize;
-    simple_nb_client_cache_t cache(sockets, cache_settings);
+    default_nb_client_cache_t cache(sockets, cache_settings);
 
     rpc_client_t client(client_context, cache, server_endpoint);
 
@@ -571,10 +571,10 @@ void throughput_echo_client(logging_context_t const& context,
     *msg << __func__ << ": starting";
   }
 
-  simple_nb_client_cache_t::settings_t cache_settings{};
+  default_nb_client_cache_t::settings_t cache_settings{};
   cache_settings.inbufsize_ = bufsize;
   cache_settings.inbufsize_ = bufsize;
-  simple_nb_client_cache_t cache(sockets, cache_settings);
+  default_nb_client_cache_t cache(sockets, cache_settings);
 
   rpc_client_t client(context, cache, endpoint, settings);
 
