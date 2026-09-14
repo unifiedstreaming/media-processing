@@ -46,7 +46,7 @@ struct CUTI_ABI nb_client_cache_t
   /*
    * Returns a reference to the socket layer used by the cache.
    */
-  virtual socket_layer_t& socket_layer() = 0;
+  virtual socket_layer_t& socket_layer() const = 0;
 
   /*
    * Returns a (possibly previously used) nb_client instance connected

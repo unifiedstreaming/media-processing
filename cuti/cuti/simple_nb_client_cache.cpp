@@ -35,7 +35,7 @@ simple_nb_client_cache_t::simple_nb_client_cache_t(
 , entries_()
 { }
 
-socket_layer_t& simple_nb_client_cache_t::socket_layer()
+socket_layer_t& simple_nb_client_cache_t::socket_layer() const
 {
   return sockets_;
 }

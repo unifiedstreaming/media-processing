@@ -22,6 +22,7 @@
 
 #include "chrono_types.hpp"
 #include "function.hpp"
+#include "linkage.h"
 #include "mutex_wrapper.hpp"
 #include "scoped_guard.hpp"
 
@@ -50,9 +51,9 @@ namespace cuti
  * resource cache instance.
  */
 
-struct resource_cache_settings_t
+struct CUTI_ABI resource_cache_settings_t
 {
-  resource_cache_settings_t()
+  constexpr resource_cache_settings_t() noexcept
   : max_keys_(16)
   , max_key_age_(minutes_t(4))
   , max_resources_per_key_(64)
