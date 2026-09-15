@@ -110,7 +110,6 @@ lib cuti
   sequence.cpp
   service.cpp
   signal_handler.cpp
-  simple_nb_client_cache.cpp
   socket_layer.cpp
   stack_marker.cpp
   streambuf_backend.cpp

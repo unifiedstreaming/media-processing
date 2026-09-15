@@ -169,10 +169,6 @@ unit-test signal_handler_test
 : signal_handler_test.cpp
 ;
 
-unit-test simple_nb_client_cache_test
-: simple_nb_client_cache_test.cpp
-;
-
 unit-test socket_layer_test
 : socket_layer_test.cpp
 ;
