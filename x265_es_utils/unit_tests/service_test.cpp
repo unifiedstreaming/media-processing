@@ -18,6 +18,7 @@
  */
 
 #include <cuti/cmdline_reader.hpp>
+#include <cuti/default_nb_client_cache.hpp>
 #include <cuti/dispatcher.hpp>
 #include <cuti/endpoint.hpp>
 #include <cuti/flag.hpp>
@@ -28,7 +29,6 @@
 #include <cuti/rpc_client.hpp>
 #include <cuti/scoped_guard.hpp>
 #include <cuti/scoped_thread.hpp>
-#include <cuti/simple_nb_client_cache.hpp>
 #include <cuti/socket_layer.hpp>
 #include <cuti/streambuf_backend.hpp>
 
@@ -259,7 +259,7 @@ void test_service(cuti::logging_context_t const& client_context,
     auto const& endpoints = service.endpoints();
     assert(!endpoints.empty());
 
-    cuti::simple_nb_client_cache_t cache(sockets);
+    cuti::default_nb_client_cache_t cache(sockets);
     x265_proto::client_t client(client_context, cache, endpoints.front());
 
     test_add(client_context, client);
