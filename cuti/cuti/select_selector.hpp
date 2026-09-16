@@ -35,7 +35,7 @@ namespace cuti
 struct socket_layer_t;
 
 CUTI_ABI
-std::unique_ptr<selector_t> create_select_selector(socket_layer_t& sockets);
+std::unique_ptr<selector_t> create_select_selector();
 
 }
 

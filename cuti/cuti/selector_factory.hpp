@@ -41,7 +41,7 @@ struct CUTI_ABI selector_factory_t
 
   template<int N>
   selector_factory_t(char const(&name)[N],
-                     std::unique_ptr<selector_t> (*creator)(socket_layer_t&))
+                     std::unique_ptr<selector_t> (*creator)())
   : name_(name)
   , creator_((assert(creator != nullptr), creator))
   { }
@@ -49,12 +49,12 @@ struct CUTI_ABI selector_factory_t
   char const* name() const noexcept
   { return name_; }
 
-  std::unique_ptr<selector_t> operator()(socket_layer_t& sockets) const
-  { return (*creator_)(sockets); }
+  std::unique_ptr<selector_t> operator()() const
+  { return (*creator_)(); }
 
 private :
   char const* name_;
-  std::unique_ptr<selector_t> (*creator_)(socket_layer_t&);
+  std::unique_ptr<selector_t> (*creator_)();
 };
 
 CUTI_ABI

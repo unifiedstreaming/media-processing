@@ -36,7 +36,7 @@ rpc_client_t::rpc_client_t(
   endpoint_t server_address,
   throughput_settings_t settings)
 : context_(context)
-, scheduler_(client_cache.socket_layer())
+, scheduler_()
 , client_cache_(client_cache)
 , server_address_((assert(!server_address.empty()), std::move(server_address)))
 , settings_(std::move(settings))

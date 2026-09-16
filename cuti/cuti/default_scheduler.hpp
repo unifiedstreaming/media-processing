@@ -43,14 +43,13 @@ struct CUTI_ABI default_scheduler_t : scheduler_t
    * Constructs a default scheduler using the first of the available
    * selector factories.
    */
-  explicit default_scheduler_t(socket_layer_t& sockets);
+  default_scheduler_t();
 
   /*
    * Constructs a default scheduler using the specified selector
    * factory.
    */
-  default_scheduler_t(
-    socket_layer_t& sockets, selector_factory_t const& factory);
+  explicit default_scheduler_t(selector_factory_t const& factory);
 
   /*
    * Waits for any of the registered events to occur and returns the

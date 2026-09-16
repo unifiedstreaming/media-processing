@@ -96,8 +96,7 @@ int run_int_request(logging_context_t const& client_context,
   std::string reply;
   auto reply_outbuf = make_nb_string_outbuf(reply, bufsize);
 
-  socket_layer_t sockets;
-  default_scheduler_t scheduler(sockets);
+  default_scheduler_t scheduler{};
 
   {
     bound_inbuf_t bit(*request_inbuf, scheduler);

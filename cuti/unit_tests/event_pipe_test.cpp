@@ -186,7 +186,7 @@ struct mcq_t
   , check_active_()
   , reader_(nullptr)
   , writer_(nullptr)
-  , scheduler_(sockets, factory)
+  , scheduler_(factory)
   , selecting_(false)
   , check_selecting_()
   {
@@ -401,7 +401,7 @@ void scheduled_transfer(logging_context_t const& context,
   reader->set_nonblocking();
   writer->set_nonblocking();
 
-  default_scheduler_t scheduler(sockets);
+  default_scheduler_t scheduler{};
 
   event_consumer_t consumer(std::move(reader), scheduler, count);
   event_producer_t producer(std::move(writer), scheduler, count);

@@ -241,8 +241,7 @@ void do_test_string_buffers(logging_context_t const& context,
       " circ_bufsize: " << circ_bufsize;
   }
 
-  socket_layer_t sockets;
-  default_scheduler_t scheduler(sockets); 
+  default_scheduler_t scheduler{}; 
 
   std::string input = "Hello peer";
 
@@ -332,7 +331,7 @@ void do_test_tcp_buffers(logging_context_t const& context,
   }
 
   socket_layer_t sockets;
-  default_scheduler_t scheduler(sockets);
+  default_scheduler_t scheduler{};
 
   auto producer_in = make_nb_string_inbuf(input, client_bufsize);
 
@@ -482,7 +481,7 @@ void test_inbuf_throughput_checking(logging_context_t const& context,
   }
 
   socket_layer_t sockets;
-  default_scheduler_t scheduler(sockets, factory);
+  default_scheduler_t scheduler{factory};
 
   std::unique_ptr<tcp_connection_t> client_side;
   std::unique_ptr<tcp_connection_t> server_side;
@@ -555,7 +554,7 @@ void test_outbuf_throughput_checking(logging_context_t const& context,
   }
 
   socket_layer_t sockets;
-  default_scheduler_t scheduler(sockets, factory);
+  default_scheduler_t scheduler{factory};
 
   std::unique_ptr<tcp_connection_t> client_side;
   std::unique_ptr<tcp_connection_t> server_side;

@@ -139,20 +139,17 @@ void test_method(
   std::string const& expected_what = "")
 {
   /*
-   * Set up required logging context, socket_layer,
-   * bound_inbuf, bound_outbuf (not used)
+   * Set up required logging context, bound_inbuf, bound_outbuf (not used)
    */
   logger_t logger("program");
   logging_context_t logging_context(logger, loglevel_t::info);
-
-  socket_layer_t sockets;
 
   auto nb_inbuf = make_nb_string_inbuf("");
 
   std::string output;
   auto nb_outbuf = make_nb_string_outbuf(output);
 
-  default_scheduler_t scheduler(sockets);
+  default_scheduler_t scheduler{};
 
   bound_inbuf_t bound_inbuf(*nb_inbuf, scheduler);
   bound_outbuf_t bound_outbuf(*nb_outbuf, scheduler);

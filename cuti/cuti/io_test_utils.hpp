@@ -75,8 +75,7 @@ void test_failing_read(logging_context_t const& context,
       " input: " << quoted_string(input);
   }
 
-  socket_layer_t sockets;
-  default_scheduler_t scheduler(sockets);
+  default_scheduler_t scheduler{};
 
   auto inbuf = make_nb_string_inbuf(std::move(input), bufsize);
   bound_inbuf_t bit(*inbuf, scheduler);
@@ -132,8 +131,7 @@ void test_roundtrip(logging_context_t const& context,
       ">: starting; bufsize: " << bufsize;
   }
 
-  socket_layer_t sockets;
-  default_scheduler_t scheduler(sockets);
+  default_scheduler_t scheduler{};
 
   std::string serialized_form;
   auto outbuf = make_nb_string_outbuf(serialized_form, bufsize);
