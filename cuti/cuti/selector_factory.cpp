@@ -27,6 +27,7 @@
 #include "system_error.hpp"
 
 #include <algorithm>
+#include <cassert>
 #include <cstring>
 #include <ostream>
 
@@ -68,6 +69,7 @@ std::vector<selector_factory_t> available_selector_factories()
     [](socket_layer_t&) { return create_kqueue_selector(); });
 #endif
 
+  assert(!result.empty());
   return result;
 }
 
@@ -75,27 +77,35 @@ void parse_optval(char const* name, args_reader_t const& reader,
                   char const* in, selector_factory_t& out)
 {
   auto factories = available_selector_factories();
+  assert(!factories.empty());
+  
   auto name_matches = [&](selector_factory_t const& factory)
    { return std::strcmp(in, factory.name()) == 0; };
-
   auto pos = std::find_if(factories.begin(), factories.end(), name_matches);
+
   if(pos == factories.end())
   {
     system_exception_builder_t builder;
     builder << reader.current_origin() << ": " <<
       "invalid selector type '" << in << "'. Valid types are: ";
-    for(auto pos = factories.begin(); pos != factories.end(); ++pos)
+
+    auto it = factories.begin();
+    builder << "'" << *it << "'";
+    ++it;
+
+    if(it != factories.end())
     {
-      if(pos + 1 == factories.end())
+      while(it != factories.end() - 1)
       {
-        builder << " and ";
+        builder << ", '" << *it << "'";
+        ++it;
       }
-      else if(pos != factories.begin())
-      {
-        builder << ", ";
-      }
-      builder << "'" << *pos << "'";
+
+      builder << " and '" << *it << "'";
     }
+
+    builder << '.';
+
     builder.explode();
   }
 
