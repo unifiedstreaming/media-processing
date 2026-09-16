@@ -285,18 +285,23 @@ void config_t::print_usage(std::ostream& os)
   os << std::endl;
   os << "usage: " << argv0_ << " [<option> ...]" << std::endl;
   os << "options are:" << std::endl;
+
   os << "  --config <path>                  " <<
     "insert options from file <path>" << std::endl;
+
 #ifndef _WIN32
   os << "  --daemon                         " <<
     "run as daemon" << std::endl;
 #endif
+
   os << "  --directory <path>               " <<
     "change directory to <path>" << std::endl;
   os << "                                     (default: no change)" <<
     std::endl;
+
   os << "  --dry-run                        " <<
     "initialize the service, but do not run it" << std::endl;
+
   os << "  --endpoint <port>@<ip>           " <<
     "add endpoint to listen on" << std::endl;
   os << "                                     (defaults:";
@@ -308,54 +313,72 @@ void config_t::print_usage(std::ostream& os)
     }
     os << ")" << std::endl;
   }
+
   os << "  --frame-threads <number>         " <<
     "sets libx265 frame threads (default: " <<
     encoder_settings_t::default_frame_threads() << ")" << std::endl;
+
   os << "  --logfile <path>                 " <<
     "log to file <path>" << std::endl;
+
   os << "  --logfile-rotation-depth <depth> " <<
     "sets logfile rotation depth (default: " <<
     cuti::file_backend_t::default_rotation_depth << ')' << std::endl;
+
   os << "  --logfile-size-limit <limit>     " <<
     "sets logfile size limit (default: none)" << std::endl;
+
   os << "  --loglevel <level>               " <<
     "sets loglevel (default: " <<
     cuti::loglevel_string(default_loglevel) << ')' << std::endl;
+
   os << "  --max-concurrent-requests <n>    " <<
     "sets max #concurrent requests" << std::endl;
+
   os << "                                     (default: " <<
     cuti::dispatcher_config_t::default_max_concurrent_requests() <<
     "; 0=unlimited) " << std::endl;
+
   os << "  --max-connections <n>            " <<
     "sets max #connections" << std::endl;
   os << "                                     (default: " <<
     cuti::dispatcher_config_t::default_max_connections() <<
     "; 0=unlimited) " << std::endl;
+
   os << "  --numa-pools <string>            " <<
     "sets libx265 numa pools (default: \"" <<
     encoder_settings_t::default_numa_pools() << "\")" << std::endl;
+
   os << "  --pidfile <path>                 " <<
     "create PID file <path> (default: none)" << std::endl;
+
   os << "  --preset <presets>               " <<
     "sets libx265 session presets (default: \"" <<
     encoder_settings_t::default_preset() << "\")" << std::endl;
+
   os << "  --selector <type>                " <<
     "sets selector type (default: " <<
     cuti::dispatcher_config_t::default_selector_factory() << ")" << std::endl;
+
   os << "  --syslog                         " <<
     "log to system log as " << cuti::default_syslog_name(argv0_) <<
     std::endl;
+
   os << "  --syslog-name <name>             " <<
     "log to system log as <name>" << std::endl;
+
   os << "  --tune <tunings>                 " <<
     "sets libx265 session tunings (default: \"" <<
     encoder_settings_t::default_tune() << "\")" << std::endl;
+
 #ifndef _WIN32
   os << "  --umask <mask>                   " <<
     "set umask (default: no change)" << std::endl;
+
   os << "  --user <name>                    " <<
     "run as user <name>" << std::endl;
 #endif
+
   os << std::endl;
   os << copyright_notice() << std::endl;
 }

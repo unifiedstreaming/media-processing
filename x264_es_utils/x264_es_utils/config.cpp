@@ -238,10 +238,10 @@ void config_t::read_options(cuti::args_reader_t& reader,
 #ifndef _WIN32
       !walker.match("--daemon", daemon_) &&
 #endif
+      !walker.match("--deterministic", encoder_settings_.deterministic_) &&
       !walker.match("--directory", directory_) &&
       !walker.match("--dry-run", dry_run_) &&
       !walker.match("--endpoint", handle_endpoint) &&
-      !walker.match("--deterministic", encoder_settings_.deterministic_) &&
       !walker.match("--logfile-rotation-depth", logfile_rotation_depth_) &&
       !walker.match("--logfile-size-limit", logfile_size_limit_) &&
       !walker.match("--loglevel", loglevel_) &&
@@ -253,15 +253,15 @@ void config_t::read_options(cuti::args_reader_t& reader,
       !walker.match("--preset", encoder_settings_.preset_) &&
       !walker.match("--selector",
         dispatcher_config_.selector_factory_) &&
-      !walker.match("--session-threads", encoder_settings_.session_threads_) &&
+      !walker.match("--session-cpu-independent",
+        encoder_settings_.session_cpu_independent_) &&
+      !walker.match("--session-deterministic",
+        encoder_settings_.session_deterministic_) &&
       !walker.match("--session-lookahead-threads",
         encoder_settings_.session_lookahead_threads_) &&
       !walker.match("--session-sliced-threads",
         encoder_settings_.session_sliced_threads_) &&
-      !walker.match("--session-deterministic",
-        encoder_settings_.session_deterministic_) &&
-      !walker.match("--session-cpu-independent",
-        encoder_settings_.session_cpu_independent_) &&
+      !walker.match("--session-threads", encoder_settings_.session_threads_) &&
       !walker.match("--tune", encoder_settings_.tune_) &&
 #ifndef _WIN32
       !walker.match("--umask", umask_) &&
@@ -293,20 +293,26 @@ void config_t::print_usage(std::ostream& os)
   os << std::endl;
   os << "usage: " << argv0_ << " [<option> ...]" << std::endl;
   os << "options are:" << std::endl;
+
   os << "  --config <path>                  " <<
     "insert options from file <path>" << std::endl;
+
 #ifndef _WIN32
   os << "  --daemon                         " <<
     "run as daemon" << std::endl;
 #endif
+
   os << "  --deterministic                  " <<
     "use deterministic encoding" << std::endl;
+
   os << "  --directory <path>               " <<
     "change directory to <path>" << std::endl;
   os << "                                     (default: no change)" <<
     std::endl;
+
   os << "  --dry-run                        " <<
     "initialize the service, but do not run it" << std::endl;
+
   os << "  --endpoint <port>@<ip>           " <<
     "add endpoint to listen on" << std::endl;
   os << "                                     (defaults:";
@@ -318,68 +324,85 @@ void config_t::print_usage(std::ostream& os)
     }
     os << ")" << std::endl;
   }
+
   os << "  --logfile <path>                 " <<
     "log to file <path>" << std::endl;
+
   os << "  --logfile-rotation-depth <depth> " << 
     "sets logfile rotation depth (default: " <<
     cuti::file_backend_t::default_rotation_depth << ')' << std::endl;
+
   os << "  --logfile-size-limit <limit>     " <<
     "sets logfile size limit (default: none)" << std::endl;
+
   os << "  --loglevel <level>               " <<
     "sets loglevel (default: " << 
     cuti::loglevel_string(default_loglevel) << ')' << std::endl;
+
   os << "  --max-concurrent-requests <n>    " <<
     "sets max #concurrent requests" << std::endl;
   os << "                                     (default: " <<
     cuti::dispatcher_config_t::default_max_concurrent_requests() <<
     "; 0=unlimited) " << std::endl;
+
   os << "  --max-connections <n>            " <<
     "sets max #connections" << std::endl;
   os << "                                     (default: " <<
     cuti::dispatcher_config_t::default_max_connections() <<
     "; 0=unlimited) " << std::endl;
+
   os << "  --pidfile <path>                 " <<
     "create PID file <path> (default: none)" << std::endl;
+
   os << "  --preset <presets>               " <<
     "sets libx264 session presets (default: \"" <<
     encoder_settings_t::default_preset() << "\")" << std::endl;
+
   os << "  --selector <type>                " <<
     "sets selector type (default: " <<
     cuti::dispatcher_config_t::default_selector_factory() << ")" << std::endl;
-  os << "  --session-threads <n>            " <<
-    "sets libx264 #encoding session threads" << std::endl;
-  os << "                                     (default: " <<
-    encoder_settings_t::default_session_threads() << "; 0=auto)" << std::endl;
+
+  os << "  --session-cpu-independent        " <<
+    "sets libx264 use of CPU-independent" << std::endl;
+  os << "                                     algorithms" << std::endl;
+
+  os << "  --session-deterministic          " <<
+    "sets libx264 use of deterministic" << std::endl;
+  os << "                                     optimizations" << std::endl;
 
   os << "  --session-lookahead-threads <n>  " <<
-    "sets libx264 #encoding session lookahead threads" << std::endl;
-  os << "                                     (default: " <<
+    "sets libx264 #encoding session lookahead" << std::endl;
+  os << "                                     threads (default: " <<
     encoder_settings_t::default_session_lookahead_threads() << "; 0=auto)" <<
     std::endl;
 
   os << "  --session-sliced-threads         " <<
     "sets libx264 use of slice-based threading" << std::endl;
 
-  os << "  --session-deterministic          " <<
-    "sets libx264 use of deterministic optimizations" << std::endl;
-
-  os << "  --session-cpu-independent        " <<
-    "sets libx264 use of CPU-independent algorithms" << std::endl;
+  os << "  --session-threads <n>            " <<
+    "sets libx264 #encoding session threads" << std::endl;
+  os << "                                     (default: " <<
+    encoder_settings_t::default_session_threads() << "; 0=auto)" << std::endl;
 
   os << "  --syslog                         " <<
     "log to system log as " << cuti::default_syslog_name(argv0_) <<
     std::endl;
+
   os << "  --syslog-name <name>             " <<
     "log to system log as <name>" << std::endl;
+
   os << "  --tune <tunings>                 " <<
     "sets libx264 session tunings (default: \"" <<
     encoder_settings_t::default_tune() << "\")" << std::endl;
+
 #ifndef _WIN32
   os << "  --umask <mask>                   " <<
     "set umask (default: no change)" << std::endl;
+
   os << "  --user <name>                    " <<
     "run as user <name>" << std::endl;
 #endif
+
   os << std::endl;
   os << copyright_notice() << std::endl;
 }
