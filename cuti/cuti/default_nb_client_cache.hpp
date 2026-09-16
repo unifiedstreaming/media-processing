@@ -70,8 +70,6 @@ struct CUTI_ABI default_nb_client_cache_t : nb_client_cache_t
     settings_t const& settings = settings_t{}
   );
 
-  socket_layer_t& socket_layer() const override;
-
   std::unique_ptr<nb_client_t> obtain(
     logging_context_t const& context,
     endpoint_t const& server_address) override;
@@ -92,7 +90,6 @@ struct CUTI_ABI default_nb_client_cache_t : nb_client_cache_t
   { return os << "default_nb_client_cache@" << &cache; }
 
 private :
-  socket_layer_t& sockets_;
   resource_cache_t<endpoint_t, nb_client_t> resource_cache_;
 };
 

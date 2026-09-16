@@ -50,15 +50,11 @@ auto make_rtok()
 default_nb_client_cache_t::default_nb_client_cache_t(
   socket_layer_t& sockets, settings_t const& settings)
 : nb_client_cache_t()
-, sockets_(sockets)
 , resource_cache_(
-    make_ktor(sockets_, settings.inbufsize_, settings.outbufsize_),
+    make_ktor(sockets, settings.inbufsize_, settings.outbufsize_),
     make_rtok(),
     settings.resource_cache_settings_)
 { }
-
-socket_layer_t& default_nb_client_cache_t::socket_layer() const
-{ return sockets_; }
 
 std::unique_ptr<nb_client_t> default_nb_client_cache_t::obtain(
   logging_context_t const& context,
