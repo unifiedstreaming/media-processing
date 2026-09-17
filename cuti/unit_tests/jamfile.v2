@@ -45,10 +45,6 @@ unit-test config_file_reader_test
 : config_file_reader_test.cpp
 ;
 
-unit-test default_nb_client_cache_test
-: default_nb_client_cache_test.cpp
-;
-
 unit-test default_scheduler_test
 : default_scheduler_test.cpp
 ;
@@ -127,6 +123,10 @@ unit-test mutex_wrapper_test
 
 unit-test nb_buffers_test
 : nb_buffers_test.cpp
+;
+
+unit-test nb_client_cache_test
+: nb_client_cache_test.cpp
 ;
 
 unit-test option_walker_test

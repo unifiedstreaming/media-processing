@@ -17,7 +17,7 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#include <cuti/default_nb_client_cache.hpp>
+#include <cuti/nb_client_cache.hpp>
 
 #include <cuti/cmdline_reader.hpp>
 #include <cuti/default_scheduler.hpp>
@@ -182,7 +182,7 @@ void test_single_server_reuse(logging_context_t const& context)
 
   {
     socket_layer_t sockets;
-    default_nb_client_cache_t cache(sockets);
+    nb_client_cache_t cache(sockets);
     dummy_server_t server(sockets);
 
     auto client_1 = cache.obtain(context, server.address());
@@ -213,7 +213,7 @@ void test_multi_server_reuse(logging_context_t const& context)
 
   {
     socket_layer_t sockets;
-    default_nb_client_cache_t cache(sockets);
+    nb_client_cache_t cache(sockets);
     dummy_server_t server_1(sockets);
     dummy_server_t server_2(sockets);
 
@@ -258,7 +258,7 @@ void test_single_server_invalidation(logging_context_t const& context)
 
   {
     socket_layer_t sockets;
-    default_nb_client_cache_t cache(sockets);
+    nb_client_cache_t cache(sockets);
     dummy_server_t server(sockets);
 
     auto client_1 = cache.obtain(context, server.address());
@@ -290,7 +290,7 @@ void test_multi_server_invalidation(logging_context_t const& context)
 
   {
     socket_layer_t sockets;
-    default_nb_client_cache_t cache(sockets);
+    nb_client_cache_t cache(sockets);
     dummy_server_t server_1(sockets);
     dummy_server_t server_2(sockets);
 
@@ -335,11 +335,11 @@ void test_connection_eviction(logging_context_t const& context)
   }
 
   {
-    default_nb_client_cache_t::settings_t settings{};
+    nb_client_cache_t::settings_t settings{};
     settings.resource_cache_settings_.max_resources_per_key_ = 0;
     
     socket_layer_t sockets;
-    default_nb_client_cache_t cache(sockets, settings);
+    nb_client_cache_t cache(sockets, settings);
     dummy_server_t server(sockets);
 
     auto client_1 = cache.obtain(context, server.address());
@@ -371,10 +371,10 @@ void test_connection_aging(logging_context_t const& context)
   {
     socket_layer_t sockets;
 
-    default_nb_client_cache_t::settings_t cache_settings;
+    nb_client_cache_t::settings_t cache_settings;
     cache_settings.resource_cache_settings_.max_resource_age_ =
       cuti::duration_t{0};
-    default_nb_client_cache_t cache(sockets, cache_settings);
+    nb_client_cache_t cache(sockets, cache_settings);
 
     dummy_server_t server_1(sockets);
     dummy_server_t server_2(sockets);
@@ -437,11 +437,11 @@ void test_key_eviction(logging_context_t const& context)
   }
 
   {
-    default_nb_client_cache_t::settings_t settings{};
+    nb_client_cache_t::settings_t settings{};
     settings.resource_cache_settings_.max_keys_ = 0;
     
     socket_layer_t sockets;
-    default_nb_client_cache_t cache(sockets, settings);
+    nb_client_cache_t cache(sockets, settings);
     dummy_server_t server(sockets);
 
     auto client_1 = cache.obtain(context, server.address());
@@ -473,10 +473,10 @@ void test_key_aging(logging_context_t const& context)
   {
     socket_layer_t sockets;
 
-    default_nb_client_cache_t::settings_t cache_settings;
+    nb_client_cache_t::settings_t cache_settings;
     cache_settings.resource_cache_settings_.max_key_age_ =
       cuti::duration_t{0};
-    default_nb_client_cache_t cache(sockets, cache_settings);
+    nb_client_cache_t cache(sockets, cache_settings);
 
     dummy_server_t server_1(sockets);
     dummy_server_t server_2(sockets);

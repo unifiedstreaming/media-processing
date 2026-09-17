@@ -38,7 +38,6 @@ lib cuti
   config_file_reader.cpp
   consumer.cpp
   default_backend.cpp
-  default_nb_client_cache.cpp
   default_scheduler.cpp
   dispatcher.cpp
   echo_handler.cpp

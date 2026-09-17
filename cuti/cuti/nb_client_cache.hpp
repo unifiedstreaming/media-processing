@@ -24,6 +24,9 @@
 #include "linkage.h"
 #include "logging_context.hpp"
 #include "nb_client.hpp"
+#include "nb_inbuf.hpp"
+#include "nb_outbuf.hpp"
+#include "resource_cache.hpp"
 
 #include <memory>
 
@@ -31,12 +34,36 @@ namespace cuti
 {
 
 /*
- * Abstract interface for caching nb_client objects
+ * A utility for caching nb_client objects
  */
 struct CUTI_ABI nb_client_cache_t
 {
-  nb_client_cache_t()
-  { }
+  struct CUTI_ABI settings_t
+  {
+    static std::size_t constexpr default_inbufsize =
+      nb_inbuf_t::default_bufsize;
+    static std::size_t constexpr default_outbufsize =
+      nb_outbuf_t::default_bufsize;
+
+    static resource_cache_settings_t
+    constexpr default_resource_cache_settings =
+      resource_cache_settings_t{};
+
+    constexpr settings_t()
+    : inbufsize_(default_inbufsize)
+    , outbufsize_(default_outbufsize)
+    , resource_cache_settings_(default_resource_cache_settings)
+    { }
+
+    std::size_t inbufsize_;
+    std::size_t outbufsize_;
+    resource_cache_settings_t resource_cache_settings_;
+  };
+
+  explicit nb_client_cache_t(
+    socket_layer_t& sockets,
+    settings_t const& settings = settings_t{}
+  );
 
   nb_client_cache_t(nb_client_cache_t const&) = delete;
   nb_client_cache_t& operator=(nb_client_cache_t const&) = delete;
@@ -45,24 +72,30 @@ struct CUTI_ABI nb_client_cache_t
    * Returns a (possibly previously used) nb_client instance connected
    * to server_address.
    */
-  virtual std::unique_ptr<nb_client_t> obtain(
+  std::unique_ptr<nb_client_t> obtain(
     logging_context_t const& context,
-    endpoint_t const& server_address) = 0;
+    endpoint_t const& server_address);
 
   /*
    * Caches an nb_client instance for possible later reuse.
    */
-  virtual void store(
+  void store(
     logging_context_t const& context,
-    std::unique_ptr<nb_client_t> client) = 0;
+    std::unique_ptr<nb_client_t> client);
 
   /*
    * Removes all stored cache entries for a specific server address.
    */
-  virtual void invalidate_entries(logging_context_t const& context,
-    endpoint_t const& server_address) = 0;
+  void invalidate_entries(
+    logging_context_t const& context,
+    endpoint_t const& server_address);
 
-  virtual ~nb_client_cache_t();
+  friend CUTI_ABI
+  std::ostream& operator<<(std::ostream& os, nb_client_cache_t const& cache)
+  { return os << "nb_client_cache@" << &cache; }
+
+private :
+  resource_cache_t<endpoint_t, nb_client_t> resource_cache_;
 };
 
 } // cuti

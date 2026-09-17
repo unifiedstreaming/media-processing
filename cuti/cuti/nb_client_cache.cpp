@@ -19,10 +19,85 @@
 
 #include "nb_client_cache.hpp"
 
+#include <cassert>
+
 namespace cuti
 {
 
-nb_client_cache_t::~nb_client_cache_t()
+namespace // anonymous
+{
+
+auto make_ktor(
+  socket_layer_t& sockets,
+  std::size_t inbufsize,
+  std::size_t outbufsize)
+{
+  return [&sockets, inbufsize, outbufsize](endpoint_t const& server_address)
+  {
+    return std::make_unique<nb_client_t>(
+      sockets, server_address, inbufsize, outbufsize);
+  };
+}
+
+auto make_rtok()
+{
+  return [](nb_client_t const& client)
+  { return client.server_address(); };
+}
+
+} // anonymous
+
+nb_client_cache_t::nb_client_cache_t(
+  socket_layer_t& sockets, settings_t const& settings)
+: resource_cache_(
+    make_ktor(sockets, settings.inbufsize_, settings.outbufsize_),
+    make_rtok(),
+    settings.resource_cache_settings_)
 { }
+
+std::unique_ptr<nb_client_t> nb_client_cache_t::obtain(
+  logging_context_t const& context,
+  endpoint_t const& server_address)
+{
+  assert(!server_address.empty());
+
+  auto client = resource_cache_.obtain(server_address);
+
+  if(auto msg = context.message_at(loglevel_t::info))
+  {
+    *msg << *this << ": obtained connection " << *client;
+  }
+
+  return client;
+}
+
+void nb_client_cache_t::store(
+  logging_context_t const& context,
+  std::unique_ptr<nb_client_t> client)
+{
+  assert(client != nullptr);
+  
+  if(auto msg = context.message_at(loglevel_t::info))
+  {
+    *msg << *this << ": storing connection " << *client;
+  }
+
+  resource_cache_.store(std::move(client));
+}
+
+void nb_client_cache_t::invalidate_entries(
+  logging_context_t const& context,
+  endpoint_t const& server_address)
+{
+  assert(!server_address.empty());
+
+  if(auto msg = context.message_at(loglevel_t::info))
+  {
+    *msg << *this <<
+      ": invalidating connections to " << server_address;
+  }
+
+  resource_cache_.wipe(server_address);
+}
 
 } // cuti

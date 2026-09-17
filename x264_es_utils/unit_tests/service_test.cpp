@@ -18,12 +18,12 @@
  */
 
 #include <cuti/cmdline_reader.hpp>
-#include <cuti/default_nb_client_cache.hpp>
 #include <cuti/dispatcher.hpp>
 #include <cuti/endpoint.hpp>
 #include <cuti/flag.hpp>
 #include <cuti/logger.hpp>
 #include <cuti/logging_context.hpp>
+#include <cuti/nb_client_cache.hpp>
 #include <cuti/option_walker.hpp>
 #include <cuti/resolver.hpp>
 #include <cuti/rpc_client.hpp>
@@ -260,7 +260,7 @@ void test_service(cuti::logging_context_t const& client_context,
     auto const& endpoints = service.endpoints();
     assert(!endpoints.empty());
 
-    cuti::default_nb_client_cache_t cache(sockets);
+    cuti::nb_client_cache_t cache(sockets);
     x264_proto::client_t client(client_context, cache, endpoints.front());
 
     test_add(client_context, client);
