@@ -24,6 +24,7 @@
 #include <cuti/mutex_wrapper.hpp>
 #include <cuti/option_walker.hpp>
 #include <cuti/scoped_thread.hpp>
+#include <cuti/serial_generator.hpp>
 #include <cuti/streambuf_backend.hpp>
 
 #include <algorithm>
@@ -41,27 +42,9 @@ namespace // anonymous
 
 using namespace cuti;
 
-struct id_generator_t
-{
-  id_generator_t()
-  : wrapped_next_(0)
-  { }
-
-  unsigned int next()
-  {
-    auto lock = wrapped_next_.lock();
-    unsigned int result = *lock;
-    ++(*lock);
-    return result;
-  }
-    
-private :
-  mutex_wrapper_t<unsigned int> wrapped_next_;
-};
-
 struct resource_t
 {
-  resource_t(id_generator_t& generator,
+  resource_t(serial_generator_t& generator,
              unsigned int key,
              logging_context_t const& context,
              char const* func)
@@ -106,7 +89,7 @@ void check_different_ids(char const* func,
                          logging_context_t const& context,
                          resource_cache_settings_t const& settings)
 {
-  id_generator_t generator;
+  serial_generator_t generator;
   
   auto ktor = [&generator, &context, func](unsigned int key)
   { return std::make_unique<resource_t>(generator, key, context, func); };
@@ -141,7 +124,7 @@ void check_different_ids(char const* func,
 
 void test_reuse(logging_context_t const& context)
 {
-  id_generator_t generator;
+  serial_generator_t generator;
   char const* func = __func__;
 
   auto ktor = [&generator, &context, func](unsigned int key)
@@ -177,7 +160,7 @@ void test_reuse(logging_context_t const& context)
 
 void test_different_keys(logging_context_t const& context)
 {
-  id_generator_t generator;
+  serial_generator_t generator;
   char const* func = __func__;
 
   auto ktor = [&generator, &context, func](unsigned int key)
@@ -213,7 +196,7 @@ void test_different_keys(logging_context_t const& context)
 
 void test_mt_reuse(logging_context_t const& context)
 {
-  id_generator_t generator;
+  serial_generator_t generator;
   char const* func = __func__;
 
   auto ktor = [&generator, &context, func](unsigned int key)
@@ -288,7 +271,7 @@ void test_mt_reuse(logging_context_t const& context)
 
 void test_mt_different_keys(logging_context_t const& context)
 {
-  id_generator_t generator;
+  serial_generator_t generator;
   char const* func = __func__;
   
   auto ktor = [&generator, &context, func](unsigned int key)
@@ -395,7 +378,7 @@ void test_max_resource_age(logging_context_t const& context)
 
 void test_wipe(logging_context_t const& context)
 {
-  id_generator_t generator;
+  serial_generator_t generator;
   char const* func = __func__;
   
   auto ktor = [&generator, &context, func](unsigned int key)

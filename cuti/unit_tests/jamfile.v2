@@ -165,6 +165,10 @@ unit-test scoped_guard_test
 : scoped_guard_test.cpp
 ;
 
+unit-test serial_generator_test
+: serial_generator_test.cpp
+;
+
 unit-test signal_handler_test
 : signal_handler_test.cpp
 ;

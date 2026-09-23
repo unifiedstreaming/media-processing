@@ -107,6 +107,7 @@ lib cuti
   selector.cpp
   selector_factory.cpp
   sequence.cpp
+  serial_generator.cpp
   service.cpp
   signal_handler.cpp
   socket_layer.cpp
