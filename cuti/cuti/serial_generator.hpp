@@ -21,7 +21,8 @@
 #define CUTI_SERIAL_GENERATOR_HPP_
 
 #include "linkage.h"
-#include "mutex_wrapper.hpp"
+
+#include <atomic>
 
 namespace cuti
 {
@@ -33,7 +34,7 @@ namespace cuti
 struct CUTI_ABI serial_generator_t
 {
   serial_generator_t()
-  : next_wrapper_(0)
+  : next_(0)
   { }
 
   serial_generator_t(serial_generator_t const&) = delete;
@@ -41,17 +42,22 @@ struct CUTI_ABI serial_generator_t
 
   unsigned int next()
   {
-    unsigned int result;
-    {
-      auto locked_next = next_wrapper_.lock();
-      result = *locked_next;
-      ++(*locked_next);
-    }
-    return result;
+    /*
+     * https://en.cppreference.com/cpp/atomic/atomic/fetch_add:
+     *
+     * fetch_add() returns the value immediately preceding the effects
+     * of this function in the modification order of *this.
+     *
+     * https://en.cppreference.com/cpp/atomic/memory_order:
+     *
+     * All modifications to any particular atomic variable occur in a
+     * total order that is specific to this one atomic variable.
+     */
+    return next_.fetch_add(1, std::memory_order_relaxed);
   }
 
 private :
-  mutex_wrapper_t<unsigned int> next_wrapper_;
+  std::atomic<unsigned int> next_;
 };
 
 } // cuti
