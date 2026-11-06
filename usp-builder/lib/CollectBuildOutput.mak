@@ -160,6 +160,12 @@ else
   override hdrfiles :=
 endif
 
+ifdef pdb-dest-subdir
+  override pdb-dest-dir := $(dest-dir)/$(pdb-dest-subdir)
+else
+  override pdb-dest-dir := $(dest-dir)/bin
+endif
+
 ifdef windows
   override sopaths :=
   override dylibfiles :=
@@ -196,7 +202,7 @@ override dst-dylibfiles := $(addprefix $(dest-dir)/lib/, \
   $(patsubst $(libs-dir)/%,%,$(dylibfiles)))
 override dst-dllfiles := $(addprefix $(dest-dir)/bin/, \
   $(patsubst $(libs-dir)/%,%,$(dllfiles)))
-override dst-pdbfiles := $(addprefix $(dest-dir)/bin/, \
+override dst-pdbfiles := $(addprefix $(pdb-dest-dir)/, \
   $(patsubst $(libs-dir)/%,%,$(pdbfiles)))
 
 #
@@ -273,7 +279,7 @@ $(dst-dllfiles): $(dest-dir)/bin/%: $(libs-dir)/%
 
 $(dst-pdbfiles): | $(dst-dirs)
 
-$(dst-pdbfiles): $(dest-dir)/bin/%: $(libs-dir)/%
+$(dst-pdbfiles): $(pdb-dest-dir)/%: $(libs-dir)/%
 	$(usp-cp) "$(call to-shell,$<)" "$(call to-shell,$@)"
 
 $(dst-dirs):
